@@ -1,5 +1,5 @@
 import { randomUUID } from "node:crypto";
-import { mkdir, writeFile } from "node:fs/promises";
+import { mkdir, readFile, writeFile } from "node:fs/promises";
 import path from "node:path";
 
 const UPLOAD_DIR = path.join(process.cwd(), "public", "uploads");
@@ -9,6 +9,14 @@ const EXT_BY_MIME: Record<string, string> = {
   "image/png": "png",
   "image/gif": "gif",
   "image/webp": "webp",
+};
+
+const MIME_BY_EXT: Record<string, SavedImage["mediaType"]> = {
+  jpg: "image/jpeg",
+  jpeg: "image/jpeg",
+  png: "image/png",
+  gif: "image/gif",
+  webp: "image/webp",
 };
 
 export type SavedImage = {
@@ -37,4 +45,16 @@ export async function saveUploadedImage(file: File): Promise<SavedImage> {
     base64: bytes.toString("base64"),
     mediaType,
   };
+}
+
+/** Re-reads a previously saved image (by its public URL) for re-classification. */
+export async function loadSavedImage(url: string): Promise<SavedImage> {
+  const ext = path.extname(url).slice(1).toLowerCase();
+  const mediaType = MIME_BY_EXT[ext];
+  if (!mediaType) {
+    throw new Error(`Unsupported image type for ${url}`);
+  }
+
+  const bytes = await readFile(path.join(process.cwd(), "public", url));
+  return { url, base64: bytes.toString("base64"), mediaType };
 }

@@ -15,11 +15,15 @@ type ClothingItem = {
   description: string;
 };
 
+const isPlaceholder = (item: ClothingItem) => item.description.startsWith("Demo item");
+
 export default function ClosetPage() {
   const [items, setItems] = useState<ClothingItem[]>([]);
   const [loading, setLoading] = useState(true);
   const [uploading, setUploading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [aiEnabled, setAiEnabled] = useState(false);
+  const [reanalyzingId, setReanalyzingId] = useState<string | null>(null);
 
   async function loadItems() {
     const res = await fetch("/api/closet/items");
@@ -36,6 +40,11 @@ export default function ClosetPage() {
         if (ignore) return;
         setItems(data.items ?? []);
         setLoading(false);
+      });
+    fetch("/api/config")
+      .then((res) => res.json())
+      .then((data) => {
+        if (!ignore) setAiEnabled(Boolean(data.aiEnabled));
       });
     return () => {
       ignore = true;
@@ -67,6 +76,21 @@ export default function ClosetPage() {
   async function handleDelete(id: string) {
     setItems((prev) => prev.filter((item) => item.id !== id));
     await fetch(`/api/closet/items/${id}`, { method: "DELETE" });
+  }
+
+  async function handleReanalyze(id: string) {
+    setError(null);
+    setReanalyzingId(id);
+    try {
+      const res = await fetch(`/api/closet/items/${id}/reanalyze`, { method: "POST" });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error ?? "Re-analyze failed");
+      setItems((prev) => prev.map((item) => (item.id === id ? data.item : item)));
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Re-analyze failed");
+    } finally {
+      setReanalyzingId(null);
+    }
   }
 
   return (
@@ -114,6 +138,15 @@ export default function ClosetPage() {
               <div className="p-3">
                 <p className="text-xs font-medium uppercase tracking-wide text-zinc-500">{item.category}</p>
                 <p className="text-sm">{item.description}</p>
+                {aiEnabled && isPlaceholder(item) && (
+                  <button
+                    onClick={() => handleReanalyze(item.id)}
+                    disabled={reanalyzingId === item.id}
+                    className="mt-2 text-xs font-medium text-blue-600 hover:underline disabled:opacity-50 dark:text-blue-400"
+                  >
+                    {reanalyzingId === item.id ? "Analyzing…" : "Re-analyze with AI"}
+                  </button>
+                )}
               </div>
               <button
                 onClick={() => handleDelete(item.id)}
