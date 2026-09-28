@@ -1,0 +1,41 @@
+generator client {
+  provider = "prisma-client"
+  output   = "../src/generated/prisma"
+}
+
+datasource db {
+  provider = "sqlite"
+}
+
+model ClothingItem {
+  id          String   @id @default(cuid())
+  imageUrl    String
+  category    String
+  color       String
+  pattern     String
+  material    String
+  formality   String
+  season      String
+  description String
+  createdAt   DateTime @default(now())
+
+  outfitItems OutfitItem[]
+}
+
+model Outfit {
+  id        String   @id @default(cuid())
+  rationale String
+  createdAt DateTime @default(now())
+
+  items OutfitItem[]
+}
+
+model OutfitItem {
+  outfitId String
+  itemId   String
+
+  outfit Outfit       @relation(fields: [outfitId], references: [id], onDelete: Cascade)
+  item   ClothingItem @relation(fields: [itemId], references: [id], onDelete: Cascade)
+
+  @@id([outfitId, itemId])
+}
