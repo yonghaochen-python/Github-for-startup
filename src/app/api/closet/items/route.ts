@@ -9,13 +9,6 @@ export async function GET() {
 }
 
 export async function POST(request: Request) {
-  if (!process.env.ANTHROPIC_API_KEY) {
-    return NextResponse.json(
-      { error: "ANTHROPIC_API_KEY is not set. Add it to .env.local and restart the dev server." },
-      { status: 500 }
-    );
-  }
-
   const formData = await request.formData();
   const files = formData.getAll("images").filter((f): f is File => f instanceof File);
 

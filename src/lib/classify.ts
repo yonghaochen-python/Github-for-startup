@@ -30,7 +30,60 @@ const CLASSIFY_SCHEMA = {
   additionalProperties: false,
 };
 
+const PLACEHOLDER_POOL: ClothingAttributes[] = [
+  {
+    category: "top",
+    color: "white",
+    pattern: "solid",
+    material: "cotton",
+    formality: "casual",
+    season: "all-season",
+    description: "Demo item (no ANTHROPIC_API_KEY set) — placeholder top",
+  },
+  {
+    category: "bottom",
+    color: "indigo",
+    pattern: "solid",
+    material: "denim",
+    formality: "casual",
+    season: "all-season",
+    description: "Demo item (no ANTHROPIC_API_KEY set) — placeholder bottom",
+  },
+  {
+    category: "outerwear",
+    color: "black",
+    pattern: "solid",
+    material: "wool",
+    formality: "smart-casual",
+    season: "fall",
+    description: "Demo item (no ANTHROPIC_API_KEY set) — placeholder outerwear",
+  },
+  {
+    category: "shoes",
+    color: "white",
+    pattern: "solid",
+    material: "canvas",
+    formality: "casual",
+    season: "all-season",
+    description: "Demo item (no ANTHROPIC_API_KEY set) — placeholder shoes",
+  },
+];
+
+/**
+ * No API key configured: cycle through a small fixed pool instead of calling Claude,
+ * so the upload -> closet loop still works end to end for free. Swapping in a real
+ * ANTHROPIC_API_KEY later switches to real classification with no other changes.
+ */
+function classifyClothingImagePlaceholder(): ClothingAttributes {
+  const pick = PLACEHOLDER_POOL[Math.floor(Math.random() * PLACEHOLDER_POOL.length)];
+  return { ...pick };
+}
+
 export async function classifyClothingImage(image: SavedImage): Promise<ClothingAttributes> {
+  if (!process.env.ANTHROPIC_API_KEY) {
+    return classifyClothingImagePlaceholder();
+  }
+
   const message = await anthropic.messages.create({
     model: CLASSIFY_MODEL,
     max_tokens: 512,

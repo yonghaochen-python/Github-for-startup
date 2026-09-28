@@ -36,10 +36,58 @@ export type GeneratedOutfit = {
   rationale: string;
 };
 
+function pickRandom<T>(items: T[]): T | undefined {
+  if (items.length === 0) return undefined;
+  return items[Math.floor(Math.random() * items.length)];
+}
+
+/**
+ * No API key configured: pair items with simple category rules (one top/dress +
+ * one bottom, plus outerwear/shoes if available) instead of calling Claude, so the
+ * outfit loop still works end to end for free. Swapping in a real ANTHROPIC_API_KEY
+ * later switches to real AI-generated outfits with no other changes.
+ */
+function generateOutfitsFromClosetPlaceholder(closet: ClothingItem[]): GeneratedOutfit[] {
+  const byCategory = (category: string) => closet.filter((item) => item.category === category);
+
+  const outfits: GeneratedOutfit[] = [];
+  for (let i = 0; i < 3; i++) {
+    const base = pickRandom(byCategory("dress")) ?? undefined;
+    const top = base ? undefined : pickRandom(byCategory("top"));
+    const bottom = base ? undefined : pickRandom(byCategory("bottom"));
+    const outerwear = pickRandom(byCategory("outerwear"));
+    const shoes = pickRandom(byCategory("shoes"));
+
+    const chosen = [base, top, bottom, outerwear, shoes].filter(
+      (item): item is ClothingItem => item !== undefined
+    );
+
+    if (chosen.length < 2) {
+      const fallback = [...closet].sort(() => Math.random() - 0.5).slice(0, 2);
+      chosen.push(...fallback.filter((item) => !chosen.includes(item)));
+    }
+
+    const itemIds = [...new Set(chosen.map((item) => item.id))];
+    if (itemIds.length < 2) continue;
+    if (outfits.some((o) => o.itemIds.join() === itemIds.join())) continue;
+
+    outfits.push({
+      itemIds,
+      rationale: "Demo pairing (no ANTHROPIC_API_KEY set) — items grouped by basic category rules, not AI-styled.",
+    });
+  }
+
+  return outfits.length > 0 ? outfits : [];
+}
+
 export async function generateOutfitsFromCloset(
   closet: ClothingItem[],
   prompt?: string
 ): Promise<GeneratedOutfit[]> {
+  if (!process.env.ANTHROPIC_API_KEY) {
+    return generateOutfitsFromClosetPlaceholder(closet);
+  }
+
   const inventory = closet.map((item) => ({
     id: item.id,
     category: item.category,

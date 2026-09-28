@@ -3,13 +3,6 @@ import { prisma } from "@/lib/prisma";
 import { generateOutfitsFromCloset } from "@/lib/generateOutfits";
 
 export async function POST(request: Request) {
-  if (!process.env.ANTHROPIC_API_KEY) {
-    return NextResponse.json(
-      { error: "ANTHROPIC_API_KEY is not set. Add it to .env.local and restart the dev server." },
-      { status: 500 }
-    );
-  }
-
   const body = await request.json().catch(() => ({}));
   const prompt: string | undefined = typeof body.prompt === "string" ? body.prompt : undefined;
 
