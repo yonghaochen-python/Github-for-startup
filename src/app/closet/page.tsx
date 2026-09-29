@@ -4,6 +4,7 @@ import { useEffect, useMemo, useState } from "react";
 import Image from "next/image";
 import Link from "next/link";
 import { CATEGORIES, FORMALITIES, SEASONS } from "@/lib/clothingTaxonomy";
+import { AddClothesModal } from "@/components/AddClothesModal";
 
 type ClothingItem = {
   id: string;
@@ -40,6 +41,7 @@ export default function ClosetPage() {
   const [editingId, setEditingId] = useState<string | null>(null);
   const [editForm, setEditForm] = useState<EditForm | null>(null);
   const [savingEdit, setSavingEdit] = useState(false);
+  const [showAddClothes, setShowAddClothes] = useState(false);
 
   async function loadItems() {
     try {
@@ -182,23 +184,41 @@ export default function ClosetPage() {
         <div>
           <h1 className="text-2xl font-semibold tracking-tight">Your closet</h1>
           <p className="text-sm text-zinc-600 dark:text-zinc-400">
-            Upload photos of your clothes — AI will tag each one automatically.
+            Snap one photo of several pieces — AI will split them into separate items.
           </p>
         </div>
         {!signedOut && (
-          <label className="cursor-pointer rounded-full bg-black px-4 py-2 text-sm font-medium text-white hover:bg-zinc-800 dark:bg-white dark:text-black dark:hover:bg-zinc-200">
-            {uploading ? "Uploading…" : "Upload photos"}
-            <input
-              type="file"
-              accept="image/png,image/jpeg,image/webp,image/gif"
-              multiple
-              className="hidden"
-              disabled={uploading}
-              onChange={handleFiles}
-            />
-          </label>
+          <div className="flex shrink-0 items-center gap-3">
+            <label className="cursor-pointer text-sm font-medium text-zinc-600 hover:underline dark:text-zinc-400">
+              {uploading ? "Uploading…" : "Upload one-by-one"}
+              <input
+                type="file"
+                accept="image/png,image/jpeg,image/webp,image/gif"
+                multiple
+                className="hidden"
+                disabled={uploading}
+                onChange={handleFiles}
+              />
+            </label>
+            <button
+              onClick={() => setShowAddClothes(true)}
+              className="rounded-full bg-black px-4 py-2 text-sm font-medium text-white hover:bg-zinc-800 dark:bg-white dark:text-black dark:hover:bg-zinc-200"
+            >
+              Add Clothes
+            </button>
+          </div>
         )}
       </div>
+
+      {showAddClothes && (
+        <AddClothesModal
+          onClose={() => setShowAddClothes(false)}
+          onAdded={() => {
+            setLoading(true);
+            loadItems();
+          }}
+        />
+      )}
 
       {!signedOut && !loading && items.length >= 2 && (
         <Link
