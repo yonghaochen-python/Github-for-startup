@@ -1,9 +1,13 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 400 400">
-  <defs>
-    <pattern id="weave" width="10" height="10" patternTransform="rotate(45)" patternUnits="userSpaceOnUse">
-      <line x1="0" y1="0" x2="0" y2="10" stroke="#000" stroke-opacity="0.08" stroke-width="4"/>
-    </pattern>
-  </defs>
-  <rect width="400" height="400" fill="#8B8B85"/>
-  <rect width="400" height="400" fill="url(#weave)"/>
+  <rect width="400" height="400" fill="#F2F0EA"/>
+  <path d="M196 90 L160 108 L124 92 C102 96 82 110 66 136 L44 182 L88 206 L88 328 Q88 340 100 340 L188 340 L188 150 Z"
+        fill="#8B8A85" stroke="#6C6B66" stroke-width="4" stroke-linejoin="round"/>
+  <path d="M204 90 L240 108 L276 92 C298 96 318 110 334 136 L356 182 L312 206 L312 328 Q312 340 300 340 L212 340 L212 150 Z"
+        fill="#97968F" stroke="#6C6B66" stroke-width="4" stroke-linejoin="round"/>
+  <path d="M188 150 L212 150 L212 340 L188 340 Z" fill="#7B7A75"/>
+  <circle cx="198" cy="200" r="4" fill="#5C5B57"/>
+  <circle cx="198" cy="240" r="4" fill="#5C5B57"/>
+  <circle cx="198" cy="280" r="4" fill="#5C5B57"/>
+  <path d="M66 136 L88 206" fill="none" stroke="#6C6B66" stroke-width="3" opacity="0.6"/>
+  <path d="M334 136 L312 206" fill="none" stroke="#6C6B66" stroke-width="3" opacity="0.6"/>
 </svg>

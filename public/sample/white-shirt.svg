@@ -1,9 +1,12 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 400 400">
-  <defs>
-    <pattern id="weave" width="10" height="10" patternTransform="rotate(45)" patternUnits="userSpaceOnUse">
-      <line x1="0" y1="0" x2="0" y2="10" stroke="#000" stroke-opacity="0.05" stroke-width="4"/>
-    </pattern>
-  </defs>
   <rect width="400" height="400" fill="#F2F0EA"/>
-  <rect width="400" height="400" fill="url(#weave)"/>
+  <path d="M200 92 L162 92 C138 92 116 104 98 132 L74 182 L118 204 L118 330 Q118 342 130 342 L270 342 Q282 342 282 330 L282 204 L326 182 L302 132 C284 104 262 92 238 92 Z"
+        fill="#FDFDFB" stroke="#C9C3B4" stroke-width="4" stroke-linejoin="round"/>
+  <path d="M181 92 L200 122 L219 92" fill="none" stroke="#C9C3B4" stroke-width="4" stroke-linejoin="round"/>
+  <line x1="200" y1="130" x2="200" y2="330" stroke="#DCD7C9" stroke-width="3"/>
+  <circle cx="200" cy="165" r="4" fill="#C9C3B4"/>
+  <circle cx="200" cy="205" r="4" fill="#C9C3B4"/>
+  <circle cx="200" cy="245" r="4" fill="#C9C3B4"/>
+  <circle cx="200" cy="285" r="4" fill="#C9C3B4"/>
+  <path d="M118 204 L282 204" stroke="#E7E3D8" stroke-width="3"/>
 </svg>

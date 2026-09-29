@@ -6,16 +6,15 @@ const OUTFITS_SCHEMA = {
   properties: {
     outfits: {
       type: "array",
-      minItems: 3,
-      maxItems: 3,
+      minItems: 1,
       items: {
         type: "object",
         properties: {
           itemIds: {
             type: "array",
             items: { type: "string" },
-            minItems: 2,
-            description: "IDs of closet items that make up this outfit",
+            minItems: 1,
+            description: "IDs of closet items that make up this outfit (at least two)",
           },
           rationale: {
             type: "string",

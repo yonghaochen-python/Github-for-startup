@@ -1,9 +1,11 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 400 400">
-  <defs>
-    <pattern id="weave" width="10" height="10" patternTransform="rotate(45)" patternUnits="userSpaceOnUse">
-      <line x1="0" y1="0" x2="0" y2="10" stroke="#000" stroke-opacity="0.12" stroke-width="4"/>
-    </pattern>
-  </defs>
-  <rect width="400" height="400" fill="#3B5378"/>
-  <rect width="400" height="400" fill="url(#weave)"/>
+  <rect width="400" height="400" fill="#F2F0EA"/>
+  <path d="M140 70 L260 70 L268 190 L296 330 Q298 342 286 342 L246 342 Q236 342 234 330 L208 210 L192 210 L166 330 Q164 342 154 342 L114 342 Q102 342 104 330 L132 190 Z"
+        fill="#3B5B82" stroke="#2A4260" stroke-width="4" stroke-linejoin="round"/>
+  <path d="M140 70 L260 70 L262 96 L138 96 Z" fill="#33507A" stroke="#2A4260" stroke-width="4" stroke-linejoin="round"/>
+  <line x1="200" y1="70" x2="200" y2="96" stroke="#E7C25C" stroke-width="4"/>
+  <path d="M132 190 L268 190" stroke="#2A4260" stroke-width="3" stroke-dasharray="2 6"/>
+  <path d="M150 130 Q200 140 250 130" fill="none" stroke="#5A7BA3" stroke-width="3" opacity="0.7"/>
+  <line x1="118" y1="220" x2="150" y2="338" stroke="#2A4260" stroke-width="2" stroke-dasharray="1 5" opacity="0.6"/>
+  <line x1="282" y1="220" x2="250" y2="338" stroke="#2A4260" stroke-width="2" stroke-dasharray="1 5" opacity="0.6"/>
 </svg>

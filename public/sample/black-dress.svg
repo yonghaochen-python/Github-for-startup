@@ -1,9 +1,8 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 400 400">
-  <defs>
-    <pattern id="weave" width="10" height="10" patternTransform="rotate(45)" patternUnits="userSpaceOnUse">
-      <line x1="0" y1="0" x2="0" y2="10" stroke="#fff" stroke-opacity="0.05" stroke-width="4"/>
-    </pattern>
-  </defs>
-  <rect width="400" height="400" fill="#1C1B1D"/>
-  <rect width="400" height="400" fill="url(#weave)"/>
+  <rect width="400" height="400" fill="#F2F0EA"/>
+  <path d="M200 84 L168 100 L150 92 C142 96 138 106 140 118 L152 168 L168 158 L168 196 L134 330 Q130 344 146 344 L254 344 Q270 344 266 330 L232 196 L232 158 L248 168 L260 118 C262 106 258 96 250 92 L232 100 Z"
+        fill="#1E1E20" stroke="#3A3A3D" stroke-width="4" stroke-linejoin="round"/>
+  <path d="M181 92 L200 116 L219 92" fill="none" stroke="#3A3A3D" stroke-width="4" stroke-linejoin="round"/>
+  <path d="M168 196 L232 196" stroke="#3A3A3D" stroke-width="3" opacity="0.7"/>
+  <path d="M178 220 L166 330 M222 220 L234 330" stroke="#3A3A3D" stroke-width="2" opacity="0.5"/>
 </svg>
