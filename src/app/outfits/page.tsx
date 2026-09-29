@@ -31,6 +31,7 @@ export default function OutfitsPage() {
   const [style, setStyle] = useState("");
   const [colorPreference, setColorPreference] = useState("");
   const [prompt, setPrompt] = useState("");
+  const [showDetails, setShowDetails] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [signedOut, setSignedOut] = useState(false);
 
@@ -81,59 +82,76 @@ export default function OutfitsPage() {
   return (
     <main className="mx-auto w-full max-w-4xl flex-1 px-6 py-12">
       <h1 className="text-2xl font-semibold tracking-tight">Outfits</h1>
-      <p className="mb-6 text-sm text-zinc-600 dark:text-zinc-400">What are you dressing for?</p>
+      <p className="mb-6 text-sm text-zinc-600 dark:text-zinc-400">
+        What are you dressing for? Pick one and let Nav do the rest.
+      </p>
 
       <div className="mb-8 rounded-xl border border-black/10 bg-white p-4 dark:border-white/10 dark:bg-zinc-950">
-        <div className="mb-3 grid grid-cols-2 gap-3 sm:grid-cols-4">
-          <select
-            value={occasion}
-            onChange={(e) => setOccasion(e.target.value)}
-            className="rounded-lg border border-black/15 bg-white px-3 py-2 text-sm outline-none focus:border-black/40 dark:border-white/20 dark:bg-zinc-900 dark:focus:border-white/40"
-          >
-            {OCCASIONS.map((o) => (
-              <option key={o} value={o}>
-                {o}
-              </option>
-            ))}
-          </select>
-          <input
-            type="text"
-            value={weather}
-            onChange={(e) => setWeather(e.target.value)}
-            placeholder="Weather (e.g. 65°F)"
-            className="rounded-lg border border-black/15 bg-white px-3 py-2 text-sm outline-none focus:border-black/40 dark:border-white/20 dark:bg-zinc-900 dark:focus:border-white/40"
-          />
-          <input
-            type="text"
-            value={style}
-            onChange={(e) => setStyle(e.target.value)}
-            placeholder="Preferred style"
-            className="rounded-lg border border-black/15 bg-white px-3 py-2 text-sm outline-none focus:border-black/40 dark:border-white/20 dark:bg-zinc-900 dark:focus:border-white/40"
-          />
-          <input
-            type="text"
-            value={colorPreference}
-            onChange={(e) => setColorPreference(e.target.value)}
-            placeholder="Color preference"
-            className="rounded-lg border border-black/15 bg-white px-3 py-2 text-sm outline-none focus:border-black/40 dark:border-white/20 dark:bg-zinc-900 dark:focus:border-white/40"
-          />
+        <div className="mb-4 flex flex-wrap gap-2">
+          {OCCASIONS.map((o) => (
+            <button
+              key={o}
+              onClick={() => setOccasion(o)}
+              className={`rounded-full border px-4 py-2 text-sm font-medium ${
+                occasion === o
+                  ? "border-black bg-black text-white dark:border-white dark:bg-white dark:text-black"
+                  : "border-black/15 text-zinc-700 hover:border-black/40 dark:border-white/20 dark:text-zinc-300"
+              }`}
+            >
+              {o}
+            </button>
+          ))}
         </div>
-        <div className="flex flex-col gap-3 sm:flex-row">
-          <input
-            type="text"
-            value={prompt}
-            onChange={(e) => setPrompt(e.target.value)}
-            placeholder="Optional: anything else? (e.g. 'make me a casual outfit for a 65°F day')"
-            className="flex-1 rounded-full border border-black/15 bg-white px-4 py-2 text-sm outline-none focus:border-black/40 dark:border-white/20 dark:bg-zinc-900 dark:focus:border-white/40"
-          />
-          <button
-            onClick={handleGenerate}
-            disabled={generating}
-            className="rounded-full bg-black px-5 py-2 text-sm font-medium text-white hover:bg-zinc-800 disabled:opacity-50 dark:bg-white dark:text-black dark:hover:bg-zinc-200"
-          >
-            {generating ? "Generating…" : "Generate outfits"}
-          </button>
-        </div>
+
+        <button
+          onClick={handleGenerate}
+          disabled={generating}
+          className="w-full rounded-full bg-black px-5 py-3 text-sm font-semibold text-white hover:bg-zinc-800 disabled:opacity-50 dark:bg-white dark:text-black dark:hover:bg-zinc-200"
+        >
+          {generating ? "Generating…" : "Generate outfits"}
+        </button>
+
+        <button
+          onClick={() => setShowDetails((v) => !v)}
+          className="mt-3 text-xs font-medium text-zinc-500 hover:underline dark:text-zinc-400"
+        >
+          {showDetails ? "Hide details" : "+ Add weather, style, or color preferences (optional)"}
+        </button>
+
+        {showDetails && (
+          <div className="mt-3 flex flex-col gap-3">
+            <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
+              <input
+                type="text"
+                value={weather}
+                onChange={(e) => setWeather(e.target.value)}
+                placeholder="Weather (e.g. 65°F)"
+                className="rounded-lg border border-black/15 bg-white px-3 py-2 text-sm outline-none focus:border-black/40 dark:border-white/20 dark:bg-zinc-900 dark:focus:border-white/40"
+              />
+              <input
+                type="text"
+                value={style}
+                onChange={(e) => setStyle(e.target.value)}
+                placeholder="Preferred style"
+                className="rounded-lg border border-black/15 bg-white px-3 py-2 text-sm outline-none focus:border-black/40 dark:border-white/20 dark:bg-zinc-900 dark:focus:border-white/40"
+              />
+              <input
+                type="text"
+                value={colorPreference}
+                onChange={(e) => setColorPreference(e.target.value)}
+                placeholder="Color preference"
+                className="rounded-lg border border-black/15 bg-white px-3 py-2 text-sm outline-none focus:border-black/40 dark:border-white/20 dark:bg-zinc-900 dark:focus:border-white/40"
+              />
+            </div>
+            <input
+              type="text"
+              value={prompt}
+              onChange={(e) => setPrompt(e.target.value)}
+              placeholder="Anything else? (e.g. 'make me a casual outfit for a 65°F day')"
+              className="rounded-full border border-black/15 bg-white px-4 py-2 text-sm outline-none focus:border-black/40 dark:border-white/20 dark:bg-zinc-900 dark:focus:border-white/40"
+            />
+          </div>
+        )}
       </div>
 
       {error && (

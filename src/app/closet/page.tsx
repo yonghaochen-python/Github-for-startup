@@ -3,7 +3,7 @@
 import { useEffect, useMemo, useState } from "react";
 import Image from "next/image";
 import Link from "next/link";
-import { CATEGORIES, FORMALITIES, SEASONS } from "@/lib/classify";
+import { CATEGORIES, FORMALITIES, SEASONS } from "@/lib/clothingTaxonomy";
 
 type ClothingItem = {
   id: string;
@@ -179,6 +179,16 @@ export default function ClosetPage() {
         </label>
       </div>
 
+      {!signedOut && !loading && items.length >= 2 && (
+        <Link
+          href="/outfits"
+          className="mb-6 flex items-center justify-between gap-3 rounded-xl border border-black/10 bg-black px-4 py-3 text-white hover:bg-zinc-800 dark:border-white/10 dark:bg-white dark:text-black dark:hover:bg-zinc-200"
+        >
+          <span className="text-sm font-medium">Got what you need? Get outfit ideas from your closet.</span>
+          <span aria-hidden className="text-sm">→</span>
+        </Link>
+      )}
+
       {!signedOut && !loading && items.length > 0 && (
         <div className="mb-6 flex flex-col gap-3 sm:flex-row sm:items-center">
           <div className="flex flex-wrap gap-2">
@@ -230,60 +240,60 @@ export default function ClosetPage() {
           {filteredItems.map((item) => (
             <div
               key={item.id}
-              className="group relative overflow-hidden rounded-xl border border-black/10 bg-white dark:border-white/10 dark:bg-zinc-950"
+              className={`group relative overflow-hidden rounded-xl border border-black/10 bg-white dark:border-white/10 dark:bg-zinc-950 ${
+                editingId === item.id ? "col-span-2" : ""
+              }`}
             >
               <div className="relative aspect-square w-full bg-zinc-100 dark:bg-zinc-900">
                 <Image src={item.imageUrl} alt={item.description} fill className="object-cover" unoptimized />
               </div>
 
               {editingId === item.id && editForm ? (
-                <div className="flex flex-col gap-2 p-3">
+                <div className="flex flex-col gap-3 p-4">
                   <input
                     type="text"
                     value={editForm.description}
                     onChange={(e) => setEditForm({ ...editForm, description: e.target.value })}
                     placeholder="Description"
-                    className="rounded border border-black/15 bg-white px-2 py-1 text-xs dark:border-white/20 dark:bg-zinc-900"
+                    className="rounded-lg border border-black/15 bg-white px-3 py-2 text-sm dark:border-white/20 dark:bg-zinc-900"
                   />
-                  <select
-                    value={editForm.category}
-                    onChange={(e) => setEditForm({ ...editForm, category: e.target.value })}
-                    className="rounded border border-black/15 bg-white px-2 py-1 text-xs capitalize dark:border-white/20 dark:bg-zinc-900"
-                  >
-                    {CATEGORIES.map((c) => (
-                      <option key={c} value={c}>
-                        {c}
-                      </option>
-                    ))}
-                  </select>
-                  <div className="grid grid-cols-2 gap-2">
+                  <div className="grid grid-cols-2 gap-3">
+                    <select
+                      value={editForm.category}
+                      onChange={(e) => setEditForm({ ...editForm, category: e.target.value })}
+                      className="rounded-lg border border-black/15 bg-white px-3 py-2 text-sm capitalize dark:border-white/20 dark:bg-zinc-900"
+                    >
+                      {CATEGORIES.map((c) => (
+                        <option key={c} value={c}>
+                          {c}
+                        </option>
+                      ))}
+                    </select>
                     <input
                       type="text"
                       value={editForm.color}
                       onChange={(e) => setEditForm({ ...editForm, color: e.target.value })}
                       placeholder="Color"
-                      className="rounded border border-black/15 bg-white px-2 py-1 text-xs dark:border-white/20 dark:bg-zinc-900"
+                      className="rounded-lg border border-black/15 bg-white px-3 py-2 text-sm dark:border-white/20 dark:bg-zinc-900"
                     />
                     <input
                       type="text"
                       value={editForm.material}
                       onChange={(e) => setEditForm({ ...editForm, material: e.target.value })}
                       placeholder="Material"
-                      className="rounded border border-black/15 bg-white px-2 py-1 text-xs dark:border-white/20 dark:bg-zinc-900"
+                      className="rounded-lg border border-black/15 bg-white px-3 py-2 text-sm dark:border-white/20 dark:bg-zinc-900"
                     />
-                  </div>
-                  <input
-                    type="text"
-                    value={editForm.pattern}
-                    onChange={(e) => setEditForm({ ...editForm, pattern: e.target.value })}
-                    placeholder="Pattern"
-                    className="rounded border border-black/15 bg-white px-2 py-1 text-xs dark:border-white/20 dark:bg-zinc-900"
-                  />
-                  <div className="grid grid-cols-2 gap-2">
+                    <input
+                      type="text"
+                      value={editForm.pattern}
+                      onChange={(e) => setEditForm({ ...editForm, pattern: e.target.value })}
+                      placeholder="Pattern"
+                      className="rounded-lg border border-black/15 bg-white px-3 py-2 text-sm dark:border-white/20 dark:bg-zinc-900"
+                    />
                     <select
                       value={editForm.formality}
                       onChange={(e) => setEditForm({ ...editForm, formality: e.target.value })}
-                      className="rounded border border-black/15 bg-white px-2 py-1 text-xs capitalize dark:border-white/20 dark:bg-zinc-900"
+                      className="rounded-lg border border-black/15 bg-white px-3 py-2 text-sm capitalize dark:border-white/20 dark:bg-zinc-900"
                     >
                       {FORMALITIES.map((f) => (
                         <option key={f} value={f}>
@@ -294,7 +304,7 @@ export default function ClosetPage() {
                     <select
                       value={editForm.season}
                       onChange={(e) => setEditForm({ ...editForm, season: e.target.value })}
-                      className="rounded border border-black/15 bg-white px-2 py-1 text-xs capitalize dark:border-white/20 dark:bg-zinc-900"
+                      className="rounded-lg border border-black/15 bg-white px-3 py-2 text-sm capitalize dark:border-white/20 dark:bg-zinc-900"
                     >
                       {SEASONS.map((s) => (
                         <option key={s} value={s}>
@@ -307,7 +317,7 @@ export default function ClosetPage() {
                     <button
                       onClick={() => saveEdit(item.id)}
                       disabled={savingEdit}
-                      className="flex-1 rounded-full bg-black px-3 py-1 text-xs font-medium text-white disabled:opacity-50 dark:bg-white dark:text-black"
+                      className="flex-1 rounded-full bg-black px-4 py-2 text-sm font-medium text-white disabled:opacity-50 dark:bg-white dark:text-black"
                     >
                       {savingEdit ? "Saving…" : "Save"}
                     </button>
@@ -316,7 +326,7 @@ export default function ClosetPage() {
                         setEditingId(null);
                         setEditForm(null);
                       }}
-                      className="rounded-full border border-black/15 px-3 py-1 text-xs dark:border-white/20"
+                      className="rounded-full border border-black/15 px-4 py-2 text-sm dark:border-white/20"
                     >
                       Cancel
                     </button>
@@ -349,9 +359,10 @@ export default function ClosetPage() {
               {editingId !== item.id && (
                 <button
                   onClick={() => handleDelete(item.id)}
-                  className="absolute right-2 top-2 rounded-full bg-black/60 px-2 py-1 text-xs text-white opacity-0 transition-opacity group-hover:opacity-100"
+                  aria-label="Remove item"
+                  className="absolute right-2 top-2 flex h-7 w-7 items-center justify-center rounded-full bg-black/60 text-sm text-white hover:bg-black/80"
                 >
-                  Remove
+                  ×
                 </button>
               )}
             </div>

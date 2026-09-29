@@ -1,19 +1,8 @@
 import { anthropic, CLASSIFY_MODEL, firstText } from "@/lib/anthropic";
 import type { SavedImage } from "@/lib/images";
+import { CATEGORIES, FORMALITIES, SEASONS, type ClothingAttributes } from "@/lib/clothingTaxonomy";
 
-export const CATEGORIES = ["top", "bottom", "outerwear", "shoes", "accessory", "dress"] as const;
-export const FORMALITIES = ["casual", "smart-casual", "formal", "athletic"] as const;
-export const SEASONS = ["spring", "summer", "fall", "winter", "all-season"] as const;
-
-export type ClothingAttributes = {
-  category: (typeof CATEGORIES)[number];
-  color: string;
-  pattern: string;
-  material: string;
-  formality: (typeof FORMALITIES)[number];
-  season: (typeof SEASONS)[number];
-  description: string;
-};
+export { CATEGORIES, FORMALITIES, SEASONS, type ClothingAttributes };
 
 const CLASSIFY_SCHEMA = {
   type: "object",
