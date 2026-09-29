@@ -27,7 +27,7 @@ export default function ClosetPage() {
 
   async function loadItems() {
     const res = await fetch("/api/closet/items");
-    const data = await res.json();
+    const data = (await res.json()) as { items?: ClothingItem[] };
     setItems(data.items ?? []);
     setLoading(false);
   }
@@ -35,14 +35,14 @@ export default function ClosetPage() {
   useEffect(() => {
     let ignore = false;
     fetch("/api/closet/items")
-      .then((res) => res.json())
+      .then((res) => res.json() as Promise<{ items?: ClothingItem[] }>)
       .then((data) => {
         if (ignore) return;
         setItems(data.items ?? []);
         setLoading(false);
       });
     fetch("/api/config")
-      .then((res) => res.json())
+      .then((res) => res.json() as Promise<{ aiEnabled?: boolean }>)
       .then((data) => {
         if (!ignore) setAiEnabled(Boolean(data.aiEnabled));
       });
@@ -62,7 +62,7 @@ export default function ClosetPage() {
       for (const file of files) formData.append("images", file);
 
       const res = await fetch("/api/closet/items", { method: "POST", body: formData });
-      const data = await res.json();
+      const data = (await res.json()) as { error?: string };
       if (!res.ok) throw new Error(data.error ?? "Upload failed");
       await loadItems();
     } catch (err) {
@@ -83,9 +83,10 @@ export default function ClosetPage() {
     setReanalyzingId(id);
     try {
       const res = await fetch(`/api/closet/items/${id}/reanalyze`, { method: "POST" });
-      const data = await res.json();
-      if (!res.ok) throw new Error(data.error ?? "Re-analyze failed");
-      setItems((prev) => prev.map((item) => (item.id === id ? data.item : item)));
+      const data = (await res.json()) as { error?: string; item?: ClothingItem };
+      if (!res.ok || !data.item) throw new Error(data.error ?? "Re-analyze failed");
+      const updated = data.item;
+      setItems((prev) => prev.map((item) => (item.id === id ? updated : item)));
     } catch (err) {
       setError(err instanceof Error ? err.message : "Re-analyze failed");
     } finally {

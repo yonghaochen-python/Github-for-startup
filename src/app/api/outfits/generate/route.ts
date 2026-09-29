@@ -3,8 +3,11 @@ import { prisma } from "@/lib/prisma";
 import { generateOutfitsFromCloset } from "@/lib/generateOutfits";
 
 export async function POST(request: Request) {
-  const body = await request.json().catch(() => ({}));
-  const prompt: string | undefined = typeof body.prompt === "string" ? body.prompt : undefined;
+  const body: unknown = await request.json().catch(() => ({}));
+  const prompt =
+    body && typeof body === "object" && "prompt" in body && typeof body.prompt === "string"
+      ? body.prompt
+      : undefined;
 
   const closet = await prisma.clothingItem.findMany();
   if (closet.length < 2) {

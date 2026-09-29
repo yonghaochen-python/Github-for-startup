@@ -7,32 +7,47 @@
     "build": "next build",
     "start": "next start",
     "lint": "eslint",
-    "postinstall": "prisma generate"
+    "postinstall": "prisma generate",
+    "dev:vinext": "vite dev --port 3001",
+    "build:vinext": "vite build",
+    "start:vinext": "vite preview",
+    "deploy:vinext": "vinext-cloudflare deploy"
   },
   "dependencies": {
     "@anthropic-ai/sdk": "^0.128.0",
     "@prisma/adapter-better-sqlite3": "^7.10.0",
+    "@prisma/adapter-d1": "^7.10.0",
     "@prisma/client": "7.10.0",
+    "@vinext/cloudflare": "^1.0.0",
     "dotenv": "^18.0.4",
     "next": "16.3.6",
     "prisma": "7.10.0",
-    "react": "19.2.8",
-    "react-dom": "19.2.8"
+    "react": "19.3.0",
+    "react-dom": "19.3.0",
+    "react-server-dom-webpack": "^19.3.0",
+    "vinext": "^1.0.0"
   },
   "devDependencies": {
+    "@cloudflare/vite-plugin": "^2.0.0-beta.sha-ad79608dd",
     "@tailwindcss/postcss": "^4",
     "@types/node": "^20",
     "@types/react": "^19",
     "@types/react-dom": "^19",
+    "@vitejs/plugin-react": "^6.1.1",
+    "@vitejs/plugin-rsc": "^0.5.35",
+    "cf": "^1.0.0-beta.5",
     "eslint": "^9",
     "eslint-config-next": "16.3.6",
     "tailwindcss": "^4",
-    "typescript": "^5"
+    "typescript": "^5",
+    "vite": "^8.3.0"
   },
   "allowScripts": {
     "@prisma/engines@7.10.0": true,
     "better-sqlite3@12.11.1": true,
     "prisma@7.10.0": true,
-    "unrs-resolver@1.12.2": true
-  }
+    "unrs-resolver@1.12.2": true,
+    "workerd@1.20260926.1": true
+  },
+  "type": "module"
 }

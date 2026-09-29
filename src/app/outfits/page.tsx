@@ -27,7 +27,7 @@ export default function OutfitsPage() {
   useEffect(() => {
     let ignore = false;
     fetch("/api/outfits")
-      .then((res) => res.json())
+      .then((res) => res.json() as Promise<{ outfits?: Outfit[] }>)
       .then((data) => {
         if (ignore) return;
         setOutfits(data.outfits ?? []);
@@ -47,9 +47,10 @@ export default function OutfitsPage() {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ prompt: prompt || undefined }),
       });
-      const data = await res.json();
-      if (!res.ok) throw new Error(data.error ?? "Couldn't generate outfits");
-      setOutfits((prev) => [...data.outfits, ...prev]);
+      const data = (await res.json()) as { error?: string; outfits?: Outfit[] };
+      if (!res.ok || !data.outfits) throw new Error(data.error ?? "Couldn't generate outfits");
+      const generated = data.outfits;
+      setOutfits((prev) => [...generated, ...prev]);
     } catch (err) {
       setError(err instanceof Error ? err.message : "Couldn't generate outfits");
     } finally {

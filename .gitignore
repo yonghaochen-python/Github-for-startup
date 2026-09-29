@@ -50,3 +50,6 @@ next-env.d.ts
 
 # uploaded clothing photos
 /public/uploads
+/dist/
+.vinext/
+.cloudflare/

@@ -8,7 +8,7 @@ export function DemoModeBanner() {
   useEffect(() => {
     let ignore = false;
     fetch("/api/config")
-      .then((res) => res.json())
+      .then((res) => res.json() as Promise<{ aiEnabled?: boolean }>)
       .then((data) => {
         if (!ignore) setAiEnabled(Boolean(data.aiEnabled));
       });
