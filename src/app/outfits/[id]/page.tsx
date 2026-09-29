@@ -30,30 +30,61 @@ export default function OutfitDetailPage() {
   const [closet, setCloset] = useState<ClothingItem[]>([]);
   const [loading, setLoading] = useState(true);
   const [notFound, setNotFound] = useState(false);
+  const [loadError, setLoadError] = useState(false);
   const [saving, setSaving] = useState(false);
   const [swappingId, setSwappingId] = useState<string | null>(null);
   const [replacementId, setReplacementId] = useState("");
   const [swapping, setSwapping] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  useEffect(() => {
-    let ignore = false;
-    fetch(`/api/outfits/${params.id}`).then(async (res) => {
-      if (ignore) return;
-      if (!res.ok) {
+  async function loadOutfit() {
+    try {
+      const res = await fetch(`/api/outfits/${params.id}`);
+      if (res.status === 404 || res.status === 401) {
         setNotFound(true);
         setLoading(false);
         return;
       }
+      if (!res.ok) throw new Error("Failed to load outfit");
       const data = (await res.json()) as { outfit: Outfit };
       setOutfit(data.outfit);
+      setLoadError(false);
       setLoading(false);
-    });
-    fetch("/api/closet/items").then(async (res) => {
-      if (ignore || !res.ok) return;
-      const data = (await res.json()) as { items?: ClothingItem[] };
-      setCloset(data.items ?? []);
-    });
+    } catch {
+      setLoadError(true);
+      setLoading(false);
+    }
+  }
+
+  useEffect(() => {
+    let ignore = false;
+    fetch(`/api/outfits/${params.id}`)
+      .then(async (res) => {
+        if (ignore) return;
+        if (res.status === 404 || res.status === 401) {
+          setNotFound(true);
+          setLoading(false);
+          return;
+        }
+        if (!res.ok) throw new Error("Failed to load outfit");
+        const data = (await res.json()) as { outfit: Outfit };
+        setOutfit(data.outfit);
+        setLoadError(false);
+        setLoading(false);
+      })
+      .catch(() => {
+        if (!ignore) {
+          setLoadError(true);
+          setLoading(false);
+        }
+      });
+    fetch("/api/closet/items")
+      .then(async (res) => {
+        if (ignore || !res.ok) return;
+        const data = (await res.json()) as { items?: ClothingItem[] };
+        setCloset(data.items ?? []);
+      })
+      .catch(() => {});
     return () => {
       ignore = true;
     };
@@ -101,6 +132,25 @@ export default function OutfitDetailPage() {
     return (
       <main className="mx-auto w-full max-w-2xl flex-1 px-6 py-12">
         <p className="text-sm text-zinc-500">Loading…</p>
+      </main>
+    );
+  }
+
+  if (loadError) {
+    return (
+      <main className="mx-auto w-full max-w-2xl flex-1 px-6 py-12">
+        <div className="flex flex-col items-start gap-3">
+          <p className="text-sm text-red-700 dark:text-red-400">Couldn&apos;t load this outfit. Please try again.</p>
+          <button
+            onClick={() => {
+              setLoading(true);
+              loadOutfit();
+            }}
+            className="rounded-full border border-black/15 px-4 py-1.5 text-sm font-medium hover:bg-black/5 dark:border-white/20 dark:hover:bg-white/10"
+          >
+            Try again
+          </button>
+        </div>
       </main>
     );
   }

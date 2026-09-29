@@ -34,20 +34,49 @@ export default function OutfitsPage() {
   const [showDetails, setShowDetails] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [signedOut, setSignedOut] = useState(false);
+  const [loadError, setLoadError] = useState(false);
 
-  useEffect(() => {
-    let ignore = false;
-    fetch("/api/outfits").then(async (res) => {
-      if (ignore) return;
+  async function loadOutfits() {
+    try {
+      const res = await fetch("/api/outfits");
       if (res.status === 401) {
         setSignedOut(true);
         setLoading(false);
         return;
       }
+      if (!res.ok) throw new Error("Failed to load outfits");
       const data = (await res.json()) as { outfits?: Outfit[] };
       setOutfits(data.outfits ?? []);
+      setLoadError(false);
       setLoading(false);
-    });
+    } catch {
+      setLoadError(true);
+      setLoading(false);
+    }
+  }
+
+  useEffect(() => {
+    let ignore = false;
+    fetch("/api/outfits")
+      .then(async (res) => {
+        if (ignore) return;
+        if (res.status === 401) {
+          setSignedOut(true);
+          setLoading(false);
+          return;
+        }
+        if (!res.ok) throw new Error("Failed to load outfits");
+        const data = (await res.json()) as { outfits?: Outfit[] };
+        setOutfits(data.outfits ?? []);
+        setLoadError(false);
+        setLoading(false);
+      })
+      .catch(() => {
+        if (!ignore) {
+          setLoadError(true);
+          setLoading(false);
+        }
+      });
     return () => {
       ignore = true;
     };
@@ -162,6 +191,19 @@ export default function OutfitsPage() {
 
       {loading ? (
         <p className="text-sm text-zinc-500">Loading…</p>
+      ) : loadError ? (
+        <div className="flex flex-col items-start gap-3">
+          <p className="text-sm text-red-700 dark:text-red-400">Couldn&apos;t load your outfits. Please try again.</p>
+          <button
+            onClick={() => {
+              setLoading(true);
+              loadOutfits();
+            }}
+            className="rounded-full border border-black/15 px-4 py-1.5 text-sm font-medium hover:bg-black/5 dark:border-white/20 dark:hover:bg-white/10"
+          >
+            Try again
+          </button>
+        </div>
       ) : signedOut ? (
         <p className="text-sm text-zinc-500">
           <Link href="/login" className="text-blue-600 hover:underline dark:text-blue-400">
