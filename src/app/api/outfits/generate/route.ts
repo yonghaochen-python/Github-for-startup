@@ -1,7 +1,12 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
-import { generateOutfitsFromCloset } from "@/lib/generateOutfits";
+import { generateOutfitsFromCloset, type OutfitRequest } from "@/lib/generateOutfits";
 import { requireUser } from "@/lib/auth";
+import { serializeOutfit } from "@/lib/outfits";
+
+function str(value: unknown): string | undefined {
+  return typeof value === "string" && value.trim() ? value.trim() : undefined;
+}
 
 export async function POST(request: Request) {
   let user;
@@ -12,10 +17,14 @@ export async function POST(request: Request) {
   }
 
   const body: unknown = await request.json().catch(() => ({}));
-  const prompt =
-    body && typeof body === "object" && "prompt" in body && typeof body.prompt === "string"
-      ? body.prompt
-      : undefined;
+  const b = body && typeof body === "object" ? (body as Record<string, unknown>) : {};
+  const outfitRequest: OutfitRequest = {
+    occasion: str(b.occasion),
+    weather: str(b.weather),
+    style: str(b.style),
+    colorPreference: str(b.colorPreference),
+    prompt: str(b.prompt),
+  };
 
   const closet = await prisma.clothingItem.findMany({ where: { userId: user.id } });
   if (closet.length < 2) {
@@ -25,7 +34,7 @@ export async function POST(request: Request) {
     );
   }
 
-  const generated = await generateOutfitsFromCloset(closet, prompt);
+  const generated = await generateOutfitsFromCloset(closet, outfitRequest);
 
   const outfits = await Promise.all(
     generated.map((outfit) =>
@@ -33,6 +42,9 @@ export async function POST(request: Request) {
         data: {
           userId: user.id,
           rationale: outfit.rationale,
+          occasion: outfitRequest.occasion,
+          weather: outfitRequest.weather,
+          style: outfitRequest.style,
           items: { create: outfit.itemIds.map((itemId) => ({ itemId })) },
         },
         include: { items: { include: { item: true } } },
@@ -40,12 +52,5 @@ export async function POST(request: Request) {
     )
   );
 
-  return NextResponse.json({
-    outfits: outfits.map((outfit) => ({
-      id: outfit.id,
-      rationale: outfit.rationale,
-      createdAt: outfit.createdAt,
-      items: outfit.items.map((oi) => oi.item),
-    })),
-  });
+  return NextResponse.json({ outfits: outfits.map(serializeOutfit) });
 }

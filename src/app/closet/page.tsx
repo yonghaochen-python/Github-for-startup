@@ -1,8 +1,9 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import Image from "next/image";
 import Link from "next/link";
+import { CATEGORIES, FORMALITIES, SEASONS } from "@/lib/classify";
 
 type ClothingItem = {
   id: string;
@@ -16,7 +17,14 @@ type ClothingItem = {
   description: string;
 };
 
+type EditForm = Pick<ClothingItem, "category" | "color" | "pattern" | "material" | "formality" | "season" | "description">;
+
 const isPlaceholder = (item: ClothingItem) => item.description.startsWith("Demo item");
+
+function toEditForm(item: ClothingItem): EditForm {
+  const { category, color, pattern, material, formality, season, description } = item;
+  return { category, color, pattern, material, formality, season, description };
+}
 
 export default function ClosetPage() {
   const [items, setItems] = useState<ClothingItem[]>([]);
@@ -26,6 +34,11 @@ export default function ClosetPage() {
   const [aiEnabled, setAiEnabled] = useState(false);
   const [reanalyzingId, setReanalyzingId] = useState<string | null>(null);
   const [signedOut, setSignedOut] = useState(false);
+  const [categoryFilter, setCategoryFilter] = useState<string>("all");
+  const [search, setSearch] = useState("");
+  const [editingId, setEditingId] = useState<string | null>(null);
+  const [editForm, setEditForm] = useState<EditForm | null>(null);
+  const [savingEdit, setSavingEdit] = useState(false);
 
   async function loadItems() {
     const res = await fetch("/api/closet/items");
@@ -61,6 +74,17 @@ export default function ClosetPage() {
       ignore = true;
     };
   }, []);
+
+  const filteredItems = useMemo(() => {
+    const q = search.trim().toLowerCase();
+    return items.filter((item) => {
+      if (categoryFilter !== "all" && item.category !== categoryFilter) return false;
+      if (!q) return true;
+      return [item.description, item.category, item.color, item.material, item.pattern].some((v) =>
+        v.toLowerCase().includes(q)
+      );
+    });
+  }, [items, categoryFilter, search]);
 
   async function handleFiles(e: React.ChangeEvent<HTMLInputElement>) {
     const files = e.target.files;
@@ -105,9 +129,37 @@ export default function ClosetPage() {
     }
   }
 
+  function startEdit(item: ClothingItem) {
+    setEditingId(item.id);
+    setEditForm(toEditForm(item));
+  }
+
+  async function saveEdit(id: string) {
+    if (!editForm) return;
+    setSavingEdit(true);
+    setError(null);
+    try {
+      const res = await fetch(`/api/closet/items/${id}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(editForm),
+      });
+      const data = (await res.json()) as { error?: string; item?: ClothingItem };
+      if (!res.ok || !data.item) throw new Error(data.error ?? "Update failed");
+      const updated = data.item;
+      setItems((prev) => prev.map((item) => (item.id === id ? updated : item)));
+      setEditingId(null);
+      setEditForm(null);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Update failed");
+    } finally {
+      setSavingEdit(false);
+    }
+  }
+
   return (
     <main className="mx-auto w-full max-w-4xl flex-1 px-6 py-12">
-      <div className="mb-8 flex items-center justify-between gap-4">
+      <div className="mb-6 flex items-center justify-between gap-4">
         <div>
           <h1 className="text-2xl font-semibold tracking-tight">Your closet</h1>
           <p className="text-sm text-zinc-600 dark:text-zinc-400">
@@ -127,6 +179,33 @@ export default function ClosetPage() {
         </label>
       </div>
 
+      {!signedOut && !loading && items.length > 0 && (
+        <div className="mb-6 flex flex-col gap-3 sm:flex-row sm:items-center">
+          <div className="flex flex-wrap gap-2">
+            {["all", ...CATEGORIES].map((c) => (
+              <button
+                key={c}
+                onClick={() => setCategoryFilter(c)}
+                className={`rounded-full border px-3 py-1 text-xs font-medium capitalize ${
+                  categoryFilter === c
+                    ? "border-black bg-black text-white dark:border-white dark:bg-white dark:text-black"
+                    : "border-black/15 text-zinc-600 hover:border-black/40 dark:border-white/20 dark:text-zinc-400"
+                }`}
+              >
+                {c}
+              </button>
+            ))}
+          </div>
+          <input
+            type="text"
+            value={search}
+            onChange={(e) => setSearch(e.target.value)}
+            placeholder="Search your closet"
+            className="ml-auto w-full rounded-full border border-black/15 bg-white px-4 py-1.5 text-sm outline-none focus:border-black/40 sm:w-56 dark:border-white/20 dark:bg-zinc-950 dark:focus:border-white/40"
+          />
+        </div>
+      )}
+
       {error && (
         <p className="mb-6 rounded-lg bg-red-50 px-4 py-3 text-sm text-red-700 dark:bg-red-950 dark:text-red-300">
           {error}
@@ -144,9 +223,11 @@ export default function ClosetPage() {
         </p>
       ) : items.length === 0 ? (
         <p className="text-sm text-zinc-500">No items yet — upload your first photo to get started.</p>
+      ) : filteredItems.length === 0 ? (
+        <p className="text-sm text-zinc-500">No items match that filter.</p>
       ) : (
         <div className="grid grid-cols-2 gap-4 sm:grid-cols-3 md:grid-cols-4">
-          {items.map((item) => (
+          {filteredItems.map((item) => (
             <div
               key={item.id}
               className="group relative overflow-hidden rounded-xl border border-black/10 bg-white dark:border-white/10 dark:bg-zinc-950"
@@ -154,25 +235,125 @@ export default function ClosetPage() {
               <div className="relative aspect-square w-full bg-zinc-100 dark:bg-zinc-900">
                 <Image src={item.imageUrl} alt={item.description} fill className="object-cover" unoptimized />
               </div>
-              <div className="p-3">
-                <p className="text-xs font-medium uppercase tracking-wide text-zinc-500">{item.category}</p>
-                <p className="text-sm">{item.description}</p>
-                {aiEnabled && isPlaceholder(item) && (
-                  <button
-                    onClick={() => handleReanalyze(item.id)}
-                    disabled={reanalyzingId === item.id}
-                    className="mt-2 text-xs font-medium text-blue-600 hover:underline disabled:opacity-50 dark:text-blue-400"
+
+              {editingId === item.id && editForm ? (
+                <div className="flex flex-col gap-2 p-3">
+                  <input
+                    type="text"
+                    value={editForm.description}
+                    onChange={(e) => setEditForm({ ...editForm, description: e.target.value })}
+                    placeholder="Description"
+                    className="rounded border border-black/15 bg-white px-2 py-1 text-xs dark:border-white/20 dark:bg-zinc-900"
+                  />
+                  <select
+                    value={editForm.category}
+                    onChange={(e) => setEditForm({ ...editForm, category: e.target.value })}
+                    className="rounded border border-black/15 bg-white px-2 py-1 text-xs capitalize dark:border-white/20 dark:bg-zinc-900"
                   >
-                    {reanalyzingId === item.id ? "Analyzing…" : "Re-analyze with AI"}
-                  </button>
-                )}
-              </div>
-              <button
-                onClick={() => handleDelete(item.id)}
-                className="absolute right-2 top-2 rounded-full bg-black/60 px-2 py-1 text-xs text-white opacity-0 transition-opacity group-hover:opacity-100"
-              >
-                Remove
-              </button>
+                    {CATEGORIES.map((c) => (
+                      <option key={c} value={c}>
+                        {c}
+                      </option>
+                    ))}
+                  </select>
+                  <div className="grid grid-cols-2 gap-2">
+                    <input
+                      type="text"
+                      value={editForm.color}
+                      onChange={(e) => setEditForm({ ...editForm, color: e.target.value })}
+                      placeholder="Color"
+                      className="rounded border border-black/15 bg-white px-2 py-1 text-xs dark:border-white/20 dark:bg-zinc-900"
+                    />
+                    <input
+                      type="text"
+                      value={editForm.material}
+                      onChange={(e) => setEditForm({ ...editForm, material: e.target.value })}
+                      placeholder="Material"
+                      className="rounded border border-black/15 bg-white px-2 py-1 text-xs dark:border-white/20 dark:bg-zinc-900"
+                    />
+                  </div>
+                  <input
+                    type="text"
+                    value={editForm.pattern}
+                    onChange={(e) => setEditForm({ ...editForm, pattern: e.target.value })}
+                    placeholder="Pattern"
+                    className="rounded border border-black/15 bg-white px-2 py-1 text-xs dark:border-white/20 dark:bg-zinc-900"
+                  />
+                  <div className="grid grid-cols-2 gap-2">
+                    <select
+                      value={editForm.formality}
+                      onChange={(e) => setEditForm({ ...editForm, formality: e.target.value })}
+                      className="rounded border border-black/15 bg-white px-2 py-1 text-xs capitalize dark:border-white/20 dark:bg-zinc-900"
+                    >
+                      {FORMALITIES.map((f) => (
+                        <option key={f} value={f}>
+                          {f}
+                        </option>
+                      ))}
+                    </select>
+                    <select
+                      value={editForm.season}
+                      onChange={(e) => setEditForm({ ...editForm, season: e.target.value })}
+                      className="rounded border border-black/15 bg-white px-2 py-1 text-xs capitalize dark:border-white/20 dark:bg-zinc-900"
+                    >
+                      {SEASONS.map((s) => (
+                        <option key={s} value={s}>
+                          {s}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+                  <div className="flex gap-2 pt-1">
+                    <button
+                      onClick={() => saveEdit(item.id)}
+                      disabled={savingEdit}
+                      className="flex-1 rounded-full bg-black px-3 py-1 text-xs font-medium text-white disabled:opacity-50 dark:bg-white dark:text-black"
+                    >
+                      {savingEdit ? "Saving…" : "Save"}
+                    </button>
+                    <button
+                      onClick={() => {
+                        setEditingId(null);
+                        setEditForm(null);
+                      }}
+                      className="rounded-full border border-black/15 px-3 py-1 text-xs dark:border-white/20"
+                    >
+                      Cancel
+                    </button>
+                  </div>
+                </div>
+              ) : (
+                <div className="p-3">
+                  <p className="text-xs font-medium uppercase tracking-wide text-zinc-500">{item.category}</p>
+                  <p className="text-sm">{item.description}</p>
+                  <div className="mt-2 flex flex-wrap gap-x-3 gap-y-1">
+                    <button
+                      onClick={() => startEdit(item)}
+                      className="text-xs font-medium text-zinc-600 hover:underline dark:text-zinc-400"
+                    >
+                      Edit
+                    </button>
+                    {aiEnabled && isPlaceholder(item) && (
+                      <button
+                        onClick={() => handleReanalyze(item.id)}
+                        disabled={reanalyzingId === item.id}
+                        className="text-xs font-medium text-blue-600 hover:underline disabled:opacity-50 dark:text-blue-400"
+                      >
+                        {reanalyzingId === item.id ? "Analyzing…" : "Re-analyze with AI"}
+                      </button>
+                    )}
+                  </div>
+                </div>
+              )}
+
+              {editingId !== item.id && (
+                <button
+                  onClick={() => handleDelete(item.id)}
+                  className="absolute right-2 top-2 rounded-full bg-black/60 px-2 py-1 text-xs text-white opacity-0 transition-opacity group-hover:opacity-100"
+                >
+                  Remove
+                </button>
+              )}
             </div>
           ))}
         </div>

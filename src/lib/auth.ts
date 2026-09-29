@@ -52,7 +52,7 @@ function randomToken(): string {
   return toHex(crypto.getRandomValues(new Uint8Array(32)).buffer);
 }
 
-export type SessionUser = { id: string; email: string };
+export type SessionUser = { id: string; email: string; selfieUrl: string | null };
 
 export async function createSession(userId: string): Promise<{ cookie: string; expiresAt: Date }> {
   const token = randomToken();
@@ -102,7 +102,7 @@ export async function getCurrentUser(request: Request): Promise<SessionUser | nu
   const session = await prisma.session.findUnique({ where: { tokenHash }, include: { user: true } });
   if (!session || session.expiresAt < new Date()) return null;
 
-  return { id: session.user.id, email: session.user.email };
+  return { id: session.user.id, email: session.user.email, selfieUrl: session.user.selfieUrl };
 }
 
 /** Returns the signed-in user, or throws a 401 Response for the route handler to return directly. */

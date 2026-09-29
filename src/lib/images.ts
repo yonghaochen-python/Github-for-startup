@@ -60,3 +60,8 @@ export async function loadSavedImage(url: string): Promise<SavedImage> {
   const bytes = new Uint8Array(await object.arrayBuffer());
   return { url, base64: Buffer.from(bytes).toString("base64"), mediaType };
 }
+
+export async function deleteSavedImage(url: string): Promise<void> {
+  const key = url.replace(/^\/uploads\//, "");
+  await env.UPLOADS.delete(key);
+}

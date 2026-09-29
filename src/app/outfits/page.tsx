@@ -4,6 +4,8 @@ import { useEffect, useState } from "react";
 import Image from "next/image";
 import Link from "next/link";
 
+const OCCASIONS = ["Everyday", "Class", "Work", "Date", "Dinner", "Party", "Interview", "Special Event"];
+
 type ClothingItem = {
   id: string;
   imageUrl: string;
@@ -14,6 +16,8 @@ type ClothingItem = {
 type Outfit = {
   id: string;
   rationale: string;
+  isFavorite: boolean;
+  occasion: string | null;
   createdAt: string;
   items: ClothingItem[];
 };
@@ -22,6 +26,10 @@ export default function OutfitsPage() {
   const [outfits, setOutfits] = useState<Outfit[]>([]);
   const [loading, setLoading] = useState(true);
   const [generating, setGenerating] = useState(false);
+  const [occasion, setOccasion] = useState("Everyday");
+  const [weather, setWeather] = useState("");
+  const [style, setStyle] = useState("");
+  const [colorPreference, setColorPreference] = useState("");
   const [prompt, setPrompt] = useState("");
   const [error, setError] = useState<string | null>(null);
   const [signedOut, setSignedOut] = useState(false);
@@ -51,7 +59,13 @@ export default function OutfitsPage() {
       const res = await fetch("/api/outfits/generate", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ prompt: prompt || undefined }),
+        body: JSON.stringify({
+          occasion,
+          weather: weather || undefined,
+          style: style || undefined,
+          colorPreference: colorPreference || undefined,
+          prompt: prompt || undefined,
+        }),
       });
       const data = (await res.json()) as { error?: string; outfits?: Outfit[] };
       if (!res.ok || !data.outfits) throw new Error(data.error ?? "Couldn't generate outfits");
@@ -67,25 +81,59 @@ export default function OutfitsPage() {
   return (
     <main className="mx-auto w-full max-w-4xl flex-1 px-6 py-12">
       <h1 className="text-2xl font-semibold tracking-tight">Outfits</h1>
-      <p className="mb-6 text-sm text-zinc-600 dark:text-zinc-400">
-        Generate outfit combinations from the items already in your closet.
-      </p>
+      <p className="mb-6 text-sm text-zinc-600 dark:text-zinc-400">What are you dressing for?</p>
 
-      <div className="mb-8 flex flex-col gap-3 sm:flex-row">
-        <input
-          type="text"
-          value={prompt}
-          onChange={(e) => setPrompt(e.target.value)}
-          placeholder="Optional: describe an occasion (e.g. 'casual weekend brunch')"
-          className="flex-1 rounded-full border border-black/15 bg-white px-4 py-2 text-sm outline-none focus:border-black/40 dark:border-white/20 dark:bg-zinc-950 dark:focus:border-white/40"
-        />
-        <button
-          onClick={handleGenerate}
-          disabled={generating}
-          className="rounded-full bg-black px-5 py-2 text-sm font-medium text-white hover:bg-zinc-800 disabled:opacity-50 dark:bg-white dark:text-black dark:hover:bg-zinc-200"
-        >
-          {generating ? "Generating…" : "Generate outfit"}
-        </button>
+      <div className="mb-8 rounded-xl border border-black/10 bg-white p-4 dark:border-white/10 dark:bg-zinc-950">
+        <div className="mb-3 grid grid-cols-2 gap-3 sm:grid-cols-4">
+          <select
+            value={occasion}
+            onChange={(e) => setOccasion(e.target.value)}
+            className="rounded-lg border border-black/15 bg-white px-3 py-2 text-sm outline-none focus:border-black/40 dark:border-white/20 dark:bg-zinc-900 dark:focus:border-white/40"
+          >
+            {OCCASIONS.map((o) => (
+              <option key={o} value={o}>
+                {o}
+              </option>
+            ))}
+          </select>
+          <input
+            type="text"
+            value={weather}
+            onChange={(e) => setWeather(e.target.value)}
+            placeholder="Weather (e.g. 65°F)"
+            className="rounded-lg border border-black/15 bg-white px-3 py-2 text-sm outline-none focus:border-black/40 dark:border-white/20 dark:bg-zinc-900 dark:focus:border-white/40"
+          />
+          <input
+            type="text"
+            value={style}
+            onChange={(e) => setStyle(e.target.value)}
+            placeholder="Preferred style"
+            className="rounded-lg border border-black/15 bg-white px-3 py-2 text-sm outline-none focus:border-black/40 dark:border-white/20 dark:bg-zinc-900 dark:focus:border-white/40"
+          />
+          <input
+            type="text"
+            value={colorPreference}
+            onChange={(e) => setColorPreference(e.target.value)}
+            placeholder="Color preference"
+            className="rounded-lg border border-black/15 bg-white px-3 py-2 text-sm outline-none focus:border-black/40 dark:border-white/20 dark:bg-zinc-900 dark:focus:border-white/40"
+          />
+        </div>
+        <div className="flex flex-col gap-3 sm:flex-row">
+          <input
+            type="text"
+            value={prompt}
+            onChange={(e) => setPrompt(e.target.value)}
+            placeholder="Optional: anything else? (e.g. 'make me a casual outfit for a 65°F day')"
+            className="flex-1 rounded-full border border-black/15 bg-white px-4 py-2 text-sm outline-none focus:border-black/40 dark:border-white/20 dark:bg-zinc-900 dark:focus:border-white/40"
+          />
+          <button
+            onClick={handleGenerate}
+            disabled={generating}
+            className="rounded-full bg-black px-5 py-2 text-sm font-medium text-white hover:bg-zinc-800 disabled:opacity-50 dark:bg-white dark:text-black dark:hover:bg-zinc-200"
+          >
+            {generating ? "Generating…" : "Generate outfits"}
+          </button>
+        </div>
       </div>
 
       {error && (
@@ -104,14 +152,23 @@ export default function OutfitsPage() {
           to see your outfits.
         </p>
       ) : outfits.length === 0 ? (
-        <p className="text-sm text-zinc-500">No outfits yet — generate your first one above.</p>
+        <p className="text-sm text-zinc-500">No outfits yet — generate your first ones above.</p>
       ) : (
-        <div className="flex flex-col gap-6">
+        <div className="grid gap-4 sm:grid-cols-2">
           {outfits.map((outfit) => (
-            <div
+            <Link
               key={outfit.id}
-              className="rounded-xl border border-black/10 bg-white p-4 dark:border-white/10 dark:bg-zinc-950"
+              href={`/outfits/${outfit.id}`}
+              className="block rounded-xl border border-black/10 bg-white p-4 hover:border-black/30 dark:border-white/10 dark:bg-zinc-950 dark:hover:border-white/30"
             >
+              <div className="mb-3 flex items-center justify-between">
+                {outfit.occasion && (
+                  <span className="rounded-full bg-black/5 px-2.5 py-1 text-xs font-medium text-zinc-700 dark:bg-white/10 dark:text-zinc-300">
+                    {outfit.occasion}
+                  </span>
+                )}
+                {outfit.isFavorite && <span className="text-xs font-medium text-amber-600 dark:text-amber-400">★ Saved</span>}
+              </div>
               <div className="mb-3 flex gap-3">
                 {outfit.items.map((item) => (
                   <div key={item.id} className="relative h-24 w-24 shrink-0 overflow-hidden rounded-lg bg-zinc-100 dark:bg-zinc-900">
@@ -120,7 +177,7 @@ export default function OutfitsPage() {
                 ))}
               </div>
               <p className="text-sm text-zinc-700 dark:text-zinc-300">{outfit.rationale}</p>
-            </div>
+            </Link>
           ))}
         </div>
       )}

@@ -12,6 +12,7 @@ model User {
   id           String   @id @default(cuid())
   email        String   @unique
   passwordHash String
+  selfieUrl    String?
   createdAt    DateTime @default(now())
 
   items    ClothingItem[]
@@ -47,10 +48,14 @@ model ClothingItem {
 }
 
 model Outfit {
-  id        String   @id @default(cuid())
-  userId    String
-  rationale String
-  createdAt DateTime @default(now())
+  id         String   @id @default(cuid())
+  userId     String
+  rationale  String
+  isFavorite Boolean  @default(false)
+  occasion   String?
+  weather    String?
+  style      String?
+  createdAt  DateTime @default(now())
 
   user  User         @relation(fields: [userId], references: [id], onDelete: Cascade)
   items OutfitItem[]

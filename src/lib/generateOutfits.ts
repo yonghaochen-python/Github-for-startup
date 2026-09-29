@@ -6,7 +6,7 @@ const OUTFITS_SCHEMA = {
   properties: {
     outfits: {
       type: "array",
-      minItems: 1,
+      minItems: 3,
       maxItems: 3,
       items: {
         type: "object",
@@ -31,9 +31,26 @@ const OUTFITS_SCHEMA = {
   additionalProperties: false,
 };
 
+const RATIONALE_SCHEMA = {
+  type: "object",
+  properties: {
+    rationale: { type: "string", description: "One or two sentences on why these items work together" },
+  },
+  required: ["rationale"],
+  additionalProperties: false,
+};
+
 export type GeneratedOutfit = {
   itemIds: string[];
   rationale: string;
+};
+
+export type OutfitRequest = {
+  occasion?: string;
+  weather?: string;
+  style?: string;
+  colorPreference?: string;
+  prompt?: string;
 };
 
 function pickRandom<T>(items: T[]): T | undefined {
@@ -77,12 +94,22 @@ function generateOutfitsFromClosetPlaceholder(closet: ClothingItem[]): Generated
     });
   }
 
-  return outfits.length > 0 ? outfits : [];
+  return outfits;
+}
+
+function describeRequest(request: OutfitRequest): string {
+  const lines: string[] = [];
+  if (request.occasion) lines.push(`Occasion: ${request.occasion}`);
+  if (request.weather) lines.push(`Weather: ${request.weather}`);
+  if (request.style) lines.push(`Preferred style: ${request.style}`);
+  if (request.colorPreference) lines.push(`Color preference: ${request.colorPreference}`);
+  if (request.prompt) lines.push(`Additional request: ${request.prompt}`);
+  return lines.length > 0 ? lines.join("\n") : "No specific preferences given — suggest versatile everyday outfits.";
 }
 
 export async function generateOutfitsFromCloset(
   closet: ClothingItem[],
-  prompt?: string
+  request: OutfitRequest = {}
 ): Promise<GeneratedOutfit[]> {
   if (!process.env.ANTHROPIC_API_KEY) {
     return generateOutfitsFromClosetPlaceholder(closet);
@@ -101,7 +128,7 @@ export async function generateOutfitsFromCloset(
 
   const message = await anthropic.messages.create({
     model: OUTFIT_MODEL,
-    max_tokens: 1024,
+    max_tokens: 1536,
     output_config: {
       format: { type: "json_schema", schema: OUTFITS_SCHEMA },
     },
@@ -115,9 +142,11 @@ export async function generateOutfitsFromCloset(
               "Here is a person's digital closet, as JSON:",
               JSON.stringify(inventory, null, 2),
               "",
-              "Propose 1-3 complete outfits using only items from this closet (reference them by id).",
+              "Propose exactly 3 complete, distinct outfits using only items from this closet (reference them by id).",
               "Each outfit should make sense together (color, formality, season) and use at least two items.",
-              prompt ? `Occasion / preference from the user: ${prompt}` : "No specific occasion given — suggest versatile everyday outfits.",
+              "If the closet doesn't have enough variety for 3 truly distinct outfits, it's fine to reuse an item across outfits.",
+              "",
+              describeRequest(request),
             ].join("\n"),
           },
         ],
@@ -127,4 +156,48 @@ export async function generateOutfitsFromCloset(
 
   const parsed = JSON.parse(firstText(message)) as { outfits: GeneratedOutfit[] };
   return parsed.outfits;
+}
+
+/** Re-explains a specific set of items, used after "Change One Item" swaps a piece. */
+export async function explainOutfit(items: ClothingItem[]): Promise<string> {
+  if (!process.env.ANTHROPIC_API_KEY) {
+    return "Demo pairing (no ANTHROPIC_API_KEY set) — swapped as requested, not AI-styled.";
+  }
+
+  const inventory = items.map((item) => ({
+    category: item.category,
+    color: item.color,
+    pattern: item.pattern,
+    material: item.material,
+    formality: item.formality,
+    season: item.season,
+    description: item.description,
+  }));
+
+  const message = await anthropic.messages.create({
+    model: OUTFIT_MODEL,
+    max_tokens: 256,
+    output_config: {
+      format: { type: "json_schema", schema: RATIONALE_SCHEMA },
+    },
+    messages: [
+      {
+        role: "user",
+        content: [
+          {
+            type: "text",
+            text: [
+              "This outfit was just updated. Here are its items, as JSON:",
+              JSON.stringify(inventory, null, 2),
+              "",
+              "Write a short one or two sentence explanation of why these pieces work together.",
+            ].join("\n"),
+          },
+        ],
+      },
+    ],
+  });
+
+  const parsed = JSON.parse(firstText(message)) as { rationale: string };
+  return parsed.rationale;
 }

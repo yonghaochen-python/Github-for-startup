@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { hashPassword, createSession, sessionCookieHeader } from "@/lib/auth";
+import { SAMPLE_CLOSET } from "@/lib/sampleCloset";
 
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
@@ -23,6 +24,9 @@ export async function POST(request: Request) {
 
   const passwordHash = await hashPassword(password);
   const user = await prisma.user.create({ data: { email, passwordHash } });
+  await prisma.clothingItem.createMany({
+    data: SAMPLE_CLOSET.map((item) => ({ ...item, userId: user.id })),
+  });
   const { cookie, expiresAt } = await createSession(user.id);
 
   const response = NextResponse.json({ user: { email: user.email } }, { status: 201 });

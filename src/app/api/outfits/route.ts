@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { requireUser } from "@/lib/auth";
+import { serializeOutfit } from "@/lib/outfits";
 
 export async function GET(request: Request) {
   let user;
@@ -16,12 +17,5 @@ export async function GET(request: Request) {
     include: { items: { include: { item: true } } },
   });
 
-  return NextResponse.json({
-    outfits: outfits.map((outfit) => ({
-      id: outfit.id,
-      rationale: outfit.rationale,
-      createdAt: outfit.createdAt,
-      items: outfit.items.map((oi) => oi.item),
-    })),
-  });
+  return NextResponse.json({ outfits: outfits.map(serializeOutfit) });
 }
