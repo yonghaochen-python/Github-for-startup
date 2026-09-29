@@ -97,9 +97,10 @@ export default function ClosetPage() {
       for (const file of files) formData.append("images", file);
 
       const res = await fetch("/api/closet/items", { method: "POST", body: formData });
-      const data = (await res.json()) as { error?: string };
+      const data = (await res.json()) as { error?: string; warning?: string };
       if (!res.ok) throw new Error(data.error ?? "Upload failed");
       await loadItems();
+      if (data.warning) setError(data.warning);
     } catch (err) {
       setError(err instanceof Error ? err.message : "Upload failed");
     } finally {

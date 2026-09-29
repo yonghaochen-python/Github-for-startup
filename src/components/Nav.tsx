@@ -31,21 +31,23 @@ export function Nav() {
 
   return (
     <header className="border-b border-black/10 dark:border-white/10">
-      <nav className="mx-auto flex max-w-4xl items-center gap-6 px-6 py-4">
-        <Link href="/" className="font-semibold tracking-tight">
+      <nav className="mx-auto flex max-w-4xl flex-wrap items-center gap-x-6 gap-y-2 px-6 py-4">
+        <Link href="/" className="shrink-0 font-semibold tracking-tight">
           Virtual Mirror
         </Link>
-        <Link href="/closet" className="text-sm text-zinc-600 hover:text-black dark:text-zinc-400 dark:hover:text-white">
+        <Link href="/closet" className="shrink-0 text-sm text-zinc-600 hover:text-black dark:text-zinc-400 dark:hover:text-white">
           Closet
         </Link>
-        <Link href="/outfits" className="text-sm text-zinc-600 hover:text-black dark:text-zinc-400 dark:hover:text-white">
+        <Link href="/outfits" className="shrink-0 text-sm text-zinc-600 hover:text-black dark:text-zinc-400 dark:hover:text-white">
           Outfits
         </Link>
-        <div className="ml-auto text-sm">
+        <div className="ml-auto min-w-0 text-sm">
           {user === undefined ? null : user ? (
-            <div className="flex items-center gap-3">
-              <span className="text-zinc-500">{user.email}</span>
-              <button onClick={handleLogout} className="text-zinc-600 hover:underline dark:text-zinc-400">
+            <div className="flex min-w-0 items-center gap-3">
+              <span className="min-w-0 max-w-[50vw] truncate text-zinc-500 sm:max-w-xs" title={user.email}>
+                {user.email}
+              </span>
+              <button onClick={handleLogout} className="shrink-0 text-zinc-600 hover:underline dark:text-zinc-400">
                 Log out
               </button>
             </div>

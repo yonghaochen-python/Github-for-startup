@@ -34,7 +34,7 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: "No images provided under the 'images' field." }, { status: 400 });
   }
 
-  const items = await Promise.all(
+  const results = await Promise.allSettled(
     files.map(async (file) => {
       const image = await saveUploadedImage(file);
       const attributes = await classifyClothingImage(image);
@@ -44,5 +44,26 @@ export async function POST(request: Request) {
     })
   );
 
-  return NextResponse.json({ items }, { status: 201 });
+  const items = results.flatMap((r) => (r.status === "fulfilled" ? [r.value] : []));
+  const failedCount = results.length - items.length;
+  for (const r of results) {
+    if (r.status === "rejected") console.error("Failed to process an uploaded photo:", r.reason);
+  }
+
+  if (items.length === 0) {
+    return NextResponse.json(
+      { error: "Couldn't process any of those photos. Use JPG, PNG, GIF, or WebP images." },
+      { status: 400 }
+    );
+  }
+
+  return NextResponse.json(
+    {
+      items,
+      ...(failedCount > 0 && {
+        warning: `${failedCount} of ${results.length} photos couldn't be processed and ${failedCount === 1 ? "was" : "were"} skipped.`,
+      }),
+    },
+    { status: 201 }
+  );
 }

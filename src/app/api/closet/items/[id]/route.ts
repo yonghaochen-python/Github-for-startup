@@ -72,5 +72,16 @@ export async function DELETE(request: Request, ctx: RouteContext<"/api/closet/it
 
   const { id } = await ctx.params;
   await prisma.clothingItem.deleteMany({ where: { id, userId: user.id } });
+
+  // Deleting the item cascades and drops it from any outfit that used it — an
+  // outfit left with zero items is meaningless, so remove those too.
+  const orphaned = await prisma.outfit.findMany({
+    where: { userId: user.id, items: { none: {} } },
+    select: { id: true },
+  });
+  if (orphaned.length > 0) {
+    await prisma.outfit.deleteMany({ where: { id: { in: orphaned.map((o) => o.id) } } });
+  }
+
   return NextResponse.json({ ok: true });
 }

@@ -58,8 +58,14 @@ export async function PATCH(request: Request, ctx: RouteContext<"/api/outfits/[i
     await prisma.outfitItem.create({ data: { outfitId: id, itemId: b.addItemId } });
 
     const newItems = [...outfit.items.map((oi) => oi.item).filter((i) => i.id !== b.removeItemId), replacement];
-    const rationale = await explainOutfit(newItems);
-    await prisma.outfit.update({ where: { id }, data: { rationale } });
+    try {
+      const rationale = await explainOutfit(newItems);
+      await prisma.outfit.update({ where: { id }, data: { rationale } });
+    } catch (err) {
+      // The swap itself already succeeded above — don't fail the whole request
+      // just because the follow-up rationale call did.
+      console.error("Failed to refresh rationale after item swap:", err);
+    }
   }
 
   const updated = await loadOwnedOutfit(id, user.id);

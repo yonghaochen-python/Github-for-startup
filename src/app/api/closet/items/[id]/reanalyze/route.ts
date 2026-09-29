@@ -25,8 +25,14 @@ export async function POST(request: Request, ctx: RouteContext<"/api/closet/item
     return NextResponse.json({ error: "Item not found." }, { status: 404 });
   }
 
-  const image = await loadSavedImage(existing.imageUrl);
-  const attributes = await classifyClothingImage(image);
+  let attributes;
+  try {
+    const image = await loadSavedImage(existing.imageUrl);
+    attributes = await classifyClothingImage(image);
+  } catch (err) {
+    console.error("Re-analyze failed:", err);
+    return NextResponse.json({ error: "Couldn't re-analyze this item right now." }, { status: 502 });
+  }
 
   const item = await prisma.clothingItem.update({ where: { id }, data: attributes });
   return NextResponse.json({ item });

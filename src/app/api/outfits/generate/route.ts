@@ -34,10 +34,33 @@ export async function POST(request: Request) {
     );
   }
 
-  const generated = await generateOutfitsFromCloset(closet, outfitRequest);
+  let generated;
+  try {
+    generated = await generateOutfitsFromCloset(closet, outfitRequest);
+  } catch (err) {
+    console.error("Outfit generation failed:", err);
+    return NextResponse.json(
+      { error: "Couldn't generate outfits right now. Please try again in a moment." },
+      { status: 502 }
+    );
+  }
+
+  // The model is only asked (via prompt) to use owned items — verify it server-side
+  // rather than trusting that, so a hallucinated id can't crash the create below.
+  const closetIds = new Set(closet.map((item) => item.id));
+  const valid = generated
+    .map((outfit) => ({ ...outfit, itemIds: [...new Set(outfit.itemIds)].filter((id) => closetIds.has(id)) }))
+    .filter((outfit) => outfit.itemIds.length >= 2);
+
+  if (valid.length === 0) {
+    return NextResponse.json(
+      { error: "Couldn't generate outfits right now. Please try again in a moment." },
+      { status: 502 }
+    );
+  }
 
   const outfits = await Promise.all(
-    generated.map((outfit) =>
+    valid.map((outfit) =>
       prisma.outfit.create({
         data: {
           userId: user.id,
