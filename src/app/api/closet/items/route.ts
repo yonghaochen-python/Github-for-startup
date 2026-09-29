@@ -2,13 +2,31 @@ import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { saveUploadedImage } from "@/lib/images";
 import { classifyClothingImage } from "@/lib/classify";
+import { requireUser } from "@/lib/auth";
 
-export async function GET() {
-  const items = await prisma.clothingItem.findMany({ orderBy: { createdAt: "desc" } });
+export async function GET(request: Request) {
+  let user;
+  try {
+    user = await requireUser(request);
+  } catch (res) {
+    return res as Response;
+  }
+
+  const items = await prisma.clothingItem.findMany({
+    where: { userId: user.id },
+    orderBy: { createdAt: "desc" },
+  });
   return NextResponse.json({ items });
 }
 
 export async function POST(request: Request) {
+  let user;
+  try {
+    user = await requireUser(request);
+  } catch (res) {
+    return res as Response;
+  }
+
   const formData = await request.formData();
   const files = formData.getAll("images").filter((f): f is File => f instanceof File);
 
@@ -21,7 +39,7 @@ export async function POST(request: Request) {
       const image = await saveUploadedImage(file);
       const attributes = await classifyClothingImage(image);
       return prisma.clothingItem.create({
-        data: { imageUrl: image.url, ...attributes },
+        data: { userId: user.id, imageUrl: image.url, ...attributes },
       });
     })
   );

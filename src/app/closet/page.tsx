@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import Image from "next/image";
+import Link from "next/link";
 
 type ClothingItem = {
   id: string;
@@ -24,9 +25,15 @@ export default function ClosetPage() {
   const [error, setError] = useState<string | null>(null);
   const [aiEnabled, setAiEnabled] = useState(false);
   const [reanalyzingId, setReanalyzingId] = useState<string | null>(null);
+  const [signedOut, setSignedOut] = useState(false);
 
   async function loadItems() {
     const res = await fetch("/api/closet/items");
+    if (res.status === 401) {
+      setSignedOut(true);
+      setLoading(false);
+      return;
+    }
     const data = (await res.json()) as { items?: ClothingItem[] };
     setItems(data.items ?? []);
     setLoading(false);
@@ -34,13 +41,17 @@ export default function ClosetPage() {
 
   useEffect(() => {
     let ignore = false;
-    fetch("/api/closet/items")
-      .then((res) => res.json() as Promise<{ items?: ClothingItem[] }>)
-      .then((data) => {
-        if (ignore) return;
-        setItems(data.items ?? []);
+    fetch("/api/closet/items").then(async (res) => {
+      if (ignore) return;
+      if (res.status === 401) {
+        setSignedOut(true);
         setLoading(false);
-      });
+        return;
+      }
+      const data = (await res.json()) as { items?: ClothingItem[] };
+      setItems(data.items ?? []);
+      setLoading(false);
+    });
     fetch("/api/config")
       .then((res) => res.json() as Promise<{ aiEnabled?: boolean }>)
       .then((data) => {
@@ -124,6 +135,13 @@ export default function ClosetPage() {
 
       {loading ? (
         <p className="text-sm text-zinc-500">Loading…</p>
+      ) : signedOut ? (
+        <p className="text-sm text-zinc-500">
+          <Link href="/login" className="text-blue-600 hover:underline dark:text-blue-400">
+            Log in
+          </Link>{" "}
+          to see your closet.
+        </p>
       ) : items.length === 0 ? (
         <p className="text-sm text-zinc-500">No items yet — upload your first photo to get started.</p>
       ) : (

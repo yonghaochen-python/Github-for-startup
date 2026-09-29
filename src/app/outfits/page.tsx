@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import Image from "next/image";
+import Link from "next/link";
 
 type ClothingItem = {
   id: string;
@@ -23,16 +24,21 @@ export default function OutfitsPage() {
   const [generating, setGenerating] = useState(false);
   const [prompt, setPrompt] = useState("");
   const [error, setError] = useState<string | null>(null);
+  const [signedOut, setSignedOut] = useState(false);
 
   useEffect(() => {
     let ignore = false;
-    fetch("/api/outfits")
-      .then((res) => res.json() as Promise<{ outfits?: Outfit[] }>)
-      .then((data) => {
-        if (ignore) return;
-        setOutfits(data.outfits ?? []);
+    fetch("/api/outfits").then(async (res) => {
+      if (ignore) return;
+      if (res.status === 401) {
+        setSignedOut(true);
         setLoading(false);
-      });
+        return;
+      }
+      const data = (await res.json()) as { outfits?: Outfit[] };
+      setOutfits(data.outfits ?? []);
+      setLoading(false);
+    });
     return () => {
       ignore = true;
     };
@@ -90,6 +96,13 @@ export default function OutfitsPage() {
 
       {loading ? (
         <p className="text-sm text-zinc-500">Loading…</p>
+      ) : signedOut ? (
+        <p className="text-sm text-zinc-500">
+          <Link href="/login" className="text-blue-600 hover:underline dark:text-blue-400">
+            Log in
+          </Link>{" "}
+          to see your outfits.
+        </p>
       ) : outfits.length === 0 ? (
         <p className="text-sm text-zinc-500">No outfits yet — generate your first one above.</p>
       ) : (

@@ -8,8 +8,30 @@ datasource db {
   provider = "sqlite"
 }
 
+model User {
+  id           String   @id @default(cuid())
+  email        String   @unique
+  passwordHash String
+  createdAt    DateTime @default(now())
+
+  items    ClothingItem[]
+  outfits  Outfit[]
+  sessions Session[]
+}
+
+model Session {
+  id        String   @id @default(cuid())
+  tokenHash String   @unique
+  userId    String
+  expiresAt DateTime
+  createdAt DateTime @default(now())
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
 model ClothingItem {
   id          String   @id @default(cuid())
+  userId      String
   imageUrl    String
   category    String
   color       String
@@ -20,14 +42,17 @@ model ClothingItem {
   description String
   createdAt   DateTime @default(now())
 
+  user        User         @relation(fields: [userId], references: [id], onDelete: Cascade)
   outfitItems OutfitItem[]
 }
 
 model Outfit {
   id        String   @id @default(cuid())
+  userId    String
   rationale String
   createdAt DateTime @default(now())
 
+  user  User         @relation(fields: [userId], references: [id], onDelete: Cascade)
   items OutfitItem[]
 }
 
