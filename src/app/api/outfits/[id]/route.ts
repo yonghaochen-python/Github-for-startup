@@ -3,12 +3,15 @@ import { prisma } from "@/lib/prisma";
 import { requireUser } from "@/lib/auth";
 import { serializeOutfit } from "@/lib/outfits";
 import { explainOutfit } from "@/lib/generateOutfits";
+import { withRetry } from "@/lib/dbRetry";
 
 async function loadOwnedOutfit(id: string, userId: string) {
-  const outfit = await prisma.outfit.findUnique({
-    where: { id },
-    include: { items: { include: { item: true } } },
-  });
+  const outfit = await withRetry(() =>
+    prisma.outfit.findUnique({
+      where: { id },
+      include: { items: { include: { item: true } } },
+    })
+  );
   if (!outfit || outfit.userId !== userId) return null;
   return outfit;
 }
@@ -22,10 +25,14 @@ export async function GET(request: Request, ctx: RouteContext<"/api/outfits/[id]
   }
 
   const { id } = await ctx.params;
-  const outfit = await loadOwnedOutfit(id, user.id);
-  if (!outfit) return NextResponse.json({ error: "Outfit not found." }, { status: 404 });
-
-  return NextResponse.json({ outfit: serializeOutfit(outfit) });
+  try {
+    const outfit = await loadOwnedOutfit(id, user.id);
+    if (!outfit) return NextResponse.json({ error: "Outfit not found." }, { status: 404 });
+    return NextResponse.json({ outfit: serializeOutfit(outfit) });
+  } catch (err) {
+    console.error("Failed to load outfit:", err);
+    return NextResponse.json({ error: "Couldn't load this outfit right now." }, { status: 500 });
+  }
 }
 
 export async function PATCH(request: Request, ctx: RouteContext<"/api/outfits/[id]">) {

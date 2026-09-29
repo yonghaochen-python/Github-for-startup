@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { requireUser } from "@/lib/auth";
 import { serializeOutfit } from "@/lib/outfits";
+import { withRetry } from "@/lib/dbRetry";
 
 export async function GET(request: Request) {
   let user;
@@ -11,11 +12,17 @@ export async function GET(request: Request) {
     return res as Response;
   }
 
-  const outfits = await prisma.outfit.findMany({
-    where: { userId: user.id },
-    orderBy: { createdAt: "desc" },
-    include: { items: { include: { item: true } } },
-  });
-
-  return NextResponse.json({ outfits: outfits.map(serializeOutfit) });
+  try {
+    const outfits = await withRetry(() =>
+      prisma.outfit.findMany({
+        where: { userId: user.id },
+        orderBy: { createdAt: "desc" },
+        include: { items: { include: { item: true } } },
+      })
+    );
+    return NextResponse.json({ outfits: outfits.map(serializeOutfit) });
+  } catch (err) {
+    console.error("Failed to load outfits:", err);
+    return NextResponse.json({ error: "Couldn't load your outfits right now." }, { status: 500 });
+  }
 }

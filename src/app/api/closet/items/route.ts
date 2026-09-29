@@ -3,6 +3,7 @@ import { prisma } from "@/lib/prisma";
 import { saveUploadedImage } from "@/lib/images";
 import { classifyClothingImage } from "@/lib/classify";
 import { requireUser } from "@/lib/auth";
+import { withRetry } from "@/lib/dbRetry";
 
 export async function GET(request: Request) {
   let user;
@@ -12,11 +13,18 @@ export async function GET(request: Request) {
     return res as Response;
   }
 
-  const items = await prisma.clothingItem.findMany({
-    where: { userId: user.id },
-    orderBy: { createdAt: "desc" },
-  });
-  return NextResponse.json({ items });
+  try {
+    const items = await withRetry(() =>
+      prisma.clothingItem.findMany({
+        where: { userId: user.id },
+        orderBy: { createdAt: "desc" },
+      })
+    );
+    return NextResponse.json({ items });
+  } catch (err) {
+    console.error("Failed to load closet items:", err);
+    return NextResponse.json({ error: "Couldn't load your closet right now." }, { status: 500 });
+  }
 }
 
 export async function POST(request: Request) {
