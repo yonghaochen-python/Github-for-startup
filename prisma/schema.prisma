@@ -31,17 +31,19 @@ model Session {
 }
 
 model ClothingItem {
-  id          String   @id @default(cuid())
-  userId      String
-  imageUrl    String
-  category    String
-  color       String
-  pattern     String
-  material    String
-  formality   String
-  season      String
-  description String
-  createdAt   DateTime @default(now())
+  id           String   @id @default(cuid())
+  userId       String
+  imageUrl     String
+  category     String
+  layeringRole String   @default("mid_layer")
+  warmth       String   @default("medium")
+  color        String
+  pattern      String
+  material     String
+  formality    String
+  season       String
+  description  String
+  createdAt    DateTime @default(now())
 
   user        User         @relation(fields: [userId], references: [id], onDelete: Cascade)
   outfitItems OutfitItem[]

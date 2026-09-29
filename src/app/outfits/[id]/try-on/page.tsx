@@ -4,9 +4,11 @@ import { useEffect, useState } from "react";
 import { useParams } from "next/navigation";
 import Image from "next/image";
 import Link from "next/link";
+import { LAYER_LABELS, type LayeringRole } from "@/lib/layering";
 
-type PreviewItem = { imageUrl: string; description: string };
-type Preview = { isMock: boolean; selfieUrl: string; items: PreviewItem[] };
+type PreviewItem = { imageUrl: string; description: string; layeringRole: LayeringRole };
+type PreviewLayer = { role: LayeringRole; items: PreviewItem[] };
+type Preview = { isMock: boolean; selfieUrl: string; layers: PreviewLayer[] };
 
 export default function TryOnPage() {
   const params = useParams<{ id: string }>();
@@ -107,11 +109,23 @@ export default function TryOnPage() {
               )}
             </div>
 
-            <p className="mb-2 text-xs font-medium uppercase tracking-wide text-zinc-500">Outfit pieces</p>
-            <div className="mb-6 flex gap-3">
-              {preview.items.map((item, i) => (
-                <div key={i} className="relative h-16 w-16 shrink-0 overflow-hidden rounded-lg bg-zinc-100 dark:bg-zinc-900">
-                  <Image src={item.imageUrl} alt={item.description} fill className="object-cover" unoptimized />
+            <p className="mb-3 text-xs font-medium uppercase tracking-wide text-zinc-500">
+              Outfit pieces, outer layer to accessories
+            </p>
+            <div className="mb-6 flex flex-col gap-3">
+              {preview.layers.map((layer) => (
+                <div key={layer.role} className="flex items-center gap-3">
+                  <span className="w-20 shrink-0 text-xs font-medium text-zinc-500">{LAYER_LABELS[layer.role]}</span>
+                  <div className="flex gap-2">
+                    {layer.items.map((item, i) => (
+                      <div
+                        key={i}
+                        className="relative h-16 w-16 shrink-0 overflow-hidden rounded-lg bg-zinc-100 dark:bg-zinc-900"
+                      >
+                        <Image src={item.imageUrl} alt={item.description} fill className="object-cover" unoptimized />
+                      </div>
+                    ))}
+                  </div>
                 </div>
               ))}
             </div>

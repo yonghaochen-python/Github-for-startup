@@ -3,13 +3,15 @@
 import { useEffect, useMemo, useState } from "react";
 import Image from "next/image";
 import Link from "next/link";
-import { CATEGORIES, FORMALITIES, SEASONS } from "@/lib/clothingTaxonomy";
+import { CATEGORIES, FORMALITIES, SEASONS, LAYERING_ROLES } from "@/lib/clothingTaxonomy";
+import { LAYER_LABELS } from "@/lib/layering";
 import { AddClothesModal } from "@/components/AddClothesModal";
 
 type ClothingItem = {
   id: string;
   imageUrl: string;
   category: string;
+  layeringRole: string;
   color: string;
   pattern: string;
   material: string;
@@ -18,13 +20,16 @@ type ClothingItem = {
   description: string;
 };
 
-type EditForm = Pick<ClothingItem, "category" | "color" | "pattern" | "material" | "formality" | "season" | "description">;
+type EditForm = Pick<
+  ClothingItem,
+  "category" | "layeringRole" | "color" | "pattern" | "material" | "formality" | "season" | "description"
+>;
 
 const isPlaceholder = (item: ClothingItem) => item.description.startsWith("Demo item");
 
 function toEditForm(item: ClothingItem): EditForm {
-  const { category, color, pattern, material, formality, season, description } = item;
-  return { category, color, pattern, material, formality, season, description };
+  const { category, layeringRole, color, pattern, material, formality, season, description } = item;
+  return { category, layeringRole, color, pattern, material, formality, season, description };
 }
 
 export default function ClosetPage() {
@@ -323,6 +328,17 @@ export default function ClosetPage() {
                         </option>
                       ))}
                     </select>
+                    <select
+                      value={editForm.layeringRole}
+                      onChange={(e) => setEditForm({ ...editForm, layeringRole: e.target.value })}
+                      className="rounded-lg border border-black/15 bg-white px-3 py-2 text-sm dark:border-white/20 dark:bg-zinc-900"
+                    >
+                      {LAYERING_ROLES.map((r) => (
+                        <option key={r} value={r}>
+                          {LAYER_LABELS[r]}
+                        </option>
+                      ))}
+                    </select>
                     <input
                       type="text"
                       value={editForm.color}
@@ -388,7 +404,9 @@ export default function ClosetPage() {
                 </div>
               ) : (
                 <div className="p-3">
-                  <p className="text-xs font-medium uppercase tracking-wide text-zinc-500">{item.category}</p>
+                  <p className="text-xs font-medium uppercase tracking-wide text-zinc-500">
+                    {item.category} · {LAYER_LABELS[item.layeringRole as keyof typeof LAYER_LABELS] ?? item.layeringRole}
+                  </p>
                   <p className="text-sm">{item.description}</p>
                   <div className="mt-2 flex flex-wrap gap-x-3 gap-y-1">
                     <button

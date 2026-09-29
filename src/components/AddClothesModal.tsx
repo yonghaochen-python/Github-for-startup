@@ -1,7 +1,8 @@
 "use client";
 
 import { useRef, useState } from "react";
-import { CATEGORIES, FORMALITIES, SEASONS, type ClothingAttributes } from "@/lib/clothingTaxonomy";
+import { CATEGORIES, FORMALITIES, SEASONS, LAYERING_ROLES, type ClothingAttributes } from "@/lib/clothingTaxonomy";
+import { LAYER_LABELS } from "@/lib/layering";
 
 type BoundingBox = { x: number; y: number; width: number; height: number };
 
@@ -56,6 +57,8 @@ function newManualItem(): ReviewItem {
   return {
     localId: crypto.randomUUID(),
     category: "top",
+    layeringRole: "mid_layer",
+    warmth: "medium",
     color: "",
     pattern: "solid",
     material: "",
@@ -158,8 +161,10 @@ export function AddClothesModal({ onClose, onAdded }: { onClose: () => void; onA
         const blob = await cropToBlob(imgElRef.current, item.boundingBox);
         formData.append("images", blob, `${item.localId}.png`);
       }
-      const metadata = items.map(({ category, color, pattern, material, formality, season, description }) => ({
+      const metadata = items.map(({ category, layeringRole, warmth, color, pattern, material, formality, season, description }) => ({
         category,
+        layeringRole,
+        warmth,
         color: color.trim() || "unknown",
         pattern: pattern.trim() || "solid",
         material: material.trim() || "unknown",
@@ -332,6 +337,17 @@ export function AddClothesModal({ onClose, onAdded }: { onClose: () => void; onA
                           {CATEGORIES.map((c) => (
                             <option key={c} value={c}>
                               {c}
+                            </option>
+                          ))}
+                        </select>
+                        <select
+                          value={item.layeringRole}
+                          onChange={(e) => updateItem(item.localId, { layeringRole: e.target.value as ClothingAttributes["layeringRole"] })}
+                          className="rounded-lg border border-black/15 bg-white px-2 py-1.5 text-xs dark:border-white/20 dark:bg-zinc-900"
+                        >
+                          {LAYERING_ROLES.map((r) => (
+                            <option key={r} value={r}>
+                              {LAYER_LABELS[r]}
                             </option>
                           ))}
                         </select>

@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import Image from "next/image";
 import Link from "next/link";
+import type { LayeringRole } from "@/lib/layering";
 
 const OCCASIONS = ["Everyday", "Class", "Work", "Date", "Dinner", "Party", "Interview", "Special Event"];
 
@@ -13,6 +14,8 @@ type ClothingItem = {
   description: string;
 };
 
+type OutfitLayer = { role: LayeringRole; items: ClothingItem[] };
+
 type Outfit = {
   id: string;
   rationale: string;
@@ -20,6 +23,7 @@ type Outfit = {
   occasion: string | null;
   createdAt: string;
   items: ClothingItem[];
+  layers: OutfitLayer[];
 };
 
 export default function OutfitsPage() {
@@ -229,8 +233,8 @@ export default function OutfitsPage() {
                 )}
                 {outfit.isFavorite && <span className="text-xs font-medium text-amber-600 dark:text-amber-400">★ Saved</span>}
               </div>
-              <div className="mb-3 flex gap-3">
-                {outfit.items.map((item) => (
+              <div className="mb-3 flex gap-3 overflow-x-auto">
+                {outfit.layers.flatMap((layer) => layer.items).map((item) => (
                   <div key={item.id} className="relative h-24 w-24 shrink-0 overflow-hidden rounded-lg bg-zinc-100 dark:bg-zinc-900">
                     <Image src={item.imageUrl} alt={item.description} fill className="object-cover" unoptimized />
                   </div>

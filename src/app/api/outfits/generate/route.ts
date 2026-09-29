@@ -3,6 +3,7 @@ import { prisma } from "@/lib/prisma";
 import { generateOutfitsFromCloset, type OutfitRequest } from "@/lib/generateOutfits";
 import { requireUser } from "@/lib/auth";
 import { serializeOutfit } from "@/lib/outfits";
+import { sanitizeLayeredOutfit } from "@/lib/layering";
 
 function str(value: unknown): string | undefined {
   return typeof value === "string" && value.trim() ? value.trim() : undefined;
@@ -47,9 +48,17 @@ export async function POST(request: Request) {
 
   // The model is only asked (via prompt) to use owned items — verify it server-side
   // rather than trusting that, so a hallucinated id can't crash the create below.
-  const closetIds = new Set(closet.map((item) => item.id));
+  // Also apply the hard layering rule (drop a stray bottom alongside a one_piece)
+  // as a safety net regardless of what the model proposed.
+  const closetById = new Map(closet.map((item) => [item.id, item]));
   const valid = generated
-    .map((outfit) => ({ ...outfit, itemIds: [...new Set(outfit.itemIds)].filter((id) => closetIds.has(id)) }))
+    .map((outfit) => {
+      const uniqueItems = [...new Set(outfit.itemIds)]
+        .map((id) => closetById.get(id))
+        .filter((item): item is (typeof closet)[number] => Boolean(item));
+      const sanitized = sanitizeLayeredOutfit(uniqueItems);
+      return { ...outfit, itemIds: sanitized.map((item) => item.id) };
+    })
     .filter((outfit) => outfit.itemIds.length >= 2);
 
   if (valid.length === 0) {

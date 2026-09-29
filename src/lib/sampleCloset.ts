@@ -8,6 +8,8 @@ export const SAMPLE_CLOSET: (ClothingAttributes & { imageUrl: string })[] = [
   {
     imageUrl: "/sample/white-shirt.svg",
     category: "top",
+    layeringRole: "base_layer",
+    warmth: "low",
     color: "white",
     pattern: "solid",
     material: "cotton",
@@ -18,6 +20,8 @@ export const SAMPLE_CLOSET: (ClothingAttributes & { imageUrl: string })[] = [
   {
     imageUrl: "/sample/blue-jeans.svg",
     category: "bottom",
+    layeringRole: "bottom",
+    warmth: "medium",
     color: "blue",
     pattern: "solid",
     material: "denim",
@@ -28,6 +32,8 @@ export const SAMPLE_CLOSET: (ClothingAttributes & { imageUrl: string })[] = [
   {
     imageUrl: "/sample/gray-cardigan.svg",
     category: "outerwear",
+    layeringRole: "mid_layer",
+    warmth: "medium",
     color: "gray",
     pattern: "solid",
     material: "wool blend",
@@ -36,8 +42,22 @@ export const SAMPLE_CLOSET: (ClothingAttributes & { imageUrl: string })[] = [
     description: "Gray cardigan",
   },
   {
+    imageUrl: "/sample/black-jacket.svg",
+    category: "outerwear",
+    layeringRole: "outer_layer",
+    warmth: "high",
+    color: "black",
+    pattern: "solid",
+    material: "cotton twill",
+    formality: "casual",
+    season: "fall",
+    description: "Black casual jacket",
+  },
+  {
     imageUrl: "/sample/white-sneakers.svg",
     category: "shoes",
+    layeringRole: "shoes",
+    warmth: "low",
     color: "white",
     pattern: "solid",
     material: "canvas",
@@ -48,6 +68,8 @@ export const SAMPLE_CLOSET: (ClothingAttributes & { imageUrl: string })[] = [
   {
     imageUrl: "/sample/black-dress.svg",
     category: "dress",
+    layeringRole: "one_piece",
+    warmth: "low",
     color: "black",
     pattern: "solid",
     material: "jersey",
@@ -58,6 +80,8 @@ export const SAMPLE_CLOSET: (ClothingAttributes & { imageUrl: string })[] = [
   {
     imageUrl: "/sample/brown-belt.svg",
     category: "accessory",
+    layeringRole: "accessory",
+    warmth: "low",
     color: "brown",
     pattern: "solid",
     material: "leather",

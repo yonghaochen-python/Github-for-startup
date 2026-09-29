@@ -3,6 +3,7 @@ import { prisma } from "@/lib/prisma";
 import { requireUser } from "@/lib/auth";
 import { generateTryOnPreview } from "@/lib/tryOn";
 import { withRetry } from "@/lib/dbRetry";
+import { orderedLayerEntries, type LayeringRole } from "@/lib/layering";
 
 export async function GET(request: Request, ctx: RouteContext<"/api/outfits/[id]/try-on">) {
   let user;
@@ -28,10 +29,16 @@ export async function GET(request: Request, ctx: RouteContext<"/api/outfits/[id]
       return NextResponse.json({ error: "Outfit not found." }, { status: 404 });
     }
 
-    const preview = await generateTryOnPreview(
-      user.selfieUrl,
-      outfit.items.map((oi) => ({ imageUrl: oi.item.imageUrl, description: oi.item.description }))
-    );
+    const items = outfit.items.map((oi) => oi.item);
+    const layers = orderedLayerEntries(items).map(({ role, items: layerItems }) => ({
+      role,
+      items: layerItems.map((i) => ({
+        imageUrl: i.imageUrl,
+        description: i.description,
+        layeringRole: i.layeringRole as LayeringRole,
+      })),
+    }));
+    const preview = await generateTryOnPreview(user.selfieUrl, layers);
 
     return NextResponse.json({ preview });
   } catch (err) {

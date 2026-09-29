@@ -2,7 +2,7 @@ import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { saveUploadedImage } from "@/lib/images";
 import { requireUser } from "@/lib/auth";
-import { CATEGORIES, FORMALITIES, SEASONS, type ClothingAttributes } from "@/lib/clothingTaxonomy";
+import { CATEGORIES, FORMALITIES, SEASONS, LAYERING_ROLES, WARMTH_LEVELS, type ClothingAttributes } from "@/lib/clothingTaxonomy";
 
 function isValidItem(value: unknown): value is ClothingAttributes {
   if (!value || typeof value !== "object") return false;
@@ -10,6 +10,10 @@ function isValidItem(value: unknown): value is ClothingAttributes {
   return (
     typeof v.category === "string" &&
     CATEGORIES.includes(v.category as (typeof CATEGORIES)[number]) &&
+    typeof v.layeringRole === "string" &&
+    LAYERING_ROLES.includes(v.layeringRole as (typeof LAYERING_ROLES)[number]) &&
+    typeof v.warmth === "string" &&
+    WARMTH_LEVELS.includes(v.warmth as (typeof WARMTH_LEVELS)[number]) &&
     typeof v.formality === "string" &&
     FORMALITIES.includes(v.formality as (typeof FORMALITIES)[number]) &&
     typeof v.season === "string" &&

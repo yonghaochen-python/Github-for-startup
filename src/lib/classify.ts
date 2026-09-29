@@ -1,13 +1,27 @@
 import { anthropic, CLASSIFY_MODEL, firstText } from "@/lib/anthropic";
 import type { SavedImage } from "@/lib/images";
-import { CATEGORIES, FORMALITIES, SEASONS, type ClothingAttributes } from "@/lib/clothingTaxonomy";
+import {
+  CATEGORIES,
+  FORMALITIES,
+  SEASONS,
+  LAYERING_ROLES,
+  WARMTH_LEVELS,
+  type ClothingAttributes,
+} from "@/lib/clothingTaxonomy";
 
-export { CATEGORIES, FORMALITIES, SEASONS, type ClothingAttributes };
+export { CATEGORIES, FORMALITIES, SEASONS, LAYERING_ROLES, WARMTH_LEVELS, type ClothingAttributes };
 
 const CLASSIFY_SCHEMA = {
   type: "object",
   properties: {
     category: { type: "string", enum: CATEGORIES },
+    layeringRole: {
+      type: "string",
+      enum: LAYERING_ROLES,
+      description:
+        "Where this sits when layering an outfit. base_layer: t-shirts/tanks/undershirts. mid_layer: long sleeves, shirts, hoodies, sweaters, sweatshirts, cardigans. outer_layer: jackets, coats, blazers, trench coats. bottom: pants/jeans/skirts/shorts. one_piece: dresses/jumpsuits. shoes. accessory.",
+    },
+    warmth: { type: "string", enum: WARMTH_LEVELS, description: "How warm this item is to wear" },
     color: { type: "string", description: "Primary color(s), e.g. 'navy' or 'white and red'" },
     pattern: { type: "string", description: "e.g. 'solid', 'striped', 'plaid', 'floral'" },
     material: { type: "string", description: "Best guess, e.g. 'cotton', 'denim', 'leather'" },
@@ -15,13 +29,25 @@ const CLASSIFY_SCHEMA = {
     season: { type: "string", enum: SEASONS },
     description: { type: "string", description: "Short shopper-style description, under 10 words" },
   },
-  required: ["category", "color", "pattern", "material", "formality", "season", "description"],
+  required: [
+    "category",
+    "layeringRole",
+    "warmth",
+    "color",
+    "pattern",
+    "material",
+    "formality",
+    "season",
+    "description",
+  ],
   additionalProperties: false,
 };
 
 const PLACEHOLDER_POOL: ClothingAttributes[] = [
   {
     category: "top",
+    layeringRole: "base_layer",
+    warmth: "low",
     color: "white",
     pattern: "solid",
     material: "cotton",
@@ -31,6 +57,8 @@ const PLACEHOLDER_POOL: ClothingAttributes[] = [
   },
   {
     category: "bottom",
+    layeringRole: "bottom",
+    warmth: "medium",
     color: "indigo",
     pattern: "solid",
     material: "denim",
@@ -40,6 +68,8 @@ const PLACEHOLDER_POOL: ClothingAttributes[] = [
   },
   {
     category: "outerwear",
+    layeringRole: "outer_layer",
+    warmth: "high",
     color: "black",
     pattern: "solid",
     material: "wool",
@@ -49,6 +79,8 @@ const PLACEHOLDER_POOL: ClothingAttributes[] = [
   },
   {
     category: "shoes",
+    layeringRole: "shoes",
+    warmth: "low",
     color: "white",
     pattern: "solid",
     material: "canvas",
@@ -89,7 +121,7 @@ export async function classifyClothingImage(image: SavedImage): Promise<Clothing
           },
           {
             type: "text",
-            text: "This is a single item of clothing from someone's closet. Identify its category, color, pattern, material, formality, and season, and write a short description.",
+            text: "This is a single item of clothing from someone's closet. Identify its category, layering role (base/mid/outer layer, bottom, one-piece, shoes, or accessory), warmth level, color, pattern, material, formality, and season, and write a short description.",
           },
         ],
       },

@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { requireUser } from "@/lib/auth";
-import { CATEGORIES, FORMALITIES, SEASONS } from "@/lib/classify";
+import { CATEGORIES, FORMALITIES, SEASONS, LAYERING_ROLES, WARMTH_LEVELS } from "@/lib/classify";
 
 const EDITABLE_STRING_FIELDS = ["color", "pattern", "material", "description"] as const;
 
@@ -39,6 +39,18 @@ export async function PATCH(request: Request, ctx: RouteContext<"/api/closet/ite
       return NextResponse.json({ error: "Invalid season." }, { status: 400 });
     }
     data.season = b.season;
+  }
+  if ("layeringRole" in b) {
+    if (typeof b.layeringRole !== "string" || !LAYERING_ROLES.includes(b.layeringRole as (typeof LAYERING_ROLES)[number])) {
+      return NextResponse.json({ error: "Invalid layering role." }, { status: 400 });
+    }
+    data.layeringRole = b.layeringRole;
+  }
+  if ("warmth" in b) {
+    if (typeof b.warmth !== "string" || !WARMTH_LEVELS.includes(b.warmth as (typeof WARMTH_LEVELS)[number])) {
+      return NextResponse.json({ error: "Invalid warmth level." }, { status: 400 });
+    }
+    data.warmth = b.warmth;
   }
   for (const field of EDITABLE_STRING_FIELDS) {
     if (field in b) {
