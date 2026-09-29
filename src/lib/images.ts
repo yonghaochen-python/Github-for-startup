@@ -1,8 +1,5 @@
 import { randomUUID } from "node:crypto";
-import { mkdir, readFile, writeFile } from "node:fs/promises";
-import path from "node:path";
-
-const UPLOAD_DIR = path.join(process.cwd(), "public", "uploads");
+import { env } from "cloudflare:workers";
 
 const EXT_BY_MIME: Record<string, string> = {
   "image/jpeg": "jpg",
@@ -34,27 +31,32 @@ export async function saveUploadedImage(file: File): Promise<SavedImage> {
     throw new Error(`Unsupported image type: ${file.type || "unknown"}`);
   }
 
-  const bytes = Buffer.from(await file.arrayBuffer());
-  const filename = `${randomUUID()}.${ext}`;
+  const bytes = new Uint8Array(await file.arrayBuffer());
+  const key = `${randomUUID()}.${ext}`;
 
-  await mkdir(UPLOAD_DIR, { recursive: true });
-  await writeFile(path.join(UPLOAD_DIR, filename), bytes);
+  await env.UPLOADS.put(key, bytes, { httpMetadata: { contentType: mediaType } });
 
   return {
-    url: `/uploads/${filename}`,
-    base64: bytes.toString("base64"),
+    url: `/uploads/${key}`,
+    base64: Buffer.from(bytes).toString("base64"),
     mediaType,
   };
 }
 
 /** Re-reads a previously saved image (by its public URL) for re-classification. */
 export async function loadSavedImage(url: string): Promise<SavedImage> {
-  const ext = path.extname(url).slice(1).toLowerCase();
+  const key = url.replace(/^\/uploads\//, "");
+  const ext = key.split(".").pop()?.toLowerCase() ?? "";
   const mediaType = MIME_BY_EXT[ext];
   if (!mediaType) {
     throw new Error(`Unsupported image type for ${url}`);
   }
 
-  const bytes = await readFile(path.join(process.cwd(), "public", url));
-  return { url, base64: bytes.toString("base64"), mediaType };
+  const object = await env.UPLOADS.get(key);
+  if (!object) {
+    throw new Error(`Image not found in storage: ${url}`);
+  }
+
+  const bytes = new Uint8Array(await object.arrayBuffer());
+  return { url, base64: Buffer.from(bytes).toString("base64"), mediaType };
 }

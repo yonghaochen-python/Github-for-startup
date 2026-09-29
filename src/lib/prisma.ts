@@ -1,14 +1,13 @@
-import { PrismaBetterSqlite3 } from "@prisma/adapter-better-sqlite3";
+import { PrismaD1 } from "@prisma/adapter-d1";
 import { PrismaClient } from "@/generated/prisma/client";
+import { env } from "cloudflare:workers";
 
 const globalForPrisma = globalThis as unknown as {
   prisma: PrismaClient | undefined;
 };
 
 function createPrismaClient() {
-  const adapter = new PrismaBetterSqlite3({
-    url: process.env.DATABASE_URL ?? "file:./dev.db",
-  });
+  const adapter = new PrismaD1(env.DB);
   return new PrismaClient({ adapter });
 }
 

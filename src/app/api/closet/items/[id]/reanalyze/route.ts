@@ -6,7 +6,7 @@ import { classifyClothingImage } from "@/lib/classify";
 export async function POST(_request: Request, ctx: RouteContext<"/api/closet/items/[id]/reanalyze">) {
   if (!process.env.ANTHROPIC_API_KEY) {
     return NextResponse.json(
-      { error: "ANTHROPIC_API_KEY is not set. Add it to .env.local and restart the dev server to re-analyze with real AI." },
+      { error: "ANTHROPIC_API_KEY is not set for this deployment." },
       { status: 400 }
     );
   }
