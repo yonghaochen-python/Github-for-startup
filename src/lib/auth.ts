@@ -118,7 +118,9 @@ const DEV_USER_EMAIL = "demo@localhost.dev";
  * account so the app never shows a login screen while developing locally. A real
  * session cookie, if present and valid, always takes priority over this.
  */
-async function getOrCreateDevUser(): Promise<SessionUser> {
+export const isDevMode = () => process.env.NODE_ENV !== "production";
+
+export async function getOrCreateDevUser(): Promise<SessionUser> {
   const existing = await prisma.user.findUnique({ where: { email: DEV_USER_EMAIL } });
   if (existing) {
     return { id: existing.id, email: existing.email, selfieUrl: existing.selfieUrl };

@@ -1,11 +1,33 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import Link from "next/link";
 import { useAuth } from "@/components/AuthProvider";
 
 export default function LoginPage() {
   const { completeLogin } = useAuth();
+  const [devLogin, setDevLogin] = useState(false);
+
+  useEffect(() => {
+    fetch("/api/config")
+      .then((res) => res.json() as Promise<{ devLogin?: boolean }>)
+      .then((data) => setDevLogin(Boolean(data.devLogin)))
+      .catch(() => {});
+  }, []);
+
+  async function handleDevLogin() {
+    setError(null);
+    setSubmitting(true);
+    try {
+      const res = await fetch("/api/auth/dev-login", { method: "POST" });
+      if (!res.ok) throw new Error("Dev login isn't available here.");
+      completeLogin("Developer access enabled.");
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Something went wrong");
+      setSubmitting(false);
+    }
+  }
+
   const [creating, setCreating] = useState(false);
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
@@ -135,6 +157,25 @@ export default function LoginPage() {
               →
             </span>
           </button>
+
+          {devLogin && (
+            <>
+              <div className="my-5 flex items-center gap-3 text-[8px] font-bold tracking-[1.6px] text-[#a0a9ad]">
+                <span className="h-px flex-1 bg-[#d3dbde]" />
+                OR
+                <span className="h-px flex-1 bg-[#d3dbde]" />
+              </div>
+              <button
+                type="button"
+                onClick={handleDevLogin}
+                disabled={submitting}
+                className="btn-tactile flex h-[48px] w-full items-center justify-between rounded-[4px] border border-[#cbd7dc] bg-white/70 px-[17px] text-[11px] font-bold text-[#3b4850] hover:bg-white disabled:opacity-60"
+              >
+                Continue with dev account
+                <span className="text-[8px] tracking-[1.4px] text-[#8b959a]">NO PASSWORD</span>
+              </button>
+            </>
+          )}
 
           <div className="mt-6 flex justify-center gap-[7px] text-[10px] text-[#8b959a]">
             <span>{creating ? "Already have an account?" : "New to Virtual Mirror?"}</span>
