@@ -1,4 +1,5 @@
 import { prisma } from "@/lib/prisma";
+import { SAMPLE_CLOSET } from "@/lib/sampleCloset";
 
 const SESSION_COOKIE = "session";
 const SESSION_DAYS = 30;
@@ -94,15 +95,43 @@ export async function deleteSessionByToken(token: string): Promise<void> {
   await prisma.session.deleteMany({ where: { tokenHash } });
 }
 
+const DEV_USER_EMAIL = "demo@localhost.dev";
+
+/**
+ * Local dev convenience only — gated on NODE_ENV so this never runs against the
+ * production build. Finds (or creates, with a seeded sample closet) a fixed demo
+ * account so the app never shows a login screen while developing locally. A real
+ * session cookie, if present and valid, always takes priority over this.
+ */
+async function getOrCreateDevUser(): Promise<SessionUser> {
+  const existing = await prisma.user.findUnique({ where: { email: DEV_USER_EMAIL } });
+  if (existing) {
+    return { id: existing.id, email: existing.email, selfieUrl: existing.selfieUrl };
+  }
+
+  const passwordHash = await hashPassword(randomToken());
+  const user = await prisma.user.create({ data: { email: DEV_USER_EMAIL, passwordHash } });
+  await prisma.clothingItem.createMany({
+    data: SAMPLE_CLOSET.map((item) => ({ ...item, userId: user.id })),
+  });
+  return { id: user.id, email: user.email, selfieUrl: user.selfieUrl };
+}
+
 export async function getCurrentUser(request: Request): Promise<SessionUser | null> {
   const token = readSessionToken(request);
-  if (!token) return null;
+  if (token) {
+    const tokenHash = await sha256Hex(token);
+    const session = await prisma.session.findUnique({ where: { tokenHash }, include: { user: true } });
+    if (session && session.expiresAt >= new Date()) {
+      return { id: session.user.id, email: session.user.email, selfieUrl: session.user.selfieUrl };
+    }
+  }
 
-  const tokenHash = await sha256Hex(token);
-  const session = await prisma.session.findUnique({ where: { tokenHash }, include: { user: true } });
-  if (!session || session.expiresAt < new Date()) return null;
+  if (process.env.NODE_ENV !== "production") {
+    return getOrCreateDevUser();
+  }
 
-  return { id: session.user.id, email: session.user.email, selfieUrl: session.user.selfieUrl };
+  return null;
 }
 
 /** Returns the signed-in user, or throws a 401 Response for the route handler to return directly. */

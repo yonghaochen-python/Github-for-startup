@@ -1,17 +1,20 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import Image from "next/image";
 import Link from "next/link";
 import type { LayeringRole } from "@/lib/layering";
+import { EditorialOutfitVisual } from "@/components/EditorialOutfitVisual";
 
 const OCCASIONS = ["Everyday", "Class", "Work", "Date", "Dinner", "Party", "Interview", "Special Event"];
+const STYLES = ["Casual", "Minimal", "Streetwear", "Preppy", "Feminine", "Clean", "Custom"];
+const CONDITIONS = ["Partly cloudy", "Sunny", "Cloudy", "Rainy", "Windy", "Snowy"];
 
 type ClothingItem = {
   id: string;
   imageUrl: string;
   category: string;
   description: string;
+  layeringRole: LayeringRole;
 };
 
 type OutfitLayer = { role: LayeringRole; items: ClothingItem[] };
@@ -21,66 +24,38 @@ type Outfit = {
   rationale: string;
   isFavorite: boolean;
   occasion: string | null;
-  createdAt: string;
-  items: ClothingItem[];
   layers: OutfitLayer[];
 };
 
 export default function OutfitsPage() {
-  const [outfits, setOutfits] = useState<Outfit[]>([]);
-  const [loading, setLoading] = useState(true);
+  const [closetCount, setClosetCount] = useState<number | null>(null);
+  const [signedOut, setSignedOut] = useState(false);
+  const [justGenerated, setJustGenerated] = useState<Outfit[]>([]);
   const [generating, setGenerating] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
   const [occasion, setOccasion] = useState("Everyday");
-  const [weather, setWeather] = useState("");
-  const [style, setStyle] = useState("");
+  const [styleChoice, setStyleChoice] = useState("Casual");
+  const [customStyle, setCustomStyle] = useState("");
+  const [temperature, setTemperature] = useState("");
+  const [conditions, setConditions] = useState(CONDITIONS[0]);
   const [colorPreference, setColorPreference] = useState("");
   const [prompt, setPrompt] = useState("");
-  const [showDetails, setShowDetails] = useState(false);
-  const [error, setError] = useState<string | null>(null);
-  const [signedOut, setSignedOut] = useState(false);
-  const [loadError, setLoadError] = useState(false);
-
-  async function loadOutfits() {
-    try {
-      const res = await fetch("/api/outfits");
-      if (res.status === 401) {
-        setSignedOut(true);
-        setLoading(false);
-        return;
-      }
-      if (!res.ok) throw new Error("Failed to load outfits");
-      const data = (await res.json()) as { outfits?: Outfit[] };
-      setOutfits(data.outfits ?? []);
-      setLoadError(false);
-      setLoading(false);
-    } catch {
-      setLoadError(true);
-      setLoading(false);
-    }
-  }
 
   useEffect(() => {
     let ignore = false;
-    fetch("/api/outfits")
+    fetch("/api/closet/items")
       .then(async (res) => {
         if (ignore) return;
         if (res.status === 401) {
           setSignedOut(true);
-          setLoading(false);
           return;
         }
-        if (!res.ok) throw new Error("Failed to load outfits");
-        const data = (await res.json()) as { outfits?: Outfit[] };
-        setOutfits(data.outfits ?? []);
-        setLoadError(false);
-        setLoading(false);
+        if (!res.ok) return;
+        const data = (await res.json()) as { items?: unknown[] };
+        setClosetCount((data.items ?? []).length);
       })
-      .catch(() => {
-        if (!ignore) {
-          setLoadError(true);
-          setLoading(false);
-        }
-      });
+      .catch(() => {});
     return () => {
       ignore = true;
     };
@@ -90,21 +65,22 @@ export default function OutfitsPage() {
     setError(null);
     setGenerating(true);
     try {
+      const style = styleChoice === "Custom" ? customStyle || undefined : styleChoice;
+      const weather = temperature ? `${temperature}, ${conditions}` : undefined;
       const res = await fetch("/api/outfits/generate", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           occasion,
-          weather: weather || undefined,
-          style: style || undefined,
+          weather,
+          style,
           colorPreference: colorPreference || undefined,
           prompt: prompt || undefined,
         }),
       });
       const data = (await res.json()) as { error?: string; outfits?: Outfit[] };
       if (!res.ok || !data.outfits) throw new Error(data.error ?? "Couldn't generate outfits");
-      const generated = data.outfits;
-      setOutfits((prev) => [...generated, ...prev]);
+      setJustGenerated(data.outfits);
     } catch (err) {
       setError(err instanceof Error ? err.message : "Couldn't generate outfits");
     } finally {
@@ -113,136 +89,161 @@ export default function OutfitsPage() {
   }
 
   return (
-    <main className="mx-auto w-full max-w-4xl flex-1 px-6 py-12">
-      <h1 className="text-2xl font-semibold tracking-tight">Outfits</h1>
-      <p className="mb-6 text-sm text-zinc-600 dark:text-zinc-400">
-        What are you dressing for? Pick one and let Nav do the rest.
-      </p>
-
-      <div className="mb-8 rounded-xl border border-black/10 bg-white p-4 dark:border-white/10 dark:bg-zinc-950">
-        <div className="mb-4 flex flex-wrap gap-2">
-          {OCCASIONS.map((o) => (
-            <button
-              key={o}
-              onClick={() => setOccasion(o)}
-              className={`rounded-full border px-4 py-2 text-sm font-medium ${
-                occasion === o
-                  ? "border-black bg-black text-white dark:border-white dark:bg-white dark:text-black"
-                  : "border-black/15 text-zinc-700 hover:border-black/40 dark:border-white/20 dark:text-zinc-300"
-              }`}
-            >
-              {o}
-            </button>
-          ))}
-        </div>
-
-        <button
-          onClick={handleGenerate}
-          disabled={generating}
-          className="w-full rounded-full bg-black px-5 py-3 text-sm font-semibold text-white hover:bg-zinc-800 disabled:opacity-50 dark:bg-white dark:text-black dark:hover:bg-zinc-200"
-        >
-          {generating ? "Generating…" : "Generate outfits"}
-        </button>
-
-        <button
-          onClick={() => setShowDetails((v) => !v)}
-          className="mt-3 text-xs font-medium text-zinc-500 hover:underline dark:text-zinc-400"
-        >
-          {showDetails ? "Hide details" : "+ Add weather, style, or color preferences (optional)"}
-        </button>
-
-        {showDetails && (
-          <div className="mt-3 flex flex-col gap-3">
-            <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
-              <input
-                type="text"
-                value={weather}
-                onChange={(e) => setWeather(e.target.value)}
-                placeholder="Weather (e.g. 65°F)"
-                className="rounded-lg border border-black/15 bg-white px-3 py-2 text-sm outline-none focus:border-black/40 dark:border-white/20 dark:bg-zinc-900 dark:focus:border-white/40"
-              />
-              <input
-                type="text"
-                value={style}
-                onChange={(e) => setStyle(e.target.value)}
-                placeholder="Preferred style"
-                className="rounded-lg border border-black/15 bg-white px-3 py-2 text-sm outline-none focus:border-black/40 dark:border-white/20 dark:bg-zinc-900 dark:focus:border-white/40"
-              />
-              <input
-                type="text"
-                value={colorPreference}
-                onChange={(e) => setColorPreference(e.target.value)}
-                placeholder="Color preference"
-                className="rounded-lg border border-black/15 bg-white px-3 py-2 text-sm outline-none focus:border-black/40 dark:border-white/20 dark:bg-zinc-900 dark:focus:border-white/40"
-              />
-            </div>
-            <input
-              type="text"
-              value={prompt}
-              onChange={(e) => setPrompt(e.target.value)}
-              placeholder="Anything else? (e.g. 'make me a casual outfit for a 65°F day')"
-              className="rounded-full border border-black/15 bg-white px-4 py-2 text-sm outline-none focus:border-black/40 dark:border-white/20 dark:bg-zinc-900 dark:focus:border-white/40"
-            />
-          </div>
-        )}
+    <main className="mx-auto w-full max-w-[1440px] flex-1 px-6 py-10 sm:px-8">
+      <div className="mb-10 max-w-lg">
+        <p className="text-[10px] font-bold uppercase tracking-[2.2px] text-[#7e888e]">AI stylist</p>
+        <h1 className="font-display mt-2 text-4xl font-medium tracking-[-2px] text-[#222a2f] sm:text-5xl">
+          Tell me where you&apos;re going.
+        </h1>
+        <p className="mt-2 text-sm text-[#858b81]">
+          Pick the occasion, the vibe, and today&apos;s weather — I&apos;ll build the look from what you already own.
+        </p>
       </div>
 
-      {error && (
-        <p className="mb-6 rounded-lg bg-red-50 px-4 py-3 text-sm text-red-700 dark:bg-red-950 dark:text-red-300">
-          {error}
-        </p>
-      )}
-
-      {loading ? (
-        <p className="text-sm text-zinc-500">Loading…</p>
-      ) : loadError ? (
-        <div className="flex flex-col items-start gap-3">
-          <p className="text-sm text-red-700 dark:text-red-400">Couldn&apos;t load your outfits. Please try again.</p>
-          <button
-            onClick={() => {
-              setLoading(true);
-              loadOutfits();
-            }}
-            className="rounded-full border border-black/15 px-4 py-1.5 text-sm font-medium hover:bg-black/5 dark:border-white/20 dark:hover:bg-white/10"
-          >
-            Try again
-          </button>
-        </div>
-      ) : signedOut ? (
-        <p className="text-sm text-zinc-500">
-          <Link href="/login" className="text-blue-600 hover:underline dark:text-blue-400">
+      {signedOut ? (
+        <p className="text-sm text-[#89949a]">
+          <Link href="/login" className="text-[#303a30] hover:underline">
             Log in
           </Link>{" "}
-          to see your outfits.
+          to use the AI stylist.
         </p>
-      ) : outfits.length === 0 ? (
-        <p className="text-sm text-zinc-500">No outfits yet — generate your first ones above.</p>
       ) : (
-        <div className="grid gap-4 sm:grid-cols-2">
-          {outfits.map((outfit) => (
-            <Link
-              key={outfit.id}
-              href={`/outfits/${outfit.id}`}
-              className="block rounded-xl border border-black/10 bg-white p-4 hover:border-black/30 dark:border-white/10 dark:bg-zinc-950 dark:hover:border-white/30"
-            >
-              <div className="mb-3 flex items-center justify-between">
-                {outfit.occasion && (
-                  <span className="rounded-full bg-black/5 px-2.5 py-1 text-xs font-medium text-zinc-700 dark:bg-white/10 dark:text-zinc-300">
-                    {outfit.occasion}
-                  </span>
-                )}
-                {outfit.isFavorite && <span className="text-xs font-medium text-amber-600 dark:text-amber-400">★ Saved</span>}
-              </div>
-              <div className="mb-3 flex gap-3 overflow-x-auto">
-                {outfit.layers.flatMap((layer) => layer.items).map((item) => (
-                  <div key={item.id} className="relative h-24 w-24 shrink-0 overflow-hidden rounded-lg bg-zinc-100 dark:bg-zinc-900">
-                    <Image src={item.imageUrl} alt={item.description} fill className="object-cover" unoptimized />
-                  </div>
+        <div className="max-w-2xl border-t border-[#dfe3d9] pt-7">
+          <p className="mb-3 text-[9px] font-bold uppercase tracking-[1.5px] text-[#9da99a]">Occasion</p>
+          <div className="mb-7 flex flex-wrap gap-2.5">
+            {OCCASIONS.map((o) => (
+              <button
+                key={o}
+                onClick={() => setOccasion(o)}
+                className={`min-w-[75px] rounded-[4px] border px-4 py-2.5 text-xs transition-colors ${
+                  occasion === o
+                    ? "border-[#354233] bg-[#354233] text-white"
+                    : "border-[#d8dcd3] text-[#6c7469] hover:border-[#768674]"
+                }`}
+              >
+                {o}
+              </button>
+            ))}
+          </div>
+
+          <p className="mb-3 text-[9px] font-bold uppercase tracking-[1.5px] text-[#9da99a]">Style</p>
+          <div className="mb-2 flex flex-wrap gap-2.5">
+            {STYLES.map((s) => (
+              <button
+                key={s}
+                onClick={() => setStyleChoice(s)}
+                className={`min-w-[75px] rounded-[4px] border px-4 py-2.5 text-xs transition-colors ${
+                  styleChoice === s
+                    ? "border-[#354233] bg-[#354233] text-white"
+                    : "border-[#d8dcd3] text-[#6c7469] hover:border-[#768674]"
+                }`}
+              >
+                {s}
+              </button>
+            ))}
+          </div>
+          {styleChoice === "Custom" && (
+            <input
+              type="text"
+              value={customStyle}
+              onChange={(e) => setCustomStyle(e.target.value)}
+              placeholder="Describe your style"
+              className="mb-7 w-full max-w-xs border-0 border-b border-[#cbd2c6] bg-transparent px-0 py-2 text-sm text-[#222a2f] outline-none placeholder:text-[#9ba198] focus:border-[#768674]"
+            />
+          )}
+          {styleChoice !== "Custom" && <div className="mb-7" />}
+
+          <p className="mb-3 text-[9px] font-bold uppercase tracking-[1.5px] text-[#9da99a]">Weather</p>
+          <div className="mb-7 grid grid-cols-1 gap-4 sm:grid-cols-[1fr_1.3fr]">
+            <label className="flex flex-col gap-2">
+              <span className="text-[9px] font-bold tracking-[1.3px] text-[#939e91]">TEMPERATURE</span>
+              <input
+                type="text"
+                value={temperature}
+                onChange={(e) => setTemperature(e.target.value)}
+                placeholder="e.g. 65°F"
+                className="h-11 w-full border border-[#d9ded4] bg-transparent px-3 text-xs text-[#444e41] outline-none"
+              />
+            </label>
+            <label className="flex flex-col gap-2">
+              <span className="text-[9px] font-bold tracking-[1.3px] text-[#939e91]">CONDITIONS</span>
+              <select
+                value={conditions}
+                onChange={(e) => setConditions(e.target.value)}
+                className="h-11 w-full border border-[#d9ded4] bg-transparent px-3 text-xs text-[#444e41] outline-none"
+              >
+                {CONDITIONS.map((c) => (
+                  <option key={c}>{c}</option>
                 ))}
-              </div>
-              <p className="text-sm text-zinc-700 dark:text-zinc-300">{outfit.rationale}</p>
-            </Link>
-          ))}
+              </select>
+            </label>
+          </div>
+
+          <input
+            type="text"
+            value={colorPreference}
+            onChange={(e) => setColorPreference(e.target.value)}
+            placeholder="Color preference (optional)"
+            className="mb-3 w-full border-0 border-b border-[#cbd2c6] bg-transparent px-0 py-2 text-sm text-[#222a2f] outline-none placeholder:text-[#9ba198] focus:border-[#768674]"
+          />
+          <input
+            type="text"
+            value={prompt}
+            onChange={(e) => setPrompt(e.target.value)}
+            placeholder="Anything else? (optional)"
+            className="mb-7 w-full border-0 border-b border-[#cbd2c6] bg-transparent px-0 py-2 text-sm text-[#222a2f] outline-none placeholder:text-[#9ba198] focus:border-[#768674]"
+          />
+
+          <div className="flex items-center gap-5">
+            <button
+              onClick={handleGenerate}
+              disabled={generating}
+              className="inline-flex min-h-[49px] items-center gap-6 rounded-[5px] bg-[#242b30] px-5 text-xs font-semibold text-white shadow-[inset_0_1px_0_#ffffff35,0_3px_10px_#222d3418] hover:bg-[#3b4750] disabled:opacity-50"
+            >
+              {generating ? "Styling…" : "Style Me"}
+            </button>
+            {closetCount !== null && (
+              <span className="text-[10px] text-[#9aa198]">Made with the {closetCount} pieces in your closet</span>
+            )}
+          </div>
+        </div>
+      )}
+
+      {error && <p className="mt-6 max-w-2xl rounded-lg bg-red-50 px-4 py-3 text-sm text-red-700">{error}</p>}
+
+      {justGenerated.length > 0 && (
+        <div className="mt-14">
+          <p className="mb-5 text-[9px] font-bold uppercase tracking-[1.5px] text-[#9da99a]">Your looks</p>
+          <div className="grid gap-[27px_22px] sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
+            {justGenerated.map((outfit) => (
+              <Link
+                key={outfit.id}
+                href={`/outfits/${outfit.id}`}
+                className="block border transition-transform hover:-translate-y-[3px]"
+                style={{
+                  borderColor: "#cbd7dc",
+                  background: "linear-gradient(145deg, #fff, #edf4f6 72%, #f2e8ea)",
+                  boxShadow: "inset 0 1px #fff, 0 5px 18px #25323a12",
+                }}
+              >
+                <div className="flex min-h-[76px] items-start justify-between gap-4 border-b border-[#dce2e4] px-4 py-3.5">
+                  <div>
+                    <span className="mb-1.5 block text-[8px] font-bold tracking-[1.7px] text-[#89949a]">
+                      {outfit.occasion ?? "OUTFIT"}
+                    </span>
+                    <h2 className="text-sm font-bold uppercase tracking-[-0.15px] text-[#222a2f]">Look</h2>
+                  </div>
+                  {outfit.isFavorite && <span className="shrink-0 text-xs font-medium text-[#354134]">★</span>}
+                </div>
+                <div className="overflow-hidden bg-white">
+                  <EditorialOutfitVisual items={outfit.layers.flatMap((layer) => layer.items)} />
+                </div>
+                <div className="px-4 py-4">
+                  <p className="text-sm leading-relaxed text-[#737d82]">{outfit.rationale}</p>
+                </div>
+              </Link>
+            ))}
+          </div>
         </div>
       )}
     </main>

@@ -1,0 +1,46 @@
+# Changelog
+
+Running log of what's been requested and built for Virtual Mirror, most recent first.
+
+## 2026-10-02
+
+### Full Figma-to-website reproduction pass
+The site had drifted into its own interpretation of the Figma design rather than reproducing it. Found a reliable way to get the *exact* source instead of guessing from screenshots: Figma Make projects have a "Download code" option that exports the real `App.tsx`/`index.css`, which was read directly for every color, font, spacing, and component value used from here on. Rebuilt the whole frontend against that source: DM Sans + Instrument Serif typography, the real cool-chrome palette, sharp 5px-radius buttons instead of pill shapes, the Closet sidebar's full filter set (category, layering role, and color, plus the sidebar note box, all matching real values), and the Outfit Detail page's exact two-column ratio and title size. No backend, database, auth, or AI logic touched — purely layout, styling, and markup.
+
+### AI Stylist, Saved Looks, and Profile as real pages
+The Figma design turned out to have a 5-item nav (Home / My Closet / AI Stylist / Saved Looks / Profile) where this app only had two pages (Closet, Outfits). Split `/outfits` into a dedicated **AI Stylist** page (chip-based occasion/style selection, temperature + conditions weather controls, "Style Me") showing just the current session's results, a new **Saved Looks** page (`/outfits/saved`, favorites only, its own empty state) and a new **Profile** page (real stats — closet count, saved-looks count — avatar initials from the user's email, logout). No new database fields: Profile intentionally shows only data that already exists rather than adding editable fields with nowhere to persist to.
+
+### Loading screens, toasts, and empty states
+Added a branded full-screen loading state ("Melt": drifting, merging liquid-chrome blobs behind the "Virtual Mirror" wordmark — picked from 4 animated options after a side-by-side comparison) wired into every real data fetch across Home, Closet, Outfit Detail, Saved Looks, and Try It On. Discovered local data loads so fast the loading screen was flashing invisibly after the first page load, so added a shared `afterMinDelay` helper that holds it open for at least 500ms regardless of how fast the fetch actually resolves. Added a toast/confirmation system (bottom-right, auto-dismiss) firing on real actions — item added to closet, outfit saved/unsaved, item swapped. Added a proper "zero items at all" empty state to Closet, distinct from the "no items match this filter" state.
+
+### Home page: a real intro before login, real tools after
+Split the home page in two. Signed out, it's a pure introduction — headline, "How Virtual Mirror Works," a sample-closet teaser, and Log In/Create Account — with no real user data fetched or shown. Signed in, it becomes an actual dashboard: a "Hi, {name}" greeting, real stats, four quick-launch cards into the actual tools, a strip of the user's real closet photos, and the outfits showcase. Also found and fixed the nav itself showing My Closet/AI Stylist/Saved Looks/Profile links even while signed out — matching the real Figma source, those links (and the mobile menu) now only render once a user is actually signed in.
+
+## 2026-09-30
+
+### Premium visual redesign (fonts, "liquid chrome" accents, Outfit Board)
+Reworked the app's visual identity without touching any feature logic. Swapped the default fonts for Bricolage Grotesque (headings) + Inter (body). Added `HeroBlob`, a reusable decorative component with a distinct liquid-metal gradient per page (landing, closet, outfits list, try-on, and now the outfit detail page) so the premium look doesn't read as the same image pasted everywhere. Built a full "Outfit Board" view on the outfit detail page: a cascading stack of the user's own item photos layered the way they'd actually be worn, an Outfit/Items toggle, a consolidated "Change one item" picker, and a "Shop for Missing Piece" suggestion — all backed by real closet data, with background-removal/compositing left as clearly mocked placeholders for a future real image API. Added a dev-only auto-login (gated strictly on `NODE_ENV !== "production"`) so local development never needs a login screen; production is unaffected. Most recently, added a new "mercury" HeroBlob variant (cool monochrome silver, inspired by a reference liquid-metal texture) to the outfit detail page header — verified live that the Outfit/Items toggle, item-swap, Save Outfit, and Try It On all still work unchanged.
+
+## 2026-09-29
+
+### Outfit layering system
+Outfits were a flat list of items with no concept of what goes under a jacket. Added a `layeringRole` (base_layer, mid_layer, outer_layer, bottom, one_piece, shoes, accessory) and `warmth` level to every closet item, independent of its category. The AI Stylist now decides which layers an outfit actually needs from weather/occasion/style *before* picking items — no forced mid or outer layer in warm weather, both added in cold weather, never a base layer or bottom under a dress unless asked. The outfit detail page now shows sectioned layer cards (outer → mid → base → bottom → shoes → accessories) instead of a flat grid, "Swap item" only offers same-layer replacements, and Try It On receives the full layered outfit instead of a flat item list. Verified against every scenario in the spec (warm/cool/cold weather, dress + jacket, hoodie + jacket stacking, and confirming the AI never invents an item — e.g. recommending a hoodie the user doesn't own).
+
+### Multi-item clothing detection ("Add Clothes")
+Previously required one photo per clothing item. Added a new "Add Clothes" flow: upload one photo of several items laid out separately (a flat lay), Claude's vision API detects each distinct piece with a bounding box, and a review step shows the photo with numbered boxes over each detected region plus an editable card per item (cropped preview, category, layering role, color, material, formality, season). Items can be edited, removed, or added manually before confirming. Nothing touches the closet until "Add to My Closet" — each confirmed item becomes its own closet entry with its own real cropped image, immediately usable by the outfit generator. Falls back to a clearly-labeled mock detector in demo mode (no API key).
+
+### First-time-user QA pass
+Walked through the full app as a genuine new user (signup → upload → generate → save → try-on → refresh → mobile) watching for broken buttons, console errors, bad state, and responsive issues. Found and fixed: a stuck-loading spinner when a closet/outfit fetch failed (no error handling on the client, so a transient server error froze the page forever instead of showing a retry option), the outfit detail page misreporting a transient server error as "outfit not found," and the Upload button being clickable while signed out with a cryptic "Not signed in" error instead of guiding to login. Added a D1 retry helper for the intermittent write-lock-contention 500s that caused the freeze in the first place.
+
+### Strict MVP audit against the original spec
+Audited all 17 requirements from the original product spec against the actual running code and live site (not just "does a screen exist"). Found and fixed the 5 highest-impact issues: no API route caught AI/storage failures (raw 500s with empty, unparseable bodies), a batch photo upload where one bad file discarded the whole batch, deleting a closet item could leave a "ghost" outfit with zero items but a full rationale for clothes that no longer existed, the "outfits use only your closet" rule was enforced by prompt text alone with no server-side check, and the nav bar overflowed off-screen on mobile.
+
+### Outfit generation bugs + sample closet visuals
+Fixed two production bugs blocking outfit generation entirely: Claude's structured-output API rejects `minItems`/`maxItems` values other than 0/1 on arrays (the schema had `minItems: 3`), and the response parser assumed the first content block was always text when Claude sometimes emits a `thinking` block first. Also replaced the 6 sample-closet placeholder images, which were flat colored rectangles, with actual garment-silhouette icons.
+
+## Earlier
+
+- Built the full MVP: digital closet with AI photo classification, structured AI Stylist (occasion/weather/style prompts → 3 outfit recommendations), outfit detail page with save/swap, a mocked Virtual Try-On (Claude has no image-generation API, so this is an explicitly-labeled placeholder), and a premium/minimal landing page.
+- Added email/password login so each user has their own private closet.
+- Wired up real AI (Claude), the database (Cloudflare D1 via Prisma), and photo storage (Cloudflare R2).
+- Set up the Cloudflare Workers deploy pipeline (Workers Builds auto-deploy from GitHub push to `main`).

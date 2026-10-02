@@ -188,10 +188,17 @@ export function AddClothesModal({ onClose, onAdded }: { onClose: () => void; onA
   }
 
   return (
-    <div className="fixed inset-0 z-50 flex items-start justify-center overflow-y-auto bg-black/50 px-4 py-8 sm:items-center">
-      <div className="w-full max-w-2xl rounded-2xl bg-white p-6 shadow-xl dark:bg-zinc-950 sm:p-8">
+    <div className="fixed inset-0 z-50 flex items-start justify-center overflow-y-auto bg-[#172027]/85 px-4 py-8 sm:items-center">
+      <div
+        className="w-full max-w-2xl rounded-xl border p-6 sm:p-8"
+        style={{
+          borderColor: "#c7d4da",
+          background: "linear-gradient(145deg, #fff 0%, #edf4f7 72%, #f3e9eb 100%)",
+          boxShadow: "0 25px 80px #1018205c",
+        }}
+      >
         <div className="mb-5 flex items-center justify-between">
-          <p className="text-xs font-medium uppercase tracking-widest text-zinc-500 dark:text-zinc-400">
+          <p className="text-xs font-medium uppercase tracking-widest text-[#89949a]">
             {step === "upload" && "Add clothes — step 1 of 3"}
             {step === "analyzing" && "Add clothes — step 2 of 3"}
             {(step === "review" || step === "confirming") && "Add clothes — step 3 of 3"}
@@ -199,22 +206,20 @@ export function AddClothesModal({ onClose, onAdded }: { onClose: () => void; onA
           <button
             onClick={onClose}
             aria-label="Close"
-            className="flex h-7 w-7 items-center justify-center rounded-full text-zinc-500 hover:bg-black/5 dark:hover:bg-white/10"
+            className="flex h-7 w-7 items-center justify-center rounded-full text-[#89949a] hover:bg-[#f3f6f8]"
           >
             ×
           </button>
         </div>
 
-        {error && (
-          <p className="mb-4 rounded-lg bg-red-50 px-4 py-3 text-sm text-red-700 dark:bg-red-950 dark:text-red-300">
-            {error}
-          </p>
-        )}
+        {error && <p className="mb-4 rounded-lg bg-red-50 px-4 py-3 text-sm text-red-700">{error}</p>}
 
         {step === "upload" && (
           <div>
-            <h2 className="mb-1 text-xl font-semibold tracking-tight">Add multiple clothing pieces at once</h2>
-            <p className="mb-5 text-sm text-zinc-600 dark:text-zinc-400">
+            <h2 className="mb-1 text-xl font-semibold tracking-tight text-[#29343a]">
+              Add multiple clothing pieces at once
+            </h2>
+            <p className="mb-5 text-sm text-[#445159]">
               Upload a photo of several clothing items. AI will identify each piece and add them to your closet.
             </p>
             <label
@@ -225,18 +230,16 @@ export function AddClothesModal({ onClose, onAdded }: { onClose: () => void; onA
               onDragLeave={() => setDragActive(false)}
               onDrop={handleDrop}
               className={`flex cursor-pointer flex-col items-center gap-3 rounded-xl border-2 border-dashed px-6 py-14 text-center transition-colors ${
-                dragActive
-                  ? "border-black bg-black/5 dark:border-white dark:bg-white/10"
-                  : "border-black/20 hover:border-black/40 dark:border-white/20 dark:hover:border-white/40"
+                dragActive ? "border-[#354134] bg-[#f3f6f8]" : "border-[#dce2e4] hover:border-[#89949a]"
               }`}
             >
-              <span className="text-sm font-medium">Drop a photo here, or click to choose one</span>
-              <span className="rounded-full bg-black px-5 py-2 text-sm font-medium text-white hover:bg-zinc-800 dark:bg-white dark:text-black dark:hover:bg-zinc-200">
+              <span className="text-sm font-medium text-[#29343a]">Drop a photo here, or click to choose one</span>
+              <span className="rounded-[5px] bg-[#242b30] px-5 py-2.5 text-xs font-semibold text-white shadow-[inset_0_1px_0_#ffffff35,0_3px_10px_#222d3418] hover:bg-[#3b4750]">
                 Choose photo
               </span>
               <input type="file" accept={ACCEPTED_TYPES.join(",")} className="hidden" onChange={handleInputChange} />
             </label>
-            <p className="mt-4 text-xs text-zinc-500 dark:text-zinc-400">
+            <p className="mt-4 text-xs text-[#89949a]">
               For best results, place clothing pieces separately so each item is clearly visible. On mobile, your
               photo picker can also open the camera directly.
             </p>
@@ -245,21 +248,21 @@ export function AddClothesModal({ onClose, onAdded }: { onClose: () => void; onA
 
         {step === "analyzing" && (
           <div className="flex flex-col items-center gap-4 py-16">
-            <div className="h-8 w-8 animate-spin rounded-full border-2 border-black/20 border-t-black dark:border-white/20 dark:border-t-white" />
-            <p className="text-sm text-zinc-600 dark:text-zinc-400">Analyzing your photo…</p>
+            <div className="h-8 w-8 animate-spin rounded-full border-2 border-[#dce2e4] border-t-[#29343a]" />
+            <p className="text-sm text-[#445159]">Analyzing your photo…</p>
           </div>
         )}
 
         {(step === "review" || step === "confirming") && imageUrl && (
           <div>
-            <div className="relative mb-5 w-full overflow-hidden rounded-xl bg-zinc-100 dark:bg-zinc-900">
+            <div className="relative mb-5 w-full overflow-hidden rounded-xl bg-[#faf9f7]">
               {/* eslint-disable-next-line @next/next/no-img-element */}
               <img src={imageUrl} alt="Uploaded photo" className="block w-full" />
               {items.map((item, i) =>
                 item.boundingBox.width >= 0.999 && item.boundingBox.height >= 0.999 ? null : (
                   <div
                     key={item.localId}
-                    className="absolute border-2 border-white shadow-[0_0_0_1px_rgba(0,0,0,0.4)]"
+                    className="absolute border-2 border-white shadow-[0_0_0_1px_rgba(41,52,58,0.4)]"
                     style={{
                       left: `${item.boundingBox.x * 100}%`,
                       top: `${item.boundingBox.y * 100}%`,
@@ -267,7 +270,7 @@ export function AddClothesModal({ onClose, onAdded }: { onClose: () => void; onA
                       height: `${item.boundingBox.height * 100}%`,
                     }}
                   >
-                    <span className="absolute -left-1 -top-1 flex h-6 w-6 items-center justify-center rounded-full bg-black text-xs font-semibold text-white dark:bg-white dark:text-black">
+                    <span className="absolute -left-1 -top-1 flex h-6 w-6 items-center justify-center rounded-full bg-[#29343a] text-xs font-semibold text-white">
                       {i + 1}
                     </span>
                   </div>
@@ -276,8 +279,8 @@ export function AddClothesModal({ onClose, onAdded }: { onClose: () => void; onA
             </div>
 
             {items.length === 0 ? (
-              <div className="mb-5 rounded-xl border border-black/10 p-6 text-center dark:border-white/10">
-                <p className="mb-4 text-sm text-zinc-600 dark:text-zinc-400">
+              <div className="mb-5 rounded-xl border border-[#dce2e4] p-6 text-center">
+                <p className="mb-4 text-sm text-[#445159]">
                   We couldn&apos;t confidently identify the clothing in this photo. Try a photo with the pieces more
                   separated, or add items manually.
                 </p>
@@ -288,13 +291,13 @@ export function AddClothesModal({ onClose, onAdded }: { onClose: () => void; onA
                       setImageUrl(null);
                       setItems([]);
                     }}
-                    className="rounded-full border border-black/15 px-4 py-2 text-sm font-medium hover:bg-black/5 dark:border-white/20 dark:hover:bg-white/10"
+                    className="rounded-[5px] border border-[#cbd3d7] px-4 py-2 text-sm font-medium text-[#333f46] hover:bg-[#e9edef]"
                   >
                     Try another photo
                   </button>
                   <button
                     onClick={addManualItem}
-                    className="rounded-full bg-black px-4 py-2 text-sm font-medium text-white hover:bg-zinc-800 dark:bg-white dark:text-black dark:hover:bg-zinc-200"
+                    className="rounded-[5px] bg-[#242b30] px-4 py-2 text-sm font-medium text-white hover:bg-[#3b4750]"
                   >
                     Add an item manually
                   </button>
@@ -302,21 +305,21 @@ export function AddClothesModal({ onClose, onAdded }: { onClose: () => void; onA
               </div>
             ) : (
               <>
-                <p className="mb-3 text-sm font-medium">
+                <p className="mb-3 text-sm font-medium text-[#29343a]">
                   {items.length} item{items.length === 1 ? "" : "s"} detected
                 </p>
                 <div className="mb-5 grid grid-cols-1 gap-4 sm:grid-cols-2">
                   {items.map((item, i) => (
-                    <div key={item.localId} className="rounded-xl border border-black/10 p-3 dark:border-white/10">
+                    <div key={item.localId} className="rounded-xl border border-[#dce2e4] p-3">
                       <div className="mb-3 flex gap-3">
-                        <div className="relative h-20 w-20 shrink-0 overflow-hidden rounded-lg bg-zinc-100 dark:bg-zinc-900">
+                        <div className="relative h-20 w-20 shrink-0 overflow-hidden rounded-lg bg-[#faf9f7]">
                           {item.previewUrl && (
                             // eslint-disable-next-line @next/next/no-img-element
                             <img src={item.previewUrl} alt="" className="h-full w-full object-cover" />
                           )}
                         </div>
                         <div className="flex-1">
-                          <p className="mb-1 text-xs font-medium uppercase tracking-wide text-zinc-500">
+                          <p className="mb-1 text-xs font-medium uppercase tracking-wide text-[#89949a]">
                             Item {i + 1}
                           </p>
                           <input
@@ -324,7 +327,7 @@ export function AddClothesModal({ onClose, onAdded }: { onClose: () => void; onA
                             value={item.description}
                             onChange={(e) => updateItem(item.localId, { description: e.target.value })}
                             placeholder="Item name / description"
-                            className="w-full rounded-lg border border-black/15 bg-white px-2 py-1.5 text-sm dark:border-white/20 dark:bg-zinc-900"
+                            className="w-full rounded-lg border border-[#dce2e4] bg-white px-2 py-1.5 text-sm text-[#29343a]"
                           />
                         </div>
                       </div>
@@ -332,7 +335,7 @@ export function AddClothesModal({ onClose, onAdded }: { onClose: () => void; onA
                         <select
                           value={item.category}
                           onChange={(e) => updateItem(item.localId, { category: e.target.value as ClothingAttributes["category"] })}
-                          className="rounded-lg border border-black/15 bg-white px-2 py-1.5 text-xs capitalize dark:border-white/20 dark:bg-zinc-900"
+                          className="rounded-lg border border-[#dce2e4] bg-white px-2 py-1.5 text-xs capitalize text-[#29343a]"
                         >
                           {CATEGORIES.map((c) => (
                             <option key={c} value={c}>
@@ -343,7 +346,7 @@ export function AddClothesModal({ onClose, onAdded }: { onClose: () => void; onA
                         <select
                           value={item.layeringRole}
                           onChange={(e) => updateItem(item.localId, { layeringRole: e.target.value as ClothingAttributes["layeringRole"] })}
-                          className="rounded-lg border border-black/15 bg-white px-2 py-1.5 text-xs dark:border-white/20 dark:bg-zinc-900"
+                          className="rounded-lg border border-[#dce2e4] bg-white px-2 py-1.5 text-xs text-[#29343a]"
                         >
                           {LAYERING_ROLES.map((r) => (
                             <option key={r} value={r}>
@@ -356,19 +359,19 @@ export function AddClothesModal({ onClose, onAdded }: { onClose: () => void; onA
                           value={item.color}
                           onChange={(e) => updateItem(item.localId, { color: e.target.value })}
                           placeholder="Color"
-                          className="rounded-lg border border-black/15 bg-white px-2 py-1.5 text-xs dark:border-white/20 dark:bg-zinc-900"
+                          className="rounded-lg border border-[#dce2e4] bg-white px-2 py-1.5 text-xs text-[#29343a]"
                         />
                         <input
                           type="text"
                           value={item.material}
                           onChange={(e) => updateItem(item.localId, { material: e.target.value })}
                           placeholder="Material"
-                          className="rounded-lg border border-black/15 bg-white px-2 py-1.5 text-xs dark:border-white/20 dark:bg-zinc-900"
+                          className="rounded-lg border border-[#dce2e4] bg-white px-2 py-1.5 text-xs text-[#29343a]"
                         />
                         <select
                           value={item.formality}
                           onChange={(e) => updateItem(item.localId, { formality: e.target.value as ClothingAttributes["formality"] })}
-                          className="rounded-lg border border-black/15 bg-white px-2 py-1.5 text-xs capitalize dark:border-white/20 dark:bg-zinc-900"
+                          className="rounded-lg border border-[#dce2e4] bg-white px-2 py-1.5 text-xs capitalize text-[#29343a]"
                         >
                           {FORMALITIES.map((f) => (
                             <option key={f} value={f}>
@@ -379,7 +382,7 @@ export function AddClothesModal({ onClose, onAdded }: { onClose: () => void; onA
                         <select
                           value={item.season}
                           onChange={(e) => updateItem(item.localId, { season: e.target.value as ClothingAttributes["season"] })}
-                          className="col-span-2 rounded-lg border border-black/15 bg-white px-2 py-1.5 text-xs capitalize dark:border-white/20 dark:bg-zinc-900"
+                          className="col-span-2 rounded-lg border border-[#dce2e4] bg-white px-2 py-1.5 text-xs capitalize text-[#29343a]"
                         >
                           {SEASONS.map((s) => (
                             <option key={s} value={s}>
@@ -390,7 +393,7 @@ export function AddClothesModal({ onClose, onAdded }: { onClose: () => void; onA
                       </div>
                       <button
                         onClick={() => removeItem(item.localId)}
-                        className="mt-2 w-full rounded-full border border-black/15 py-1 text-xs font-medium text-zinc-600 hover:bg-black/5 dark:border-white/20 dark:text-zinc-400 dark:hover:bg-white/10"
+                        className="mt-2 w-full rounded-[5px] border border-[#cbd3d7] py-1 text-xs font-medium text-[#333f46] hover:bg-[#e9edef]"
                       >
                         Remove
                       </button>
@@ -399,13 +402,10 @@ export function AddClothesModal({ onClose, onAdded }: { onClose: () => void; onA
                 </div>
 
                 <div className="mb-5 flex flex-wrap items-center justify-between gap-3">
-                  <button
-                    onClick={addManualItem}
-                    className="text-sm font-medium text-zinc-600 hover:underline dark:text-zinc-400"
-                  >
+                  <button onClick={addManualItem} className="text-sm font-medium text-[#445159] hover:underline">
                     + Add item manually
                   </button>
-                  <p className="text-sm text-zinc-500">
+                  <p className="text-sm text-[#89949a]">
                     {items.length} item{items.length === 1 ? "" : "s"} ready to add
                   </p>
                 </div>
@@ -413,7 +413,7 @@ export function AddClothesModal({ onClose, onAdded }: { onClose: () => void; onA
                 <button
                   onClick={handleConfirm}
                   disabled={confirming}
-                  className="w-full rounded-full bg-black px-5 py-3 text-sm font-semibold text-white hover:bg-zinc-800 disabled:opacity-50 dark:bg-white dark:text-black dark:hover:bg-zinc-200"
+                  className="w-full rounded-[5px] bg-[#242b30] px-5 py-3 text-sm font-semibold text-white shadow-[inset_0_1px_0_#ffffff35,0_3px_10px_#222d3418] hover:bg-[#3b4750] disabled:opacity-50"
                 >
                   {confirming ? "Adding…" : "Add to My Closet"}
                 </button>

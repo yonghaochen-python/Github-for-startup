@@ -4,6 +4,7 @@ import { saveUploadedImage } from "@/lib/images";
 import { classifyClothingImage } from "@/lib/classify";
 import { requireUser } from "@/lib/auth";
 import { withRetry } from "@/lib/dbRetry";
+import { removeBackground } from "@/lib/visualAssets";
 
 export async function GET(request: Request) {
   let user;
@@ -45,9 +46,12 @@ export async function POST(request: Request) {
   const results = await Promise.allSettled(
     files.map(async (file) => {
       const image = await saveUploadedImage(file);
-      const attributes = await classifyClothingImage(image);
+      const [isolatedUrl, attributes] = await Promise.all([
+        removeBackground(image.url),
+        classifyClothingImage(image),
+      ]);
       return prisma.clothingItem.create({
-        data: { userId: user.id, imageUrl: image.url, ...attributes },
+        data: { userId: user.id, imageUrl: isolatedUrl, ...attributes },
       });
     })
   );

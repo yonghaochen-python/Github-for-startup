@@ -52,3 +52,28 @@ export function sanitizeLayeredOutfit<T extends { layeringRole: string }>(items:
   if (!hasOnePiece) return items;
   return items.filter((i) => i.layeringRole !== "bottom");
 }
+
+/**
+ * MOCKED — a simple rule-based check of which layer role is absent, not a real
+ * shopping/recommendation engine. Powers the "Shop for Missing Piece" placeholder:
+ * it names a gap in the outfit's structure, it does not search or link to products.
+ */
+export function suggestMissingPiece(roles: LayeringRole[]): string | null {
+  const present = new Set(roles);
+  if (present.has("one_piece")) {
+    if (!present.has("outer_layer")) {
+      return "You've styled this piece on its own — adding a light jacket or cardigan as an outer layer could give it more range for cooler weather.";
+    }
+    return null;
+  }
+  if (!present.has("mid_layer") && !present.has("outer_layer")) {
+    return "You have a base layer, bottom, and shoes — adding a neutral mid-layer, like a cardigan or hoodie, would give this outfit more range for cooler days.";
+  }
+  if (present.has("outer_layer") && !present.has("mid_layer")) {
+    return "You have an outer layer and a base layer — a mid-layer underneath, like a hoodie or sweater, would complete the layering.";
+  }
+  if (!present.has("shoes")) {
+    return "This outfit doesn't have shoes from your closet yet — adding a versatile pair would complete the look.";
+  }
+  return null;
+}

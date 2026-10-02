@@ -1,26 +1,103 @@
 @import "tailwindcss";
 
+/*
+ * Tokens pulled verbatim from the downloaded Figma Make export (src/index.css
+ * of that project, the ":root" override block ~line 497 titled "Crisp icy
+ * chrome with rose, slate and pearl metallic accents" — the palette that
+ * actually wins the cascade over the project's original warm-cream base).
+ */
 :root {
-  --background: #ffffff;
-  --foreground: #171717;
+  --background: #f6fbfe;
+  --foreground: #222a2f;
+  --ice: #f6fbfe;
+  --surface: #ffffff;
+  --border: #cbd7dc;
+  --muted: #89949a;
+  --accent: #242b30;
 }
 
 @theme inline {
   --color-background: var(--background);
   --color-foreground: var(--foreground);
-  --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
-}
-
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
-  }
+  --font-sans: var(--font-dm-sans);
+  --font-display: var(--font-instrument-serif);
 }
 
 body {
-  background: var(--background);
+  background: linear-gradient(135deg, var(--ice) 0%, #edf4f7 38%, #e1eaee 59%, #f3f7f9 76%, #eee7dc 100%);
+  background-attachment: fixed;
   color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+  font-family: var(--font-sans), Arial, Helvetica, sans-serif;
+}
+
+/* LoadingScreen "Melt" — drifting, merging liquid-chrome blobs behind the wordmark. */
+@keyframes loading-bar {
+  0% {
+    transform: translateX(-110%);
+  }
+  100% {
+    transform: translateX(340%);
+  }
+}
+.loading-bar-fill {
+  animation: loading-bar 1.35s ease-in-out infinite;
+}
+
+.lava-group {
+  transform: translate(-50%, -50%);
+  animation: lava-loop 10s ease-in-out infinite;
+}
+.lava-blob {
+  filter: blur(16px);
+}
+@keyframes lava-loop {
+  to {
+    transform: translate(-50%, -50%) rotate(360deg);
+  }
+}
+@keyframes melt1 {
+  0%,
+  100% {
+    transform: translate(0, 0) scale(1);
+  }
+  50% {
+    transform: translate(6%, 10%) scale(1.12);
+  }
+}
+@keyframes melt2 {
+  0%,
+  100% {
+    transform: translate(0, 0) scale(1);
+  }
+  50% {
+    transform: translate(-10%, -8%) scale(0.88);
+  }
+}
+@keyframes melt3 {
+  0%,
+  100% {
+    transform: translate(0, 0) scale(1);
+  }
+  50% {
+    transform: translate(8%, -10%) scale(1.2);
+  }
+}
+.lava-blob-1 {
+  animation: melt1 6.5s ease-in-out infinite;
+}
+.lava-blob-2 {
+  animation: melt2 7.5s ease-in-out infinite;
+}
+.lava-blob-3 {
+  animation: melt3 8.5s ease-in-out infinite;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .lava-group,
+  .lava-blob-1,
+  .lava-blob-2,
+  .lava-blob-3,
+  .loading-bar-fill {
+    animation: none;
+  }
 }

@@ -6,6 +6,9 @@ import Link from "next/link";
 import { CATEGORIES, FORMALITIES, SEASONS, LAYERING_ROLES } from "@/lib/clothingTaxonomy";
 import { LAYER_LABELS } from "@/lib/layering";
 import { AddClothesModal } from "@/components/AddClothesModal";
+import { useToast } from "@/components/Toast";
+import { LoadingScreen } from "@/components/LoadingScreen";
+import { afterMinDelay } from "@/lib/minDelay";
 
 type ClothingItem = {
   id: string;
@@ -32,7 +35,32 @@ function toEditForm(item: ClothingItem): EditForm {
   return { category, layeringRole, color, pattern, material, formality, season, description };
 }
 
+function FilterButton({
+  label,
+  count,
+  selected,
+  onClick,
+}: {
+  label: string;
+  count: number;
+  selected: boolean;
+  onClick: () => void;
+}) {
+  return (
+    <button
+      onClick={onClick}
+      className={`flex items-center justify-between px-3 py-2.5 text-left text-xs capitalize transition-colors ${
+        selected ? "bg-[#2c353b] font-bold text-[#f9fbfb]" : "text-[#747a70] hover:bg-[#e9edef]"
+      }`}
+    >
+      <span>{label}</span>
+      <span className={`text-[10px] ${selected ? "text-[#bec8ce]" : "text-[#a6aca1]"}`}>{count}</span>
+    </button>
+  );
+}
+
 export default function ClosetPage() {
+  const { showToast } = useToast();
   const [items, setItems] = useState<ClothingItem[]>([]);
   const [loading, setLoading] = useState(true);
   const [uploading, setUploading] = useState(false);
@@ -41,7 +69,8 @@ export default function ClosetPage() {
   const [reanalyzingId, setReanalyzingId] = useState<string | null>(null);
   const [signedOut, setSignedOut] = useState(false);
   const [loadError, setLoadError] = useState(false);
-  const [categoryFilter, setCategoryFilter] = useState<string>("all");
+  const [filter, setFilter] = useState<string>("all");
+  const [colorFilter, setColorFilter] = useState<string>("All colors");
   const [search, setSearch] = useState("");
   const [editingId, setEditingId] = useState<string | null>(null);
   const [editForm, setEditForm] = useState<EditForm | null>(null);
@@ -49,44 +78,61 @@ export default function ClosetPage() {
   const [showAddClothes, setShowAddClothes] = useState(false);
 
   async function loadItems() {
+    const startedAt = Date.now();
     try {
       const res = await fetch("/api/closet/items");
       if (res.status === 401) {
-        setSignedOut(true);
-        setLoading(false);
+        afterMinDelay(startedAt, 500, () => {
+          setSignedOut(true);
+          setLoading(false);
+        });
         return;
       }
       if (!res.ok) throw new Error("Failed to load closet");
       const data = (await res.json()) as { items?: ClothingItem[] };
-      setItems(data.items ?? []);
-      setLoadError(false);
-      setLoading(false);
+      afterMinDelay(startedAt, 500, () => {
+        setItems(data.items ?? []);
+        setLoadError(false);
+        setLoading(false);
+      });
     } catch {
-      setLoadError(true);
-      setLoading(false);
+      afterMinDelay(startedAt, 500, () => {
+        setLoadError(true);
+        setLoading(false);
+      });
     }
   }
 
   useEffect(() => {
     let ignore = false;
+    const startedAt = Date.now();
     fetch("/api/closet/items")
       .then(async (res) => {
         if (ignore) return;
         if (res.status === 401) {
-          setSignedOut(true);
-          setLoading(false);
+          afterMinDelay(startedAt, 500, () => {
+            if (ignore) return;
+            setSignedOut(true);
+            setLoading(false);
+          });
           return;
         }
         if (!res.ok) throw new Error("Failed to load closet");
         const data = (await res.json()) as { items?: ClothingItem[] };
-        setItems(data.items ?? []);
-        setLoadError(false);
-        setLoading(false);
+        afterMinDelay(startedAt, 500, () => {
+          if (ignore) return;
+          setItems(data.items ?? []);
+          setLoadError(false);
+          setLoading(false);
+        });
       })
       .catch(() => {
         if (!ignore) {
-          setLoadError(true);
-          setLoading(false);
+          afterMinDelay(startedAt, 500, () => {
+            if (ignore) return;
+            setLoadError(true);
+            setLoading(false);
+          });
         }
       });
     fetch("/api/config")
@@ -103,13 +149,14 @@ export default function ClosetPage() {
   const filteredItems = useMemo(() => {
     const q = search.trim().toLowerCase();
     return items.filter((item) => {
-      if (categoryFilter !== "all" && item.category !== categoryFilter) return false;
+      if (filter !== "all" && item.category !== filter && item.layeringRole !== filter) return false;
+      if (colorFilter !== "All colors" && item.color !== colorFilter) return false;
       if (!q) return true;
       return [item.description, item.category, item.color, item.material, item.pattern].some((v) =>
         v.toLowerCase().includes(q)
       );
     });
-  }, [items, categoryFilter, search]);
+  }, [items, filter, colorFilter, search]);
 
   async function handleFiles(e: React.ChangeEvent<HTMLInputElement>) {
     const files = e.target.files;
@@ -183,18 +230,22 @@ export default function ClosetPage() {
     }
   }
 
+  const categoryCount = (c: string) => (c === "all" ? items.length : items.filter((i) => i.category === c).length);
+  const layerCount = (r: string) => items.filter((i) => i.layeringRole === r).length;
+  const colors = useMemo(() => [...new Set(items.map((i) => i.color).filter(Boolean))], [items]);
+
   return (
-    <main className="mx-auto w-full max-w-4xl flex-1 px-6 py-12">
-      <div className="mb-6 flex items-center justify-between gap-4">
+    <main className="mx-auto w-full max-w-[1440px] flex-1 px-6 py-10 sm:px-8">
+      <div className="mb-10 flex flex-wrap items-end justify-between gap-4">
         <div>
-          <h1 className="text-2xl font-semibold tracking-tight">Your closet</h1>
-          <p className="text-sm text-zinc-600 dark:text-zinc-400">
-            Snap one photo of several pieces — AI will split them into separate items.
-          </p>
+          <h1 className="font-display text-4xl font-medium tracking-[-2px] text-[#222a2f] sm:text-5xl">
+            My Closet<span className="text-[#829379]">.</span>
+          </h1>
+          <p className="mt-1 text-sm text-[#8b9087]">Everything you own, in one place.</p>
         </div>
         {!signedOut && (
-          <div className="flex shrink-0 items-center gap-3">
-            <label className="cursor-pointer text-sm font-medium text-zinc-600 hover:underline dark:text-zinc-400">
+          <div className="flex shrink-0 items-center gap-4">
+            <label className="cursor-pointer text-xs font-semibold text-[#303a30] hover:text-[#74836c]">
               {uploading ? "Uploading…" : "Upload one-by-one"}
               <input
                 type="file"
@@ -207,7 +258,7 @@ export default function ClosetPage() {
             </label>
             <button
               onClick={() => setShowAddClothes(true)}
-              className="rounded-full bg-black px-4 py-2 text-sm font-medium text-white hover:bg-zinc-800 dark:bg-white dark:text-black dark:hover:bg-zinc-200"
+              className="rounded-[5px] bg-[#242b30] px-5 py-2.5 text-xs font-semibold text-white shadow-[inset_0_1px_0_#ffffff35,0_3px_10px_#222d3418] hover:bg-[#3b4750]"
             >
               Add Clothes
             </button>
@@ -221,6 +272,7 @@ export default function ClosetPage() {
           onAdded={() => {
             setLoading(true);
             loadItems();
+            showToast("Your piece is now in your closet.");
           }}
         />
       )}
@@ -228,217 +280,315 @@ export default function ClosetPage() {
       {!signedOut && !loading && items.length >= 2 && (
         <Link
           href="/outfits"
-          className="mb-6 flex items-center justify-between gap-3 rounded-xl border border-black/10 bg-black px-4 py-3 text-white hover:bg-zinc-800 dark:border-white/10 dark:bg-white dark:text-black dark:hover:bg-zinc-200"
+          className="mb-6 flex items-center justify-between gap-3 rounded-[5px] border border-[#cbd3d7] px-4 py-3 text-[#333f46] hover:bg-[#e9edef]"
         >
           <span className="text-sm font-medium">Got what you need? Get outfit ideas from your closet.</span>
-          <span aria-hidden className="text-sm">→</span>
+          <span aria-hidden className="text-sm">
+            →
+          </span>
         </Link>
       )}
 
-      {!signedOut && !loading && items.length > 0 && (
-        <div className="mb-6 flex flex-col gap-3 sm:flex-row sm:items-center">
-          <div className="flex flex-wrap gap-2">
-            {["all", ...CATEGORIES].map((c) => (
-              <button
-                key={c}
-                onClick={() => setCategoryFilter(c)}
-                className={`rounded-full border px-3 py-1 text-xs font-medium capitalize ${
-                  categoryFilter === c
-                    ? "border-black bg-black text-white dark:border-white dark:bg-white dark:text-black"
-                    : "border-black/15 text-zinc-600 hover:border-black/40 dark:border-white/20 dark:text-zinc-400"
-                }`}
-              >
-                {c}
-              </button>
-            ))}
-          </div>
-          <input
-            type="text"
-            value={search}
-            onChange={(e) => setSearch(e.target.value)}
-            placeholder="Search your closet"
-            className="ml-auto w-full rounded-full border border-black/15 bg-white px-4 py-1.5 text-sm outline-none focus:border-black/40 sm:w-56 dark:border-white/20 dark:bg-zinc-950 dark:focus:border-white/40"
-          />
-        </div>
-      )}
-
-      {error && (
-        <p className="mb-6 rounded-lg bg-red-50 px-4 py-3 text-sm text-red-700 dark:bg-red-950 dark:text-red-300">
-          {error}
-        </p>
-      )}
+      {error && <p className="mb-6 rounded-lg bg-red-50 px-4 py-3 text-sm text-red-700">{error}</p>}
 
       {loading ? (
-        <p className="text-sm text-zinc-500">Loading…</p>
+        <LoadingScreen />
       ) : loadError ? (
         <div className="flex flex-col items-start gap-3">
-          <p className="text-sm text-red-700 dark:text-red-400">Couldn&apos;t load your closet. Please try again.</p>
+          <p className="text-sm text-red-700">Couldn&apos;t load your closet. Please try again.</p>
           <button
             onClick={() => {
               setLoading(true);
               loadItems();
             }}
-            className="rounded-full border border-black/15 px-4 py-1.5 text-sm font-medium hover:bg-black/5 dark:border-white/20 dark:hover:bg-white/10"
+            className="rounded-[5px] border border-[#cbd3d7] px-4 py-1.5 text-sm font-medium text-[#333f46] hover:bg-[#e9edef]"
           >
             Try again
           </button>
         </div>
       ) : signedOut ? (
-        <p className="text-sm text-zinc-500">
-          <Link href="/login" className="text-blue-600 hover:underline dark:text-blue-400">
+        <p className="text-sm text-[#89949a]">
+          <Link href="/login" className="text-[#303a30] hover:underline">
             Log in
           </Link>{" "}
           to see your closet.
         </p>
       ) : items.length === 0 ? (
-        <p className="text-sm text-zinc-500">No items yet — upload your first photo to get started.</p>
-      ) : filteredItems.length === 0 ? (
-        <p className="text-sm text-zinc-500">No items match that filter.</p>
+        <div
+          className="flex min-h-[300px] flex-col items-start gap-6 border p-10 sm:flex-row sm:items-center"
+          style={{
+            borderColor: "#ffffff78",
+            background: "linear-gradient(125deg, #fbfdfe 0%, #e2ebef 56%, #f0e5e8 80%, #eee8dc 100%)",
+            boxShadow: "0 18px 40px rgba(16,24,32,0.08)",
+          }}
+        >
+          <span
+            className="flex h-[61px] w-[61px] shrink-0 items-center justify-center rounded-full border text-2xl text-[#53636b]"
+            style={{ borderColor: "#c6d0d4", background: "#fff" }}
+            aria-hidden
+          >
+            👔
+          </span>
+          <div className="flex-1">
+            <h2 className="font-display text-[33px] font-normal text-[#222a2f]">Your mirror is ready.</h2>
+            <p className="mt-1 text-sm text-[#7e8b91]">Add your first piece to start building outfits.</p>
+          </div>
+          <button
+            onClick={() => setShowAddClothes(true)}
+            className="shrink-0 rounded-[5px] bg-[#242b30] px-5 py-2.5 text-xs font-semibold text-white shadow-[inset_0_1px_0_#ffffff35,0_3px_10px_#222d3418] hover:bg-[#3b4750]"
+          >
+            Add first piece
+          </button>
+        </div>
       ) : (
-        <div className="grid grid-cols-2 gap-4 sm:grid-cols-3 md:grid-cols-4">
-          {filteredItems.map((item) => (
-            <div
-              key={item.id}
-              className={`group relative overflow-hidden rounded-xl border border-black/10 bg-white dark:border-white/10 dark:bg-zinc-950 ${
-                editingId === item.id ? "col-span-2" : ""
-              }`}
-            >
-              <div className="relative aspect-square w-full bg-zinc-100 dark:bg-zinc-900">
-                <Image src={item.imageUrl} alt={item.description} fill className="object-cover" unoptimized />
-              </div>
+        <div className="grid gap-12 lg:grid-cols-[210px_1fr]">
+          {/* Category + layering-role sidebar on desktop (matches the real Figma source's two filter
+              groups + color select + note), horizontal category-only row on mobile — the source itself
+              hides the second filter group and note below 650px, so this mirrors that intentionally. */}
+          <aside className="hidden border-t border-[#dfe2d9] pt-6 lg:block">
+            <div className="mb-4 flex items-center justify-between text-[10px] font-bold tracking-[1.65px] text-[#8d9788]">
+              FILTER BY
+            </div>
+            <div className="flex flex-col gap-0.5">
+              {["all", ...CATEGORIES].map((c) => (
+                <FilterButton key={c} label={c} count={categoryCount(c)} selected={filter === c} onClick={() => setFilter(c)} />
+              ))}
+            </div>
 
-              {editingId === item.id && editForm ? (
-                <div className="flex flex-col gap-3 p-4">
-                  <input
-                    type="text"
-                    value={editForm.description}
-                    onChange={(e) => setEditForm({ ...editForm, description: e.target.value })}
-                    placeholder="Description"
-                    className="rounded-lg border border-black/15 bg-white px-3 py-2 text-sm dark:border-white/20 dark:bg-zinc-900"
-                  />
-                  <div className="grid grid-cols-2 gap-3">
-                    <select
-                      value={editForm.category}
-                      onChange={(e) => setEditForm({ ...editForm, category: e.target.value })}
-                      className="rounded-lg border border-black/15 bg-white px-3 py-2 text-sm capitalize dark:border-white/20 dark:bg-zinc-900"
-                    >
-                      {CATEGORIES.map((c) => (
-                        <option key={c} value={c}>
-                          {c}
-                        </option>
-                      ))}
-                    </select>
-                    <select
-                      value={editForm.layeringRole}
-                      onChange={(e) => setEditForm({ ...editForm, layeringRole: e.target.value })}
-                      className="rounded-lg border border-black/15 bg-white px-3 py-2 text-sm dark:border-white/20 dark:bg-zinc-900"
-                    >
-                      {LAYERING_ROLES.map((r) => (
-                        <option key={r} value={r}>
-                          {LAYER_LABELS[r]}
-                        </option>
-                      ))}
-                    </select>
-                    <input
-                      type="text"
-                      value={editForm.color}
-                      onChange={(e) => setEditForm({ ...editForm, color: e.target.value })}
-                      placeholder="Color"
-                      className="rounded-lg border border-black/15 bg-white px-3 py-2 text-sm dark:border-white/20 dark:bg-zinc-900"
-                    />
-                    <input
-                      type="text"
-                      value={editForm.material}
-                      onChange={(e) => setEditForm({ ...editForm, material: e.target.value })}
-                      placeholder="Material"
-                      className="rounded-lg border border-black/15 bg-white px-3 py-2 text-sm dark:border-white/20 dark:bg-zinc-900"
-                    />
-                    <input
-                      type="text"
-                      value={editForm.pattern}
-                      onChange={(e) => setEditForm({ ...editForm, pattern: e.target.value })}
-                      placeholder="Pattern"
-                      className="rounded-lg border border-black/15 bg-white px-3 py-2 text-sm dark:border-white/20 dark:bg-zinc-900"
-                    />
-                    <select
-                      value={editForm.formality}
-                      onChange={(e) => setEditForm({ ...editForm, formality: e.target.value })}
-                      className="rounded-lg border border-black/15 bg-white px-3 py-2 text-sm capitalize dark:border-white/20 dark:bg-zinc-900"
-                    >
-                      {FORMALITIES.map((f) => (
-                        <option key={f} value={f}>
-                          {f}
-                        </option>
-                      ))}
-                    </select>
-                    <select
-                      value={editForm.season}
-                      onChange={(e) => setEditForm({ ...editForm, season: e.target.value })}
-                      className="rounded-lg border border-black/15 bg-white px-3 py-2 text-sm capitalize dark:border-white/20 dark:bg-zinc-900"
-                    >
-                      {SEASONS.map((s) => (
-                        <option key={s} value={s}>
-                          {s}
-                        </option>
-                      ))}
-                    </select>
-                  </div>
-                  <div className="flex gap-2 pt-1">
-                    <button
-                      onClick={() => saveEdit(item.id)}
-                      disabled={savingEdit}
-                      className="flex-1 rounded-full bg-black px-4 py-2 text-sm font-medium text-white disabled:opacity-50 dark:bg-white dark:text-black"
-                    >
-                      {savingEdit ? "Saving…" : "Save"}
-                    </button>
-                    <button
-                      onClick={() => {
-                        setEditingId(null);
-                        setEditForm(null);
-                      }}
-                      className="rounded-full border border-black/15 px-4 py-2 text-sm dark:border-white/20"
-                    >
-                      Cancel
-                    </button>
-                  </div>
-                </div>
-              ) : (
-                <div className="p-3">
-                  <p className="text-xs font-medium uppercase tracking-wide text-zinc-500">
-                    {item.category} · {LAYER_LABELS[item.layeringRole as keyof typeof LAYER_LABELS] ?? item.layeringRole}
-                  </p>
-                  <p className="text-sm">{item.description}</p>
-                  <div className="mt-2 flex flex-wrap gap-x-3 gap-y-1">
-                    <button
-                      onClick={() => startEdit(item)}
-                      className="text-xs font-medium text-zinc-600 hover:underline dark:text-zinc-400"
-                    >
-                      Edit
-                    </button>
-                    {aiEnabled && isPlaceholder(item) && (
-                      <button
-                        onClick={() => handleReanalyze(item.id)}
-                        disabled={reanalyzingId === item.id}
-                        className="text-xs font-medium text-blue-600 hover:underline disabled:opacity-50 dark:text-blue-400"
-                      >
-                        {reanalyzingId === item.id ? "Analyzing…" : "Re-analyze with AI"}
-                      </button>
+            <div className="my-6 h-px bg-[#e3e6de]" />
+            <div className="mb-4 text-[10px] font-bold tracking-[1.65px] text-[#8d9788]">LAYERING ROLE</div>
+            <div className="flex flex-col gap-0.5">
+              {LAYERING_ROLES.map((r) => (
+                <FilterButton
+                  key={r}
+                  label={LAYER_LABELS[r]}
+                  count={layerCount(r)}
+                  selected={filter === r}
+                  onClick={() => setFilter(r)}
+                />
+              ))}
+            </div>
+
+            <div className="my-6 h-px bg-[#e3e6de]" />
+            <div className="mb-4 text-[10px] font-bold tracking-[1.65px] text-[#8d9788]">COLOR</div>
+            <select
+              value={colorFilter}
+              onChange={(e) => setColorFilter(e.target.value)}
+              className="w-full border border-[#dde1d7] bg-transparent px-3 py-2.5 text-[11px] text-[#555e52] outline-none"
+            >
+              <option>All colors</option>
+              {colors.map((c) => (
+                <option key={c}>{c}</option>
+              ))}
+            </select>
+
+            <div className="mt-12 bg-[#edf0e9] p-6 text-[#697b62]">
+              <span aria-hidden className="text-lg text-[#596b55]">
+                ✦
+              </span>
+              <p className="font-display mt-3 text-[21px] leading-tight text-[#455743]">
+                Great style begins with the pieces you already love.
+              </p>
+            </div>
+          </aside>
+          <div className="flex gap-2 overflow-x-auto pb-1 lg:hidden">
+            {["all", ...CATEGORIES].map((c) => (
+              <button
+                key={c}
+                onClick={() => setFilter(c)}
+                className={`shrink-0 rounded-[5px] border px-3 py-1.5 text-xs font-medium capitalize ${
+                  filter === c
+                    ? "border-[#2c353b] bg-[#2c353b] text-white"
+                    : "border-[#e0e4da] text-[#747a70] hover:bg-[#e9edef]"
+                }`}
+              >
+                {c} <span className="text-[10px] opacity-70">{categoryCount(c)}</span>
+              </button>
+            ))}
+          </div>
+
+          <div>
+            <div className="mb-5 flex h-11 items-center justify-between border-b border-[#dfe2d9]">
+              <div className="flex items-center gap-3">
+                <strong className="text-sm font-bold text-[#222a2f] capitalize">
+                  {filter === "all" ? "All pieces" : (LAYER_LABELS[filter as keyof typeof LAYER_LABELS] ?? filter)}
+                </strong>
+                <span className="text-xs text-[#9ba198]">{filteredItems.length} items</span>
+              </div>
+              <input
+                type="text"
+                value={search}
+                onChange={(e) => setSearch(e.target.value)}
+                placeholder="Search your closet"
+                className="w-40 border-0 border-b border-transparent bg-transparent text-right text-xs text-[#344047] outline-none placeholder:text-[#9ba198] focus:border-[#cbd3d7] sm:w-56"
+              />
+            </div>
+
+            {filteredItems.length === 0 ? (
+              <div className="flex flex-col items-center gap-3 py-20 text-center text-[#819079]">
+                <span aria-hidden className="text-3xl">
+                  👔
+                </span>
+                <h3 className="font-display text-[28px] font-normal text-[#30392f]">No pieces here yet.</h3>
+                <p className="max-w-[280px] text-sm text-[#888f84]">
+                  Add something to your closet or try a different filter.
+                </p>
+                <button
+                  onClick={() => setShowAddClothes(true)}
+                  className="mt-2 inline-flex items-center gap-3 rounded-[5px] border border-[#cfd5ca] px-4 py-2.5 text-xs font-semibold text-[#344033] hover:bg-[#eef0e9]"
+                >
+                  Add Clothes
+                </button>
+              </div>
+            ) : (
+              <div className="grid grid-cols-2 gap-x-4 gap-y-7 lg:grid-cols-4">
+                {filteredItems.map((item) => (
+                  <div key={item.id} className={`group relative ${editingId === item.id ? "col-span-2" : ""}`}>
+                    <div className="relative overflow-hidden rounded-lg bg-[#e2e6e7]" style={{ aspectRatio: "1 / 1.13" }}>
+                      <Image
+                        src={item.imageUrl}
+                        alt={item.description}
+                        fill
+                        className="object-cover saturate-[.78] transition-transform duration-300 group-hover:scale-[1.035]"
+                        unoptimized
+                      />
+                    </div>
+
+                    {editingId === item.id && editForm ? (
+                      <div className="flex flex-col gap-3 border border-[#cbd7dc] bg-white p-4 mt-2">
+                        <input
+                          type="text"
+                          value={editForm.description}
+                          onChange={(e) => setEditForm({ ...editForm, description: e.target.value })}
+                          placeholder="Description"
+                          className="rounded-[4px] border border-[#cbd7dc] bg-white px-3 py-2 text-sm text-[#222a2f]"
+                        />
+                        <div className="grid grid-cols-2 gap-3">
+                          <select
+                            value={editForm.category}
+                            onChange={(e) => setEditForm({ ...editForm, category: e.target.value })}
+                            className="rounded-[4px] border border-[#cbd7dc] bg-white px-3 py-2 text-sm capitalize text-[#222a2f]"
+                          >
+                            {CATEGORIES.map((c) => (
+                              <option key={c} value={c}>
+                                {c}
+                              </option>
+                            ))}
+                          </select>
+                          <select
+                            value={editForm.layeringRole}
+                            onChange={(e) => setEditForm({ ...editForm, layeringRole: e.target.value })}
+                            className="rounded-[4px] border border-[#cbd7dc] bg-white px-3 py-2 text-sm text-[#222a2f]"
+                          >
+                            {LAYERING_ROLES.map((r) => (
+                              <option key={r} value={r}>
+                                {LAYER_LABELS[r]}
+                              </option>
+                            ))}
+                          </select>
+                          <input
+                            type="text"
+                            value={editForm.color}
+                            onChange={(e) => setEditForm({ ...editForm, color: e.target.value })}
+                            placeholder="Color"
+                            className="rounded-[4px] border border-[#cbd7dc] bg-white px-3 py-2 text-sm text-[#222a2f]"
+                          />
+                          <input
+                            type="text"
+                            value={editForm.material}
+                            onChange={(e) => setEditForm({ ...editForm, material: e.target.value })}
+                            placeholder="Material"
+                            className="rounded-[4px] border border-[#cbd7dc] bg-white px-3 py-2 text-sm text-[#222a2f]"
+                          />
+                          <input
+                            type="text"
+                            value={editForm.pattern}
+                            onChange={(e) => setEditForm({ ...editForm, pattern: e.target.value })}
+                            placeholder="Pattern"
+                            className="rounded-[4px] border border-[#cbd7dc] bg-white px-3 py-2 text-sm text-[#222a2f]"
+                          />
+                          <select
+                            value={editForm.formality}
+                            onChange={(e) => setEditForm({ ...editForm, formality: e.target.value })}
+                            className="rounded-[4px] border border-[#cbd7dc] bg-white px-3 py-2 text-sm capitalize text-[#222a2f]"
+                          >
+                            {FORMALITIES.map((f) => (
+                              <option key={f} value={f}>
+                                {f}
+                              </option>
+                            ))}
+                          </select>
+                          <select
+                            value={editForm.season}
+                            onChange={(e) => setEditForm({ ...editForm, season: e.target.value })}
+                            className="rounded-[4px] border border-[#cbd7dc] bg-white px-3 py-2 text-sm capitalize text-[#222a2f]"
+                          >
+                            {SEASONS.map((s) => (
+                              <option key={s} value={s}>
+                                {s}
+                              </option>
+                            ))}
+                          </select>
+                        </div>
+                        <div className="flex gap-2 pt-1">
+                          <button
+                            onClick={() => saveEdit(item.id)}
+                            disabled={savingEdit}
+                            className="flex-1 rounded-[5px] bg-[#242b30] px-4 py-2 text-sm font-medium text-white disabled:opacity-50"
+                          >
+                            {savingEdit ? "Saving…" : "Save"}
+                          </button>
+                          <button
+                            onClick={() => {
+                              setEditingId(null);
+                              setEditForm(null);
+                            }}
+                            className="rounded-[5px] border border-[#cbd3d7] px-4 py-2 text-sm text-[#333f46]"
+                          >
+                            Cancel
+                          </button>
+                        </div>
+                      </div>
+                    ) : (
+                      <div className="flex items-center justify-between gap-2 pt-3">
+                        <div className="min-w-0">
+                          <h3 className="truncate text-xs font-bold text-[#222a2f]">{item.description}</h3>
+                          <p className="text-[10px] text-[#92988d]">
+                            {item.category} <span className="mx-[3px]">·</span>{" "}
+                            {LAYER_LABELS[item.layeringRole as keyof typeof LAYER_LABELS] ?? item.layeringRole}
+                          </p>
+                          <div className="mt-1.5 flex flex-wrap gap-x-3">
+                            <button
+                              onClick={() => startEdit(item)}
+                              className="text-[10px] font-semibold text-[#303a30] hover:underline"
+                            >
+                              Edit
+                            </button>
+                            {aiEnabled && isPlaceholder(item) && (
+                              <button
+                                onClick={() => handleReanalyze(item.id)}
+                                disabled={reanalyzingId === item.id}
+                                className="text-[10px] font-semibold text-[#344135] hover:underline disabled:opacity-50"
+                              >
+                                {reanalyzingId === item.id ? "Analyzing…" : "Re-analyze with AI"}
+                              </button>
+                            )}
+                          </div>
+                        </div>
+                        <button
+                          onClick={() => handleDelete(item.id)}
+                          aria-label="Remove item"
+                          className="shrink-0 text-sm text-[#a8afa4] opacity-0 transition-opacity hover:text-[#222a2f] group-hover:opacity-100"
+                        >
+                          ×
+                        </button>
+                      </div>
                     )}
                   </div>
-                </div>
-              )}
-
-              {editingId !== item.id && (
-                <button
-                  onClick={() => handleDelete(item.id)}
-                  aria-label="Remove item"
-                  className="absolute right-2 top-2 flex h-7 w-7 items-center justify-center rounded-full bg-black/60 text-sm text-white hover:bg-black/80"
-                >
-                  ×
-                </button>
-              )}
-            </div>
-          ))}
+                ))}
+              </div>
+            )}
+          </div>
         </div>
       )}
     </main>
