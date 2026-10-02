@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
-import { verifyPassword, createSession, sessionCookieHeader } from "@/lib/auth";
+import { verifyPassword, createSession, sessionCookieHeader, devSignedOutCookieHeader } from "@/lib/auth";
 
 export async function POST(request: Request) {
   const body: unknown = await request.json().catch(() => ({}));
@@ -16,6 +16,8 @@ export async function POST(request: Request) {
 
   const { cookie, expiresAt } = await createSession(user.id);
   const response = NextResponse.json({ user: { email: user.email } });
-  response.headers.set("set-cookie", sessionCookieHeader(cookie, expiresAt));
+  response.headers.append("set-cookie", sessionCookieHeader(cookie, expiresAt));
+  const devCookie = devSignedOutCookieHeader(false);
+  if (devCookie) response.headers.append("set-cookie", devCookie);
   return response;
 }

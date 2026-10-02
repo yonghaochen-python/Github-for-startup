@@ -3,6 +3,7 @@ import { DM_Sans, Instrument_Serif } from "next/font/google";
 import { Nav } from "@/components/Nav";
 import { DemoModeBanner } from "@/components/DemoModeBanner";
 import { ToastProvider } from "@/components/Toast";
+import { AuthProvider } from "@/components/AuthProvider";
 import "./globals.css";
 
 const fontSans = DM_Sans({
@@ -27,9 +28,11 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
     <html lang="en" className={`${fontSans.variable} ${fontSerif.variable} h-full antialiased`}>
       <body className="min-h-full flex flex-col bg-[#eef4f7]">
         <ToastProvider>
-          <Nav />
-          <DemoModeBanner />
-          <div className="flex flex-1 flex-col">{children}</div>
+          <AuthProvider>
+            <Nav />
+            <DemoModeBanner />
+            <div className="flex flex-1 flex-col">{children}</div>
+          </AuthProvider>
         </ToastProvider>
       </body>
     </html>

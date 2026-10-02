@@ -8,8 +8,7 @@ import { LAYER_LABELS, orderedLayerEntries, suggestMissingPiece, type LayeringRo
 import { generateOutfitBoard, type OutfitBoard } from "@/lib/visualAssets";
 import { EditorialOutfitVisual } from "@/components/EditorialOutfitVisual";
 import { useToast } from "@/components/Toast";
-import { LoadingScreen } from "@/components/LoadingScreen";
-import { afterMinDelay } from "@/lib/minDelay";
+import { InlineLoading } from "@/components/InlineLoading";
 
 type ClothingItem = {
   id: string;
@@ -89,62 +88,45 @@ export default function OutfitDetailPage() {
   const [error, setError] = useState<string | null>(null);
 
   async function loadOutfit() {
-    const startedAt = Date.now();
     try {
       const res = await fetch(`/api/outfits/${params.id}`);
       if (res.status === 404 || res.status === 401) {
-        afterMinDelay(startedAt, 500, () => {
-          setNotFound(true);
-          setLoading(false);
-        });
+        setNotFound(true);
+        setLoading(false);
         return;
       }
       if (!res.ok) throw new Error("Failed to load outfit");
       const data = (await res.json()) as { outfit: Outfit };
-      afterMinDelay(startedAt, 500, () => {
-        setOutfit(data.outfit);
-        setLoadError(false);
-        setLoading(false);
-      });
+      setOutfit(data.outfit);
+      setLoadError(false);
+      setLoading(false);
     } catch {
-      afterMinDelay(startedAt, 500, () => {
-        setLoadError(true);
-        setLoading(false);
-      });
+      setLoadError(true);
+      setLoading(false);
     }
   }
 
   useEffect(() => {
     let ignore = false;
-    const startedAt = Date.now();
     fetch(`/api/outfits/${params.id}`)
       .then(async (res) => {
         if (ignore) return;
         if (res.status === 404 || res.status === 401) {
-          afterMinDelay(startedAt, 500, () => {
-            if (ignore) return;
-            setNotFound(true);
-            setLoading(false);
-          });
+          setNotFound(true);
+          setLoading(false);
           return;
         }
         if (!res.ok) throw new Error("Failed to load outfit");
         const data = (await res.json()) as { outfit: Outfit };
-        afterMinDelay(startedAt, 500, () => {
-          if (ignore) return;
-          setOutfit(data.outfit);
-          setLoadError(false);
-          setLoading(false);
-        });
+        if (ignore) return;
+        setOutfit(data.outfit);
+        setLoadError(false);
+        setLoading(false);
       })
       .catch(() => {
-        if (!ignore) {
-          afterMinDelay(startedAt, 500, () => {
-            if (ignore) return;
-            setLoadError(true);
-            setLoading(false);
-          });
-        }
+        if (ignore) return;
+        setLoadError(true);
+        setLoading(false);
       });
     fetch("/api/closet/items")
       .then(async (res) => {
@@ -219,7 +201,11 @@ export default function OutfitDetailPage() {
     : [];
 
   if (loading) {
-    return <LoadingScreen />;
+    return (
+      <main className="mx-auto w-full max-w-5xl flex-1 px-6 py-14">
+        <InlineLoading />
+      </main>
+    );
   }
 
   if (loadError) {
@@ -264,24 +250,28 @@ export default function OutfitDetailPage() {
   const boardLayers = board?.layers ?? outfit.layers;
 
   return (
-    <main className="mx-auto w-full max-w-5xl flex-1 px-6 py-12">
-      <Link href="/outfits" className="mb-7 inline-flex items-center gap-2.5 text-xs font-semibold text-[#747d71]">
-        <span className="text-lg leading-none">←</span> Back to outfits
+    <main className="mx-auto w-full max-w-5xl flex-1 px-6 py-14">
+      <Link
+        href="/outfits"
+        className="group mb-9 inline-flex items-center gap-2.5 text-xs font-semibold text-[#747d71]"
+      >
+        <span className="text-lg leading-none transition-transform duration-200 group-hover:-translate-x-1">←</span>{" "}
+        Back to outfits
       </Link>
 
-      <div className="mb-5 inline-flex border border-[#d7ddd2] p-[3px]">
+      <div className="mb-7 inline-flex border border-[#d7ddd2] p-[3px]">
         <button
           onClick={() => setMode("outfit")}
-          className={`px-3 py-1.5 text-[9px] font-bold tracking-[1px] transition-colors ${
-            mode === "outfit" ? "bg-[#344132] text-white" : "text-[#91998e]"
+          className={`btn-tactile px-3.5 py-1.5 text-[9px] font-bold tracking-[1.2px] ${
+            mode === "outfit" ? "bg-[#344132] text-white" : "text-[#91998e] hover:text-[#5c665a]"
           }`}
         >
           OUTFIT
         </button>
         <button
           onClick={() => setMode("items")}
-          className={`px-3 py-1.5 text-[9px] font-bold tracking-[1px] transition-colors ${
-            mode === "items" ? "bg-[#344132] text-white" : "text-[#91998e]"
+          className={`btn-tactile px-3.5 py-1.5 text-[9px] font-bold tracking-[1.2px] ${
+            mode === "items" ? "bg-[#344132] text-white" : "text-[#91998e] hover:text-[#5c665a]"
           }`}
         >
           ITEMS
@@ -293,12 +283,12 @@ export default function OutfitDetailPage() {
 
         <div className="pt-3">
           <h1
-            className="mb-3.5 font-display font-normal capitalize tracking-[-1.5px] text-[#222a2f]"
-            style={{ fontSize: "clamp(40px, 4.5vw, 60px)" }}
+            className="mb-4 font-display font-normal capitalize tracking-[-1.5px] text-[#1c2328]"
+            style={{ fontSize: "clamp(40px, 4.5vw, 64px)", lineHeight: 1.02 }}
           >
             {title}
           </h1>
-          <p className="max-w-[420px] text-[13px] leading-[1.8] text-[#8a9285]">{outfit.rationale}</p>
+          <p className="max-w-[420px] text-[13.5px] leading-[1.85] text-[#8a9285]">{outfit.rationale}</p>
 
           <div className="mt-6 flex flex-wrap gap-2">
             {outfit.occasion && (
@@ -317,16 +307,25 @@ export default function OutfitDetailPage() {
             )}
           </div>
 
-          <div className="mt-8">
+          <div className="mt-10">
             <div className="mb-2 flex items-baseline justify-between border-b border-[#dfe3da] pb-3.5">
-              <h2 className="font-display text-xl font-normal text-[#222a2f]">Pieces used</h2>
+              <h2 className="font-display text-xl font-normal text-[#1c2328]">Pieces used</h2>
               <span className="text-[9px] tracking-[1.5px] text-[#9ba49a]">{outfit.items.length} ITEMS</span>
             </div>
             <div className="flex flex-col">
               {outfit.items.map((item) => (
-                <div key={item.id} className="flex items-center gap-3.5 border-b border-[#e8eae3] py-2.5">
+                <div
+                  key={item.id}
+                  className="group flex items-center gap-3.5 border-b border-[#e8eae3] py-3 transition-colors hover:bg-[#f7f8f5]"
+                >
                   <div className="relative h-[51px] w-[51px] shrink-0 overflow-hidden bg-[#efeee9]">
-                    <Image src={item.imageUrl} alt={item.description} fill className="object-cover" unoptimized />
+                    <Image
+                      src={item.imageUrl}
+                      alt={item.description}
+                      fill
+                      className="object-cover transition-transform duration-300 group-hover:scale-[1.08]"
+                      unoptimized
+                    />
                   </div>
                   <div className="min-w-0 flex-1">
                     <p className="truncate text-[11px] font-semibold text-[#222a2f]">{item.description}</p>
@@ -339,8 +338,8 @@ export default function OutfitDetailPage() {
 
           {error && <p className="mt-5 rounded-lg bg-red-50 px-4 py-3 text-sm text-red-700">{error}</p>}
 
-          <div className="mt-5 border border-[#d6ddd1] bg-[#f1f3ed] p-4">
-            <p className="mb-2 text-sm font-semibold text-[#222a2f]">Change one item</p>
+          <div className="mt-8 border-t border-[#dfe3da] pt-5">
+            <p className="mb-3 text-[9px] font-bold uppercase tracking-[1.8px] text-[#9da99a]">Change one item</p>
             {!swappingId ? (
               <select
                 value=""
@@ -379,7 +378,7 @@ export default function OutfitDetailPage() {
                   <button
                     onClick={confirmSwap}
                     disabled={!replacementId || swapping}
-                    className="flex-1 rounded-[5px] bg-[#242b30] px-3 py-2 text-xs font-medium text-white disabled:opacity-50"
+                    className="btn-tactile flex-1 rounded-[5px] bg-[#242b30] px-3 py-2.5 text-xs font-medium text-white disabled:opacity-50"
                   >
                     {swapping ? "Swapping…" : "Confirm"}
                   </button>
@@ -388,7 +387,7 @@ export default function OutfitDetailPage() {
                       setSwappingId(null);
                       setReplacementId("");
                     }}
-                    className="rounded-[5px] border border-[#cbd3d7] px-3 py-2 text-xs text-[#333f46]"
+                    className="btn-tactile rounded-[5px] border border-[#cbd3d7] px-3 py-2.5 text-xs text-[#333f46]"
                   >
                     Cancel
                   </button>
@@ -397,17 +396,17 @@ export default function OutfitDetailPage() {
             )}
           </div>
 
-          <div className="mt-6 grid grid-cols-2 gap-2.5">
+          <div className="mt-7 grid grid-cols-2 gap-2.5">
             <Link
               href={`/outfits/${outfit.id}/try-on`}
-              className="flex items-center justify-center rounded-[5px] bg-[#242b30] px-5 py-3 text-xs font-semibold text-white shadow-[inset_0_1px_0_#ffffff35,0_3px_10px_#222d3418] hover:bg-[#3b4750]"
+              className="btn-tactile flex items-center justify-center rounded-[5px] bg-[#242b30] px-5 py-3.5 text-xs font-semibold text-white shadow-[inset_0_1px_0_#ffffff35,0_6px_18px_rgba(34,42,47,0.2)] hover:bg-[#3b4750]"
             >
               Try It On
             </Link>
             <button
               onClick={toggleFavorite}
               disabled={saving}
-              className="flex items-center justify-center rounded-[5px] border border-[#cbd3d7] px-5 py-3 text-xs font-semibold text-[#333f46] hover:bg-[#e9edef] disabled:opacity-50"
+              className="btn-tactile flex items-center justify-center rounded-[5px] border border-[#cbd3d7] px-5 py-3.5 text-xs font-semibold text-[#333f46] hover:bg-[#e9edef] disabled:opacity-50"
             >
               {outfit.isFavorite ? "★ Saved" : "Save Outfit"}
             </button>

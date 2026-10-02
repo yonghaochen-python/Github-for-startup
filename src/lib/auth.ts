@@ -80,14 +80,29 @@ export function clearSessionCookieHeader(): string {
   return `${SESSION_COOKIE}=; HttpOnly; Secure; SameSite=Lax; Path=/; Max-Age=0`;
 }
 
-export function readSessionToken(request: Request): string | null {
+function readCookie(request: Request, cookieName: string): string | null {
   const cookieHeader = request.headers.get("cookie");
   if (!cookieHeader) return null;
   for (const part of cookieHeader.split(";")) {
     const [name, ...rest] = part.trim().split("=");
-    if (name === SESSION_COOKIE) return rest.join("=");
+    if (name === cookieName) return rest.join("=");
   }
   return null;
+}
+
+export function readSessionToken(request: Request): string | null {
+  return readCookie(request, SESSION_COOKIE);
+}
+
+// Dev-only: remembers an explicit logout so the local auto-login below doesn't
+// silently sign the demo user straight back in (which made logout look broken).
+const DEV_SIGNED_OUT_COOKIE = "dev_signed_out";
+
+export function devSignedOutCookieHeader(signedOut: boolean): string | null {
+  if (process.env.NODE_ENV === "production") return null;
+  return signedOut
+    ? `${DEV_SIGNED_OUT_COOKIE}=1; SameSite=Lax; Path=/`
+    : `${DEV_SIGNED_OUT_COOKIE}=; SameSite=Lax; Path=/; Max-Age=0`;
 }
 
 export async function deleteSessionByToken(token: string): Promise<void> {
@@ -127,7 +142,7 @@ export async function getCurrentUser(request: Request): Promise<SessionUser | nu
     }
   }
 
-  if (process.env.NODE_ENV !== "production") {
+  if (process.env.NODE_ENV !== "production" && !readCookie(request, DEV_SIGNED_OUT_COOKIE)) {
     return getOrCreateDevUser();
   }
 

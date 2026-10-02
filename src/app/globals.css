@@ -101,3 +101,50 @@ body {
     animation: none;
   }
 }
+
+/* HeroBlob — slow ambient drift, calm enough to sit behind a headline without competing. */
+@keyframes blob-drift {
+  0%,
+  100% {
+    transform: translate(0, 0) scale(1) rotate(0deg);
+    border-radius: 46% 54% 52% 48% / 56% 44% 60% 40%;
+  }
+  33% {
+    transform: translate(2%, -3%) scale(1.04) rotate(6deg);
+    border-radius: 58% 42% 40% 60% / 45% 55% 42% 58%;
+  }
+  66% {
+    transform: translate(-2%, 2%) scale(0.97) rotate(-5deg);
+    border-radius: 42% 58% 60% 40% / 60% 40% 55% 45%;
+  }
+}
+.blob-drift {
+  animation: blob-drift 16s ease-in-out infinite;
+}
+
+/* Shared tactile press feedback for buttons — consistent "expensive, not flashy" response. */
+.btn-tactile {
+  transition:
+    transform 0.15s ease,
+    box-shadow 0.15s ease,
+    background-color 0.15s ease,
+    border-color 0.15s ease;
+}
+.btn-tactile:hover {
+  transform: translateY(-1px);
+}
+.btn-tactile:active {
+  transform: translateY(0) scale(0.98);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .blob-drift {
+    animation: none;
+  }
+  .btn-tactile,
+  .btn-tactile:hover,
+  .btn-tactile:active {
+    transition: none;
+    transform: none;
+  }
+}

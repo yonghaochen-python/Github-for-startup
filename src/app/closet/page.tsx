@@ -7,8 +7,7 @@ import { CATEGORIES, FORMALITIES, SEASONS, LAYERING_ROLES } from "@/lib/clothing
 import { LAYER_LABELS } from "@/lib/layering";
 import { AddClothesModal } from "@/components/AddClothesModal";
 import { useToast } from "@/components/Toast";
-import { LoadingScreen } from "@/components/LoadingScreen";
-import { afterMinDelay } from "@/lib/minDelay";
+import { InlineLoading } from "@/components/InlineLoading";
 
 type ClothingItem = {
   id: string;
@@ -78,62 +77,45 @@ export default function ClosetPage() {
   const [showAddClothes, setShowAddClothes] = useState(false);
 
   async function loadItems() {
-    const startedAt = Date.now();
     try {
       const res = await fetch("/api/closet/items");
       if (res.status === 401) {
-        afterMinDelay(startedAt, 500, () => {
-          setSignedOut(true);
-          setLoading(false);
-        });
+        setSignedOut(true);
+        setLoading(false);
         return;
       }
       if (!res.ok) throw new Error("Failed to load closet");
       const data = (await res.json()) as { items?: ClothingItem[] };
-      afterMinDelay(startedAt, 500, () => {
-        setItems(data.items ?? []);
-        setLoadError(false);
-        setLoading(false);
-      });
+      setItems(data.items ?? []);
+      setLoadError(false);
+      setLoading(false);
     } catch {
-      afterMinDelay(startedAt, 500, () => {
-        setLoadError(true);
-        setLoading(false);
-      });
+      setLoadError(true);
+      setLoading(false);
     }
   }
 
   useEffect(() => {
     let ignore = false;
-    const startedAt = Date.now();
     fetch("/api/closet/items")
       .then(async (res) => {
         if (ignore) return;
         if (res.status === 401) {
-          afterMinDelay(startedAt, 500, () => {
-            if (ignore) return;
-            setSignedOut(true);
-            setLoading(false);
-          });
+          setSignedOut(true);
+          setLoading(false);
           return;
         }
         if (!res.ok) throw new Error("Failed to load closet");
         const data = (await res.json()) as { items?: ClothingItem[] };
-        afterMinDelay(startedAt, 500, () => {
-          if (ignore) return;
-          setItems(data.items ?? []);
-          setLoadError(false);
-          setLoading(false);
-        });
+        if (ignore) return;
+        setItems(data.items ?? []);
+        setLoadError(false);
+        setLoading(false);
       })
       .catch(() => {
-        if (!ignore) {
-          afterMinDelay(startedAt, 500, () => {
-            if (ignore) return;
-            setLoadError(true);
-            setLoading(false);
-          });
-        }
+        if (ignore) return;
+        setLoadError(true);
+        setLoading(false);
       });
     fetch("/api/config")
       .then((res) => res.json() as Promise<{ aiEnabled?: boolean }>)
@@ -235,17 +217,20 @@ export default function ClosetPage() {
   const colors = useMemo(() => [...new Set(items.map((i) => i.color).filter(Boolean))], [items]);
 
   return (
-    <main className="mx-auto w-full max-w-[1440px] flex-1 px-6 py-10 sm:px-8">
-      <div className="mb-10 flex flex-wrap items-end justify-between gap-4">
+    <main className="mx-auto w-full max-w-[1440px] flex-1 px-6 py-14 sm:px-8">
+      <div className="mb-14 flex flex-wrap items-end justify-between gap-4">
         <div>
-          <h1 className="font-display text-4xl font-medium tracking-[-2px] text-[#222a2f] sm:text-5xl">
+          <h1
+            className="font-display font-normal tracking-[-2px] text-[#222a2f]"
+            style={{ fontSize: "clamp(40px, 5vw, 60px)" }}
+          >
             My Closet<span className="text-[#829379]">.</span>
           </h1>
-          <p className="mt-1 text-sm text-[#8b9087]">Everything you own, in one place.</p>
+          <p className="mt-2 text-sm text-[#8b9087]">Everything you own, in one place.</p>
         </div>
         {!signedOut && (
-          <div className="flex shrink-0 items-center gap-4">
-            <label className="cursor-pointer text-xs font-semibold text-[#303a30] hover:text-[#74836c]">
+          <div className="flex shrink-0 items-center gap-5">
+            <label className="btn-tactile cursor-pointer text-xs font-semibold text-[#303a30] hover:text-[#74836c]">
               {uploading ? "Uploading…" : "Upload one-by-one"}
               <input
                 type="file"
@@ -258,7 +243,7 @@ export default function ClosetPage() {
             </label>
             <button
               onClick={() => setShowAddClothes(true)}
-              className="rounded-[5px] bg-[#242b30] px-5 py-2.5 text-xs font-semibold text-white shadow-[inset_0_1px_0_#ffffff35,0_3px_10px_#222d3418] hover:bg-[#3b4750]"
+              className="btn-tactile rounded-[5px] bg-[#242b30] px-6 py-3 text-xs font-semibold text-white shadow-[inset_0_1px_0_#ffffff35,0_4px_14px_#222d3422] hover:bg-[#3b4750]"
             >
               Add Clothes
             </button>
@@ -292,7 +277,7 @@ export default function ClosetPage() {
       {error && <p className="mb-6 rounded-lg bg-red-50 px-4 py-3 text-sm text-red-700">{error}</p>}
 
       {loading ? (
-        <LoadingScreen />
+        <InlineLoading />
       ) : loadError ? (
         <div className="flex flex-col items-start gap-3">
           <p className="text-sm text-red-700">Couldn&apos;t load your closet. Please try again.</p>
@@ -335,18 +320,19 @@ export default function ClosetPage() {
           </div>
           <button
             onClick={() => setShowAddClothes(true)}
-            className="shrink-0 rounded-[5px] bg-[#242b30] px-5 py-2.5 text-xs font-semibold text-white shadow-[inset_0_1px_0_#ffffff35,0_3px_10px_#222d3418] hover:bg-[#3b4750]"
+            className="btn-tactile shrink-0 rounded-[5px] bg-[#242b30] px-6 py-3 text-xs font-semibold text-white shadow-[inset_0_1px_0_#ffffff35,0_4px_14px_#222d3422] hover:bg-[#3b4750]"
           >
             Add first piece
           </button>
         </div>
       ) : (
-        <div className="grid gap-12 lg:grid-cols-[210px_1fr]">
+        <div className="grid gap-14 lg:grid-cols-[190px_1fr]">
           {/* Category + layering-role sidebar on desktop (matches the real Figma source's two filter
               groups + color select + note), horizontal category-only row on mobile — the source itself
-              hides the second filter group and note below 650px, so this mirrors that intentionally. */}
-          <aside className="hidden border-t border-[#dfe2d9] pt-6 lg:block">
-            <div className="mb-4 flex items-center justify-between text-[10px] font-bold tracking-[1.65px] text-[#8d9788]">
+              hides the second filter group and note below 650px, so this mirrors that intentionally.
+              Kept deliberately quiet (no borders/fills on its own) so the imagery stays the focus. */}
+          <aside className="hidden pt-6 lg:block">
+            <div className="mb-4 flex items-center justify-between text-[10px] font-bold tracking-[1.65px] text-[#9aa294]">
               FILTER BY
             </div>
             <div className="flex flex-col gap-0.5">
@@ -355,8 +341,8 @@ export default function ClosetPage() {
               ))}
             </div>
 
-            <div className="my-6 h-px bg-[#e3e6de]" />
-            <div className="mb-4 text-[10px] font-bold tracking-[1.65px] text-[#8d9788]">LAYERING ROLE</div>
+            <div className="my-7 h-px bg-[#e6e9e0]" />
+            <div className="mb-4 text-[10px] font-bold tracking-[1.65px] text-[#9aa294]">LAYERING ROLE</div>
             <div className="flex flex-col gap-0.5">
               {LAYERING_ROLES.map((r) => (
                 <FilterButton
@@ -369,12 +355,12 @@ export default function ClosetPage() {
               ))}
             </div>
 
-            <div className="my-6 h-px bg-[#e3e6de]" />
-            <div className="mb-4 text-[10px] font-bold tracking-[1.65px] text-[#8d9788]">COLOR</div>
+            <div className="my-7 h-px bg-[#e6e9e0]" />
+            <div className="mb-4 text-[10px] font-bold tracking-[1.65px] text-[#9aa294]">COLOR</div>
             <select
               value={colorFilter}
               onChange={(e) => setColorFilter(e.target.value)}
-              className="w-full border border-[#dde1d7] bg-transparent px-3 py-2.5 text-[11px] text-[#555e52] outline-none"
+              className="w-full border-0 border-b border-[#dde1d7] bg-transparent px-0 py-2 text-[11px] text-[#555e52] outline-none"
             >
               <option>All colors</option>
               {colors.map((c) => (
@@ -382,11 +368,11 @@ export default function ClosetPage() {
               ))}
             </select>
 
-            <div className="mt-12 bg-[#edf0e9] p-6 text-[#697b62]">
-              <span aria-hidden className="text-lg text-[#596b55]">
+            <div className="mt-16">
+              <span aria-hidden className="text-base text-[#a9b4a1]">
                 ✦
               </span>
-              <p className="font-display mt-3 text-[21px] leading-tight text-[#455743]">
+              <p className="font-display mt-3 text-[19px] leading-snug text-[#79876f]">
                 Great style begins with the pieces you already love.
               </p>
             </div>
@@ -435,21 +421,24 @@ export default function ClosetPage() {
                 </p>
                 <button
                   onClick={() => setShowAddClothes(true)}
-                  className="mt-2 inline-flex items-center gap-3 rounded-[5px] border border-[#cfd5ca] px-4 py-2.5 text-xs font-semibold text-[#344033] hover:bg-[#eef0e9]"
+                  className="btn-tactile mt-2 inline-flex items-center gap-3 rounded-[5px] border border-[#cfd5ca] px-5 py-2.5 text-xs font-semibold text-[#344033] hover:bg-[#eef0e9]"
                 >
                   Add Clothes
                 </button>
               </div>
             ) : (
-              <div className="grid grid-cols-2 gap-x-4 gap-y-7 lg:grid-cols-4">
+              <div className="grid grid-cols-2 gap-x-6 gap-y-10 lg:grid-cols-4">
                 {filteredItems.map((item) => (
                   <div key={item.id} className={`group relative ${editingId === item.id ? "col-span-2" : ""}`}>
-                    <div className="relative overflow-hidden rounded-lg bg-[#e2e6e7]" style={{ aspectRatio: "1 / 1.13" }}>
+                    <div
+                      className="relative overflow-hidden rounded-lg bg-[#e2e6e7] transition-shadow duration-300 group-hover:shadow-[0_16px_36px_rgba(20,28,32,0.14)]"
+                      style={{ aspectRatio: "1 / 1.13" }}
+                    >
                       <Image
                         src={item.imageUrl}
                         alt={item.description}
                         fill
-                        className="object-cover saturate-[.78] transition-transform duration-300 group-hover:scale-[1.035]"
+                        className="object-cover saturate-[.78] transition-transform duration-500 ease-out group-hover:scale-[1.045]"
                         unoptimized
                       />
                     </div>
