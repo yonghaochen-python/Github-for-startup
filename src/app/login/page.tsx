@@ -3,10 +3,53 @@
 import { useEffect, useState } from "react";
 import Link from "next/link";
 import { useAuth } from "@/components/AuthProvider";
+import { HeroBlob } from "@/components/HeroBlob";
+
+const MODELS = {
+  female: {
+    src: "https://images.unsplash.com/photo-1585685674190-5b11f080af33?auto=format&fit=crop&w=900&q=80",
+    alt: "A woman in a white shirt and black denim jeans, seated in a soft studio",
+    index: "01",
+    pieces: "White shirt · Black denim",
+  },
+  male: {
+    src: "https://images.unsplash.com/photo-1788500304887-6711fead4b54?auto=format&fit=crop&w=900&q=80",
+    alt: "A man in a rust tee and stone shorts with a jacket over his shoulders, in a soft studio",
+    index: "02",
+    pieces: "Rust tee · Stone shorts",
+  },
+};
+
+function ModelPanel({ model, className = "" }: { model: (typeof MODELS)[keyof typeof MODELS]; className?: string }) {
+  return (
+    <figure className={`group relative ${className}`}>
+      <div
+        className="relative aspect-[4/5.4] overflow-hidden border bg-[#e9e6e1]"
+        style={{ borderColor: "#ffffffb0", boxShadow: "0 28px 60px rgba(20,32,40,0.16)" }}
+      >
+        {/* eslint-disable-next-line @next/next/no-img-element */}
+        <img
+          src={model.src}
+          alt={model.alt}
+          className="h-full w-full object-cover object-top saturate-[.9] transition-transform duration-700 ease-out group-hover:scale-[1.03]"
+        />
+      </div>
+      <figcaption className="mt-3 flex items-baseline gap-3 text-[9px] font-bold tracking-[1.6px] text-[#7e888e]">
+        <span className="text-[#29343a]">{model.index}</span>
+        <span className="uppercase">{model.pieces}</span>
+      </figcaption>
+    </figure>
+  );
+}
 
 export default function LoginPage() {
   const { completeLogin } = useAuth();
   const [devLogin, setDevLogin] = useState(false);
+  const [creating, setCreating] = useState(false);
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
+  const [error, setError] = useState<string | null>(null);
+  const [submitting, setSubmitting] = useState(false);
 
   useEffect(() => {
     fetch("/api/config")
@@ -28,12 +71,6 @@ export default function LoginPage() {
     }
   }
 
-  const [creating, setCreating] = useState(false);
-  const [email, setEmail] = useState("");
-  const [password, setPassword] = useState("");
-  const [error, setError] = useState<string | null>(null);
-  const [submitting, setSubmitting] = useState(false);
-
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
     setError(null);
@@ -54,72 +91,50 @@ export default function LoginPage() {
   }
 
   return (
-    <main className="relative grid min-h-screen flex-1 lg:grid-cols-[1.12fr_.88fr]">
-      <Link
-        href="/"
-        className="font-display absolute left-6 top-7 z-10 text-[28px] tracking-[-0.7px] text-[#202529] lg:left-[42px] lg:top-[31px] lg:text-[31px] lg:text-[#f8fafb] lg:[text-shadow:0_2px_16px_#14202b77]"
-      >
-        Virtual <em className="font-normal">Mirror</em>
-      </Link>
+    <main className="relative flex min-h-screen flex-1 flex-col overflow-hidden">
+      <HeroBlob variant="frost" className="-left-[10%] top-[-12%] h-[60%] w-[34%] opacity-40" />
+      <HeroBlob variant="mercury" className="-right-[12%] bottom-[-18%] h-[70%] w-[36%] opacity-40" />
 
-      <section
-        className="relative hidden min-h-screen overflow-hidden lg:block"
-        style={{ background: "#9ba5aa url('/chrome-flow.png') center/cover" }}
-      >
-        <div
-          aria-hidden
-          className="absolute inset-0"
-          style={{ background: "linear-gradient(180deg, #17232d19, #17232d12 50%, #131d26a1)" }}
-        />
-        <div className="absolute bottom-[31%] left-[12%] top-[9%] z-[1] aspect-[370/506] max-w-[76%] overflow-hidden rounded-[8px] border border-white/55 bg-white shadow-[20px_25px_55px_#1019234f]">
-          {/* eslint-disable-next-line @next/next/no-img-element */}
-          <img
-            src="/login-model.png"
-            alt="Two people wearing matching brown loungewear sets"
-            className="h-full w-full object-cover object-top"
-          />
-        </div>
-        <div className="absolute bottom-[7%] left-[7%] z-[2] text-white">
-          <span className="text-[8px] font-bold tracking-[2px]">YOUR WARDROBE, INTELLIGENTLY STYLED</span>
-          <h1
-            className="mt-3.5 font-medium leading-[1.02] tracking-[-2.5px]"
-            style={{ fontSize: "clamp(48px, 5vw, 76px)" }}
-          >
-            Wear more of
-            <br />
-            <em className="font-display font-normal text-[#dce3e6]">what you love.</em>
-          </h1>
-        </div>
-        <span className="absolute right-6 top-[30px] z-[2] text-[8px] font-bold tracking-[1.4px] text-[#f4f7f8] [writing-mode:vertical-rl]">
-          VM / MEMBER ACCESS / 2025
-        </span>
-      </section>
-
-      <section
-        className="relative flex min-h-screen items-center justify-center px-6 pb-20 pt-28 sm:px-[clamp(45px,7vw,110px)] lg:py-8"
-        style={{ background: "linear-gradient(135deg, #f9fdff 0%, #e8f0f4 55%, #f1e7e9 82%, #f2ede3 100%)" }}
-      >
-        <Link
-          href="/"
-          className="absolute right-6 top-8 text-[10px] font-bold text-[#6e7b82] hover:text-[#29343a] lg:left-[39px] lg:right-auto lg:top-[34px]"
-        >
+      <header className="relative z-10 flex items-center justify-between px-6 pt-7 sm:px-10 lg:px-[42px] lg:pt-[31px]">
+        <Link href="/" className="font-display text-[28px] leading-none tracking-[-0.7px] text-[#202529] lg:text-[32px]">
+          Virtual <em className="font-normal">Mirror</em>
+        </Link>
+        <Link href="/" className="text-[10px] font-bold text-[#6e7b82] hover:text-[#29343a]">
           ← Back to explore
         </Link>
+      </header>
 
-        <form onSubmit={handleSubmit} className="w-full max-w-[430px]">
+      <div className="relative z-10 mx-auto grid w-full max-w-[1480px] flex-1 items-center gap-x-[clamp(24px,4vw,72px)] gap-y-8 px-6 pb-16 pt-8 sm:px-10 lg:grid-cols-[1fr_minmax(340px,430px)_1fr] lg:pt-4">
+        {/* Phone/tablet: both models as a cropped strip above the form, never covering it. */}
+        <div className="grid grid-cols-2 gap-3 lg:hidden">
+          {[MODELS.female, MODELS.male].map((m) => (
+            <div key={m.index} className="relative h-44 overflow-hidden border border-white/70 bg-[#e9e6e1] sm:h-60">
+              {/* eslint-disable-next-line @next/next/no-img-element */}
+              <img src={m.src} alt={m.alt} className="h-full w-full object-cover object-top saturate-[.9]" />
+            </div>
+          ))}
+        </div>
+
+        <ModelPanel model={MODELS.female} className="hidden max-w-[470px] justify-self-end lg:block lg:-translate-y-6" />
+
+        <form
+          onSubmit={handleSubmit}
+          className="mx-auto w-full max-w-[430px] border bg-white/55 p-7 backdrop-blur-sm sm:p-9"
+          style={{ borderColor: "#cbd7dcb0", boxShadow: "0 18px 44px rgba(20,32,40,0.07)" }}
+        >
           <p className="text-[10px] font-bold uppercase tracking-[2.2px] text-[#7e888e]">
             {creating ? "Create your wardrobe" : "Member access"}
           </p>
-          <h2 className="font-display mb-3 mt-4 text-[44px] font-normal tracking-[-1.4px] text-[#1c2328] sm:text-[55px]">
+          <h1 className="font-display mb-3 mt-4 text-[44px] font-normal leading-none tracking-[-1.4px] text-[#1c2328] sm:text-[52px]">
             {creating ? "Begin with your closet." : "Welcome back."}
-          </h2>
-          <p className="mb-9 text-xs leading-[1.75] text-[#7c878d]">
+          </h1>
+          <p className="mb-8 text-xs leading-[1.75] text-[#7c878d]">
             {creating
               ? "Create an account to build your digital closet and discover new ways to wear it."
               : "Sign in to return to your closet, saved looks, and personal AI stylist."}
           </p>
 
-          <label className="mt-5 flex flex-col gap-2.5 text-[8px] font-bold tracking-[1.6px] text-[#7f8a90]">
+          <label className="flex flex-col gap-2.5 text-[8px] font-bold tracking-[1.6px] text-[#7f8a90]">
             EMAIL ADDRESS
             <input
               type="email"
@@ -150,7 +165,7 @@ export default function LoginPage() {
           <button
             type="submit"
             disabled={submitting}
-            className="btn-tactile mt-8 flex h-[52px] w-full items-center justify-between rounded-[4px] border border-[#283239] bg-[#283239] px-[17px] text-[11px] font-bold text-white shadow-[inset_0_1px_#ffffff33] hover:bg-[#414d54] disabled:opacity-60"
+            className="btn-tactile mt-7 flex h-[52px] w-full items-center justify-between rounded-[4px] border border-[#283239] bg-[#283239] px-[17px] text-[11px] font-bold text-white shadow-[inset_0_1px_#ffffff33] hover:bg-[#414d54] disabled:opacity-60"
           >
             {submitting ? "Please wait…" : creating ? "Create My Closet" : "Enter Virtual Mirror"}
             <span aria-hidden className="text-base">
@@ -192,10 +207,12 @@ export default function LoginPage() {
           </div>
         </form>
 
-        <p className="absolute bottom-[26px] text-[7px] font-bold tracking-[1.4px] text-[#a0a9ad]">
-          PRIVATE BY DESIGN · YOUR CLOSET STAYS YOURS
-        </p>
-      </section>
+        <ModelPanel model={MODELS.male} className="hidden max-w-[470px] justify-self-start lg:block lg:translate-y-10" />
+      </div>
+
+      <p className="relative z-10 pb-6 text-center text-[7px] font-bold tracking-[1.4px] text-[#a0a9ad]">
+        PRIVATE BY DESIGN · YOUR CLOSET STAYS YOURS
+      </p>
     </main>
   );
 }
