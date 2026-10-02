@@ -71,12 +71,12 @@ export default function LoginPage() {
           className="absolute inset-0"
           style={{ background: "linear-gradient(180deg, #17232d19, #17232d12 50%, #131d26a1)" }}
         />
-        <div className="absolute inset-[11%_10%_12%_12%] z-[1] overflow-hidden rounded-[8px] border border-white/55 shadow-[20px_25px_55px_#1019234f]">
+        <div className="absolute bottom-[31%] left-[12%] top-[9%] z-[1] aspect-[370/506] max-w-[76%] overflow-hidden rounded-[8px] border border-white/55 bg-white shadow-[20px_25px_55px_#1019234f]">
           {/* eslint-disable-next-line @next/next/no-img-element */}
           <img
-            src="https://images.unsplash.com/photo-1715559522419-db7face19c1c?auto=format&fit=crop&w=1200&q=85"
-            alt="A person wearing a curated neutral outfit"
-            className="h-full w-full object-cover grayscale-[.68] contrast-[1.05]"
+            src="/login-model.png"
+            alt="Two people wearing matching brown loungewear sets"
+            className="h-full w-full object-cover object-top"
           />
         </div>
         <div className="absolute bottom-[7%] left-[7%] z-[2] text-white">
