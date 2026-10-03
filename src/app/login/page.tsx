@@ -24,7 +24,7 @@ function ModelPanel({ model, className = "" }: { model: (typeof MODELS)[keyof ty
   return (
     <figure className={`group relative ${className}`}>
       <div
-        className="relative aspect-[4/5.4] overflow-hidden border bg-[#e9e6e1]"
+        className="relative aspect-[4/5.4] h-[min(calc(100vh-250px),640px)] overflow-hidden border bg-[#e9e6e1]"
         style={{ borderColor: "#ffffffb0", boxShadow: "0 28px 60px rgba(20,32,40,0.16)" }}
       >
         {/* eslint-disable-next-line @next/next/no-img-element */}
@@ -95,7 +95,7 @@ export default function LoginPage() {
       <HeroBlob variant="frost" className="-left-[10%] top-[-12%] h-[60%] w-[34%] opacity-40" />
       <HeroBlob variant="mercury" className="-right-[12%] bottom-[-18%] h-[70%] w-[36%] opacity-40" />
 
-      <header className="relative z-10 flex items-center justify-between px-6 pt-7 sm:px-10 lg:px-[42px] lg:pt-[31px]">
+      <header className="relative z-30 flex items-center justify-between px-6 pt-7 sm:px-10 lg:px-[42px] lg:pt-[31px]">
         <Link href="/" className="font-display text-[28px] leading-none tracking-[-0.7px] text-[#202529] lg:text-[32px]">
           Virtual <em className="font-normal">Mirror</em>
         </Link>
@@ -104,7 +104,7 @@ export default function LoginPage() {
         </Link>
       </header>
 
-      <div className="relative z-10 mx-auto grid w-full max-w-[1480px] flex-1 items-center gap-x-[clamp(24px,4vw,72px)] gap-y-8 px-6 pb-16 pt-8 sm:px-10 lg:grid-cols-[1fr_minmax(340px,430px)_1fr] lg:pt-4">
+      <div className="relative z-10 mx-auto grid w-full max-w-[1480px] flex-1 items-center gap-x-[clamp(24px,4vw,72px)] gap-y-8 px-6 pb-10 pt-8 sm:px-10 lg:grid-cols-[1fr_minmax(340px,430px)_1fr] lg:pt-14">
         {/* Phone/tablet: both models as a cropped strip above the form, never covering it. */}
         <div className="grid grid-cols-2 gap-3 lg:hidden">
           {[MODELS.female, MODELS.male].map((m) => (
@@ -115,7 +115,7 @@ export default function LoginPage() {
           ))}
         </div>
 
-        <ModelPanel model={MODELS.female} className="hidden max-w-[470px] justify-self-end lg:block lg:-translate-y-6" />
+        <ModelPanel model={MODELS.female} className="hidden justify-self-end lg:block lg:-translate-y-3" />
 
         <form
           onSubmit={handleSubmit}
@@ -207,7 +207,7 @@ export default function LoginPage() {
           </div>
         </form>
 
-        <ModelPanel model={MODELS.male} className="hidden max-w-[470px] justify-self-start lg:block lg:translate-y-10" />
+        <ModelPanel model={MODELS.male} className="hidden justify-self-start lg:block lg:translate-y-6" />
       </div>
 
       <p className="relative z-10 pb-6 text-center text-[7px] font-bold tracking-[1.4px] text-[#a0a9ad]">
