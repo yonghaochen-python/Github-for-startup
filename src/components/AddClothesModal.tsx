@@ -216,6 +216,18 @@ export function AddClothesModal({ onClose, onAdded }: { onClose: () => void; onA
 
         {step === "upload" && (
           <div>
+            <div className="mb-5 inline-flex rounded-[6px] border border-[#cbd7dc] bg-white/60 p-1">
+              <span className="rounded-[4px] bg-[#242b30] px-4 py-2 text-xs font-semibold text-white">Upload a photo</span>
+              <button
+                type="button"
+                disabled
+                aria-disabled="true"
+                title="Coming soon"
+                className="cursor-not-allowed rounded-[4px] px-4 py-2 text-xs font-semibold text-[#9aa2a6]"
+              >
+                Find Online — Coming Soon
+              </button>
+            </div>
             <h2 className="mb-1 text-xl font-semibold tracking-tight text-[#29343a]">
               Add multiple clothing pieces at once
             </h2>

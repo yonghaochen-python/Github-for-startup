@@ -162,7 +162,7 @@ export async function generateOutfitsFromCloset(
 
   const message = await anthropic.messages.create({
     model: OUTFIT_MODEL,
-    max_tokens: 1536,
+    max_tokens: 8000,
     output_config: {
       format: { type: "json_schema", schema: OUTFITS_SCHEMA },
     },
@@ -217,7 +217,7 @@ export async function explainOutfit(items: ClothingItem[]): Promise<string> {
 
   const message = await anthropic.messages.create({
     model: OUTFIT_MODEL,
-    max_tokens: 256,
+    max_tokens: 2000,
     output_config: {
       format: { type: "json_schema", schema: RATIONALE_SCHEMA },
     },

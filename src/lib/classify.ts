@@ -107,7 +107,7 @@ export async function classifyClothingImage(image: SavedImage): Promise<Clothing
 
   const message = await anthropic.messages.create({
     model: CLASSIFY_MODEL,
-    max_tokens: 512,
+    max_tokens: 2000,
     output_config: {
       format: { type: "json_schema", schema: CLASSIFY_SCHEMA },
     },

@@ -41,6 +41,7 @@ export function EditorialOutfitVisual({ items, large = false }: { items: Garment
                 fill
                 unoptimized
                 className="object-contain mix-blend-multiply saturate-[.86]"
+                style={{ objectFit: "contain" }}
               />
             </div>
           </div>
@@ -60,6 +61,7 @@ export function EditorialOutfitVisual({ items, large = false }: { items: Garment
             fill
             unoptimized
             className="relative z-10 object-contain object-bottom saturate-[.88] contrast-[.98]"
+            style={{ objectFit: "contain" }}
           />
         )}
         <span className="absolute right-4 bottom-4 z-20 text-[9px] font-bold tracking-widest text-[#89949a] [writing-mode:vertical-rl]">

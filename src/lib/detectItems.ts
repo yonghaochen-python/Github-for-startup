@@ -201,7 +201,7 @@ export async function detectClothingItems(image: SavedImage): Promise<DetectedIt
 
   const message = await anthropic.messages.create({
     model: CLASSIFY_MODEL,
-    max_tokens: 2048,
+    max_tokens: 8000,
     output_config: {
       format: { type: "json_schema", schema: DETECT_SCHEMA },
     },
