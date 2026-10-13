@@ -4,6 +4,7 @@ import { Nav } from "@/components/Nav";
 import { DemoModeBanner } from "@/components/DemoModeBanner";
 import { ToastProvider } from "@/components/Toast";
 import { AuthProvider } from "@/components/AuthProvider";
+import { TryOnSessionProvider } from "@/components/TryOnSessionProvider";
 import "./globals.css";
 
 const fontSans = DM_Sans({
@@ -29,9 +30,11 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
       <body className="min-h-full flex flex-col bg-[#eef4f7]">
         <ToastProvider>
           <AuthProvider>
-            <Nav />
-            <DemoModeBanner />
-            <div className="flex flex-1 flex-col">{children}</div>
+            <TryOnSessionProvider>
+              <Nav />
+              <DemoModeBanner />
+              <div className="flex flex-1 flex-col">{children}</div>
+            </TryOnSessionProvider>
           </AuthProvider>
         </ToastProvider>
       </body>
