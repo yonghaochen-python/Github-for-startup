@@ -23,10 +23,14 @@ const TOOLS = [
 ];
 
 const TEASER_ITEMS = [
-  { src: "/sample/white-shirt.svg", label: "White fitted shirt" },
-  { src: "/sample/blue-jeans.svg", label: "Straight-leg jeans" },
-  { src: "/sample/gray-cardigan.svg", label: "Gray cardigan" },
-  { src: "/sample/white-sneakers.svg", label: "White sneakers" },
+  { src: "/sample/white-tshirt.jpg", label: "White crewneck tee" },
+  { src: "/sample/light-jeans.jpg", label: "Light-wash jeans" },
+  { src: "/sample/camel-coat.jpg", label: "Camel wool overcoat" },
+  { src: "/sample/white-sneakers.jpg", label: "White leather sneakers" },
+  { src: "/sample/floral-sundress.jpg", label: "Floral sundress" },
+  { src: "/sample/turtleneck.jpg", label: "Black ribbed turtleneck" },
+  { src: "/sample/plaid-skirt.jpg", label: "Plaid wool skirt" },
+  { src: "/sample/knee-boots.jpg", label: "Black knee-high boots" },
 ];
 
 type ClothingItem = {
