@@ -2,7 +2,7 @@
 export function LoadingScreen() {
   return (
     <main
-      aria-label="Loading Virtual Mirror"
+      aria-label="Loading Virm"
       className="fixed inset-0 z-[100] flex flex-col items-center justify-center overflow-hidden text-[#f9fbfb]"
       style={{ background: "radial-gradient(circle at 50% 55%, #1a1e21 0%, #0a0d0f 75%)" }}
     >
@@ -46,7 +46,7 @@ export function LoadingScreen() {
         className="font-display relative z-[1] font-normal"
         style={{ fontSize: "clamp(53px, 7vw, 92px)", letterSpacing: "-2px", textShadow: "0 4px 20px rgba(24,35,47,0.49)" }}
       >
-        Virtual <em className="font-normal">Mirror</em>
+        Vir<em className="font-normal">m</em>
       </div>
       <div className="relative z-[1] mt-[42px] h-px w-[170px] overflow-hidden bg-white/35">
         <span className="loading-bar-fill block h-full w-[42%] bg-white" />

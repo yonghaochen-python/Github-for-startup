@@ -6,7 +6,8 @@ import { LoadingScreen } from "@/components/LoadingScreen";
 import { useToast } from "@/components/Toast";
 import { afterMinDelay } from "@/lib/minDelay";
 
-export type CurrentUser = { id: string; email: string };
+/** photoVersion is set when the person has a saved try-on photo (it changes whenever the photo is replaced). */
+export type CurrentUser = { id: string; email: string; photoVersion: string | null };
 type AuthStatus = "loading" | "signedOut" | "signedIn";
 
 type AuthContextValue = {
@@ -15,6 +16,8 @@ type AuthContextValue = {
   /** Call after the login/signup API succeeds: shows the branded loading screen once, then enters the app. */
   completeLogin: (message: string) => void;
   logout: () => Promise<void>;
+  /** Re-reads the signed-in user (e.g. after saving or removing the try-on photo) without the loading screen. */
+  refreshUser: () => Promise<void>;
 };
 
 const AuthContext = createContext<AuthContextValue | null>(null);
@@ -96,6 +99,11 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     }
   }, [router]);
 
+  const refreshUser = useCallback(async () => {
+    const u = await fetchCurrentUser();
+    if (u) setUser(u);
+  }, []);
+
   const isPublicPath = PUBLIC_PATHS.includes(pathname ?? "/");
 
   // Signed-out visits to a protected URL go to login; an explicit logout goes to the public intro instead.
@@ -107,7 +115,10 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     }
   }, [status, isPublicPath, pathname, router]);
 
-  const value = useMemo(() => ({ status, user, completeLogin, logout }), [status, user, completeLogin, logout]);
+  const value = useMemo(
+    () => ({ status, user, completeLogin, logout, refreshUser }),
+    [status, user, completeLogin, logout, refreshUser]
+  );
 
   return (
     <AuthContext.Provider value={value}>

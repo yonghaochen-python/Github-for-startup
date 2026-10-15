@@ -2,9 +2,9 @@ import { prisma } from "@/lib/prisma";
 import { deleteSavedImage } from "@/lib/images";
 
 /**
- * Try It On no longer keeps anyone's photo, but the previous version saved one per user (a file in storage
- * plus User.selfieUrl). This removes that leftover for a user the first time their account is loaded after
- * the change, so old photos disappear without a manual sweep. It never touches a file that a closet item
+ * An earlier version of Try It On saved one photo per user at a public /uploads/... path (plus User.selfieUrl).
+ * This removes that leftover for a user the first time their account is loaded, so old public photos disappear
+ * without a manual sweep. Photos saved privately by the current "Save My Photo" flow are not touched. It never touches a file that a closet item
  * also points at, and a failure is logged and retried next time rather than surfacing to the person.
  */
 export async function purgeLegacySelfie(userId: string, selfieUrl: string): Promise<void> {

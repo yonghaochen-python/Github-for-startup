@@ -5,6 +5,8 @@ import { withRetry } from "@/lib/dbRetry";
 import { loadSavedImage } from "@/lib/images";
 import { orderedLayerEntries, type LayeringRole } from "@/lib/layering";
 import { runTryOn, TryOnError, type TryOnInputLayer } from "@/lib/tryOn";
+import type { ImageBytes } from "@/lib/tryOn/types";
+import { isSavedPhotoKey, loadPersonalPhoto } from "@/lib/personalPhoto";
 
 const MAX_PHOTO_BYTES = 12 * 1024 * 1024;
 const MAX_GARMENT_BYTES = 4 * 1024 * 1024;
@@ -14,9 +16,9 @@ const STATUS_BY_CODE = { not_configured: 503, quota_exhausted: 503, rate_limited
 const noStore = { "cache-control": "no-store" };
 
 /**
- * Runs a try-on for one of the user's outfits. The person's photo arrives with the request, is held in
- * memory for this call only, and is handed to the replaceable provider (lib/tryOn). It is never written
- * to storage or the database. Garment photos may be sent too (already shrunk by the browser, as
+ * Runs a try-on for one of the user's outfits. The person's photo either arrives with the request or is their
+ * saved try-on photo (loaded privately from storage); either way it is held in memory for this call only and
+ * handed to the replaceable provider (lib/tryOn). This route never writes the photo anywhere. Garment photos may be sent too (already shrunk by the browser, as
  * `garment:<itemId>`); only items that really belong to this outfit are used, and any without one fall
  * back to the stored closet photo. A `garmentSheet` (every piece on one canvas) may also be sent for
  * providers that take the whole outfit in one call.
@@ -30,15 +32,25 @@ export async function POST(request: Request, ctx: RouteContext<"/api/outfits/[id
   }
 
   const formData = await request.formData().catch(() => null);
-  const photo = formData?.get("photo");
-  if (!formData || !(photo instanceof File)) {
+  if (!formData) {
     return NextResponse.json({ error: "Add a photo of yourself first." }, { status: 400, headers: noStore });
   }
-  if (!ACCEPTED_TYPES.includes(photo.type)) {
-    return NextResponse.json({ error: "Please use a JPG, PNG, or WebP photo." }, { status: 400, headers: noStore });
+  // A photo sent with the request wins; otherwise the person's saved try-on photo is used.
+  const sent = formData.get("photo");
+  let person: ImageBytes | null = null;
+  if (sent instanceof File) {
+    if (!ACCEPTED_TYPES.includes(sent.type)) {
+      return NextResponse.json({ error: "Please use a JPG, PNG, or WebP photo." }, { status: 400, headers: noStore });
+    }
+    if (sent.size > MAX_PHOTO_BYTES) {
+      return NextResponse.json({ error: "That photo is too large. Please use one under 12MB." }, { status: 413, headers: noStore });
+    }
+    person = { bytes: new Uint8Array(await sent.arrayBuffer()), mediaType: sent.type };
+  } else if (isSavedPhotoKey(user.selfieUrl)) {
+    person = await loadPersonalPhoto(user.selfieUrl);
   }
-  if (photo.size > MAX_PHOTO_BYTES) {
-    return NextResponse.json({ error: "That photo is too large. Please use one under 12MB." }, { status: 413, headers: noStore });
+  if (!person) {
+    return NextResponse.json({ error: "Add a photo of yourself first." }, { status: 400, headers: noStore });
   }
 
   const { id } = await ctx.params;
@@ -81,7 +93,7 @@ export async function POST(request: Request, ctx: RouteContext<"/api/outfits/[id
         : undefined;
 
     const result = await runTryOn(
-      { person: { bytes: new Uint8Array(await photo.arrayBuffer()), mediaType: photo.type }, layers, garmentSheet },
+      { person, layers, garmentSheet },
       user.id
     );
 

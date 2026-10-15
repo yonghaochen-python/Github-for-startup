@@ -1,6 +1,6 @@
 import type { Metadata } from "next";
 import { DM_Sans, Instrument_Serif } from "next/font/google";
-import { Nav } from "@/components/Nav";
+import { MobileTabBar, Nav } from "@/components/Nav";
 import { DemoModeBanner } from "@/components/DemoModeBanner";
 import { ToastProvider } from "@/components/Toast";
 import { AuthProvider } from "@/components/AuthProvider";
@@ -20,8 +20,8 @@ const fontSerif = Instrument_Serif({
 });
 
 export const metadata: Metadata = {
-  title: "Virtual Mirror",
-  description: "AI-powered digital closet and outfit recommendations.",
+  title: "Virm — Your virtual mirror for personal styling",
+  description: "Your virtual mirror for personal styling: a digital closet, AI outfits from what you own, and virtual try-on.",
 };
 
 export default function RootLayout({ children }: LayoutProps<"/">) {
@@ -34,6 +34,7 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
               <Nav />
               <DemoModeBanner />
               <div className="flex flex-1 flex-col">{children}</div>
+              <MobileTabBar />
             </TryOnSessionProvider>
           </AuthProvider>
         </ToastProvider>

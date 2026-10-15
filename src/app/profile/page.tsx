@@ -70,7 +70,7 @@ export default function ProfilePage() {
           className="btn-tactile mt-8 border-0 border-b pb-1 text-[9px] font-bold tracking-[0.5px] text-[#667279] hover:border-[#29343a] hover:text-[#29343a]"
           style={{ borderColor: "#9ca6aa" }}
         >
-          Log out of Virtual Mirror
+          Log out of Virm
         </button>
       </div>
     </main>

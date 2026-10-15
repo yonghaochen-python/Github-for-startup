@@ -13,17 +13,24 @@ const primaryButton =
 const secondaryButton =
   "btn-tactile touch-manipulation min-h-[48px] rounded-[5px] border border-[#cbd3d7] bg-white/60 px-6 py-3 text-[13px] font-semibold text-[#333f46] hover:bg-[#e9edef] disabled:opacity-50";
 
-/** On phones the actions stay pinned to the bottom edge (above the home indicator) so they never need a scroll. */
+/** On phones the actions stay pinned just above the bottom tab bar so they never need a scroll. */
 function ActionBar({ children }: { children: React.ReactNode }) {
   return (
-    <div className="sticky bottom-0 z-30 -mx-6 mt-4 border-t border-[#d9dfdf] bg-[#f6f9fa]/90 px-6 pb-[max(12px,env(safe-area-inset-bottom))] pt-3 backdrop-blur sm:-mx-8 sm:px-8 lg:static lg:mx-auto lg:max-w-[520px] lg:border-0 lg:bg-transparent lg:px-0 lg:pb-0 lg:pt-0 lg:backdrop-blur-none">
+    <div className="sticky bottom-[calc(64px+env(safe-area-inset-bottom))] z-20 -mx-5 mt-4 border-t border-[#d9dfdf] bg-[#f6f9fa]/90 px-5 py-3 backdrop-blur sm:-mx-8 sm:px-8 md:bottom-0 md:pb-[max(12px,env(safe-area-inset-bottom))] lg:static lg:mx-auto lg:max-w-[520px] lg:border-0 lg:bg-transparent lg:px-0 lg:pb-0 lg:pt-0 lg:backdrop-blur-none">
       <div className="flex gap-3">{children}</div>
     </div>
   );
 }
 
-/** Photo frame: 3:4, as large as fits above the action bar on a phone. */
-const frameStyle = { height: "min(62dvh, calc((100vw - 3rem) * 4 / 3), 693px)", aspectRatio: "3 / 4" } as const;
+/** Photo frame: 3:4, as large as fits above the action bar and tab bar on a phone. */
+const frameStyle = { height: "min(56dvh, calc((100vw - 2.5rem) * 4 / 3), 640px)", aspectRatio: "3 / 4" } as const;
+
+const PHOTO_TIPS = [
+  "Your whole body, head to feet, in the frame",
+  "Facing the camera, arms relaxed at your sides",
+  "Good, even light and a plain background",
+  "Fitted, simple clothes work best",
+];
 
 function cameraErrorMessage(err: unknown): string {
   const name = err instanceof DOMException ? err.name : "";
@@ -40,11 +47,19 @@ function cameraErrorMessage(err: unknown): string {
 }
 
 /**
- * Step 1 of Try It On: get a photo of the person, either from the camera (only opened after an explicit
- * click) or an upload, let them retake/replace it, and hand the confirmed photo to the parent. Nothing here
- * is stored; the parent keeps the confirmed photo in memory for the session.
+ * Gets the person's full-body try-on photo, either from the camera (only opened after an explicit click) or
+ * an upload, shows a preview, and hands it to the parent only when they press "Save My Photo". Nothing is
+ * uploaded or saved before that click.
  */
-export function TryOnPhotoStep({ onConfirm }: { onConfirm: (photo: Blob) => void }) {
+export function TryOnPhotoStep({
+  onConfirm,
+  saving = false,
+  onCancel,
+}: {
+  onConfirm: (photo: Blob) => void;
+  saving?: boolean;
+  onCancel?: () => void;
+}) {
   const [mode, setMode] = useState<Mode>("choose");
   const [source, setSource] = useState<Source>("upload");
   const [error, setError] = useState<string | null>(null);
@@ -215,27 +230,55 @@ export function TryOnPhotoStep({ onConfirm }: { onConfirm: (photo: Blob) => void
       )}
 
       {mode === "choose" && (
-        <div className="border border-[#d9dfdf] bg-white/70 p-6 sm:p-8">
-          <p className="mb-1 text-[10px] font-bold uppercase tracking-[2.2px] text-[#7e888e]">Step 1</p>
-          <h2 className="font-display mb-3 text-[30px] font-normal leading-tight text-[#1c2328]">Add a photo of you</h2>
-          <p className="mb-6 max-w-md text-sm leading-relaxed text-[#6c767b]">
-            For best results, use a clear full-body photo with good lighting and your body fully visible.
-          </p>
-          <div className="flex flex-col gap-3 sm:flex-row">
-            <button onClick={startCamera} disabled={starting || busy} className={`${primaryButton} sm:min-w-[160px]`}>
-              {starting ? "Opening camera…" : "Take a Photo"}
-            </button>
-            <button
-              onClick={() => fileInputRef.current?.click()}
-              disabled={starting || busy}
-              className={`${secondaryButton} sm:min-w-[160px]`}
-            >
-              {busy ? "Preparing photo…" : "Upload a Photo"}
-            </button>
+        <div className="grid gap-6 border border-[#d9dfdf] bg-white/70 p-5 sm:p-8 md:grid-cols-[minmax(0,240px)_1fr] md:gap-10">
+          <button
+            type="button"
+            onClick={() => fileInputRef.current?.click()}
+            disabled={starting || busy}
+            className="group flex aspect-[3/4] w-full max-w-[240px] flex-col items-center justify-center gap-3 justify-self-center border border-dashed border-[#aab6bc] bg-[#f4f7f8] text-[#5b676d] transition-colors hover:border-[#1c2328] hover:bg-white md:justify-self-start"
+          >
+            <svg viewBox="0 0 24 24" className="h-9 w-9" fill="none" stroke="currentColor" strokeWidth={1.2} aria-hidden>
+              <circle cx="12" cy="5.5" r="2.5" />
+              <path d="M8 21v-6.5L6.5 10a1.5 1.5 0 0 1 1.4-2h8.2a1.5 1.5 0 0 1 1.4 2L16 14.5V21M12 14v7" />
+            </svg>
+            <span className="text-[12px] font-semibold">{busy ? "Preparing photo…" : "Choose a full-body photo"}</span>
+          </button>
+          <div>
+            <h2 className="font-display mb-2 text-[30px] font-normal leading-tight text-[#1c2328]">Your personal try-on photo</h2>
+            <p className="mb-5 max-w-md text-[13.5px] leading-relaxed text-[#5f6a70]">
+              Upload a clear, full-body photo of yourself. We&apos;ll save it to your profile so you can reuse it for
+              future outfit previews.
+            </p>
+            <ul className="mb-6 grid gap-2 text-[12.5px] text-[#4f5a60]">
+              {PHOTO_TIPS.map((tip) => (
+                <li key={tip} className="flex items-start gap-2">
+                  <span aria-hidden className="mt-[7px] h-1 w-1 shrink-0 rounded-full bg-[#7e888e]" />
+                  {tip}
+                </li>
+              ))}
+            </ul>
+            <div className="flex flex-col gap-3 sm:flex-row">
+              <button
+                onClick={() => fileInputRef.current?.click()}
+                disabled={starting || busy}
+                className={`${primaryButton} sm:min-w-[160px]`}
+              >
+                {busy ? "Preparing photo…" : "Choose Photo"}
+              </button>
+              <button onClick={startCamera} disabled={starting || busy} className={`${secondaryButton} sm:min-w-[160px]`}>
+                {starting ? "Opening camera…" : "Take a Photo"}
+              </button>
+              {onCancel && (
+                <button onClick={onCancel} className="px-2 text-[12px] font-semibold text-[#5f6a70] underline-offset-4 hover:underline">
+                  Cancel
+                </button>
+              )}
+            </div>
+            <p className="mt-5 text-xs leading-relaxed text-[#7e888e]">
+              Nothing is saved until you press Save My Photo. It&apos;s stored privately on your account — only you can
+              see it — and you can change or remove it anytime.
+            </p>
           </div>
-          <p className="mt-5 text-xs leading-relaxed text-[#8b9087]">
-            Your photo stays on this device while you try outfits and is never saved to your account.
-          </p>
         </div>
       )}
 
@@ -279,11 +322,14 @@ export function TryOnPhotoStep({ onConfirm }: { onConfirm: (photo: Blob) => void
             {/* eslint-disable-next-line @next/next/no-img-element */}
             <img src={pending.url} alt="Your photo" className="h-full w-full object-contain" />
           </div>
+          <p className="mx-auto mt-3 max-w-[520px] text-xs text-[#7e888e]">
+            Check that your whole body is visible. This is the photo every try-on will use.
+          </p>
           <ActionBar>
-            <button onClick={() => onConfirm(pending.blob)} className={`${primaryButton} flex-1`}>
-              Use this photo
+            <button onClick={() => onConfirm(pending.blob)} disabled={saving} className={`${primaryButton} flex-1`}>
+              {saving ? "Saving your photo…" : "Save My Photo"}
             </button>
-            <button onClick={retake} className={secondaryButton}>
+            <button onClick={retake} disabled={saving} className={secondaryButton}>
               {source === "camera" ? "Retake" : "Choose another"}
             </button>
           </ActionBar>

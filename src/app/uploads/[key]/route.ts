@@ -1,7 +1,10 @@
 import { env } from "cloudflare:workers";
+import { isPrivateStorageKey } from "@/lib/personalPhoto";
 
 export async function GET(_request: Request, ctx: RouteContext<"/uploads/[key]">) {
   const { key } = await ctx.params;
+  // Saved try-on photos are only served to their owner, through /api/me/photo.
+  if (isPrivateStorageKey(key)) return new Response("Not found", { status: 404 });
   const object = await env.UPLOADS.get(key);
 
   if (!object) {

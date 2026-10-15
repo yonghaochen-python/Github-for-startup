@@ -83,7 +83,7 @@ export default function LoginPage() {
       });
       const data = (await res.json()) as { error?: string };
       if (!res.ok) throw new Error(data.error ?? "Something went wrong");
-      completeLogin(creating ? "Your Virtual Mirror is ready." : "Welcome back to your wardrobe.");
+      completeLogin(creating ? "Welcome to Virm. Your closet is ready." : "Welcome back to your wardrobe.");
     } catch (err) {
       setError(err instanceof Error ? err.message : "Something went wrong");
       setSubmitting(false);
@@ -97,7 +97,7 @@ export default function LoginPage() {
 
       <header className="relative z-30 flex items-center justify-between px-6 pt-7 sm:px-10 lg:px-[42px] lg:pt-[31px]">
         <Link href="/" className="font-display text-[28px] leading-none tracking-[-0.7px] text-[#202529] lg:text-[32px]">
-          Virtual <em className="font-normal">Mirror</em>
+          Vir<em className="font-normal">m</em>
         </Link>
         <Link href="/" className="text-[10px] font-bold text-[#6e7b82] hover:text-[#29343a]">
           ← Back to explore
@@ -167,7 +167,7 @@ export default function LoginPage() {
             disabled={submitting}
             className="btn-tactile mt-7 flex h-[52px] w-full items-center justify-between rounded-[4px] border border-[#283239] bg-[#283239] px-[17px] text-[11px] font-bold text-white shadow-[inset_0_1px_#ffffff33] hover:bg-[#414d54] disabled:opacity-60"
           >
-            {submitting ? "Please wait…" : creating ? "Create My Closet" : "Enter Virtual Mirror"}
+            {submitting ? "Please wait…" : creating ? "Create My Closet" : "Enter Virm"}
             <span aria-hidden className="text-base">
               →
             </span>
@@ -193,7 +193,7 @@ export default function LoginPage() {
           )}
 
           <div className="mt-6 flex justify-center gap-[7px] text-[10px] text-[#8b959a]">
-            <span>{creating ? "Already have an account?" : "New to Virtual Mirror?"}</span>
+            <span>{creating ? "Already have an account?" : "New to Virm?"}</span>
             <button
               type="button"
               onClick={() => {
