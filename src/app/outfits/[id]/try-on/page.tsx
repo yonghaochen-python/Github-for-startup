@@ -11,7 +11,7 @@ import { TryOnPhotoStep } from "@/components/TryOnPhotoStep";
 import { useTryOnSession } from "@/components/TryOnSessionProvider";
 import { useToast } from "@/components/Toast";
 import { afterMinDelay } from "@/lib/minDelay";
-import { photoToJpeg } from "@/lib/clientImage";
+import { garmentSheetJpeg, photoToJpeg } from "@/lib/clientImage";
 
 type OutfitItem = { id: string; imageUrl: string; description: string; layeringRole: LayeringRole };
 type OutfitLayer = { role: LayeringRole; items: OutfitItem[] };
@@ -139,6 +139,11 @@ export default function TryOnPage() {
         photos.forEach((p, i) => {
           if (p.status === "fulfilled") formData.append(`garment:${items[i].id}`, p.value, `${items[i].id}.jpg`);
         });
+        // Providers that dress a whole outfit in one call use every piece on a single sheet.
+        if (photos.every((p) => p.status === "fulfilled")) {
+          const sheet = await garmentSheetJpeg(photos.map((p) => (p as PromiseFulfilledResult<Blob>).value)).catch(() => null);
+          if (sheet) formData.append("garmentSheet", sheet, "garments.jpg");
+        }
       }
       const res = await fetch(`/api/outfits/${outfit.id}/try-on`, { method: "POST", body: formData });
       const data = (await res.json()) as { error?: string; result?: TryOnResult };

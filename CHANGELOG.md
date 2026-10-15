@@ -2,6 +2,11 @@
 
 Running log of what's been requested and built for Virtual Mirror, most recent first.
 
+## 2026-10-15
+
+### Try It On: real AI try-on with Black Forest Labs (FLUX VTO v2)
+Try It On now produces a real AI image using Black Forest Labs' own FLUX virtual try-on API (`vto-v2`, called directly at api.bfl.ai) instead of the labeled prototype. New provider `lib/tryOn/providers/bflFluxVto.ts`, selected with `TRYON_PROVIDER=bfl-flux-vto` and keyed by the `BFL_API_KEY` secret (both now in `cloudflare.config.ts`). Following BFL's guidance, the browser lays every piece of the outfit out on one white sheet (`garmentSheet`, about 1 megapixel) and the whole look is dressed in a single call, so one try-on costs one generation and shoes and accessories appear too; the prompt lists the pieces innermost first with layering wording (inner top, layered over, worn open as the outer layer). If no sheet arrives it falls back to one call per piece. The job is submitted, polled at the returned regional URL, and the signed result (valid 10 minutes) is downloaded immediately and returned inline; nothing is stored. Errors map to plain messages (credits used up, key rejected, busy, photo declined by moderation), and the existing 10-per-hour per-user cap still applies. The fal.ai provider is left in place but no longer selected. Verified locally end to end against the real BFL service (a 5-piece outfit in one call, about 9 seconds).
+
 ## 2026-10-07
 
 ### Try It On: full experience, with a replaceable AI provider

@@ -1,3 +1,4 @@
+import { bflFluxVtoProvider } from "./providers/bflFluxVto";
 import { falFluxVtoProvider } from "./providers/falFluxVto";
 import { mockTryOnProvider } from "./mockProvider";
 import { takeTryOnSlot } from "./rateLimit";
@@ -17,6 +18,14 @@ function getTryOnProvider(): TryOnProvider {
       throw new TryOnError("not_configured", "Try It On isn't connected yet. (Its service key isn't set up.)");
     }
     return falFluxVtoProvider(key);
+  }
+
+  if (name === "bfl-flux-vto") {
+    const key = process.env.BFL_API_KEY;
+    if (!key) {
+      throw new TryOnError("not_configured", "Try It On isn't connected yet. (Its service key isn't set up.)");
+    }
+    return bflFluxVtoProvider(key);
   }
 
   console.warn(`Unknown TRYON_PROVIDER "${name}"; falling back to the mock prototype.`);

@@ -15,6 +15,8 @@ export default defineConfig({
       }),
       UPLOADS: bindings.r2({ name: "virtual-mirror-uploads" }),
       ANTHROPIC_API_KEY: bindings.secret(),
+      TRYON_PROVIDER: bindings.text("bfl-flux-vto"),
+      BFL_API_KEY: bindings.secret(),
     },
   }),
 });

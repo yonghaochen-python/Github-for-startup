@@ -14,6 +14,8 @@ export type TryOnInput = {
   person: ImageBytes;
   /** The outfit's real closet items, grouped by layer, outermost first. Providers must not add clothing. */
   layers: TryOnInputLayer[];
+  /** Optional single image with every outfit piece laid out on one canvas (built by the browser). */
+  garmentSheet?: ImageBytes;
 };
 
 /** A piece the provider could not show in the generated image, with a plain-language reason. */

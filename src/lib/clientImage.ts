@@ -55,3 +55,38 @@ export async function photoToJpeg(source: Blob, quality = 0.9, maxSide = MAX_SID
     canvas.toBlob((b) => (b ? resolve(b) : reject(new Error("encode"))), "image/jpeg", quality);
   });
 }
+
+/**
+ * Lays several garment photos out on one white canvas (a near-square grid, about 1 megapixel), which is
+ * how try-on services like FLUX VTO prefer a multi-piece outfit. Each photo is fitted inside its cell.
+ */
+export async function garmentSheetJpeg(sources: Blob[], quality = 0.9, sheetSide = 1152): Promise<Blob> {
+  const images = await Promise.all(sources.map((blob) => createImageBitmap(blob)));
+  const cols = Math.ceil(Math.sqrt(images.length));
+  const rows = Math.ceil(images.length / cols);
+  const cell = Math.floor(sheetSide / cols);
+  const pad = Math.round(cell * 0.04);
+
+  const canvas = document.createElement("canvas");
+  canvas.width = cell * cols;
+  canvas.height = cell * rows;
+  const ctx = canvas.getContext("2d");
+  if (!ctx) throw new Error("Canvas not supported");
+  ctx.fillStyle = "#ffffff";
+  ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+  images.forEach((img, i) => {
+    const box = cell - pad * 2;
+    const scale = Math.min(box / img.width, box / img.height);
+    const w = img.width * scale;
+    const h = img.height * scale;
+    const x = (i % cols) * cell + (cell - w) / 2;
+    const y = Math.floor(i / cols) * cell + (cell - h) / 2;
+    ctx.drawImage(img, x, y, w, h);
+    img.close();
+  });
+
+  return new Promise((resolve, reject) => {
+    canvas.toBlob((b) => (b ? resolve(b) : reject(new Error("encode"))), "image/jpeg", quality);
+  });
+}
