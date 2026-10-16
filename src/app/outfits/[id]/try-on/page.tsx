@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
-import { useParams } from "next/navigation";
+import { usePathname, useParams, useRouter, useSearchParams } from "next/navigation";
 import Image from "next/image";
 import Link from "next/link";
 import { LAYER_LABELS, type LayeringRole } from "@/lib/layering";
@@ -36,6 +36,9 @@ const photoFrame = "relative mx-auto aspect-[3/4] w-full max-w-[260px] sm:max-w-
  */
 export default function TryOnPage() {
   const params = useParams<{ id: string }>();
+  const router = useRouter();
+  const pathname = usePathname();
+  const searchParams = useSearchParams();
   const { user } = useAuth();
   const { showToast } = useToast();
   const hasPhoto = Boolean(user?.photoVersion);
@@ -47,6 +50,9 @@ export default function TryOnPage() {
   const [error, setError] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
   const [liveProvider, setLiveProvider] = useState(false);
+  const [configLoaded, setConfigLoaded] = useState(false);
+  // Arriving from a "Try On" button (?start=1) starts the try-on right away; a refresh or Back does not.
+  const autoStart = useRef(searchParams.get("start") === "1");
   const [statusIndex, setStatusIndex] = useState(0);
   const resultRef = useRef<HTMLDivElement | null>(null);
 
@@ -68,7 +74,8 @@ export default function TryOnPage() {
     fetch("/api/config")
       .then((res) => res.json() as Promise<{ tryOnLive?: boolean }>)
       .then((data) => !ignore && setLiveProvider(Boolean(data.tryOnLive)))
-      .catch(() => {});
+      .catch(() => {})
+      .finally(() => !ignore && setConfigLoaded(true));
     return () => {
       ignore = true;
     };
@@ -120,6 +127,15 @@ export default function TryOnPage() {
       setStage("ready");
     }
   }
+
+  // One click on "Try On" is enough: once the outfit, settings and saved photo are ready, generate.
+  useEffect(() => {
+    if (!autoStart.current || loadState !== "ready" || !configLoaded || !hasPhoto || changingPhoto) return;
+    autoStart.current = false;
+    router.replace(pathname, { scroll: false });
+    generate();
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- runs once when everything it needs is ready
+  }, [loadState, configLoaded, hasPhoto, changingPhoto]);
 
   async function saveLook() {
     if (!outfit || outfit.isFavorite) return;

@@ -196,7 +196,7 @@ function OutfitPick({ outfit, disabled }: { outfit: Outfit; disabled: boolean })
   }
   return (
     <Link
-      href={`/outfits/${outfit.id}/try-on`}
+      href={`/outfits/${outfit.id}/try-on?start=1`}
       className="block border border-[#dce2e4] bg-white transition-all hover:-translate-y-0.5 hover:border-[#9fadb4] hover:shadow-[0_14px_30px_rgba(20,28,32,0.1)]"
     >
       {body}

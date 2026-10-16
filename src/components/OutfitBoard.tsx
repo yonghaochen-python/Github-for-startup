@@ -78,7 +78,7 @@ export function OutfitBoard({
       {outfit.rationale && <p className="px-5 pb-4 text-[12.5px] leading-relaxed text-[#5f6a70]">{outfit.rationale}</p>}
 
       <div className="mt-auto flex flex-wrap items-center gap-2 border-t border-[#e5eaec] px-5 py-4">
-        <Link href={`/outfits/${outfit.id}/try-on`} className={btnPrimary}>
+        <Link href={`/outfits/${outfit.id}/try-on?start=1`} className={btnPrimary}>
           <MirrorIcon className="h-4 w-4" /> Try On
         </Link>
         {savedLabel === "remove" ? (

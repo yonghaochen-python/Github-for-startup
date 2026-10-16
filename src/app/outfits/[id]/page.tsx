@@ -398,7 +398,7 @@ export default function OutfitDetailPage() {
 
           <div className="mt-7 grid grid-cols-2 gap-2.5">
             <Link
-              href={`/outfits/${outfit.id}/try-on`}
+              href={`/outfits/${outfit.id}/try-on?start=1`}
               className="btn-tactile flex items-center justify-center rounded-[5px] bg-[#242b30] px-5 py-3.5 text-xs font-semibold text-white shadow-[inset_0_1px_0_#ffffff35,0_6px_18px_rgba(34,42,47,0.2)] hover:bg-[#3b4750]"
             >
               Try It On
