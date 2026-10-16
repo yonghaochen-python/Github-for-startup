@@ -201,6 +201,8 @@ export default function TryOnPage() {
               ? "Choose a new full-body photo. Once you save it, it replaces your current one for every try-on."
               : needsPhoto
               ? "First, save one full-body photo. After that, every outfit uses it automatically."
+              : stage === "generating"
+                ? "Generating your try-on with your saved photo. You can stay on this page — it takes a few seconds."
               : stage === "result"
                 ? "Here's the look on you. Save it, or try another outfit with the same photo."
                 : "Your saved photo and this outfit are ready. Press Generate Try-On to see them together."

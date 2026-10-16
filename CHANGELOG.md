@@ -2,6 +2,19 @@
 
 Running log of what's been requested and built for Virtual Mirror, most recent first.
 
+## 2026-10-16
+
+### Virm redesign: clearer navigation, a styling dashboard, and a saved try-on photo
+The app is now branded **Virm** ("Your virtual mirror for personal styling") and reorganized so a first-time user can find every tool without help. Navigation has six labeled sections with icons — Home, My Closet, AI Stylist, Try On, Saved Looks, Profile — as a top bar on desktop and a bottom tab bar on phones, with the current section highlighted. Every main page now opens with a title, a one-line explanation, and one obvious primary action, plus helpful empty, loading, success, and error states.
+- **Home** is a personal dashboard: a "Next:" suggestion based on what the person has done, a "Your Virtual Mirror" section (saved photo with Try On an Outfit / Change Photo, or "Start with your photo" onboarding), and My Closet, AI Stylist, Try On, and Saved Looks sections with previews.
+- **My Closet**: category tabs (All Items, Tops, Bottoms, Dresses, Outerwear, Shoes, Accessories), color/season/occasion/layer filters and search, a consistent grid, an item view with visible Edit, Remove (confirmed), and Style actions, and an "added" confirmation offering Add Another Item or Start Styling. "Occasion" uses the existing formality field; no data was invented.
+- **AI Stylist**: a guided four-step flow (occasion, preferences, clothes to use, Generate My Outfits) with loading boards; each result is a labeled outfit board with Try On, Save Look, and View Outfit Details. The stylist still uses the whole closet — choosing specific items isn't supported by the backend, so it isn't offered.
+- **Saved try-on photo** (reverses the earlier "never store the photo" decision, at the owner's request): the person saves one full-body photo with an explicit "Save My Photo" step; it is stored under a private key in the uploads bucket (`User.selfieUrl`, no schema change), served only to its owner by `GET /api/me/photo` (`PUT` replaces, `DELETE` removes), and refused by the public `/uploads` route. Try-on requests without a photo use the saved one, so it is never re-uploaded. Old public selfies are still cleaned up.
+- **Try On**: a new Try On page (saved photo + Choose Outfit from saved looks or all outfits). Pressing Try On anywhere opens that outfit and generates immediately; refreshing or going Back doesn't start another paid try-on. The result offers Save Look, Try Another Outfit, Change My Photo, and Back to Outfits.
+- **Saved Looks** uses the same outfit boards with Try On, Remove from Saved, and View Look, and an empty state that points to Create an Outfit. **Outfit details** gets a breadcrumb back to AI Stylist or Saved Looks, its Try On / Save Look actions at the top, and a layout that works on phones. **Profile** shows account stats and manages the saved photo.
+- Fix: vinext treats every multipart POST like a Server Action and capped it at 1MB, so Add Clothes and larger closet uploads failed with "Payload Too Large". `experimental.serverActions.bodySizeLimit` is now 25MB (each route keeps its own per-photo limit), and the Add Clothes dialog shows a readable message if an upload is rejected.
+- Verified end to end on the local demo: add clothes → confirmation → Start Styling → generate dinner outfits → one-click Try On (≈6s, saved photo) → Save Look → Saved Looks → Try On another look (≈7s, same photo); all main pages fit a 375px phone with no horizontal scroll.
+
 ## 2026-10-15
 
 ### Try It On: real AI try-on with Black Forest Labs (FLUX VTO v2)

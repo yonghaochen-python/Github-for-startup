@@ -92,7 +92,7 @@ export function OutfitBoard({
           </button>
         )}
         <Link href={`/outfits/${outfit.id}`} className="min-h-[44px] px-1 py-3 text-[12.5px] font-semibold text-[#26313a] underline-offset-4 hover:underline">
-          View Outfit Details
+          {savedLabel === "remove" ? "View Look" : "View Outfit Details"}
         </Link>
       </div>
     </article>

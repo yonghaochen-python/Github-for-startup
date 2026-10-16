@@ -175,8 +175,12 @@ export function AddClothesModal({ onClose, onAdded }: { onClose: () => void; onA
       formData.append("items", JSON.stringify(metadata));
 
       const res = await fetch("/api/closet/items/bulk", { method: "POST", body: formData });
-      const data = (await res.json()) as { error?: string };
-      if (!res.ok) throw new Error(data.error ?? "Couldn't add those items.");
+      const data = (await res.json().catch(() => ({}))) as { error?: string };
+      if (!res.ok) {
+        throw new Error(
+          data.error ?? (res.status === 413 ? "Those photos are too large to upload. Try fewer items at once." : "Couldn't add those items.")
+        );
+      }
 
       onAdded(metadata.length);
       onClose();

@@ -9,6 +9,8 @@ import { generateOutfitBoard, type OutfitBoard } from "@/lib/visualAssets";
 import { EditorialOutfitVisual } from "@/components/EditorialOutfitVisual";
 import { useToast } from "@/components/Toast";
 import { InlineLoading } from "@/components/InlineLoading";
+import { BookmarkIcon, MirrorIcon } from "@/components/Icons";
+import { btnPrimary, btnSecondary } from "@/components/ui";
 
 type ClothingItem = {
   id: string;
@@ -232,7 +234,7 @@ export default function OutfitDetailPage() {
       <main className="mx-auto w-full max-w-5xl flex-1 px-6 py-12">
         <p className="text-sm text-[#89949a]">
           Outfit not found. Back to{" "}
-          <Link href="/outfits" className="text-[#303a30] hover:underline">
+          <Link href="/outfits" className="text-[#26313a] hover:underline">
             outfits
           </Link>
           .
@@ -250,20 +252,20 @@ export default function OutfitDetailPage() {
   const boardLayers = board?.layers ?? outfit.layers;
 
   return (
-    <main className="mx-auto w-full max-w-5xl flex-1 px-6 py-14">
-      <Link
-        href="/outfits"
-        className="group mb-9 inline-flex items-center gap-2.5 text-xs font-semibold text-[#747d71]"
-      >
-        <span className="text-lg leading-none transition-transform duration-200 group-hover:-translate-x-1">←</span>{" "}
-        Back to outfits
-      </Link>
+    <main className="mx-auto w-full max-w-[1280px] flex-1 px-5 pb-16 pt-7 sm:px-8 sm:pt-10">
+      <nav aria-label="Breadcrumb" className="mb-6 flex items-center gap-2 text-[12px] font-semibold text-[#5f6a70]">
+        <Link href={outfit.isFavorite ? "/outfits/saved" : "/outfits"} className="hover:text-[#1c2328] hover:underline">
+          {outfit.isFavorite ? "Saved Looks" : "AI Stylist"}
+        </Link>
+        <span aria-hidden>/</span>
+        <span className="text-[#1c2328]">Outfit details</span>
+      </nav>
 
       <div className="mb-7 inline-flex border border-[#d7ddd2] p-[3px]">
         <button
           onClick={() => setMode("outfit")}
           className={`btn-tactile px-3.5 py-1.5 text-[9px] font-bold tracking-[1.2px] ${
-            mode === "outfit" ? "bg-[#344132] text-white" : "text-[#91998e] hover:text-[#5c665a]"
+            mode === "outfit" ? "bg-[#1c2328] text-white" : "text-[#91998e] hover:text-[#5c665a]"
           }`}
         >
           OUTFIT
@@ -271,24 +273,36 @@ export default function OutfitDetailPage() {
         <button
           onClick={() => setMode("items")}
           className={`btn-tactile px-3.5 py-1.5 text-[9px] font-bold tracking-[1.2px] ${
-            mode === "items" ? "bg-[#344132] text-white" : "text-[#91998e] hover:text-[#5c665a]"
+            mode === "items" ? "bg-[#1c2328] text-white" : "text-[#91998e] hover:text-[#5c665a]"
           }`}
         >
           ITEMS
         </button>
       </div>
 
-      <div className="grid gap-x-[7%] gap-y-8" style={{ gridTemplateColumns: "1.03fr .97fr" }}>
-        <div>{mode === "outfit" ? <OutfitBoardView layers={boardLayers} /> : <ItemsGridView items={outfit.items} />}</div>
+      <div className="grid gap-x-[6%] gap-y-8 lg:grid-cols-[1.03fr_.97fr]">
+        <div className="min-w-0">{mode === "outfit" ? <OutfitBoardView layers={boardLayers} /> : <ItemsGridView items={outfit.items} />}</div>
 
-        <div className="pt-3">
+        <div className="min-w-0 pt-1">
+          <p className="mb-2 text-[10px] font-bold uppercase tracking-[2.6px] text-[#7e888e]">Outfit details</p>
           <h1
             className="mb-4 font-display font-normal capitalize tracking-[-1.5px] text-[#1c2328]"
             style={{ fontSize: "clamp(40px, 4.5vw, 64px)", lineHeight: 1.02 }}
           >
             {title}
           </h1>
-          <p className="max-w-[420px] text-[13.5px] leading-[1.85] text-[#8a9285]">{outfit.rationale}</p>
+          <p className="max-w-[460px] text-[13.5px] leading-[1.8] text-[#5f6a70]">{outfit.rationale}</p>
+
+          <div className="mt-6 flex flex-wrap items-center gap-3">
+            <Link href={`/outfits/${outfit.id}/try-on?start=1`} className={btnPrimary}>
+              <MirrorIcon className="h-4 w-4" /> Try On
+            </Link>
+            <button onClick={toggleFavorite} disabled={saving} className={btnSecondary} aria-pressed={outfit.isFavorite}>
+              <BookmarkIcon className="h-4 w-4" />
+              {saving ? "Saving…" : outfit.isFavorite ? "Saved — Remove" : "Save Look"}
+            </button>
+          </div>
+          <p className="mt-2 text-[11.5px] text-[#7e888e]">Try On uses your saved photo and starts right away.</p>
 
           <div className="mt-6 flex flex-wrap gap-2">
             {outfit.occasion && (
@@ -396,25 +410,12 @@ export default function OutfitDetailPage() {
             )}
           </div>
 
-          <div className="mt-7 grid grid-cols-2 gap-2.5">
-            <Link
-              href={`/outfits/${outfit.id}/try-on?start=1`}
-              className="btn-tactile flex items-center justify-center rounded-[5px] bg-[#242b30] px-5 py-3.5 text-xs font-semibold text-white shadow-[inset_0_1px_0_#ffffff35,0_6px_18px_rgba(34,42,47,0.2)] hover:bg-[#3b4750]"
-            >
-              Try It On
-            </Link>
-            <button
-              onClick={toggleFavorite}
-              disabled={saving}
-              className="btn-tactile flex items-center justify-center rounded-[5px] border border-[#cbd3d7] px-5 py-3.5 text-xs font-semibold text-[#333f46] hover:bg-[#e9edef] disabled:opacity-50"
-            >
-              {outfit.isFavorite ? "★ Saved" : "Save Outfit"}
-            </button>
+          <div className="mt-7">
             <button
               onClick={() => setShowMissingPiece((v) => !v)}
-              className="col-span-2 justify-self-start text-xs font-semibold text-[#303a30] hover:text-[#74836c]"
+              className="text-[12.5px] font-semibold text-[#26313a] underline-offset-4 hover:underline"
             >
-              Shop for Missing Piece
+              Is anything missing from this look?
             </button>
           </div>
 
