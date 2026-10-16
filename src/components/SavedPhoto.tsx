@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import Link from "next/link";
 import { useAuth } from "@/components/AuthProvider";
 import { useToast } from "@/components/Toast";
 import { TryOnPhotoStep } from "@/components/TryOnPhotoStep";
@@ -11,6 +12,55 @@ export function SavedPhotoImage({ className = "", alt = "Your saved try-on photo
   if (!user?.photoVersion) return null;
   // eslint-disable-next-line @next/next/no-img-element
   return <img src={`/api/me/photo?v=${user.photoVersion}`} alt={alt} className={className} />;
+}
+
+/**
+ * What the person's virtual mirror shows: their current look (latest try-on) if they have one, otherwise
+ * their saved photo. The look stays until they try something else, take it off, or change the photo.
+ */
+export function MirrorImage({ className = "", original = false }: { className?: string; original?: boolean }) {
+  const { user } = useAuth();
+  if (!user?.photoVersion) return null;
+  if (user.look && !original) {
+    // eslint-disable-next-line @next/next/no-img-element
+    return <img src={`/api/me/look?v=${user.look.version}`} alt="You wearing your current look" className={className} />;
+  }
+  return <SavedPhotoImage className={className} />;
+}
+
+/** Takes off the current look, so the plain saved photo shows again. */
+export function useTakeOffLook() {
+  const { refreshUser } = useAuth();
+  const { showToast } = useToast();
+  return async function takeOffLook(): Promise<boolean> {
+    const res = await fetch("/api/me/look", { method: "DELETE" });
+    if (!res.ok) {
+      showToast("Couldn't take off this look. Please try again.");
+      return false;
+    }
+    await refreshUser();
+    showToast("Look taken off — showing your original photo");
+    return true;
+  };
+}
+
+/** "Currently wearing" line with the two manual changes: open that outfit, or take the look off. */
+export function CurrentLookBar({ dark = false }: { dark?: boolean }) {
+  const { user } = useAuth();
+  const takeOffLook = useTakeOffLook();
+  if (!user?.look) return null;
+  const muted = dark ? "text-[#c3cdd2]" : "text-[#5f6a70]";
+  return (
+    <div className={`flex flex-wrap items-center gap-x-3 gap-y-1 text-[12px] ${muted}`}>
+      <span className={`font-semibold ${dark ? "text-white" : "text-[#1c2328]"}`}>Currently wearing your latest try-on</span>
+      <Link href={`/outfits/${user.look.outfitId}`} className="underline-offset-4 hover:underline">
+        View outfit
+      </Link>
+      <button onClick={takeOffLook} className="underline-offset-4 hover:underline">
+        Take Off Look
+      </button>
+    </div>
+  );
 }
 
 /**

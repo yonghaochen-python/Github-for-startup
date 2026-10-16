@@ -3,7 +3,7 @@
 import { useEffect, useState } from "react";
 import Link from "next/link";
 import { useAuth } from "@/components/AuthProvider";
-import { SavedPhotoImage, SavedPhotoSetup, useRemoveSavedPhoto } from "@/components/SavedPhoto";
+import { CurrentLookBar, MirrorImage, SavedPhotoSetup, useRemoveSavedPhoto } from "@/components/SavedPhoto";
 import { BookmarkIcon, ClosetIcon, SparkleIcon } from "@/components/Icons";
 import { PageHeader, PageShell, btnPrimary, btnSecondary, eyebrow } from "@/components/ui";
 
@@ -71,13 +71,16 @@ export default function ProfilePage() {
             ) : (
               <div className="grid sm:grid-cols-[200px_1fr]">
                 <div className="relative aspect-[3/4] bg-[#dfe6e9] sm:aspect-auto sm:min-h-[280px]">
-                  <SavedPhotoImage className="absolute inset-0 h-full w-full object-cover object-top" />
+                  <MirrorImage className="absolute inset-0 h-full w-full object-cover object-top" />
                 </div>
                 <div className="flex flex-col p-6 sm:p-8">
                   <p id="photo" className={`${eyebrow} mb-2`}>Your saved try-on photo</p>
                   <p className="text-[13.5px] leading-relaxed text-[#5f6a70]">
                     Every try-on uses this photo. It&apos;s stored privately on your account and only you can see it.
                   </p>
+                  <div className="mt-3">
+                    <CurrentLookBar />
+                  </div>
                   <div className="mt-auto flex flex-wrap gap-3 pt-6">
                     <Link href="/try-on" className={btnPrimary}>Try On an Outfit</Link>
                     <button onClick={() => setChanging(true)} className={btnSecondary}>Change Photo</button>

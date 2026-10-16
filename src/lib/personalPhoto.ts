@@ -48,3 +48,37 @@ export async function loadPersonalPhoto(key: string): Promise<ImageBytes | null>
 export async function deletePersonalPhoto(key: string): Promise<void> {
   await env.UPLOADS.delete(key);
 }
+
+/**
+ * The person's current look: the latest try-on result, kept (privately, like the photo) so it stays on their
+ * photo across the app until they try something else, take it off, or change their photo. One per person, at a
+ * fixed key; which outfit it shows and a refresh token live in the object's metadata, so no database column is needed.
+ */
+const lookKey = (userId: string) => `private/looks/${userId}`;
+
+export type CurrentLook = { version: string; outfitId: string };
+
+export async function saveCurrentLook(userId: string, outfitId: string, imageDataUrl: string): Promise<CurrentLook | null> {
+  const match = /^data:(image\/[a-z+]+);base64,(.+)$/.exec(imageDataUrl);
+  if (!match) return null;
+  const look = { version: randomUUID().slice(0, 12), outfitId };
+  await env.UPLOADS.put(lookKey(userId), Buffer.from(match[2], "base64"), {
+    httpMetadata: { contentType: match[1] },
+    customMetadata: look,
+  });
+  return look;
+}
+
+export async function getCurrentLook(userId: string): Promise<CurrentLook | null> {
+  const head = await env.UPLOADS.head(lookKey(userId));
+  const meta = head?.customMetadata;
+  return meta?.version && meta.outfitId ? { version: meta.version, outfitId: meta.outfitId } : null;
+}
+
+export async function loadCurrentLook(userId: string): Promise<ImageBytes | null> {
+  return loadPersonalPhoto(lookKey(userId));
+}
+
+export async function clearCurrentLook(userId: string): Promise<void> {
+  await env.UPLOADS.delete(lookKey(userId));
+}

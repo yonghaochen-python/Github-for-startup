@@ -4,6 +4,7 @@ import { requireUser } from "@/lib/auth";
 import {
   MAX_PHOTO_BYTES,
   PHOTO_TYPES,
+  clearCurrentLook,
   deletePersonalPhoto,
   isSavedPhotoKey,
   loadPersonalPhoto,
@@ -54,8 +55,9 @@ export async function PUT(request: Request) {
   try {
     const key = await savePersonalPhoto(user.id, { bytes: new Uint8Array(await photo.arrayBuffer()), mediaType: photo.type });
     await prisma.user.update({ where: { id: user.id }, data: { selfieUrl: key } });
-    // Remove the photo this one replaces, once the new one is safely recorded.
+    // Remove the photo this one replaces, once the new one is safely recorded. The old look was made from it.
     if (isSavedPhotoKey(user.selfieUrl)) await deletePersonalPhoto(user.selfieUrl).catch(() => {});
+    await clearCurrentLook(user.id).catch(() => {});
     return NextResponse.json({ photoVersion: photoVersion(key) }, { headers: noStore });
   } catch (err) {
     console.error("Failed to save try-on photo:", err);
@@ -74,6 +76,7 @@ export async function DELETE(request: Request) {
   try {
     await prisma.user.update({ where: { id: user.id }, data: { selfieUrl: null } });
     if (isSavedPhotoKey(user.selfieUrl)) await deletePersonalPhoto(user.selfieUrl);
+    await clearCurrentLook(user.id).catch(() => {});
     return NextResponse.json({ ok: true }, { headers: noStore });
   } catch (err) {
     console.error("Failed to remove try-on photo:", err);

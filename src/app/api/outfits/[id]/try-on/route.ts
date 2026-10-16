@@ -6,7 +6,7 @@ import { loadSavedImage } from "@/lib/images";
 import { orderedLayerEntries, type LayeringRole } from "@/lib/layering";
 import { runTryOn, TryOnError, type TryOnInputLayer } from "@/lib/tryOn";
 import type { ImageBytes } from "@/lib/tryOn/types";
-import { isSavedPhotoKey, loadPersonalPhoto } from "@/lib/personalPhoto";
+import { isSavedPhotoKey, loadPersonalPhoto, saveCurrentLook } from "@/lib/personalPhoto";
 
 const MAX_PHOTO_BYTES = 12 * 1024 * 1024;
 const MAX_GARMENT_BYTES = 4 * 1024 * 1024;
@@ -18,7 +18,8 @@ const noStore = { "cache-control": "no-store" };
 /**
  * Runs a try-on for one of the user's outfits. The person's photo either arrives with the request or is their
  * saved try-on photo (loaded privately from storage); either way it is held in memory for this call only and
- * handed to the replaceable provider (lib/tryOn). This route never writes the photo anywhere. Garment photos may be sent too (already shrunk by the browser, as
+ * handed to the replaceable provider (lib/tryOn). This route never stores the photo itself; a real result made
+ * from the saved photo is kept privately as the person's current look. Garment photos may be sent too (already shrunk by the browser, as
  * `garment:<itemId>`); only items that really belong to this outfit are used, and any without one fall
  * back to the stored closet photo. A `garmentSheet` (every piece on one canvas) may also be sent for
  * providers that take the whole outfit in one call.
@@ -97,7 +98,16 @@ export async function POST(request: Request, ctx: RouteContext<"/api/outfits/[id
       user.id
     );
 
-    return NextResponse.json({ result }, { headers: noStore });
+    // A real result made from the saved photo becomes the person's current look until they change it.
+    const look =
+      !result.isMock && result.imageDataUrl && !(sent instanceof File)
+        ? await saveCurrentLook(user.id, outfit.id, result.imageDataUrl).catch((err) => {
+            console.error("Couldn't keep the try-on as the current look:", err);
+            return null;
+          })
+        : null;
+
+    return NextResponse.json({ result, look }, { headers: noStore });
   } catch (err) {
     if (err instanceof TryOnError) {
       return NextResponse.json({ error: err.message, code: err.code }, { status: STATUS_BY_CODE[err.code], headers: noStore });

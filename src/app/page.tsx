@@ -7,7 +7,7 @@ import type { LayeringRole } from "@/lib/layering";
 import type { Outfit } from "@/components/OutfitCard";
 import { useAuth } from "@/components/AuthProvider";
 import { HeroBlob } from "@/components/HeroBlob";
-import { SavedPhotoImage, SavedPhotoSetup } from "@/components/SavedPhoto";
+import { CurrentLookBar, MirrorImage, SavedPhotoSetup } from "@/components/SavedPhoto";
 import { PageHeader, PageShell, btnPrimary, btnSecondary, btnText, eyebrow } from "@/components/ui";
 import {
   ArrowRightIcon,
@@ -240,7 +240,7 @@ function Dashboard({ email, closet, outfits }: { email: string; closet: Clothing
             <div className="grid md:grid-cols-[minmax(0,340px)_1fr]">
               <div className={`relative overflow-hidden bg-[linear-gradient(160deg,#e9eff2,#d6dfe3_55%,#efe9e1)] md:h-auto md:min-h-[400px] ${hasPhoto ? "h-[340px]" : "h-[200px]"}`}>
                 {hasPhoto ? (
-                  <SavedPhotoImage className="absolute inset-0 h-full w-full object-cover object-top" />
+                  <MirrorImage className="absolute inset-0 h-full w-full object-cover object-top" />
                 ) : (
                   <div className="absolute inset-0 flex items-center justify-center">
                     <svg viewBox="0 0 100 220" className="h-[72%] text-[#b2bfc5]" fill="currentColor" aria-hidden>
@@ -250,7 +250,7 @@ function Dashboard({ email, closet, outfits }: { email: string; closet: Clothing
                   </div>
                 )}
                 <span className="absolute left-4 top-4 bg-white/85 px-2.5 py-1 text-[9px] font-bold uppercase tracking-[2px] text-[#3b4850]">
-                  {hasPhoto ? "Your saved photo" : "No photo yet"}
+                  {user?.look ? "Your current look" : hasPhoto ? "Your saved photo" : "No photo yet"}
                 </span>
               </div>
               <div className="flex flex-col justify-center gap-5 p-6 sm:p-10">
@@ -261,8 +261,11 @@ function Dashboard({ email, closet, outfits }: { email: string; closet: Clothing
                       Ready when you are.
                     </h2>
                     <p className="max-w-md text-[14px] leading-relaxed text-[#5f6a70]">
-                      Your try-on photo is saved. Pick any outfit and see it on you — no new upload needed.
+                      {user?.look
+                        ? "Your latest try-on stays on your photo until you try something else or take it off."
+                        : "Your try-on photo is saved. Pick any outfit and see it on you — no new upload needed."}
                     </p>
+                    <CurrentLookBar />
                     <div className="flex flex-wrap items-center gap-3">
                       <Link href="/try-on" className={btnPrimary}>
                         <MirrorIcon className="h-4 w-4" /> Try On an Outfit
@@ -372,7 +375,7 @@ function Dashboard({ email, closet, outfits }: { email: string; closet: Clothing
           <section aria-labelledby="tryon-title" className="grid grid-cols-[120px_1fr] border border-[#cbd7dc] bg-[linear-gradient(135deg,#f7f3ec,#eef2f3)] sm:grid-cols-[160px_1fr] lg:col-span-5">
             <div className="relative min-h-[200px] overflow-hidden bg-[#dfe6e9]">
               {hasPhoto ? (
-                <SavedPhotoImage className="absolute inset-0 h-full w-full object-cover object-top" />
+                <MirrorImage className="absolute inset-0 h-full w-full object-cover object-top" />
               ) : (
                 <div className="absolute inset-0 flex items-center justify-center text-[#9fadb4]">
                   <MirrorIcon className="h-10 w-10" />

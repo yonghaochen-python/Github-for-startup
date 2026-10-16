@@ -7,7 +7,7 @@ import Link from "next/link";
 import { LAYER_LABELS, type LayeringRole } from "@/lib/layering";
 import { InlineLoading } from "@/components/InlineLoading";
 import { useAuth } from "@/components/AuthProvider";
-import { SavedPhotoImage, SavedPhotoSetup } from "@/components/SavedPhoto";
+import { CurrentLookBar, MirrorImage, SavedPhotoImage, SavedPhotoSetup, useTakeOffLook } from "@/components/SavedPhoto";
 import { useToast } from "@/components/Toast";
 import { BookmarkIcon, CheckIcon, MirrorIcon } from "@/components/Icons";
 import { ErrorNote, PageHeader, PageShell, btnPrimary, btnSecondary, btnText, eyebrow } from "@/components/ui";
@@ -39,8 +39,9 @@ export default function TryOnPage() {
   const router = useRouter();
   const pathname = usePathname();
   const searchParams = useSearchParams();
-  const { user } = useAuth();
+  const { user, refreshUser } = useAuth();
   const { showToast } = useToast();
+  const takeOffLook = useTakeOffLook();
   const hasPhoto = Boolean(user?.photoVersion);
   const [outfit, setOutfit] = useState<Outfit | null>(null);
   const [loadState, setLoadState] = useState<"loading" | "ready" | "missing" | "error">("loading");
@@ -121,6 +122,8 @@ export default function TryOnPage() {
       if (!res.ok || !data.result) throw new Error(data.error ?? "Couldn't run the try-on right now.");
       setResult(data.result);
       setStage("result");
+      // The new result is now the current look shown on the photo across the app.
+      refreshUser();
       requestAnimationFrame(() => resultRef.current?.scrollIntoView({ behavior: "smooth", block: "start" }));
     } catch (err) {
       setError(err instanceof Error ? err.message : "Couldn't run the try-on right now.");
@@ -133,6 +136,9 @@ export default function TryOnPage() {
     if (!autoStart.current || loadState !== "ready" || !configLoaded || !hasPhoto || changingPhoto) return;
     autoStart.current = false;
     router.replace(pathname, { scroll: false });
+    // Already wearing this outfit: show it instead of paying for the same try-on again.
+    if (user?.look?.outfitId === params.id) return;
+    // eslint-disable-next-line react-hooks/set-state-in-effect -- starting the try-on the person asked for
     generate();
     // eslint-disable-next-line react-hooks/exhaustive-deps -- runs once when everything it needs is ready
   }, [loadState, configLoaded, hasPhoto, changingPhoto]);
@@ -188,6 +194,8 @@ export default function TryOnPage() {
   const items = outfit.layers.flatMap((layer) => layer.items);
   const outfitName = [outfit.style, outfit.occasion].filter(Boolean).join(" · ") || "Your outfit";
   const needsPhoto = !hasPhoto || changingPhoto;
+  // The current look is this outfit: show it right away (until the person changes it).
+  const wearingThis = !needsPhoto && stage === "ready" && user?.look?.outfitId === outfit.id;
 
   return (
     <main className="flex-1 pb-16">
@@ -195,7 +203,7 @@ export default function TryOnPage() {
         <PageHeader
           label="Try On"
           back={{ href: `/outfits/${outfit.id}`, label: "Back to outfit details" }}
-          title={stage === "result" ? "Your try-on" : "Try this outfit on"}
+          title={stage === "result" || wearingThis ? "Your try-on" : "Try this outfit on"}
           description={
             changingPhoto
               ? "Choose a new full-body photo. Once you save it, it replaces your current one for every try-on."
@@ -203,8 +211,8 @@ export default function TryOnPage() {
               ? "First, save one full-body photo. After that, every outfit uses it automatically."
               : stage === "generating"
                 ? "Generating your try-on with your saved photo. You can stay on this page — it takes a few seconds."
-              : stage === "result"
-                ? "Here's the look on you. Save it, or try another outfit with the same photo."
+              : stage === "result" || wearingThis
+                ? "Here's the look on you. It stays on your photo until you try another outfit or take it off."
                 : "Your saved photo and this outfit are ready. Press Generate Try-On to see them together."
           }
         />
@@ -223,27 +231,29 @@ export default function TryOnPage() {
             />
             <SelectedOutfit name={outfitName} items={items} note="This outfit stays selected while you save your photo." />
           </div>
-        ) : stage === "result" && result ? (
+        ) : (stage === "result" && result) || wearingThis ? (
           <div ref={resultRef} className="grid scroll-mt-24 gap-10 lg:grid-cols-[minmax(0,1.1fr)_minmax(0,.9fr)]">
             <div>
               <div className={`${photoFrame} max-w-[340px] sm:max-w-[520px]`}>
-                {result.imageDataUrl ? (
+                {result?.imageDataUrl ? (
                   // eslint-disable-next-line @next/next/no-img-element
                   <img src={result.imageDataUrl} alt="You wearing this outfit" className="h-full w-full object-contain" />
+                ) : wearingThis ? (
+                  <MirrorImage className="h-full w-full object-contain" />
                 ) : (
                   <SavedPhotoImage className="h-full w-full object-contain" />
                 )}
-                {result.isMock && (
+                {result?.isMock && (
                   <span className="absolute left-3 top-3 bg-[#1c2328]/90 px-3 py-1.5 text-[9px] font-bold tracking-[1.6px] text-white">
                     PROTOTYPE PREVIEW
                   </span>
                 )}
               </div>
               <p className="mx-auto mt-3 max-w-[520px] text-[11.5px] leading-relaxed text-[#7e888e]">
-                {result.isMock
+                {result?.isMock
                   ? "The AI try-on isn't connected here, so this shows your photo, not a generated image of you wearing the pieces."
                   : "AI-generated preview — fit and small details may differ slightly from the real pieces."}
-                {result.notShown && result.notShown.length > 0 && (
+                {result?.notShown && result.notShown.length > 0 && (
                   <> Not shown: {result.notShown.map((n) => n.description).join(", ")}.</>
                 )}
               </p>
@@ -261,8 +271,24 @@ export default function TryOnPage() {
                   <Link href="/try-on" className={btnSecondary}>Try Another Outfit</Link>
                   <button onClick={startChangingPhoto} className={btnSecondary}>Change My Photo</button>
                 </div>
-                <Link href="/outfits" className={`${btnText} self-start`}>Back to Outfits</Link>
-                <p className="text-[11.5px] text-[#7e888e]">Your saved photo stays ready — the next outfit won&apos;t ask for it again.</p>
+                <div className="flex flex-wrap items-center gap-x-5">
+                  <Link href="/outfits" className={btnText}>Back to Outfits</Link>
+                  <button onClick={generate} className={btnText}>Generate Again</button>
+                  <button
+                    onClick={async () => {
+                      if (await takeOffLook()) {
+                        setResult(null);
+                        setStage("ready");
+                      }
+                    }}
+                    className={btnText}
+                  >
+                    Take Off Look
+                  </button>
+                </div>
+                <p className="text-[11.5px] text-[#7e888e]">
+                  This look stays on your photo across Virm until you try another outfit or take it off.
+                </p>
               </div>
               <SelectedOutfit name={outfitName} items={items} />
             </div>
@@ -273,15 +299,21 @@ export default function TryOnPage() {
               <section aria-labelledby="your-photo" className="min-w-0">
                 <p id="your-photo" className={`${eyebrow} mb-3`}>Your Photo</p>
                 <div className={photoFrame}>
-                  <SavedPhotoImage className="h-full w-full object-cover object-top" />
+                  <MirrorImage className="h-full w-full object-cover object-top" />
                   {stage === "generating" && (
                     <div className="absolute inset-0 flex items-center justify-center bg-[#1c2328]/35 backdrop-blur-[1px]">
                       <span className="h-10 w-10 animate-spin rounded-full border-2 border-white/40 border-t-white" aria-hidden />
                     </div>
                   )}
                 </div>
+                {user?.look && (
+                  <div className="mx-auto mt-3 max-w-[260px] sm:max-w-[420px]">
+                    <CurrentLookBar />
+                    <p className="mt-1 text-[11px] text-[#7e888e]">The new try-on starts from your original photo.</p>
+                  </div>
+                )}
                 <div className="mx-auto mt-3 flex max-w-[260px] items-center sm:max-w-[420px] justify-between gap-3">
-                  <span className="text-[11.5px] text-[#7e888e]">Your saved try-on photo</span>
+                  <span className="text-[11.5px] text-[#7e888e]">{user?.look ? "Your current look" : "Your saved try-on photo"}</span>
                   <button onClick={startChangingPhoto} disabled={stage === "generating"} className="text-[12px] font-semibold text-[#26313a] underline-offset-4 hover:underline disabled:opacity-50">
                     Change My Photo
                   </button>

@@ -6,8 +6,16 @@ import { LoadingScreen } from "@/components/LoadingScreen";
 import { useToast } from "@/components/Toast";
 import { afterMinDelay } from "@/lib/minDelay";
 
-/** photoVersion is set when the person has a saved try-on photo (it changes whenever the photo is replaced). */
-export type CurrentUser = { id: string; email: string; photoVersion: string | null };
+/**
+ * photoVersion is set when the person has a saved try-on photo (it changes whenever the photo is replaced).
+ * look is their current look: the latest try-on result, shown on their photo until they change it.
+ */
+export type CurrentUser = {
+  id: string;
+  email: string;
+  photoVersion: string | null;
+  look: { version: string; outfitId: string } | null;
+};
 type AuthStatus = "loading" | "signedOut" | "signedIn";
 
 type AuthContextValue = {

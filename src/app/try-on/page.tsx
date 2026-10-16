@@ -6,7 +6,7 @@ import Link from "next/link";
 import { useSearchParams } from "next/navigation";
 import { useAuth } from "@/components/AuthProvider";
 import type { Outfit } from "@/components/OutfitCard";
-import { SavedPhotoImage, SavedPhotoSetup, useRemoveSavedPhoto } from "@/components/SavedPhoto";
+import { CurrentLookBar, MirrorImage, SavedPhotoSetup, useRemoveSavedPhoto } from "@/components/SavedPhoto";
 import { InlineLoading } from "@/components/InlineLoading";
 import { ArrowRightIcon, BookmarkIcon, SparkleIcon } from "@/components/Icons";
 import { EmptyState, ErrorNote, PageHeader, PageShell, Steps, btnPrimary, btnSecondary, eyebrow } from "@/components/ui";
@@ -64,13 +64,18 @@ export default function TryOnHubPage() {
             <aside aria-label="Your try-on photo" className="lg:sticky lg:top-24 lg:self-start">
               <div className="border border-[#cbd7dc] bg-white/60">
                 <div className="relative aspect-[3/4] overflow-hidden bg-[#dfe6e9]">
-                  <SavedPhotoImage className="absolute inset-0 h-full w-full object-cover object-top" />
+                  <MirrorImage className="absolute inset-0 h-full w-full object-cover object-top" />
                 </div>
                 <div className="p-5">
-                  <p className={`${eyebrow} mb-1.5`}>Your saved try-on photo</p>
+                  <p className={`${eyebrow} mb-1.5`}>{user?.look ? "Your current look" : "Your saved try-on photo"}</p>
                   <p className="text-[12.5px] leading-relaxed text-[#5f6a70]">
-                    Every try-on uses this photo. Only you can see it.
+                    {user?.look
+                      ? "Your latest try-on stays on until you try another outfit. New try-ons start from your original photo."
+                      : "Every try-on uses this photo. Only you can see it."}
                   </p>
+                  <div className="mt-2">
+                    <CurrentLookBar />
+                  </div>
                   <div className="mt-4 flex flex-wrap gap-2">
                     <a href="#choose-title" className={btnPrimary}>
                       Choose Outfit
