@@ -1,19 +1,43 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import Link from "next/link";
-import { OutfitCard, type Outfit } from "@/components/OutfitCard";
+import type { Outfit } from "@/components/OutfitCard";
+import { OutfitBoard, OutfitBoardSkeleton } from "@/components/OutfitBoard";
+import { ClosetIcon, PlusIcon, SparkleIcon } from "@/components/Icons";
+import { EmptyState, ErrorNote, PageHeader, PageShell, btnPrimary, eyebrow } from "@/components/ui";
 
-const OCCASIONS = ["Everyday", "Class", "Work", "Date", "Dinner", "Party", "Interview", "Special Event"];
+const OCCASIONS = ["Everyday", "School", "Work", "Date", "Dinner", "Party", "Interview", "Special Event"];
 const STYLES = ["Casual", "Minimal", "Streetwear", "Preppy", "Feminine", "Clean", "Custom"];
 const CONDITIONS = ["Partly cloudy", "Sunny", "Cloudy", "Rainy", "Windy", "Snowy"];
 
+const chip = (selected: boolean) =>
+  `btn-tactile min-h-[40px] rounded-[5px] border px-4 text-[12.5px] font-medium transition-colors ${
+    selected ? "border-[#1c2328] bg-[#1c2328] text-white" : "border-[#cbd7dc] bg-white/70 text-[#3b4850] hover:border-[#7e888e]"
+  }`;
+const inputClass =
+  "min-h-[44px] w-full rounded-[5px] border border-[#cbd7dc] bg-white/80 px-3 text-[13px] text-[#1c2328] outline-none placeholder:text-[#9aa5aa] focus:border-[#1c2328]";
+
+function Step({ n, title, hint, children }: { n: number; title: string; hint?: string; children: React.ReactNode }) {
+  return (
+    <section className="grid gap-4 border-t border-[#dce2e4] py-6 sm:grid-cols-[200px_1fr] sm:gap-8">
+      <div>
+        <p className={`${eyebrow} mb-1`}>Step {n}</p>
+        <h2 className="font-display text-[24px] font-normal leading-tight text-[#1c2328]">{title}</h2>
+        {hint && <p className="mt-1 text-[12px] leading-relaxed text-[#7e888e]">{hint}</p>}
+      </div>
+      <div>{children}</div>
+    </section>
+  );
+}
+
 export default function OutfitsPage() {
   const [closetCount, setClosetCount] = useState<number | null>(null);
-  const [signedOut, setSignedOut] = useState(false);
-  const [justGenerated, setJustGenerated] = useState<Outfit[]>([]);
+  const [recent, setRecent] = useState<Outfit[]>([]);
+  const [results, setResults] = useState<Outfit[]>([]);
   const [generating, setGenerating] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const resultsRef = useRef<HTMLDivElement | null>(null);
 
   const [occasion, setOccasion] = useState("Everyday");
   const [styleChoice, setStyleChoice] = useState("Casual");
@@ -24,44 +48,32 @@ export default function OutfitsPage() {
   const [prompt, setPrompt] = useState("");
 
   useEffect(() => {
-    let ignore = false;
     fetch("/api/closet/items")
-      .then(async (res) => {
-        if (ignore) return;
-        if (res.status === 401) {
-          setSignedOut(true);
-          return;
-        }
-        if (!res.ok) return;
-        const data = (await res.json()) as { items?: unknown[] };
-        setClosetCount((data.items ?? []).length);
-      })
+      .then(async (res) => (res.ok ? (((await res.json()) as { items?: unknown[] }).items ?? []).length : null))
+      .then(setClosetCount)
       .catch(() => {});
-    return () => {
-      ignore = true;
-    };
+    fetch("/api/outfits")
+      .then(async (res) => (res.ok ? (((await res.json()) as { outfits?: Outfit[] }).outfits ?? []) : []))
+      .then((list) => setRecent(list.slice(0, 6)))
+      .catch(() => {});
   }, []);
 
   async function handleGenerate() {
     setError(null);
     setGenerating(true);
+    setResults([]);
+    requestAnimationFrame(() => resultsRef.current?.scrollIntoView({ behavior: "smooth", block: "start" }));
     try {
       const style = styleChoice === "Custom" ? customStyle || undefined : styleChoice;
-      const weather = temperature ? `${temperature}, ${conditions}` : undefined;
+      const weather = temperature ? `${temperature}, ${conditions}` : conditions;
       const res = await fetch("/api/outfits/generate", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          occasion,
-          weather,
-          style,
-          colorPreference: colorPreference || undefined,
-          prompt: prompt || undefined,
-        }),
+        body: JSON.stringify({ occasion, weather, style, colorPreference: colorPreference || undefined, prompt: prompt || undefined }),
       });
       const data = (await res.json()) as { error?: string; outfits?: Outfit[] };
       if (!res.ok || !data.outfits) throw new Error(data.error ?? "Couldn't generate outfits");
-      setJustGenerated(data.outfits);
+      setResults(data.outfits);
     } catch (err) {
       setError(err instanceof Error ? err.message : "Couldn't generate outfits");
     } finally {
@@ -69,142 +81,147 @@ export default function OutfitsPage() {
     }
   }
 
+  const updateOutfit = (updated: Outfit) => {
+    setResults((list) => list.map((o) => (o.id === updated.id ? updated : o)));
+    setRecent((list) => list.map((o) => (o.id === updated.id ? updated : o)));
+  };
+
+  const tooFewPieces = closetCount !== null && closetCount < 2;
+
   return (
-    <main className="mx-auto w-full max-w-[1440px] flex-1 px-6 py-14 sm:px-8">
-      <div className="mb-14 max-w-xl">
-        <p className="text-[10px] font-bold uppercase tracking-[3px] text-[#7e888e]">AI Stylist</p>
-        <h1
-          className="font-display mt-3 font-normal tracking-[-2px] text-[#1c2328]"
-          style={{ fontSize: "clamp(36px, 4.5vw, 56px)" }}
-        >
-          Tell me where you&apos;re going.
-        </h1>
-        <p className="mt-3 text-sm leading-relaxed text-[#858b81]">
-          Pick the occasion, the vibe, and today&apos;s weather — I&apos;ll build the look from what you already own.
-        </p>
-      </div>
+    <main className="flex-1 pb-16">
+      <PageShell>
+        <PageHeader
+          label="AI Stylist"
+          title="AI Stylist"
+          description="Create outfits from the pieces you already own. Choose an occasion and generate outfit ideas from your closet."
+        />
 
-      {signedOut ? (
-        <p className="text-sm text-[#89949a]">
-          <Link href="/login" className="text-[#303a30] hover:underline">
-            Log in
-          </Link>{" "}
-          to use the AI stylist.
-        </p>
-      ) : (
-        <div className="max-w-2xl border-t border-[#dfe3d9] pt-8">
-          <p className="mb-4 text-[9px] font-bold uppercase tracking-[1.8px] text-[#9da99a]">Occasion</p>
-          <div className="mb-8 flex flex-wrap gap-2.5">
-            {OCCASIONS.map((o) => (
-              <button
-                key={o}
-                onClick={() => setOccasion(o)}
-                className={`btn-tactile min-w-[75px] rounded-[4px] border px-4 py-2.5 text-xs transition-colors ${
-                  occasion === o
-                    ? "border-[#354233] bg-[#354233] text-white"
-                    : "border-[#d8dcd3] text-[#6c7469] hover:border-[#768674]"
-                }`}
-              >
-                {o}
-              </button>
-            ))}
-          </div>
-
-          <p className="mb-4 text-[9px] font-bold uppercase tracking-[1.8px] text-[#9da99a]">Style</p>
-          <div className="mb-2 flex flex-wrap gap-2.5">
-            {STYLES.map((s) => (
-              <button
-                key={s}
-                onClick={() => setStyleChoice(s)}
-                className={`btn-tactile min-w-[75px] rounded-[4px] border px-4 py-2.5 text-xs transition-colors ${
-                  styleChoice === s
-                    ? "border-[#354233] bg-[#354233] text-white"
-                    : "border-[#d8dcd3] text-[#6c7469] hover:border-[#768674]"
-                }`}
-              >
-                {s}
-              </button>
-            ))}
-          </div>
-          {styleChoice === "Custom" && (
-            <input
-              type="text"
-              value={customStyle}
-              onChange={(e) => setCustomStyle(e.target.value)}
-              placeholder="Describe your style"
-              className="mb-8 w-full max-w-xs border-0 border-b border-[#cbd2c6] bg-transparent px-0 py-2 text-sm text-[#222a2f] outline-none placeholder:text-[#9ba198] focus:border-[#768674]"
-            />
-          )}
-          {styleChoice !== "Custom" && <div className="mb-8" />}
-
-          <p className="mb-4 text-[9px] font-bold uppercase tracking-[1.8px] text-[#9da99a]">Weather</p>
-          <div className="mb-8 grid grid-cols-1 gap-4 sm:grid-cols-[1fr_1.3fr]">
-            <label className="flex flex-col gap-2">
-              <span className="text-[9px] font-bold tracking-[1.3px] text-[#939e91]">TEMPERATURE</span>
-              <input
-                type="text"
-                value={temperature}
-                onChange={(e) => setTemperature(e.target.value)}
-                placeholder="e.g. 65°F"
-                className="h-11 w-full border border-[#d9ded4] bg-transparent px-3 text-xs text-[#444e41] outline-none transition-colors focus:border-[#768674]"
-              />
-            </label>
-            <label className="flex flex-col gap-2">
-              <span className="text-[9px] font-bold tracking-[1.3px] text-[#939e91]">CONDITIONS</span>
-              <select
-                value={conditions}
-                onChange={(e) => setConditions(e.target.value)}
-                className="h-11 w-full border border-[#d9ded4] bg-transparent px-3 text-xs text-[#444e41] outline-none transition-colors focus:border-[#768674]"
-              >
-                {CONDITIONS.map((c) => (
-                  <option key={c}>{c}</option>
+        {tooFewPieces ? (
+          <EmptyState
+            title="Add a few pieces first"
+            body="Your stylist builds looks only from clothes in your closet, so it needs at least two pieces to work with."
+            action={
+              <Link href="/closet?add=1" className={btnPrimary}>
+                <PlusIcon className="h-4 w-4" /> Add Clothes
+              </Link>
+            }
+          />
+        ) : (
+          <div className="max-w-4xl">
+            <Step n={1} title="Where are you going?" hint="Pick the occasion you're dressing for.">
+              <div className="flex flex-wrap gap-2">
+                {OCCASIONS.map((o) => (
+                  <button key={o} onClick={() => setOccasion(o)} className={chip(occasion === o)} aria-pressed={occasion === o}>
+                    {o}
+                  </button>
                 ))}
-              </select>
-            </label>
-          </div>
+              </div>
+            </Step>
 
-          <input
-            type="text"
-            value={colorPreference}
-            onChange={(e) => setColorPreference(e.target.value)}
-            placeholder="Color preference (optional)"
-            className="mb-3 w-full border-0 border-b border-[#cbd2c6] bg-transparent px-0 py-2 text-sm text-[#222a2f] outline-none placeholder:text-[#9ba198] focus:border-[#768674]"
-          />
-          <input
-            type="text"
-            value={prompt}
-            onChange={(e) => setPrompt(e.target.value)}
-            placeholder="Anything else? (optional)"
-            className="mb-9 w-full border-0 border-b border-[#cbd2c6] bg-transparent px-0 py-2 text-sm text-[#222a2f] outline-none placeholder:text-[#9ba198] focus:border-[#768674]"
-          />
+            <Step n={2} title="Your preferences" hint="Optional — skip anything you don't mind.">
+              <p className="mb-2 text-[11px] font-semibold text-[#5f6a70]">Style</p>
+              <div className="mb-3 flex flex-wrap gap-2">
+                {STYLES.map((s) => (
+                  <button key={s} onClick={() => setStyleChoice(s)} className={chip(styleChoice === s)} aria-pressed={styleChoice === s}>
+                    {s}
+                  </button>
+                ))}
+              </div>
+              {styleChoice === "Custom" && (
+                <input value={customStyle} onChange={(e) => setCustomStyle(e.target.value)} placeholder="Describe your style, e.g. soft tailoring" className={`${inputClass} mb-3 max-w-sm`} />
+              )}
+              <div className="mt-4 grid gap-3 sm:grid-cols-2">
+                <label className="text-[11px] font-semibold text-[#5f6a70]">
+                  Temperature
+                  <input value={temperature} onChange={(e) => setTemperature(e.target.value)} placeholder="e.g. 65°F" className={`${inputClass} mt-1`} />
+                </label>
+                <label className="text-[11px] font-semibold text-[#5f6a70]">
+                  Weather
+                  <select value={conditions} onChange={(e) => setConditions(e.target.value)} className={`${inputClass} mt-1`}>
+                    {CONDITIONS.map((c) => <option key={c}>{c}</option>)}
+                  </select>
+                </label>
+                <label className="text-[11px] font-semibold text-[#5f6a70]">
+                  Preferred colors
+                  <input value={colorPreference} onChange={(e) => setColorPreference(e.target.value)} placeholder="e.g. neutrals, something with blue" className={`${inputClass} mt-1`} />
+                </label>
+                <label className="text-[11px] font-semibold text-[#5f6a70]">
+                  Anything else?
+                  <input value={prompt} onChange={(e) => setPrompt(e.target.value)} placeholder="e.g. comfortable shoes, no shorts" className={`${inputClass} mt-1`} />
+                </label>
+              </div>
+            </Step>
 
-          <div className="flex flex-wrap items-center gap-6">
-            <button
-              onClick={handleGenerate}
-              disabled={generating}
-              className="btn-tactile inline-flex min-h-[56px] items-center gap-3 rounded-[5px] bg-[#242b30] px-8 text-[13px] font-semibold tracking-wide text-white shadow-[inset_0_1px_0_#ffffff35,0_8px_24px_rgba(34,42,47,0.2)] hover:bg-[#3b4750] disabled:opacity-50"
-            >
-              {generating ? "Styling…" : "Style Me"}
-            </button>
-            {closetCount !== null && (
-              <span className="text-[10px] text-[#9aa198]">Made with the {closetCount} pieces in your closet</span>
-            )}
+            <Step n={3} title="Clothes to use" hint="Your stylist works with everything in your closet.">
+              <div className="flex flex-wrap items-center gap-3 border border-[#dce2e4] bg-white/60 px-4 py-3">
+                <ClosetIcon className="h-5 w-5 text-[#5f6a70]" />
+                <p className="text-[13px] text-[#1c2328]">
+                  Your whole closet{closetCount !== null ? ` — ${closetCount} pieces` : ""}
+                </p>
+                <Link href="/closet" className="ml-auto text-[12px] font-semibold text-[#26313a] underline-offset-4 hover:underline">
+                  Review closet
+                </Link>
+              </div>
+            </Step>
+
+            <Step n={4} title="Generate" hint="Takes a few seconds. Each look uses only your own clothes.">
+              <button onClick={handleGenerate} disabled={generating} className={`${btnPrimary} min-h-[52px] px-7 text-[13.5px]`}>
+                <SparkleIcon className="h-4 w-4" />
+                {generating ? "Creating your outfits…" : "Generate My Outfits"}
+              </button>
+            </Step>
           </div>
+        )}
+
+        <div ref={resultsRef} className="scroll-mt-24">
+          {error && (
+            <div className="mt-6 max-w-2xl">
+              <ErrorNote message={error} />
+            </div>
+          )}
+
+          {(generating || results.length > 0) && (
+            <section aria-labelledby="results-title" aria-busy={generating} className="mt-10">
+              <div className="mb-5">
+                <p className={`${eyebrow} mb-1`}>Your new looks</p>
+                <h2 id="results-title" className="font-display text-[34px] font-normal text-[#1c2328]">
+                  {generating ? "Your stylist is putting looks together…" : `${results.length} outfits for ${occasion.toLowerCase()}`}
+                </h2>
+                {!generating && (
+                  <p className="mt-1 text-[13px] text-[#5f6a70]">
+                    Press Try On to see a look on your saved photo, or Save Look to keep it.
+                  </p>
+                )}
+              </div>
+              <div className="grid gap-6 sm:grid-cols-2 xl:grid-cols-3">
+                {generating
+                  ? [0, 1, 2].map((i) => <OutfitBoardSkeleton key={i} />)
+                  : results.map((outfit) => <OutfitBoard key={outfit.id} outfit={outfit} onSavedChange={updateOutfit} />)}
+              </div>
+            </section>
+          )}
+
+          {!generating && results.length === 0 && recent.length > 0 && (
+            <section aria-labelledby="recent-title" className="mt-12">
+              <div className="mb-5 flex items-end justify-between gap-4">
+                <div>
+                  <p className={`${eyebrow} mb-1`}>Recent</p>
+                  <h2 id="recent-title" className="font-display text-[30px] font-normal text-[#1c2328]">Your latest outfits</h2>
+                </div>
+                <Link href="/outfits/saved" className="text-[12.5px] font-semibold text-[#26313a] underline-offset-4 hover:underline">
+                  View Saved Looks
+                </Link>
+              </div>
+              <div className="grid gap-6 sm:grid-cols-2 xl:grid-cols-3">
+                {recent.slice(0, 3).map((outfit) => (
+                  <OutfitBoard key={outfit.id} outfit={outfit} onSavedChange={updateOutfit} />
+                ))}
+              </div>
+            </section>
+          )}
         </div>
-      )}
-
-      {error && <p className="mt-6 max-w-2xl rounded-lg bg-red-50 px-4 py-3 text-sm text-red-700">{error}</p>}
-
-      {justGenerated.length > 0 && (
-        <div className="mt-20">
-          <p className="mb-6 text-[9px] font-bold uppercase tracking-[1.8px] text-[#9da99a]">Your looks</p>
-          <div className="grid gap-[32px_24px] sm:grid-cols-2 xl:grid-cols-3">
-            {justGenerated.map((outfit) => (
-              <OutfitCard key={outfit.id} outfit={outfit} />
-            ))}
-          </div>
-        </div>
-      )}
+      </PageShell>
     </main>
   );
 }

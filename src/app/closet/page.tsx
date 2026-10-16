@@ -1,13 +1,16 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import Image from "next/image";
 import Link from "next/link";
+import { useSearchParams } from "next/navigation";
 import { CATEGORIES, FORMALITIES, SEASONS, LAYERING_ROLES } from "@/lib/clothingTaxonomy";
 import { LAYER_LABELS } from "@/lib/layering";
 import { AddClothesModal } from "@/components/AddClothesModal";
 import { useToast } from "@/components/Toast";
 import { InlineLoading } from "@/components/InlineLoading";
+import { CheckIcon, PlusIcon, SparkleIcon } from "@/components/Icons";
+import { EmptyState, ErrorNote, PageHeader, PageShell, btnPrimary, btnSecondary, btnText } from "@/components/ui";
 
 type ClothingItem = {
   id: string;
@@ -27,133 +30,124 @@ type EditForm = Pick<
   "category" | "layeringRole" | "color" | "pattern" | "material" | "formality" | "season" | "description"
 >;
 
+const CATEGORY_TABS: { value: string; label: string }[] = [
+  { value: "all", label: "All Items" },
+  { value: "top", label: "Tops" },
+  { value: "bottom", label: "Bottoms" },
+  { value: "dress", label: "Dresses" },
+  { value: "outerwear", label: "Outerwear" },
+  { value: "shoes", label: "Shoes" },
+  { value: "accessory", label: "Accessories" },
+];
+
+const FORMALITY_LABELS: Record<string, string> = {
+  casual: "Casual / everyday",
+  "smart-casual": "Smart casual",
+  formal: "Formal / events",
+  athletic: "Athletic / active",
+};
+
 const isPlaceholder = (item: ClothingItem) => item.description.startsWith("Demo item");
+const layerLabel = (role: string) => LAYER_LABELS[role as keyof typeof LAYER_LABELS] ?? role;
 
 function toEditForm(item: ClothingItem): EditForm {
   const { category, layeringRole, color, pattern, material, formality, season, description } = item;
   return { category, layeringRole, color, pattern, material, formality, season, description };
 }
 
-function FilterButton({
-  label,
-  count,
-  selected,
-  onClick,
-}: {
-  label: string;
-  count: number;
-  selected: boolean;
-  onClick: () => void;
-}) {
-  return (
-    <button
-      onClick={onClick}
-      className={`flex items-center justify-between px-3 py-2.5 text-left text-xs capitalize transition-colors ${
-        selected ? "bg-[#2c353b] font-bold text-[#f9fbfb]" : "text-[#747a70] hover:bg-[#e9edef]"
-      }`}
-    >
-      <span>{label}</span>
-      <span className={`text-[10px] ${selected ? "text-[#bec8ce]" : "text-[#a6aca1]"}`}>{count}</span>
-    </button>
-  );
-}
+const selectClass =
+  "min-h-[40px] rounded-[5px] border border-[#cbd7dc] bg-white/80 px-3 pr-8 text-[12.5px] capitalize text-[#26313a] outline-none focus:border-[#1c2328]";
+const fieldClass =
+  "min-h-[40px] w-full rounded-[5px] border border-[#cbd7dc] bg-white px-3 py-2 text-[13px] text-[#1c2328] outline-none focus:border-[#1c2328]";
 
 export default function ClosetPage() {
   const { showToast } = useToast();
+  const searchParams = useSearchParams();
   const [items, setItems] = useState<ClothingItem[]>([]);
   const [loading, setLoading] = useState(true);
   const [uploading, setUploading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [aiEnabled, setAiEnabled] = useState(false);
   const [reanalyzingId, setReanalyzingId] = useState<string | null>(null);
-  const [signedOut, setSignedOut] = useState(false);
   const [loadError, setLoadError] = useState(false);
-  const [filter, setFilter] = useState<string>("all");
-  const [colorFilter, setColorFilter] = useState<string>("All colors");
+  const [category, setCategory] = useState("all");
+  const [colorFilter, setColorFilter] = useState("");
+  const [seasonFilter, setSeasonFilter] = useState("");
+  const [formalityFilter, setFormalityFilter] = useState("");
+  const [layerFilter, setLayerFilter] = useState("");
   const [search, setSearch] = useState("");
-  const [editingId, setEditingId] = useState<string | null>(null);
-  const [editForm, setEditForm] = useState<EditForm | null>(null);
-  const [savingEdit, setSavingEdit] = useState(false);
-  const [showAddClothes, setShowAddClothes] = useState(false);
+  const [viewingId, setViewingId] = useState<string | null>(null);
+  const [showAddClothes, setShowAddClothes] = useState(searchParams.get("add") === "1");
+  const [justAdded, setJustAdded] = useState<number | null>(null);
 
   async function loadItems() {
     try {
       const res = await fetch("/api/closet/items");
-      if (res.status === 401) {
-        setSignedOut(true);
-        setLoading(false);
-        return;
-      }
       if (!res.ok) throw new Error("Failed to load closet");
       const data = (await res.json()) as { items?: ClothingItem[] };
       setItems(data.items ?? []);
       setLoadError(false);
-      setLoading(false);
     } catch {
       setLoadError(true);
+    } finally {
       setLoading(false);
     }
   }
 
   useEffect(() => {
-    let ignore = false;
-    fetch("/api/closet/items")
-      .then(async (res) => {
-        if (ignore) return;
-        if (res.status === 401) {
-          setSignedOut(true);
-          setLoading(false);
-          return;
-        }
-        if (!res.ok) throw new Error("Failed to load closet");
-        const data = (await res.json()) as { items?: ClothingItem[] };
-        if (ignore) return;
-        setItems(data.items ?? []);
-        setLoadError(false);
-        setLoading(false);
-      })
-      .catch(() => {
-        if (ignore) return;
-        setLoadError(true);
-        setLoading(false);
-      });
+    // eslint-disable-next-line react-hooks/set-state-in-effect -- initial load
+    loadItems();
     fetch("/api/config")
       .then((res) => res.json() as Promise<{ aiEnabled?: boolean }>)
-      .then((data) => {
-        if (!ignore) setAiEnabled(Boolean(data.aiEnabled));
-      })
+      .then((data) => setAiEnabled(Boolean(data.aiEnabled)))
       .catch(() => {});
-    return () => {
-      ignore = true;
-    };
   }, []);
 
   const filteredItems = useMemo(() => {
     const q = search.trim().toLowerCase();
     return items.filter((item) => {
-      if (filter !== "all" && item.category !== filter && item.layeringRole !== filter) return false;
-      if (colorFilter !== "All colors" && item.color !== colorFilter) return false;
+      if (category !== "all" && item.category !== category) return false;
+      if (colorFilter && item.color !== colorFilter) return false;
+      if (seasonFilter && item.season !== seasonFilter && item.season !== "all-season") return false;
+      if (formalityFilter && item.formality !== formalityFilter) return false;
+      if (layerFilter && item.layeringRole !== layerFilter) return false;
       if (!q) return true;
-      return [item.description, item.category, item.color, item.material, item.pattern].some((v) =>
-        v.toLowerCase().includes(q)
-      );
+      return [item.description, item.category, item.color, item.material, item.pattern].some((v) => v.toLowerCase().includes(q));
     });
-  }, [items, filter, colorFilter, search]);
+  }, [items, category, colorFilter, seasonFilter, formalityFilter, layerFilter, search]);
+
+  const colors = useMemo(() => [...new Set(items.map((i) => i.color).filter(Boolean))].sort(), [items]);
+  const countFor = (c: string) => (c === "all" ? items.length : items.filter((i) => i.category === c).length);
+  const filtersActive = Boolean(colorFilter || seasonFilter || formalityFilter || layerFilter || search);
+  const viewing = items.find((i) => i.id === viewingId) ?? null;
+
+  function clearFilters() {
+    setColorFilter("");
+    setSeasonFilter("");
+    setFormalityFilter("");
+    setLayerFilter("");
+    setSearch("");
+  }
+
+  function afterAdding(count: number) {
+    setLoading(true);
+    loadItems();
+    setJustAdded(count);
+    showToast(count === 1 ? "Added to your closet" : `${count} pieces added to your closet`);
+  }
 
   async function handleFiles(e: React.ChangeEvent<HTMLInputElement>) {
     const files = e.target.files;
     if (!files || files.length === 0) return;
-
     setError(null);
     setUploading(true);
     try {
       const formData = new FormData();
       for (const file of files) formData.append("images", file);
-
       const res = await fetch("/api/closet/items", { method: "POST", body: formData });
-      const data = (await res.json()) as { error?: string; warning?: string };
+      const data = (await res.json()) as { error?: string; warning?: string; items?: unknown[] };
       if (!res.ok) throw new Error(data.error ?? "Upload failed");
-      await loadItems();
+      afterAdding(data.items?.length ?? files.length);
       if (data.warning) setError(data.warning);
     } catch (err) {
       setError(err instanceof Error ? err.message : "Upload failed");
@@ -163,9 +157,16 @@ export default function ClosetPage() {
     }
   }
 
-  async function handleDelete(id: string) {
-    setItems((prev) => prev.filter((item) => item.id !== id));
-    await fetch(`/api/closet/items/${id}`, { method: "DELETE" });
+  async function handleDelete(item: ClothingItem) {
+    if (!window.confirm(`Remove "${item.description}" from your closet? Outfits that use it will lose this piece.`)) return;
+    const res = await fetch(`/api/closet/items/${item.id}`, { method: "DELETE" });
+    if (!res.ok) {
+      setError("Couldn't remove that item. Please try again.");
+      return;
+    }
+    setItems((prev) => prev.filter((i) => i.id !== item.id));
+    setViewingId(null);
+    showToast("Removed from your closet");
   }
 
   async function handleReanalyze(id: string) {
@@ -184,402 +185,402 @@ export default function ClosetPage() {
     }
   }
 
-  function startEdit(item: ClothingItem) {
-    setEditingId(item.id);
-    setEditForm(toEditForm(item));
-  }
-
-  async function saveEdit(id: string) {
-    if (!editForm) return;
-    setSavingEdit(true);
+  async function saveEdit(id: string, form: EditForm): Promise<boolean> {
     setError(null);
     try {
       const res = await fetch(`/api/closet/items/${id}`, {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(editForm),
+        body: JSON.stringify(form),
       });
       const data = (await res.json()) as { error?: string; item?: ClothingItem };
       if (!res.ok || !data.item) throw new Error(data.error ?? "Update failed");
       const updated = data.item;
       setItems((prev) => prev.map((item) => (item.id === id ? updated : item)));
-      setEditingId(null);
-      setEditForm(null);
+      showToast("Changes saved");
+      return true;
     } catch (err) {
       setError(err instanceof Error ? err.message : "Update failed");
-    } finally {
-      setSavingEdit(false);
+      return false;
     }
   }
 
-  const categoryCount = (c: string) => (c === "all" ? items.length : items.filter((i) => i.category === c).length);
-  const layerCount = (r: string) => items.filter((i) => i.layeringRole === r).length;
-  const colors = useMemo(() => [...new Set(items.map((i) => i.color).filter(Boolean))], [items]);
-
   return (
-    <main className="mx-auto w-full max-w-[1440px] flex-1 px-6 py-14 sm:px-8">
-      <div className="mb-14 flex flex-wrap items-end justify-between gap-4">
-        <div>
-          <h1
-            className="font-display font-normal tracking-[-2px] text-[#222a2f]"
-            style={{ fontSize: "clamp(40px, 5vw, 60px)" }}
-          >
-            My Closet<span className="text-[#829379]">.</span>
-          </h1>
-          <p className="mt-2 text-sm text-[#8b9087]">Everything you own, in one place.</p>
-        </div>
-        {!signedOut && (
-          <div className="flex shrink-0 items-center gap-5">
-            <label className="btn-tactile cursor-pointer text-xs font-semibold text-[#303a30] hover:text-[#74836c]">
-              {uploading ? "Uploading…" : "Upload one-by-one"}
-              <input
-                type="file"
-                accept="image/png,image/jpeg,image/webp,image/gif"
-                multiple
-                className="hidden"
-                disabled={uploading}
-                onChange={handleFiles}
-              />
-            </label>
-            <button
-              onClick={() => setShowAddClothes(true)}
-              className="btn-tactile rounded-[5px] bg-[#242b30] px-6 py-3 text-xs font-semibold text-white shadow-[inset_0_1px_0_#ffffff35,0_4px_14px_#222d3422] hover:bg-[#3b4750]"
-            >
-              Add Clothes
-            </button>
+    <main className="flex-1 pb-16">
+      <PageShell>
+        <PageHeader
+          label="My Closet"
+          title="My Closet"
+          description="Everything you own, organized in one place. Add photos of clothes you already own to build your digital wardrobe."
+          actions={
+            <>
+              <button onClick={() => setShowAddClothes(true)} className={btnPrimary}>
+                <PlusIcon className="h-4 w-4" /> Add Clothes
+              </button>
+              {items.length >= 2 && (
+                <Link href="/outfits" className={btnSecondary}>
+                  <SparkleIcon className="h-4 w-4" /> Create an Outfit
+                </Link>
+              )}
+            </>
+          }
+        />
+
+        {showAddClothes && <AddClothesModal onClose={() => setShowAddClothes(false)} onAdded={afterAdding} />}
+
+        {justAdded !== null && (
+          <div role="status" className="mb-6 flex flex-col gap-3 border border-[#cbd7dc] bg-white/80 px-5 py-4 sm:flex-row sm:items-center sm:justify-between">
+            <p className="flex items-center gap-2.5 text-[13.5px] text-[#1c2328]">
+              <span className="flex h-6 w-6 items-center justify-center rounded-full bg-[#1c2328] text-white">
+                <CheckIcon className="h-3.5 w-3.5" />
+              </span>
+              {justAdded === 1 ? "Your piece is in your closet." : `${justAdded} pieces are in your closet.`} What next?
+            </p>
+            <div className="flex flex-wrap items-center gap-2">
+              <button onClick={() => setShowAddClothes(true)} className={btnSecondary}>
+                Add Another Item
+              </button>
+              <Link href="/outfits" className={btnPrimary}>
+                <SparkleIcon className="h-4 w-4" /> Start Styling
+              </Link>
+              <button onClick={() => setJustAdded(null)} aria-label="Dismiss" className="px-2 text-[12px] font-semibold text-[#7e888e] hover:text-[#1c2328]">
+                Dismiss
+              </button>
+            </div>
           </div>
         )}
-      </div>
 
-      {showAddClothes && (
-        <AddClothesModal
-          onClose={() => setShowAddClothes(false)}
-          onAdded={() => {
-            setLoading(true);
-            loadItems();
-            showToast("Your piece is now in your closet.");
-          }}
-        />
-      )}
-
-      {!signedOut && !loading && items.length >= 2 && (
-        <Link
-          href="/outfits"
-          className="mb-6 flex items-center justify-between gap-3 rounded-[5px] border border-[#cbd3d7] px-4 py-3 text-[#333f46] hover:bg-[#e9edef]"
-        >
-          <span className="text-sm font-medium">Got what you need? Get outfit ideas from your closet.</span>
-          <span aria-hidden className="text-sm">
-            →
-          </span>
-        </Link>
-      )}
-
-      {error && <p className="mb-6 rounded-lg bg-red-50 px-4 py-3 text-sm text-red-700">{error}</p>}
-
-      {loading ? (
-        <InlineLoading />
-      ) : loadError ? (
-        <div className="flex flex-col items-start gap-3">
-          <p className="text-sm text-red-700">Couldn&apos;t load your closet. Please try again.</p>
-          <button
-            onClick={() => {
-              setLoading(true);
-              loadItems();
-            }}
-            className="rounded-[5px] border border-[#cbd3d7] px-4 py-1.5 text-sm font-medium text-[#333f46] hover:bg-[#e9edef]"
-          >
-            Try again
-          </button>
-        </div>
-      ) : signedOut ? (
-        <p className="text-sm text-[#89949a]">
-          <Link href="/login" className="text-[#303a30] hover:underline">
-            Log in
-          </Link>{" "}
-          to see your closet.
-        </p>
-      ) : items.length === 0 ? (
-        <div
-          className="flex min-h-[300px] flex-col items-start gap-6 border p-10 sm:flex-row sm:items-center"
-          style={{
-            borderColor: "#ffffff78",
-            background: "linear-gradient(125deg, #fbfdfe 0%, #e2ebef 56%, #f0e5e8 80%, #eee8dc 100%)",
-            boxShadow: "0 18px 40px rgba(16,24,32,0.08)",
-          }}
-        >
-          <span
-            className="flex h-[61px] w-[61px] shrink-0 items-center justify-center rounded-full border text-2xl text-[#53636b]"
-            style={{ borderColor: "#c6d0d4", background: "#fff" }}
-            aria-hidden
-          >
-            👔
-          </span>
-          <div className="flex-1">
-            <h2 className="font-display text-[33px] font-normal text-[#222a2f]">Your mirror is ready.</h2>
-            <p className="mt-1 text-sm text-[#7e8b91]">Add your first piece to start building outfits.</p>
+        {error && (
+          <div className="mb-6">
+            <ErrorNote message={error} />
           </div>
-          <button
-            onClick={() => setShowAddClothes(true)}
-            className="btn-tactile shrink-0 rounded-[5px] bg-[#242b30] px-6 py-3 text-xs font-semibold text-white shadow-[inset_0_1px_0_#ffffff35,0_4px_14px_#222d3422] hover:bg-[#3b4750]"
-          >
-            Add first piece
-          </button>
-        </div>
-      ) : (
-        <div className="grid gap-14 lg:grid-cols-[190px_1fr]">
-          {/* Category + layering-role sidebar on desktop (matches the real Figma source's two filter
-              groups + color select + note), horizontal category-only row on mobile — the source itself
-              hides the second filter group and note below 650px, so this mirrors that intentionally.
-              Kept deliberately quiet (no borders/fills on its own) so the imagery stays the focus. */}
-          <aside className="hidden pt-6 lg:block">
-            <div className="mb-4 flex items-center justify-between text-[10px] font-bold tracking-[1.65px] text-[#9aa294]">
-              FILTER BY
-            </div>
-            <div className="flex flex-col gap-0.5">
-              {["all", ...CATEGORIES].map((c) => (
-                <FilterButton key={c} label={c} count={categoryCount(c)} selected={filter === c} onClick={() => setFilter(c)} />
-              ))}
-            </div>
+        )}
 
-            <div className="my-7 h-px bg-[#e6e9e0]" />
-            <div className="mb-4 text-[10px] font-bold tracking-[1.65px] text-[#9aa294]">LAYERING ROLE</div>
-            <div className="flex flex-col gap-0.5">
-              {LAYERING_ROLES.map((r) => (
-                <FilterButton
-                  key={r}
-                  label={LAYER_LABELS[r]}
-                  count={layerCount(r)}
-                  selected={filter === r}
-                  onClick={() => setFilter(r)}
-                />
-              ))}
-            </div>
-
-            <div className="my-7 h-px bg-[#e6e9e0]" />
-            <div className="mb-4 text-[10px] font-bold tracking-[1.65px] text-[#9aa294]">COLOR</div>
-            <select
-              value={colorFilter}
-              onChange={(e) => setColorFilter(e.target.value)}
-              className="w-full border-0 border-b border-[#dde1d7] bg-transparent px-0 py-2 text-[11px] text-[#555e52] outline-none"
-            >
-              <option>All colors</option>
-              {colors.map((c) => (
-                <option key={c}>{c}</option>
-              ))}
-            </select>
-
-            <div className="mt-16">
-              <span aria-hidden className="text-base text-[#a9b4a1]">
-                ✦
-              </span>
-              <p className="font-display mt-3 text-[19px] leading-snug text-[#79876f]">
-                Great style begins with the pieces you already love.
-              </p>
-            </div>
-          </aside>
-          <div className="flex gap-2 overflow-x-auto pb-1 lg:hidden">
-            {["all", ...CATEGORIES].map((c) => (
-              <button
-                key={c}
-                onClick={() => setFilter(c)}
-                className={`shrink-0 rounded-[5px] border px-3 py-1.5 text-xs font-medium capitalize ${
-                  filter === c
-                    ? "border-[#2c353b] bg-[#2c353b] text-white"
-                    : "border-[#e0e4da] text-[#747a70] hover:bg-[#e9edef]"
-                }`}
-              >
-                {c} <span className="text-[10px] opacity-70">{categoryCount(c)}</span>
+        {loading ? (
+          <InlineLoading label="Loading your closet…" />
+        ) : loadError ? (
+          <div className="flex flex-col items-start gap-3">
+            <ErrorNote message="Couldn't load your closet. Please try again." />
+            <button onClick={() => { setLoading(true); loadItems(); }} className={btnSecondary}>
+              Try again
+            </button>
+          </div>
+        ) : items.length === 0 ? (
+          <EmptyState
+            title="Your closet is empty"
+            body="Start with a photo of one piece, or several pieces laid out together — Virm finds each item and labels it for you. You can check and edit everything before it's added."
+            action={
+              <button onClick={() => setShowAddClothes(true)} className={btnPrimary}>
+                <PlusIcon className="h-4 w-4" /> Add Your First Item
               </button>
-            ))}
-          </div>
+            }
+          />
+        ) : (
+          <>
+            {/* Categories */}
+            <div role="tablist" aria-label="Category" className="-mx-5 mb-4 flex gap-1 overflow-x-auto border-b border-[#dce2e4] px-5 sm:mx-0 sm:px-0">
+              {CATEGORY_TABS.map((tab) => {
+                const active = category === tab.value;
+                return (
+                  <button
+                    key={tab.value}
+                    role="tab"
+                    aria-selected={active}
+                    onClick={() => setCategory(tab.value)}
+                    className={`relative shrink-0 px-3.5 pb-3 pt-2 text-[13px] font-semibold ${
+                      active ? "text-[#1c2328]" : "text-[#7b878d] hover:text-[#1c2328]"
+                    }`}
+                  >
+                    {tab.label} <span className="ml-0.5 text-[11px] font-normal text-[#9aa5aa]">{countFor(tab.value)}</span>
+                    {active && <span aria-hidden className="absolute inset-x-2 -bottom-px h-[2px] bg-[#1c2328]" />}
+                  </button>
+                );
+              })}
+            </div>
 
-          <div>
-            <div className="mb-5 flex h-11 items-center justify-between border-b border-[#dfe2d9]">
-              <div className="flex items-center gap-3">
-                <strong className="text-sm font-bold text-[#222a2f] capitalize">
-                  {filter === "all" ? "All pieces" : (LAYER_LABELS[filter as keyof typeof LAYER_LABELS] ?? filter)}
-                </strong>
-                <span className="text-xs text-[#9ba198]">{filteredItems.length} items</span>
-              </div>
+            {/* Filters */}
+            <div className="mb-6 flex flex-wrap items-center gap-2">
+              <label className="sr-only" htmlFor="f-color">Color</label>
+              <select id="f-color" value={colorFilter} onChange={(e) => setColorFilter(e.target.value)} className={selectClass}>
+                <option value="">Any color</option>
+                {colors.map((c) => <option key={c} value={c}>{c}</option>)}
+              </select>
+              <label className="sr-only" htmlFor="f-season">Season</label>
+              <select id="f-season" value={seasonFilter} onChange={(e) => setSeasonFilter(e.target.value)} className={selectClass}>
+                <option value="">Any season</option>
+                {SEASONS.filter((s) => s !== "all-season").map((s) => <option key={s} value={s}>{s}</option>)}
+              </select>
+              <label className="sr-only" htmlFor="f-formality">Occasion</label>
+              <select id="f-formality" value={formalityFilter} onChange={(e) => setFormalityFilter(e.target.value)} className={selectClass}>
+                <option value="">Any occasion</option>
+                {FORMALITIES.map((f) => <option key={f} value={f}>{FORMALITY_LABELS[f] ?? f}</option>)}
+              </select>
+              <label className="sr-only" htmlFor="f-layer">Layer</label>
+              <select id="f-layer" value={layerFilter} onChange={(e) => setLayerFilter(e.target.value)} className={selectClass}>
+                <option value="">Any layer</option>
+                {LAYERING_ROLES.map((r) => <option key={r} value={r}>{LAYER_LABELS[r]}</option>)}
+              </select>
+              <label className="sr-only" htmlFor="f-search">Search</label>
               <input
-                type="text"
+                id="f-search"
+                type="search"
                 value={search}
                 onChange={(e) => setSearch(e.target.value)}
                 placeholder="Search your closet"
-                className="w-40 border-0 border-b border-transparent bg-transparent text-right text-xs text-[#344047] outline-none placeholder:text-[#9ba198] focus:border-[#cbd3d7] sm:w-56"
+                className={`${selectClass} min-w-[180px] flex-1 normal-case sm:max-w-[260px]`}
               />
+              {filtersActive && (
+                <button onClick={clearFilters} className={btnText}>
+                  Clear filters
+                </button>
+              )}
+              <span className="ml-auto text-[12px] text-[#7e888e]">
+                {filteredItems.length} {filteredItems.length === 1 ? "item" : "items"}
+              </span>
             </div>
 
             {filteredItems.length === 0 ? (
-              <div className="flex flex-col items-center gap-3 py-20 text-center text-[#819079]">
-                <span aria-hidden className="text-3xl">
-                  👔
-                </span>
-                <h3 className="font-display text-[28px] font-normal text-[#30392f]">No pieces here yet.</h3>
-                <p className="max-w-[280px] text-sm text-[#888f84]">
-                  Add something to your closet or try a different filter.
-                </p>
-                <button
-                  onClick={() => setShowAddClothes(true)}
-                  className="btn-tactile mt-2 inline-flex items-center gap-3 rounded-[5px] border border-[#cfd5ca] px-5 py-2.5 text-xs font-semibold text-[#344033] hover:bg-[#eef0e9]"
-                >
-                  Add Clothes
-                </button>
-              </div>
-            ) : (
-              <div className="grid grid-cols-2 gap-x-6 gap-y-10 lg:grid-cols-4">
-                {filteredItems.map((item) => (
-                  <div key={item.id} className={`group relative ${editingId === item.id ? "col-span-2" : ""}`}>
-                    <div
-                      className="relative overflow-hidden rounded-lg bg-[#e2e6e7] transition-shadow duration-300 group-hover:shadow-[0_16px_36px_rgba(20,28,32,0.14)]"
-                      style={{ aspectRatio: "1 / 1.13" }}
-                    >
-                      <Image
-                        src={item.imageUrl}
-                        alt={item.description}
-                        fill
-                        className="object-cover saturate-[.78] transition-transform duration-500 ease-out group-hover:scale-[1.045]"
-                        unoptimized
-                      />
-                    </div>
-
-                    {editingId === item.id && editForm ? (
-                      <div className="flex flex-col gap-3 border border-[#cbd7dc] bg-white p-4 mt-2">
-                        <input
-                          type="text"
-                          value={editForm.description}
-                          onChange={(e) => setEditForm({ ...editForm, description: e.target.value })}
-                          placeholder="Description"
-                          className="rounded-[4px] border border-[#cbd7dc] bg-white px-3 py-2 text-sm text-[#222a2f]"
-                        />
-                        <div className="grid grid-cols-2 gap-3">
-                          <select
-                            value={editForm.category}
-                            onChange={(e) => setEditForm({ ...editForm, category: e.target.value })}
-                            className="rounded-[4px] border border-[#cbd7dc] bg-white px-3 py-2 text-sm capitalize text-[#222a2f]"
-                          >
-                            {CATEGORIES.map((c) => (
-                              <option key={c} value={c}>
-                                {c}
-                              </option>
-                            ))}
-                          </select>
-                          <select
-                            value={editForm.layeringRole}
-                            onChange={(e) => setEditForm({ ...editForm, layeringRole: e.target.value })}
-                            className="rounded-[4px] border border-[#cbd7dc] bg-white px-3 py-2 text-sm text-[#222a2f]"
-                          >
-                            {LAYERING_ROLES.map((r) => (
-                              <option key={r} value={r}>
-                                {LAYER_LABELS[r]}
-                              </option>
-                            ))}
-                          </select>
-                          <input
-                            type="text"
-                            value={editForm.color}
-                            onChange={(e) => setEditForm({ ...editForm, color: e.target.value })}
-                            placeholder="Color"
-                            className="rounded-[4px] border border-[#cbd7dc] bg-white px-3 py-2 text-sm text-[#222a2f]"
-                          />
-                          <input
-                            type="text"
-                            value={editForm.material}
-                            onChange={(e) => setEditForm({ ...editForm, material: e.target.value })}
-                            placeholder="Material"
-                            className="rounded-[4px] border border-[#cbd7dc] bg-white px-3 py-2 text-sm text-[#222a2f]"
-                          />
-                          <input
-                            type="text"
-                            value={editForm.pattern}
-                            onChange={(e) => setEditForm({ ...editForm, pattern: e.target.value })}
-                            placeholder="Pattern"
-                            className="rounded-[4px] border border-[#cbd7dc] bg-white px-3 py-2 text-sm text-[#222a2f]"
-                          />
-                          <select
-                            value={editForm.formality}
-                            onChange={(e) => setEditForm({ ...editForm, formality: e.target.value })}
-                            className="rounded-[4px] border border-[#cbd7dc] bg-white px-3 py-2 text-sm capitalize text-[#222a2f]"
-                          >
-                            {FORMALITIES.map((f) => (
-                              <option key={f} value={f}>
-                                {f}
-                              </option>
-                            ))}
-                          </select>
-                          <select
-                            value={editForm.season}
-                            onChange={(e) => setEditForm({ ...editForm, season: e.target.value })}
-                            className="rounded-[4px] border border-[#cbd7dc] bg-white px-3 py-2 text-sm capitalize text-[#222a2f]"
-                          >
-                            {SEASONS.map((s) => (
-                              <option key={s} value={s}>
-                                {s}
-                              </option>
-                            ))}
-                          </select>
-                        </div>
-                        <div className="flex gap-2 pt-1">
-                          <button
-                            onClick={() => saveEdit(item.id)}
-                            disabled={savingEdit}
-                            className="flex-1 rounded-[5px] bg-[#242b30] px-4 py-2 text-sm font-medium text-white disabled:opacity-50"
-                          >
-                            {savingEdit ? "Saving…" : "Save"}
-                          </button>
-                          <button
-                            onClick={() => {
-                              setEditingId(null);
-                              setEditForm(null);
-                            }}
-                            className="rounded-[5px] border border-[#cbd3d7] px-4 py-2 text-sm text-[#333f46]"
-                          >
-                            Cancel
-                          </button>
-                        </div>
-                      </div>
-                    ) : (
-                      <div className="flex items-center justify-between gap-2 pt-3">
-                        <div className="min-w-0">
-                          <h3 className="truncate text-xs font-bold text-[#222a2f]">{item.description}</h3>
-                          <p className="text-[10px] text-[#92988d]">
-                            {item.category} <span className="mx-[3px]">·</span>{" "}
-                            {LAYER_LABELS[item.layeringRole as keyof typeof LAYER_LABELS] ?? item.layeringRole}
-                          </p>
-                          <div className="mt-1.5 flex flex-wrap gap-x-3">
-                            <button
-                              onClick={() => startEdit(item)}
-                              className="text-[10px] font-semibold text-[#303a30] hover:underline"
-                            >
-                              Edit
-                            </button>
-                            {aiEnabled && isPlaceholder(item) && (
-                              <button
-                                onClick={() => handleReanalyze(item.id)}
-                                disabled={reanalyzingId === item.id}
-                                className="text-[10px] font-semibold text-[#344135] hover:underline disabled:opacity-50"
-                              >
-                                {reanalyzingId === item.id ? "Analyzing…" : "Re-analyze with AI"}
-                              </button>
-                            )}
-                          </div>
-                        </div>
-                        <button
-                          onClick={() => handleDelete(item.id)}
-                          aria-label="Remove item"
-                          className="shrink-0 text-sm text-[#a8afa4] opacity-0 transition-opacity hover:text-[#222a2f] group-hover:opacity-100"
-                        >
-                          ×
-                        </button>
-                      </div>
-                    )}
+              <EmptyState
+                title="Nothing matches"
+                body="No pieces fit these filters. Try another category, clear the filters, or add something new."
+                action={
+                  <div className="flex flex-wrap gap-3">
+                    <button onClick={() => { clearFilters(); setCategory("all"); }} className={btnSecondary}>Show all items</button>
+                    <button onClick={() => setShowAddClothes(true)} className={btnPrimary}><PlusIcon className="h-4 w-4" /> Add Clothes</button>
                   </div>
+                }
+              />
+            ) : (
+              <ul className="grid grid-cols-2 gap-x-4 gap-y-7 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5">
+                {filteredItems.map((item) => (
+                  <li key={item.id}>
+                    <button
+                      onClick={() => setViewingId(item.id)}
+                      className="group block w-full text-left"
+                      aria-label={`View ${item.description}`}
+                    >
+                      <div className="relative aspect-square overflow-hidden border border-[#dce2e4] bg-[#f3f5f5] transition-colors group-hover:border-[#9fadb4]">
+                        <Image
+                          src={item.imageUrl}
+                          alt=""
+                          fill
+                          unoptimized
+                          className="object-cover transition-transform duration-500 ease-out group-hover:scale-[1.04]"
+                        />
+                      </div>
+                      <p className="mt-2.5 truncate text-[13px] font-semibold text-[#1c2328]">{item.description}</p>
+                      <p className="text-[11.5px] capitalize text-[#7e888e]">
+                        {item.color} · {layerLabel(item.layeringRole)}
+                      </p>
+                    </button>
+                  </li>
                 ))}
-              </div>
+              </ul>
             )}
-          </div>
-        </div>
+          </>
+        )}
+      </PageShell>
+
+      {/* Hidden quick upload: one photo = one item, analyzed automatically. */}
+      <QuickUpload uploading={uploading} onChange={handleFiles} visible={!loading && !loadError} />
+
+      {viewing && (
+        <ItemDetail
+          item={viewing}
+          aiEnabled={aiEnabled}
+          reanalyzing={reanalyzingId === viewing.id}
+          onReanalyze={() => handleReanalyze(viewing.id)}
+          onClose={() => setViewingId(null)}
+          onSave={(form) => saveEdit(viewing.id, form)}
+          onDelete={() => handleDelete(viewing)}
+        />
       )}
     </main>
+  );
+}
+
+function QuickUpload({
+  uploading,
+  onChange,
+  visible,
+}: {
+  uploading: boolean;
+  onChange: (e: React.ChangeEvent<HTMLInputElement>) => void;
+  visible: boolean;
+}) {
+  if (!visible) return null;
+  return (
+    <PageShell className="mt-10">
+      <p className="text-[12px] text-[#7e888e]">
+        Have separate photos of single items?{" "}
+        <label className="cursor-pointer font-semibold text-[#1c2328] underline underline-offset-4">
+          {uploading ? "Uploading and labeling…" : "Upload them one per item"}
+          <input
+            type="file"
+            accept="image/png,image/jpeg,image/webp,image/gif"
+            multiple
+            className="sr-only"
+            disabled={uploading}
+            onChange={onChange}
+          />
+        </label>{" "}
+        and each photo becomes its own closet item.
+      </p>
+    </PageShell>
+  );
+}
+
+function ItemDetail({
+  item,
+  aiEnabled,
+  reanalyzing,
+  onReanalyze,
+  onClose,
+  onSave,
+  onDelete,
+}: {
+  item: ClothingItem;
+  aiEnabled: boolean;
+  reanalyzing: boolean;
+  onReanalyze: () => void;
+  onClose: () => void;
+  onSave: (form: EditForm) => Promise<boolean>;
+  onDelete: () => void;
+}) {
+  const [editing, setEditing] = useState(false);
+  const [form, setForm] = useState<EditForm>(() => toEditForm(item));
+  const [saving, setSaving] = useState(false);
+  const closeRef = useRef<HTMLButtonElement | null>(null);
+
+  useEffect(() => {
+    closeRef.current?.focus();
+    const onKey = (e: KeyboardEvent) => e.key === "Escape" && onClose();
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, [onClose]);
+
+  async function save() {
+    setSaving(true);
+    const ok = await onSave(form);
+    setSaving(false);
+    if (ok) setEditing(false);
+  }
+
+  const details: [string, string][] = [
+    ["Category", item.category],
+    ["Layer", layerLabel(item.layeringRole)],
+    ["Color", item.color],
+    ["Pattern", item.pattern],
+    ["Material", item.material],
+    ["Occasion", FORMALITY_LABELS[item.formality] ?? item.formality],
+    ["Season", item.season],
+  ];
+
+  return (
+    <div
+      role="dialog"
+      aria-modal="true"
+      aria-labelledby="item-title"
+      className="fixed inset-0 z-50 flex items-end justify-center bg-[#172027]/70 sm:items-center sm:p-6"
+      onClick={(e) => e.target === e.currentTarget && onClose()}
+    >
+      <div className="max-h-[92dvh] w-full max-w-[860px] overflow-y-auto bg-[#f8fafb] sm:grid sm:grid-cols-[minmax(0,1fr)_minmax(0,1fr)]">
+        <div className="relative aspect-square bg-[#f1f3f3] sm:aspect-auto sm:min-h-[460px]">
+          <Image src={item.imageUrl} alt={item.description} fill unoptimized className="object-contain" />
+        </div>
+        <div className="flex flex-col p-6 sm:p-8">
+          <div className="mb-5 flex items-start justify-between gap-4">
+            <h2 id="item-title" className="font-display text-[30px] font-normal leading-[1.1] text-[#1c2328]">
+              {item.description}
+            </h2>
+            <button ref={closeRef} onClick={onClose} className="shrink-0 text-[12px] font-semibold text-[#5f6a70] hover:text-[#1c2328]">
+              Close
+            </button>
+          </div>
+
+          {editing ? (
+            <div className="grid gap-3">
+              <label className="text-[11px] font-semibold text-[#5f6a70]">
+                Name
+                <input value={form.description} onChange={(e) => setForm({ ...form, description: e.target.value })} className={`${fieldClass} mt-1`} />
+              </label>
+              <div className="grid grid-cols-2 gap-3">
+                <label className="text-[11px] font-semibold text-[#5f6a70]">
+                  Category
+                  <select value={form.category} onChange={(e) => setForm({ ...form, category: e.target.value })} className={`${fieldClass} mt-1 capitalize`}>
+                    {CATEGORIES.map((c) => <option key={c} value={c}>{c}</option>)}
+                  </select>
+                </label>
+                <label className="text-[11px] font-semibold text-[#5f6a70]">
+                  Layer
+                  <select value={form.layeringRole} onChange={(e) => setForm({ ...form, layeringRole: e.target.value })} className={`${fieldClass} mt-1`}>
+                    {LAYERING_ROLES.map((r) => <option key={r} value={r}>{LAYER_LABELS[r]}</option>)}
+                  </select>
+                </label>
+                <label className="text-[11px] font-semibold text-[#5f6a70]">
+                  Color
+                  <input value={form.color} onChange={(e) => setForm({ ...form, color: e.target.value })} className={`${fieldClass} mt-1`} />
+                </label>
+                <label className="text-[11px] font-semibold text-[#5f6a70]">
+                  Pattern
+                  <input value={form.pattern} onChange={(e) => setForm({ ...form, pattern: e.target.value })} className={`${fieldClass} mt-1`} />
+                </label>
+                <label className="text-[11px] font-semibold text-[#5f6a70]">
+                  Material
+                  <input value={form.material} onChange={(e) => setForm({ ...form, material: e.target.value })} className={`${fieldClass} mt-1`} />
+                </label>
+                <label className="text-[11px] font-semibold text-[#5f6a70]">
+                  Occasion
+                  <select value={form.formality} onChange={(e) => setForm({ ...form, formality: e.target.value })} className={`${fieldClass} mt-1`}>
+                    {FORMALITIES.map((f) => <option key={f} value={f}>{FORMALITY_LABELS[f] ?? f}</option>)}
+                  </select>
+                </label>
+                <label className="text-[11px] font-semibold text-[#5f6a70]">
+                  Season
+                  <select value={form.season} onChange={(e) => setForm({ ...form, season: e.target.value })} className={`${fieldClass} mt-1 capitalize`}>
+                    {SEASONS.map((s) => <option key={s} value={s}>{s}</option>)}
+                  </select>
+                </label>
+              </div>
+              <div className="mt-2 flex gap-3">
+                <button onClick={save} disabled={saving} className={`${btnPrimary} flex-1`}>
+                  {saving ? "Saving…" : "Save Changes"}
+                </button>
+                <button onClick={() => { setForm(toEditForm(item)); setEditing(false); }} className={btnSecondary}>
+                  Cancel
+                </button>
+              </div>
+            </div>
+          ) : (
+            <>
+              <dl className="grid grid-cols-2 gap-x-6 gap-y-3 border-t border-[#dce2e4] pt-5">
+                {details.map(([label, value]) => (
+                  <div key={label}>
+                    <dt className="text-[10px] font-bold uppercase tracking-[1.8px] text-[#8b969c]">{label}</dt>
+                    <dd className="mt-0.5 text-[13px] capitalize text-[#1c2328]">{value}</dd>
+                  </div>
+                ))}
+              </dl>
+              <div className="mt-auto flex flex-wrap items-center gap-3 pt-8">
+                <Link href="/outfits" className={btnPrimary}>
+                  <SparkleIcon className="h-4 w-4" /> Style an Outfit
+                </Link>
+                <button onClick={() => setEditing(true)} className={btnSecondary}>
+                  Edit Details
+                </button>
+                {aiEnabled && isPlaceholder(item) && (
+                  <button onClick={onReanalyze} disabled={reanalyzing} className={btnSecondary}>
+                    {reanalyzing ? "Analyzing…" : "Re-analyze with AI"}
+                  </button>
+                )}
+                <button onClick={onDelete} className="min-h-[44px] px-2 text-[12.5px] font-semibold text-[#a03a2f] hover:underline">
+                  Remove Item
+                </button>
+              </div>
+            </>
+          )}
+        </div>
+      </div>
+    </div>
   );
 }

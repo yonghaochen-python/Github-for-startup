@@ -70,7 +70,7 @@ function newManualItem(): ReviewItem {
   };
 }
 
-export function AddClothesModal({ onClose, onAdded }: { onClose: () => void; onAdded: () => void }) {
+export function AddClothesModal({ onClose, onAdded }: { onClose: () => void; onAdded: (count: number) => void }) {
   const [step, setStep] = useState<Step>("upload");
   const [dragActive, setDragActive] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -178,7 +178,7 @@ export function AddClothesModal({ onClose, onAdded }: { onClose: () => void; onA
       const data = (await res.json()) as { error?: string };
       if (!res.ok) throw new Error(data.error ?? "Couldn't add those items.");
 
-      onAdded();
+      onAdded(metadata.length);
       onClose();
     } catch (err) {
       setError(err instanceof Error ? err.message : "Couldn't add those items.");
