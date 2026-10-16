@@ -1,16 +1,16 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useParams } from "next/navigation";
 import Image from "next/image";
 import Link from "next/link";
 import { LAYER_LABELS, type LayeringRole } from "@/lib/layering";
-import { LoadingScreen } from "@/components/LoadingScreen";
 import { InlineLoading } from "@/components/InlineLoading";
-import { TryOnPhotoStep } from "@/components/TryOnPhotoStep";
-import { useTryOnSession } from "@/components/TryOnSessionProvider";
+import { useAuth } from "@/components/AuthProvider";
+import { SavedPhotoImage, SavedPhotoSetup } from "@/components/SavedPhoto";
 import { useToast } from "@/components/Toast";
-import { afterMinDelay } from "@/lib/minDelay";
+import { BookmarkIcon, CheckIcon, MirrorIcon } from "@/components/Icons";
+import { ErrorNote, PageHeader, PageShell, btnPrimary, btnSecondary, btnText, eyebrow } from "@/components/ui";
 import { garmentSheetJpeg, photoToJpeg } from "@/lib/clientImage";
 
 type OutfitItem = { id: string; imageUrl: string; description: string; layeringRole: LayeringRole };
@@ -19,59 +19,36 @@ type Outfit = { id: string; isFavorite: boolean; occasion: string | null; style:
 type NotShown = { role: LayeringRole; description: string; reason: string };
 type TryOnResult = { isMock: boolean; provider: string; imageDataUrl: string | null; layers: OutfitLayer[]; notShown?: NotShown[] };
 
-type Stage = "setup" | "generating" | "result";
+type Stage = "ready" | "generating" | "result";
 
-/** 3:4 preview, as large as fits on a phone screen (never taller than 70% of it). */
-const previewStyle = { height: "min(70dvh, calc((100vw - 3rem) * 4 / 3), 693px)", aspectRatio: "3 / 4" } as const;
+const STATUS_STEPS = [
+  "Preparing your outfit…",
+  "Sending your photo and pieces to the try-on studio…",
+  "Dressing your photo — this usually takes 10–20 seconds…",
+  "Adding the finishing details…",
+];
 
-const buttonBase =
-  "btn-tactile touch-manipulation inline-flex min-h-[48px] items-center justify-center rounded-[5px] px-3 py-3 text-[13px] font-semibold disabled:opacity-50 sm:px-6";
-const primaryButton = `${buttonBase} bg-[#242b30] text-white shadow-[inset_0_1px_0_#ffffff35,0_6px_18px_rgba(34,42,47,0.2)] hover:bg-[#3b4750]`;
-const secondaryButton = `${buttonBase} border border-[#cbd3d7] bg-white/60 text-[#333f46] hover:bg-[#e9edef]`;
-const textLink =
-  "inline-flex min-h-[44px] touch-manipulation items-center text-xs font-semibold text-[#445159] hover:underline";
+const photoFrame = "relative mx-auto aspect-[3/4] w-full max-w-[260px] sm:max-w-[420px] overflow-hidden border border-[#d9dfdf] bg-[#eef2f3]";
 
-/** Phone: the main action stays pinned to the bottom edge, above the home indicator. Desktop: not used. */
-function StickyBar({ children }: { children: React.ReactNode }) {
-  return (
-    <div className="sticky bottom-0 z-30 -mx-6 mt-8 flex gap-3 border-t border-[#d9dfdf] bg-[#f6f9fa]/90 px-6 pb-[max(12px,env(safe-area-inset-bottom))] pt-3 backdrop-blur sm:-mx-8 sm:px-8 lg:hidden">
-      {children}
-    </div>
-  );
-}
-
-function OutfitPieces({ layers }: { layers: OutfitLayer[] }) {
-  return (
-    <div className="flex flex-col">
-      {layers.flatMap((layer) =>
-        layer.items.map((item) => (
-          <div key={item.id} className="flex items-center gap-3.5 border-b border-[#e8eae3] py-3">
-            <div className="relative h-14 w-14 shrink-0 overflow-hidden bg-[#efeee9]">
-              <Image src={item.imageUrl} alt={item.description} fill className="object-cover" unoptimized />
-            </div>
-            <div className="min-w-0 flex-1">
-              <p className="truncate text-xs font-semibold text-[#222a2f]">{item.description}</p>
-              <span className="text-[10px] tracking-[1.1px] text-[#9ba49a]">{LAYER_LABELS[layer.role]}</span>
-            </div>
-          </div>
-        ))
-      )}
-    </div>
-  );
-}
-
+/**
+ * Try-on for one outfit. The outfit comes from the URL (so "Try On" anywhere opens it already selected) and the
+ * person's saved photo is reused automatically: the server reads it privately, nothing is re-uploaded.
+ */
 export default function TryOnPage() {
   const params = useParams<{ id: string }>();
+  const { user } = useAuth();
   const { showToast } = useToast();
-  const session = useTryOnSession();
-  const photo = session.photo;
+  const hasPhoto = Boolean(user?.photoVersion);
   const [outfit, setOutfit] = useState<Outfit | null>(null);
   const [loadState, setLoadState] = useState<"loading" | "ready" | "missing" | "error">("loading");
-  const [stage, setStage] = useState<Stage>("setup");
+  const [stage, setStage] = useState<Stage>("ready");
+  const [changingPhoto, setChangingPhoto] = useState(false);
   const [result, setResult] = useState<TryOnResult | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
   const [liveProvider, setLiveProvider] = useState(false);
+  const [statusIndex, setStatusIndex] = useState(0);
+  const resultRef = useRef<HTMLDivElement | null>(null);
 
   useEffect(() => {
     let ignore = false;
@@ -88,44 +65,30 @@ export default function TryOnPage() {
       .catch(() => {
         if (!ignore) setLoadState("error");
       });
+    fetch("/api/config")
+      .then((res) => res.json() as Promise<{ tryOnLive?: boolean }>)
+      .then((data) => !ignore && setLiveProvider(Boolean(data.tryOnLive)))
+      .catch(() => {});
     return () => {
       ignore = true;
     };
   }, [params.id]);
 
+  // Step through friendly status messages while the image is being generated.
   useEffect(() => {
-    let ignore = false;
-    fetch("/api/config")
-      .then((res) => res.json() as Promise<{ tryOnLive?: boolean }>)
-      .then((data) => {
-        if (!ignore) setLiveProvider(Boolean(data.tryOnLive));
-      })
-      .catch(() => {});
-    return () => {
-      ignore = true;
-    };
-  }, []);
-
-  function confirmPhoto(blob: Blob) {
-    session.setPhoto(blob);
-    setError(null);
-  }
-
-  function changePhoto() {
-    session.clearPhoto();
-    setResult(null);
-    setStage("setup");
-  }
+    if (stage !== "generating") return;
+    const timer = setInterval(() => setStatusIndex((i) => Math.min(i + 1, STATUS_STEPS.length - 1)), 4500);
+    return () => clearInterval(timer);
+  }, [stage]);
 
   async function generate() {
-    if (!photo || !outfit) return;
+    if (!outfit || !hasPhoto) return;
     setError(null);
-    session.touch();
+    setStatusIndex(0);
     setStage("generating");
-    const startedAt = Date.now();
     try {
+      // No photo is attached: the server uses the saved try-on photo.
       const formData = new FormData();
-      formData.append("photo", photo.blob, "photo.jpg");
       if (liveProvider) {
         // A real try-on needs each garment's photo; shrink them here so phones upload small files.
         const items = outfit.layers.flatMap((layer) => layer.items);
@@ -145,16 +108,16 @@ export default function TryOnPage() {
           if (sheet) formData.append("garmentSheet", sheet, "garments.jpg");
         }
       }
+      setStatusIndex(1);
       const res = await fetch(`/api/outfits/${outfit.id}/try-on`, { method: "POST", body: formData });
       const data = (await res.json()) as { error?: string; result?: TryOnResult };
       if (!res.ok || !data.result) throw new Error(data.error ?? "Couldn't run the try-on right now.");
-      // Hold the branded loading state briefly so the step reads as a distinct moment, even for the instant prototype provider.
-      await new Promise<void>((resolve) => afterMinDelay(startedAt, 1400, resolve));
       setResult(data.result);
       setStage("result");
+      requestAnimationFrame(() => resultRef.current?.scrollIntoView({ behavior: "smooth", block: "start" }));
     } catch (err) {
       setError(err instanceof Error ? err.message : "Couldn't run the try-on right now.");
-      setStage("setup");
+      setStage("ready");
     }
   }
 
@@ -167,10 +130,9 @@ export default function TryOnPage() {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ isFavorite: true }),
       });
-      const data = (await res.json()) as { outfit?: Outfit };
-      if (!res.ok || !data.outfit) throw new Error("save");
+      if (!res.ok) throw new Error("save");
       setOutfit((prev) => (prev ? { ...prev, isFavorite: true } : prev));
-      showToast("Look added to your saved collection.");
+      showToast("Saved to your looks");
     } catch {
       setError("Couldn't save this look. Please try again.");
     } finally {
@@ -178,200 +140,198 @@ export default function TryOnPage() {
     }
   }
 
-  if (stage === "generating") return <LoadingScreen />;
+  function startChangingPhoto() {
+    setChangingPhoto(true);
+    setResult(null);
+    setStage("ready");
+  }
 
   if (loadState === "loading") {
     return (
-      <main className="mx-auto w-full max-w-[1440px] flex-1 px-6 py-8 sm:px-8 sm:py-14">
-        <InlineLoading />
+      <main className="flex-1">
+        <InlineLoading label="Loading your outfit…" />
       </main>
     );
   }
 
   if (loadState !== "ready" || !outfit) {
     return (
-      <main className="mx-auto w-full max-w-[1440px] flex-1 px-6 py-8 sm:px-8 sm:py-14">
-        <p className="text-sm text-[#89949a]">
-          {loadState === "error" ? "Couldn't load this outfit. Please try again." : "Outfit not found."} Back to{" "}
-          <Link href="/outfits" className="text-[#303a30] hover:underline">
-            outfits
-          </Link>
-          .
-        </p>
+      <main className="flex-1 pb-16">
+        <PageShell>
+          <PageHeader
+            label="Try On"
+            title="Outfit not available"
+            description={loadState === "error" ? "Couldn't load this outfit. Please try again." : "This outfit doesn't exist anymore."}
+            actions={<Link href="/try-on" className={btnPrimary}>Choose Another Outfit</Link>}
+          />
+        </PageShell>
       </main>
     );
   }
 
-  const outfitName = [outfit.style, outfit.occasion].filter(Boolean).join(" ") || "Your outfit";
-  const showResult = stage === "result" && result && photo;
+  const items = outfit.layers.flatMap((layer) => layer.items);
+  const outfitName = [outfit.style, outfit.occasion].filter(Boolean).join(" · ") || "Your outfit";
+  const needsPhoto = !hasPhoto || changingPhoto;
 
   return (
-    <main className="mx-auto w-full max-w-[1440px] flex-1 px-6 pt-5 sm:px-8 sm:pt-14">
-      <Link
-        href={`/outfits/${outfit.id}`}
-        className="group mb-2 inline-flex min-h-[44px] items-center gap-2.5 text-xs font-semibold text-[#747d71] sm:mb-5"
-      >
-        <span className="text-lg leading-none transition-transform duration-200 group-hover:-translate-x-1">←</span> Back to
-        outfit
-      </Link>
+    <main className="flex-1 pb-16">
+      <PageShell>
+        <PageHeader
+          label="Try On"
+          back={{ href: `/outfits/${outfit.id}`, label: "Back to outfit details" }}
+          title={stage === "result" ? "Your try-on" : "Try this outfit on"}
+          description={
+            changingPhoto
+              ? "Choose a new full-body photo. Once you save it, it replaces your current one for every try-on."
+              : needsPhoto
+              ? "First, save one full-body photo. After that, every outfit uses it automatically."
+              : stage === "result"
+                ? "Here's the look on you. Save it, or try another outfit with the same photo."
+                : "Your saved photo and this outfit are ready. Press Generate Try-On to see them together."
+          }
+        />
 
-      <div className="mb-6 sm:mb-10">
-        <p className="text-[10px] font-bold uppercase tracking-[3px] text-[#7e888e]">Virtual try-on</p>
-        <h1
-          className="font-display mt-2 font-normal tracking-[-2px] text-[#1c2328] sm:mt-3"
-          style={{ fontSize: "clamp(38px, 4.5vw, 60px)", lineHeight: 1.02 }}
-        >
-          {stage === "result" ? "Your try-on." : "Try it on."}
-        </h1>
-      </div>
+        {error && (
+          <div className="mb-6 max-w-2xl">
+            <ErrorNote message={error} />
+          </div>
+        )}
 
-      {error && (
-        <p role="alert" className="mb-6 rounded-lg bg-red-50 px-4 py-3 text-sm text-red-700">
-          {error}
-        </p>
-      )}
-
-      <div className="grid gap-x-[7%] gap-y-10 lg:grid-cols-[1.03fr_.97fr]">
-        <div>
-          {stage === "setup" && !photo && <TryOnPhotoStep onConfirm={confirmPhoto} />}
-
-          {stage === "setup" && photo && (
+        {needsPhoto ? (
+          <div className="grid gap-8 lg:grid-cols-[1fr_320px]">
+            <SavedPhotoSetup
+              onSaved={() => setChangingPhoto(false)}
+              onCancel={hasPhoto ? () => setChangingPhoto(false) : undefined}
+            />
+            <SelectedOutfit name={outfitName} items={items} note="This outfit stays selected while you save your photo." />
+          </div>
+        ) : stage === "result" && result ? (
+          <div ref={resultRef} className="grid scroll-mt-24 gap-10 lg:grid-cols-[minmax(0,1.1fr)_minmax(0,.9fr)]">
             <div>
-              <div
-                className="relative mx-auto overflow-hidden border border-[#d9dfdf] bg-white"
-                style={previewStyle}
-              >
-                {/* eslint-disable-next-line @next/next/no-img-element */}
-                <img src={photo.url} alt="Your photo" className="h-full w-full object-contain" />
-              </div>
-              <div className="mx-auto mt-1 flex max-w-[520px] items-center justify-between gap-3 text-xs text-[#8b9087]">
-                <span>Kept on this device for this session only.</span>
-                <button onClick={changePhoto} className={textLink}>
-                  Change photo
-                </button>
-              </div>
-            </div>
-          )}
-
-          {showResult && (
-            <div>
-              <div
-                className="relative mx-auto overflow-hidden border border-[#d9dfdf] bg-white"
-                style={previewStyle}
-              >
-                {/* eslint-disable-next-line @next/next/no-img-element */}
-                <img
-                  src={result.imageDataUrl ?? photo.url}
-                  alt={result.imageDataUrl ? "You wearing this outfit" : "Your photo"}
-                  className="h-full w-full object-contain"
-                />
+              <div className={`${photoFrame} max-w-[340px] sm:max-w-[520px]`}>
+                {result.imageDataUrl ? (
+                  // eslint-disable-next-line @next/next/no-img-element
+                  <img src={result.imageDataUrl} alt="You wearing this outfit" className="h-full w-full object-contain" />
+                ) : (
+                  <SavedPhotoImage className="h-full w-full object-contain" />
+                )}
                 {result.isMock && (
-                  <span className="absolute left-3 top-3 bg-[#242b30]/90 px-3 py-1.5 text-[9px] font-bold tracking-[1.6px] text-white">
+                  <span className="absolute left-3 top-3 bg-[#1c2328]/90 px-3 py-1.5 text-[9px] font-bold tracking-[1.6px] text-white">
                     PROTOTYPE PREVIEW
                   </span>
                 )}
               </div>
-            </div>
-          )}
-        </div>
-
-        <div className="pt-1">
-          {stage === "result" && result?.isMock && (
-            <p className="mb-6 border border-[#e0d3b8] bg-[#f8f3e6] px-4 py-3 text-[13px] leading-relaxed text-[#6b5a2c]">
-              <strong className="font-semibold">This is a prototype.</strong> The AI try-on isn&apos;t connected yet, so
-              this shows your photo next to the pieces — it is not a generated image of you wearing them.
-            </p>
-          )}
-
-          {stage === "result" && result && !result.isMock && (
-            <p className="mb-6 text-xs leading-relaxed text-[#8b9087]">
-              AI-generated preview — fit and small details may differ slightly from the real pieces.
-              {result.notShown && result.notShown.length > 0 && (
-                <>
-                  {" "}
-                  Not shown: {result.notShown.map((n) => `${LAYER_LABELS[n.role].toLowerCase()} (${n.description})`).join(", ")}.{" "}
-                  This try-on covers tops, bottoms, layers, and dresses.
-                </>
-              )}
-            </p>
-          )}
-
-          <p className="text-[10px] font-bold uppercase tracking-[2.2px] text-[#7e888e]">{outfitName}</p>
-          <div className="mb-2 mt-1 flex items-center justify-between gap-3 border-b border-[#dfe3da] pb-1.5">
-            <h2 className="font-display text-xl font-normal text-[#1c2328]">
-              Pieces in this look{" "}
-              <span className="font-sans text-[9px] tracking-[1.5px] text-[#9ba49a]">
-                · {outfit.layers.reduce((n, l) => n + l.items.length, 0)} ITEMS
-              </span>
-            </h2>
-            {stage === "setup" && (
-              <Link href={`/outfits/${outfit.id}`} className={textLink}>
-                Change outfit
-              </Link>
-            )}
-          </div>
-          <OutfitPieces layers={outfit.layers} />
-
-          {stage === "setup" && (
-            <div className="mt-8 hidden lg:block">
-              <button onClick={generate} disabled={!photo} className={`${primaryButton} w-full`}>
-                Try This Outfit On
-              </button>
-              <p className="mt-3 text-xs text-[#8b9087]">
-                {photo ? "Ready when you are." : "Add and confirm your photo to continue."}
+              <p className="mx-auto mt-3 max-w-[520px] text-[11.5px] leading-relaxed text-[#7e888e]">
+                {result.isMock
+                  ? "The AI try-on isn't connected here, so this shows your photo, not a generated image of you wearing the pieces."
+                  : "AI-generated preview — fit and small details may differ slightly from the real pieces."}
+                {result.notShown && result.notShown.length > 0 && (
+                  <> Not shown: {result.notShown.map((n) => n.description).join(", ")}.</>
+                )}
               </p>
             </div>
-          )}
-
-          {stage === "result" && (
-            <>
-              <div className="mt-8 hidden flex-col gap-3 lg:flex">
-                <button onClick={saveLook} disabled={saving || outfit.isFavorite} className={primaryButton}>
-                  {outfit.isFavorite ? "★ Look saved" : saving ? "Saving…" : "Save Look"}
+            <div className="flex min-w-0 flex-col gap-6">
+              <div className="flex flex-col gap-3">
+                <button onClick={saveLook} disabled={saving || outfit.isFavorite} className={`${btnPrimary} w-full`}>
+                  {outfit.isFavorite ? (
+                    <><CheckIcon className="h-4 w-4" /> Look Saved</>
+                  ) : (
+                    <><BookmarkIcon className="h-4 w-4" /> {saving ? "Saving…" : "Save Look"}</>
+                  )}
                 </button>
-                <div className="flex gap-3">
-                  <Link href="/outfits" className={`${secondaryButton} flex-1`}>
-                    Try Another Outfit
-                  </Link>
-                  <Link href={`/outfits/${outfit.id}`} className={`${secondaryButton} flex-1`}>
-                    Back to Outfit
-                  </Link>
+                <div className="grid grid-cols-2 gap-3">
+                  <Link href="/try-on" className={btnSecondary}>Try Another Outfit</Link>
+                  <button onClick={startChangingPhoto} className={btnSecondary}>Change My Photo</button>
                 </div>
+                <Link href="/outfits" className={`${btnText} self-start`}>Back to Outfits</Link>
+                <p className="text-[11.5px] text-[#7e888e]">Your saved photo stays ready — the next outfit won&apos;t ask for it again.</p>
               </div>
-              <div className="mt-6 flex flex-col gap-1 lg:mt-3">
-                <Link href={`/outfits/${outfit.id}`} className={`${secondaryButton} lg:hidden`}>
-                  Back to Outfit
-                </Link>
-                <button onClick={changePhoto} className={`${textLink} self-start`}>
-                  Use a different photo
+              <SelectedOutfit name={outfitName} items={items} />
+            </div>
+          </div>
+        ) : (
+          <>
+            <div className="grid gap-6 md:grid-cols-2 lg:gap-10">
+              <section aria-labelledby="your-photo" className="min-w-0">
+                <p id="your-photo" className={`${eyebrow} mb-3`}>Your Photo</p>
+                <div className={photoFrame}>
+                  <SavedPhotoImage className="h-full w-full object-cover object-top" />
+                  {stage === "generating" && (
+                    <div className="absolute inset-0 flex items-center justify-center bg-[#1c2328]/35 backdrop-blur-[1px]">
+                      <span className="h-10 w-10 animate-spin rounded-full border-2 border-white/40 border-t-white" aria-hidden />
+                    </div>
+                  )}
+                </div>
+                <div className="mx-auto mt-3 flex max-w-[260px] items-center sm:max-w-[420px] justify-between gap-3">
+                  <span className="text-[11.5px] text-[#7e888e]">Your saved try-on photo</span>
+                  <button onClick={startChangingPhoto} disabled={stage === "generating"} className="text-[12px] font-semibold text-[#26313a] underline-offset-4 hover:underline disabled:opacity-50">
+                    Change My Photo
+                  </button>
+                </div>
+              </section>
+              <SelectedOutfit name={outfitName} items={items} label="Selected Outfit" showChange={stage !== "generating"} />
+            </div>
+
+            <div className="sticky bottom-[calc(64px+env(safe-area-inset-bottom))] z-20 -mx-5 mt-8 border-t border-[#d9dfdf] bg-[#f6f9fa]/95 px-5 py-3 backdrop-blur sm:-mx-8 sm:px-8 md:static md:mx-0 md:border-0 md:bg-transparent md:p-0 md:backdrop-blur-none">
+              <div className="flex flex-col items-start gap-3 md:flex-row md:items-center">
+                <button onClick={generate} disabled={stage === "generating"} className={`${btnPrimary} min-h-[52px] w-full px-8 text-[13.5px] md:w-auto`}>
+                  <MirrorIcon className="h-4 w-4" />
+                  {stage === "generating" ? "Generating…" : "Generate Try-On"}
                 </button>
-                <p className="text-xs text-[#8b9087]">Your photo stays ready for the next outfit — it&apos;s never saved to your account.</p>
+                <p role="status" aria-live="polite" className="text-[12.5px] text-[#5f6a70]">
+                  {stage === "generating" ? STATUS_STEPS[statusIndex] : "Uses your saved photo — no upload needed."}
+                </p>
               </div>
-            </>
-          )}
-        </div>
-      </div>
-
-      {stage === "setup" && photo && (
-        <StickyBar>
-          <button onClick={generate} className={`${primaryButton} flex-1`}>
-            Try This Outfit On
-          </button>
-        </StickyBar>
-      )}
-
-      {stage === "result" && (
-        <StickyBar>
-          <button onClick={saveLook} disabled={saving || outfit.isFavorite} className={`${primaryButton} flex-1`}>
-            {outfit.isFavorite ? "★ Look saved" : saving ? "Saving…" : "Save Look"}
-          </button>
-          <Link href="/outfits" className={`${secondaryButton} flex-1`}>
-            Try Another Outfit
-          </Link>
-        </StickyBar>
-      )}
-
-      <div className="pb-8 sm:pb-14" />
+            </div>
+          </>
+        )}
+      </PageShell>
     </main>
+  );
+}
+
+function SelectedOutfit({
+  name,
+  items,
+  label = "Selected Outfit",
+  note,
+  showChange = true,
+}: {
+  name: string;
+  items: OutfitItem[];
+  label?: string;
+  note?: string;
+  showChange?: boolean;
+}) {
+  return (
+    <section aria-label={label} className="min-w-0">
+      <div className="mb-3 flex items-center justify-between gap-3">
+        <p className={eyebrow}>{label}</p>
+        {showChange && (
+          <Link href="/try-on" className="text-[12px] font-semibold text-[#26313a] underline-offset-4 hover:underline">
+            Change outfit
+          </Link>
+        )}
+      </div>
+      <div className="border border-[#d9dfdf] bg-white">
+        <p className="border-b border-[#e5eaec] px-4 py-3 text-[12.5px] font-semibold capitalize text-[#1c2328]">
+          {name} · {items.length} {items.length === 1 ? "piece" : "pieces"}
+        </p>
+        <ul>
+          {items.map((item) => (
+            <li key={item.id} className="flex items-center gap-3.5 border-b border-[#eef1f2] px-4 py-2.5 last:border-b-0">
+              <div className="relative h-14 w-14 shrink-0 overflow-hidden bg-[#f3f5f5]">
+                <Image src={item.imageUrl} alt="" fill className="object-cover" unoptimized />
+              </div>
+              <div className="min-w-0 flex-1">
+                <p className="truncate text-[12.5px] font-semibold text-[#1c2328]">{item.description}</p>
+                <span className="text-[11px] text-[#8b969c]">{LAYER_LABELS[item.layeringRole]}</span>
+              </div>
+            </li>
+          ))}
+        </ul>
+      </div>
+      {note && <p className="mt-3 text-[11.5px] text-[#7e888e]">{note}</p>}
+    </section>
   );
 }

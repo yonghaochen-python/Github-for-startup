@@ -72,6 +72,9 @@ export default function TryOnHubPage() {
                     Every try-on uses this photo. Only you can see it.
                   </p>
                   <div className="mt-4 flex flex-wrap gap-2">
+                    <a href="#choose-title" className={btnPrimary}>
+                      Choose Outfit
+                    </a>
                     <button onClick={() => setChanging(true)} className={btnSecondary}>
                       Change Photo
                     </button>
@@ -88,7 +91,7 @@ export default function TryOnHubPage() {
             <div className="mb-5 flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
               <div>
                 <p className={`${eyebrow} mb-1.5`}>{hasPhoto ? "Step 2" : "Then"}</p>
-                <h2 id="choose-title" className="font-display text-[32px] font-normal leading-tight text-[#1c2328]">
+                <h2 id="choose-title" className="scroll-mt-24 font-display text-[32px] font-normal leading-tight text-[#1c2328]">
                   Choose an outfit
                 </h2>
                 <p className="mt-1 text-[13px] text-[#5f6a70]">
