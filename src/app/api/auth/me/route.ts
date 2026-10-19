@@ -10,7 +10,7 @@ export async function GET(request: Request) {
   const savedPhoto = user && isSavedPhotoKey(user.selfieUrl) ? photoVersion(user.selfieUrl) : null;
   const look = user && savedPhoto ? await getCurrentLook(user.id).catch(() => null) : null;
   return NextResponse.json(
-    { user: user && { id: user.id, email: user.email, photoVersion: savedPhoto, look } },
+    { user: user && { id: user.id, email: user.email, photoVersion: savedPhoto, look, isAdmin: user.role === "admin" } },
     { headers: { "cache-control": "private, no-store" } }
   );
 }

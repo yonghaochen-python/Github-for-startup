@@ -1,5 +1,6 @@
 "use client";
 
+import { useEffect } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useAuth } from "@/components/AuthProvider";
@@ -41,12 +42,26 @@ function Wordmark() {
   );
 }
 
+/** Tells the server which main section a signed-in person opened (section name only; deduplicated hourly there). */
+function useSectionVisit(section: Section | null, signedIn: boolean) {
+  useEffect(() => {
+    if (!signedIn || !section) return;
+    fetch("/api/analytics/visit", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ section }),
+      keepalive: true,
+    }).catch(() => {});
+  }, [section, signedIn]);
+}
+
 export function Nav() {
   const pathname = usePathname();
   const { user, logout } = useAuth();
+  const current = sectionFor(pathname);
+  useSectionVisit(current, Boolean(user));
 
   if (pathname === "/login") return null;
-  const current = sectionFor(pathname);
 
   return (
     <header className="sticky top-0 z-30 border-b border-[#cbd7dc] bg-[#f6f9fa]/90 backdrop-blur-md">
@@ -76,6 +91,19 @@ export function Nav() {
         )}
 
         <div className="ml-auto flex shrink-0 items-center gap-3">
+          {user?.isAdmin && (
+            <Link
+              href="/admin"
+              aria-current={pathname?.startsWith("/admin") ? "page" : undefined}
+              className={`rounded-[5px] border px-3 py-2 text-[11px] font-semibold ${
+                pathname?.startsWith("/admin")
+                  ? "border-[#1c2328] bg-[#1c2328] text-white"
+                  : "border-[#cbd7dc] bg-white/70 text-[#3b4850] hover:bg-white"
+              }`}
+            >
+              Admin
+            </Link>
+          )}
           {user ? (
             <button
               onClick={logout}

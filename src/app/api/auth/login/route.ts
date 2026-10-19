@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import { track } from "@/lib/analytics";
 import { prisma } from "@/lib/prisma";
 import { verifyPassword, createSession, sessionCookieHeader, devSignedOutCookieHeader } from "@/lib/auth";
 
@@ -15,6 +16,7 @@ export async function POST(request: Request) {
   }
 
   const { cookie, expiresAt } = await createSession(user.id);
+  await track(user.id, "login");
   const response = NextResponse.json({ user: { email: user.email } });
   response.headers.append("set-cookie", sessionCookieHeader(cookie, expiresAt));
   const devCookie = devSignedOutCookieHeader(false);

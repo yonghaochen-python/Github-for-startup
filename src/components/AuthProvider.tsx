@@ -15,6 +15,8 @@ export type CurrentUser = {
   email: string;
   photoVersion: string | null;
   look: { version: string; outfitId: string } | null;
+  /** Only shows/hides the Admin link; every admin page and request is checked again on the server. */
+  isAdmin?: boolean;
 };
 type AuthStatus = "loading" | "signedOut" | "signedIn";
 

@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import { track } from "@/lib/analytics";
 import { prisma } from "@/lib/prisma";
 import { saveUploadedImage } from "@/lib/images";
 import { requireUser } from "@/lib/auth";
@@ -88,6 +89,8 @@ export async function POST(request: Request) {
   if (items.length === 0) {
     return NextResponse.json({ error: "Couldn't add any of those items. Please try again." }, { status: 500 });
   }
+
+  if (items.length > 0) await track(user.id, "clothes_added");
 
   return NextResponse.json(
     {

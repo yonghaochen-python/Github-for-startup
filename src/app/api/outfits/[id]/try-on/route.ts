@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import { trackTimed } from "@/lib/analytics";
 import { prisma } from "@/lib/prisma";
 import { requireUser } from "@/lib/auth";
 import { withRetry } from "@/lib/dbRetry";
@@ -93,10 +94,7 @@ export async function POST(request: Request, ctx: RouteContext<"/api/outfits/[id
         ? { bytes: new Uint8Array(await sheet.arrayBuffer()), mediaType: sheet.type }
         : undefined;
 
-    const result = await runTryOn(
-      { person, layers, garmentSheet },
-      user.id
-    );
+    const result = await trackTimed(user.id, "tryon", () => runTryOn({ person, layers, garmentSheet }, user.id));
 
     // A real result made from the saved photo becomes the person's current look until they change it.
     const look =

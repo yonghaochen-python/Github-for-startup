@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import { trackTimed } from "@/lib/analytics";
 import { prisma } from "@/lib/prisma";
 import { generateOutfitsFromCloset, type OutfitRequest } from "@/lib/generateOutfits";
 import { requireUser } from "@/lib/auth";
@@ -37,7 +38,7 @@ export async function POST(request: Request) {
 
   let generated;
   try {
-    generated = await generateOutfitsFromCloset(closet, outfitRequest);
+    generated = await trackTimed(user.id, "outfit_generate", () => generateOutfitsFromCloset(closet, outfitRequest));
   } catch (err) {
     console.error("Outfit generation failed:", err);
     return NextResponse.json(

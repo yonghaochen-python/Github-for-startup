@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import { track } from "@/lib/analytics";
 import { clearCurrentLook, getCurrentLook } from "@/lib/personalPhoto";
 import { prisma } from "@/lib/prisma";
 import { requireUser } from "@/lib/auth";
@@ -53,6 +54,7 @@ export async function PATCH(request: Request, ctx: RouteContext<"/api/outfits/[i
 
   if (typeof b.isFavorite === "boolean") {
     await prisma.outfit.update({ where: { id }, data: { isFavorite: b.isFavorite } });
+    if (b.isFavorite && !outfit.isFavorite) await track(user.id, "look_saved");
   }
 
   if (typeof b.removeItemId === "string" && typeof b.addItemId === "string") {

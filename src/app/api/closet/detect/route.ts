@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import { trackTimed } from "@/lib/analytics";
 import { saveUploadedImage } from "@/lib/images";
 import { detectClothingItems } from "@/lib/detectItems";
 import { requireUser } from "@/lib/auth";
@@ -11,8 +12,9 @@ const MAX_BYTES = 20 * 1024 * 1024; // 20MB
  * items and only persists them via POST /api/closet/items/bulk once confirmed.
  */
 export async function POST(request: Request) {
+  let user;
   try {
-    await requireUser(request);
+    user = await requireUser(request);
   } catch (res) {
     return res as Response;
   }
@@ -38,7 +40,7 @@ export async function POST(request: Request) {
   }
 
   try {
-    const items = await detectClothingItems(image);
+    const items = await trackTimed(user.id, "clothes_detect", () => detectClothingItems(image));
     return NextResponse.json({ imageUrl: image.url, items });
   } catch (err) {
     console.error("Item detection failed:", err);

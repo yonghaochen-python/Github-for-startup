@@ -173,6 +173,13 @@ export default function LoginPage() {
             </span>
           </button>
 
+          {creating && (
+            <p className="mt-3 text-[10px] leading-relaxed text-[#7e888e]">
+              Virm records basic, anonymous usage — like which features are opened and whether AI requests succeed — to
+              improve the app. It never includes your photos, clothes or password.
+            </p>
+          )}
+
           {devLogin && (
             <>
               <div className="my-5 flex items-center gap-3 text-[8px] font-bold tracking-[1.6px] text-[#a0a9ad]">

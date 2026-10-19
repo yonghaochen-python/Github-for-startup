@@ -53,7 +53,7 @@ function randomToken(): string {
   return toHex(crypto.getRandomValues(new Uint8Array(32)).buffer);
 }
 
-export type SessionUser = { id: string; email: string; selfieUrl: string | null };
+export type SessionUser = { id: string; email: string; selfieUrl: string | null; role: string };
 
 export async function createSession(userId: string): Promise<{ cookie: string; expiresAt: Date }> {
   const token = randomToken();
@@ -123,7 +123,8 @@ export const isDevMode = () => process.env.NODE_ENV !== "production";
 export async function getOrCreateDevUser(): Promise<SessionUser> {
   const existing = await prisma.user.findUnique({ where: { email: DEV_USER_EMAIL } });
   if (existing) {
-    return { id: existing.id, email: existing.email, selfieUrl: existing.selfieUrl };
+    await touchActivity(existing.id, existing.lastActiveAt);
+    return { id: existing.id, email: existing.email, selfieUrl: existing.selfieUrl, role: existing.role };
   }
 
   const passwordHash = await hashPassword(randomToken());
@@ -131,7 +132,7 @@ export async function getOrCreateDevUser(): Promise<SessionUser> {
   await prisma.clothingItem.createMany({
     data: SAMPLE_CLOSET.map((item) => ({ ...item, userId: user.id })),
   });
-  return { id: user.id, email: user.email, selfieUrl: user.selfieUrl };
+  return { id: user.id, email: user.email, selfieUrl: user.selfieUrl, role: user.role };
 }
 
 export async function getCurrentUser(request: Request): Promise<SessionUser | null> {
@@ -140,7 +141,8 @@ export async function getCurrentUser(request: Request): Promise<SessionUser | nu
     const tokenHash = await sha256Hex(token);
     const session = await prisma.session.findUnique({ where: { tokenHash }, include: { user: true } });
     if (session && session.expiresAt >= new Date()) {
-      return { id: session.user.id, email: session.user.email, selfieUrl: session.user.selfieUrl };
+      await touchActivity(session.user.id, session.user.lastActiveAt);
+      return { id: session.user.id, email: session.user.email, selfieUrl: session.user.selfieUrl, role: session.user.role };
     }
   }
 
@@ -149,6 +151,30 @@ export async function getCurrentUser(request: Request): Promise<SessionUser | nu
   }
 
   return null;
+}
+
+const ACTIVITY_INTERVAL_MS = 60 * 60 * 1000;
+
+/** Records that the person used the app, at most once an hour (for active-user and retention stats). */
+async function touchActivity(userId: string, lastActiveAt: Date | null): Promise<void> {
+  if (lastActiveAt && Date.now() - lastActiveAt.getTime() < ACTIVITY_INTERVAL_MS) return;
+  await prisma.user.update({ where: { id: userId }, data: { lastActiveAt: new Date() } }).catch(() => {});
+}
+
+/**
+ * Returns the signed-in admin, or throws a 404 Response. Admin is a role stored on the account and only ever set
+ * directly in the database, so no request can grant it. Non-admins (and signed-out visitors) get "not found", so
+ * they can't tell the admin area exists.
+ */
+export async function requireAdmin(request: Request): Promise<SessionUser> {
+  const user = await getCurrentUser(request);
+  if (!user || user.role !== "admin") {
+    throw new Response(JSON.stringify({ error: "Not found." }), {
+      status: 404,
+      headers: { "content-type": "application/json", "cache-control": "no-store" },
+    });
+  }
+  return user;
 }
 
 /** Returns the signed-in user, or throws a 401 Response for the route handler to return directly. */

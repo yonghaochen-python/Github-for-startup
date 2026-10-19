@@ -13,11 +13,32 @@ model User {
   email        String   @unique
   passwordHash String
   selfieUrl    String?
-  createdAt    DateTime @default(now())
+  /// "user" for everyone; "admin" only when set directly in the database (no app path changes it).
+  role         String    @default("user")
+  /// Updated at most hourly from signed-in requests; powers active-user and retention stats.
+  lastActiveAt DateTime?
+  createdAt    DateTime  @default(now())
 
   items    ClothingItem[]
   outfits  Outfit[]
   sessions Session[]
+  events   AnalyticsEvent[]
+}
+
+/// One usage event for the owner's analytics dashboard: what happened, never any content.
+/// No photos, clothing details, emails or error text are stored here.
+model AnalyticsEvent {
+  id         String   @id @default(cuid())
+  userId     String?
+  name       String
+  ok         Boolean  @default(true)
+  durationMs Int?
+  createdAt  DateTime @default(now())
+
+  user User? @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([createdAt])
+  @@index([name, createdAt])
 }
 
 model Session {

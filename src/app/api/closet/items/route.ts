@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import { track } from "@/lib/analytics";
 import { prisma } from "@/lib/prisma";
 import { saveUploadedImage } from "@/lib/images";
 import { classifyClothingImage } from "@/lib/classify";
@@ -68,6 +69,8 @@ export async function POST(request: Request) {
       { status: 400 }
     );
   }
+
+  if (items.length > 0) await track(user.id, "clothes_added");
 
   return NextResponse.json(
     {
