@@ -11,7 +11,7 @@ const NewPill = () => (
   <span className="inline-flex items-center rounded-full bg-[#d93a2b] px-2.5 py-0.5 text-[10px] font-bold uppercase tracking-[1.6px] text-white">New</span>
 );
 
-/** The pieces stacked as layers beside a figure: what the update does, without needing anyone's photo. */
+/** The pieces stacked as layers beside a full-body photo: what Virm dresses, and what it dresses it on. */
 function LayersVisual() {
   return (
     <div className="relative grid grid-cols-[minmax(0,1fr)_minmax(0,1fr)] items-center gap-4 overflow-hidden rounded-[28px] bg-[linear-gradient(150deg,#e3ebf2,#c7d4e0_55%,#dfe3ee)] p-5 sm:gap-6 sm:p-8">
@@ -29,16 +29,9 @@ function LayersVisual() {
           </li>
         ))}
       </ol>
-      <div className="relative mx-auto flex aspect-[3/5] w-full max-w-[200px] items-end justify-center overflow-hidden rounded-[22px] bg-white/70 shadow-[inset_0_0_0_1px_rgba(255,255,255,0.8)]">
-        <svg viewBox="0 0 100 220" className="h-[88%] text-[#8fa3b8]" aria-hidden>
-          <circle cx="50" cy="22" r="15" fill="currentColor" opacity=".55" />
-          {/* boots, skirt, sweater, coat: drawn bottom to top so the outer layer sits on top */}
-          <path d="M36 176h11v38H33z M53 176h11l3 38H53z" fill="#121821" opacity=".85" />
-          <path d="M30 118h40l8 46H22z" fill="#7d8790" />
-          <path d="M28 44h44a7 7 0 0 1 7 7l-4 70H25l-4-70a7 7 0 0 1 7-7z" fill="#121821" opacity=".9" />
-          <path d="M24 46h14l12 30 12-30h14a7 7 0 0 1 7 7l-3 104H64l-2-62-12 30-12-30-2 62H20L17 53a7 7 0 0 1 7-7z" fill="#b8875a" />
-        </svg>
-        <span className="absolute left-3 top-3 rounded-full bg-white/90 px-2.5 py-1 text-[10px] font-semibold text-[#4f5b66]">On you</span>
+      <div className="relative mx-auto aspect-[3/5] w-full max-w-[220px] overflow-hidden rounded-[22px] bg-[#e8e6e3] shadow-[0_14px_36px_rgba(18,30,45,0.12)]">
+        <Image src={LATEST_UPDATE.photo} alt="A full-body photo, standing and facing forward" fill unoptimized className="object-cover object-top" />
+        <span className="absolute left-3 top-3 rounded-full bg-white/90 px-2.5 py-1 text-[10px] font-semibold text-[#4f5b66]">Your photo</span>
       </div>
     </div>
   );
