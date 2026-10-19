@@ -10,7 +10,7 @@ import { EditorialOutfitVisual } from "@/components/EditorialOutfitVisual";
 import { useToast } from "@/components/Toast";
 import { useAuth } from "@/components/AuthProvider";
 import { InlineLoading } from "@/components/InlineLoading";
-import { BookmarkIcon, MirrorIcon } from "@/components/Icons";
+import { ArrowLeftIcon, BookmarkIcon, MirrorIcon } from "@/components/Icons";
 import { btnPrimary, btnSecondary } from "@/components/ui";
 
 type ClothingItem = {
@@ -78,6 +78,8 @@ export default function OutfitDetailPage() {
   const { showToast } = useToast();
   const { refreshUser } = useAuth();
   const [outfit, setOutfit] = useState<Outfit | null>(null);
+  // Where Back goes, decided on first load so it doesn't jump if the look is saved or removed here.
+  const [backToSaved, setBackToSaved] = useState<boolean | null>(null);
   const [closet, setCloset] = useState<ClothingItem[]>([]);
   const [board, setBoard] = useState<OutfitBoard<ClothingItem> | null>(null);
   const [mode, setMode] = useState<"outfit" | "items">("outfit");
@@ -102,6 +104,7 @@ export default function OutfitDetailPage() {
       if (!res.ok) throw new Error("Failed to load outfit");
       const data = (await res.json()) as { outfit: Outfit };
       setOutfit(data.outfit);
+      setBackToSaved((v) => v ?? data.outfit.isFavorite);
       setLoadError(false);
       setLoading(false);
     } catch {
@@ -124,6 +127,7 @@ export default function OutfitDetailPage() {
         const data = (await res.json()) as { outfit: Outfit };
         if (ignore) return;
         setOutfit(data.outfit);
+        setBackToSaved((v) => v ?? data.outfit.isFavorite);
         setLoadError(false);
         setLoading(false);
       })
@@ -258,13 +262,14 @@ export default function OutfitDetailPage() {
 
   return (
     <main className="mx-auto w-full max-w-[1280px] flex-1 px-5 pb-16 pt-7 sm:px-8 sm:pt-10">
-      <nav aria-label="Breadcrumb" className="mb-6 flex items-center gap-2 text-[12px] font-semibold text-[#4f5b66]">
-        <Link href={outfit.isFavorite ? "/outfits/saved" : "/outfits"} className="hover:text-[#121821] hover:underline">
-          {outfit.isFavorite ? "Saved Looks" : "AI Stylist"}
-        </Link>
-        <span aria-hidden>/</span>
-        <span className="text-[#121821]">Outfit details</span>
-      </nav>
+      <div className="mb-6">
+      <Link
+        href={backToSaved ? "/outfits/saved" : "/outfits"}
+        className="btn-tactile inline-flex min-h-[40px] items-center gap-2 rounded-full bg-white px-4 py-2 text-[12.5px] font-semibold text-[#121821] shadow-[inset_0_0_0_1px_rgba(18,24,33,0.12)] hover:bg-[#eef2f5]"
+      >
+        <ArrowLeftIcon className="h-4 w-4" /> {backToSaved ? "Back to Saved Looks" : "Back to AI Stylist"}
+      </Link>
+      </div>
 
       <div className="mb-7 inline-flex rounded-full bg-white p-1 shadow-[inset_0_0_0_1px_rgba(18,24,33,0.12)]">
         <button
