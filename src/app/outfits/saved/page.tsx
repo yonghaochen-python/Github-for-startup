@@ -12,6 +12,8 @@ export default function SavedLooksPage() {
   const [outfits, setOutfits] = useState<Outfit[]>([]);
   const [loading, setLoading] = useState(true);
   const [loadError, setLoadError] = useState(false);
+  // Unsaving keeps the card here (switched off) until the page is next opened, so it can be switched back on.
+  const [shownIds, setShownIds] = useState<Set<string> | null>(null);
 
   async function loadOutfits() {
     try {
@@ -19,6 +21,7 @@ export default function SavedLooksPage() {
       if (!res.ok) throw new Error("Failed to load outfits");
       const data = (await res.json()) as { outfits?: Outfit[] };
       setOutfits(data.outfits ?? []);
+      setShownIds(new Set((data.outfits ?? []).filter((o) => o.isFavorite).map((o) => o.id)));
       setLoadError(false);
     } catch {
       setLoadError(true);
@@ -32,8 +35,7 @@ export default function SavedLooksPage() {
     loadOutfits();
   }, []);
 
-  const saved = outfits.filter((o) => o.isFavorite);
-  // Removing a look takes it off this page; the outfit itself still exists in the AI Stylist history.
+  const saved = outfits.filter((o) => o.isFavorite || shownIds?.has(o.id));
   const onSavedChange = (updated: Outfit) => setOutfits((list) => list.map((o) => (o.id === updated.id ? updated : o)));
 
   return (
@@ -73,11 +75,11 @@ export default function SavedLooksPage() {
         ) : (
           <>
             <p className="mb-5 text-[12.5px] text-[#6b7783]">
-              {saved.length} saved {saved.length === 1 ? "look" : "looks"}
+              {saved.filter((o) => o.isFavorite).length} saved {saved.filter((o) => o.isFavorite).length === 1 ? "look" : "looks"}
             </p>
             <div className="grid gap-6 sm:grid-cols-2 xl:grid-cols-3">
               {saved.map((outfit) => (
-                <OutfitBoard key={outfit.id} outfit={outfit} onSavedChange={onSavedChange} savedLabel="remove" showTryOn />
+                <OutfitBoard key={outfit.id} outfit={outfit} onSavedChange={onSavedChange} showTryOn />
               ))}
             </div>
           </>

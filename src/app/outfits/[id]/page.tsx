@@ -10,8 +10,9 @@ import { EditorialOutfitVisual } from "@/components/EditorialOutfitVisual";
 import { useToast } from "@/components/Toast";
 import { useAuth } from "@/components/AuthProvider";
 import { InlineLoading } from "@/components/InlineLoading";
-import { ArrowLeftIcon, BookmarkIcon, MirrorIcon } from "@/components/Icons";
-import { btnPrimary, btnSecondary } from "@/components/ui";
+import { ArrowLeftIcon, MirrorIcon } from "@/components/Icons";
+import { SaveToggle } from "@/components/SaveToggle";
+import { btnPrimary } from "@/components/ui";
 
 type ClothingItem = {
   id: string;
@@ -174,7 +175,7 @@ export default function OutfitDetailPage() {
       const data = (await res.json().catch(() => ({}))) as { outfit?: Outfit };
       if (!res.ok || !data.outfit) throw new Error("save");
       setOutfit(data.outfit);
-      showToast(wasFavorite ? "Removed from Saved Looks" : "Saved to your looks");
+      showToast(wasFavorite ? "Unsaved" : "Saved");
     } catch {
       showToast("Couldn't update this look. Please try again.");
     } finally {
@@ -309,10 +310,7 @@ export default function OutfitDetailPage() {
             <Link href={`/outfits/${outfit.id}/try-on?start=1`} className={btnPrimary}>
               <MirrorIcon className="h-4 w-4" /> Try On
             </Link>
-            <button onClick={toggleFavorite} disabled={saving} className={btnSecondary} aria-pressed={outfit.isFavorite}>
-              <BookmarkIcon className="h-4 w-4" />
-              {saving ? "Saving…" : outfit.isFavorite ? "Saved — Remove" : "Save Look"}
-            </button>
+            <SaveToggle saved={outfit.isFavorite} busy={saving} onToggle={toggleFavorite} />
           </div>
           <p className="mt-2 text-[11.5px] text-[#6b7783]">Try On uses your saved photo and starts right away.</p>
 

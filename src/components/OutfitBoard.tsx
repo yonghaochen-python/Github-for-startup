@@ -5,10 +5,11 @@ import Image from "next/image";
 import Link from "next/link";
 import type { Outfit } from "@/components/OutfitCard";
 import { EditorialOutfitVisual } from "@/components/EditorialOutfitVisual";
-import { BookmarkIcon, MirrorIcon } from "@/components/Icons";
+import { MirrorIcon } from "@/components/Icons";
+import { SaveToggle } from "@/components/SaveToggle";
 import { useToast } from "@/components/Toast";
 import { LAYER_LABELS } from "@/lib/layering";
-import { btnPrimary, btnSecondary } from "@/components/ui";
+import { btnPrimary } from "@/components/ui";
 
 /**
  * A generated or saved outfit as a visual board with its pieces labeled, and the three things people do
@@ -17,13 +18,10 @@ import { btnPrimary, btnSecondary } from "@/components/ui";
 export function OutfitBoard({
   outfit,
   onSavedChange,
-  savedLabel = "toggle",
   showTryOn = false,
 }: {
   outfit: Outfit;
   onSavedChange?: (outfit: Outfit) => void;
-  /** "toggle" shows Save Look / Saved; "remove" (on Saved Looks) shows Remove from Saved. */
-  savedLabel?: "toggle" | "remove";
   /** Show the person wearing it (their latest try-on of this outfit) when there is one. */
   showTryOn?: boolean;
 }) {
@@ -41,7 +39,7 @@ export function OutfitBoard({
       });
       if (!res.ok) throw new Error();
       onSavedChange?.({ ...outfit, isFavorite });
-      showToast(isFavorite ? "Saved to your looks" : "Removed from Saved Looks");
+      showToast(isFavorite ? "Saved" : "Unsaved");
     } catch {
       showToast("Couldn't update that look. Please try again.");
     } finally {
@@ -58,11 +56,7 @@ export function OutfitBoard({
             {items.length}-piece look
           </h3>
         </div>
-        {outfit.isFavorite && (
-          <span className="flex items-center gap-1 bg-[#eef2f3] px-2 py-1 text-[10px] font-bold uppercase tracking-[1.2px] text-[#3b4850]">
-            <BookmarkIcon className="h-3 w-3" /> Saved
-          </span>
-        )}
+        <SaveToggle saved={outfit.isFavorite} busy={saving} onToggle={() => setFavorite(!outfit.isFavorite)} />
       </header>
 
       <Link href={`/outfits/${outfit.id}`} aria-label="View outfit details" className="block bg-[#f5f6f4]">
@@ -106,18 +100,8 @@ export function OutfitBoard({
         <Link href={`/outfits/${outfit.id}/try-on?start=1`} className={btnPrimary}>
           <MirrorIcon className="h-4 w-4" /> {showTryOn && outfit.tryOn ? "Try On Again" : "Try On"}
         </Link>
-        {savedLabel === "remove" ? (
-          <button onClick={() => setFavorite(false)} disabled={saving} className={btnSecondary}>
-            {saving ? "Removing…" : "Remove from Saved"}
-          </button>
-        ) : (
-          <button onClick={() => setFavorite(!outfit.isFavorite)} disabled={saving} className={btnSecondary} aria-pressed={outfit.isFavorite}>
-            <BookmarkIcon className="h-4 w-4" />
-            {saving ? "Saving…" : outfit.isFavorite ? "Saved" : "Save Look"}
-          </button>
-        )}
         <Link href={`/outfits/${outfit.id}`} className="min-h-[44px] px-1 py-3 text-[12.5px] font-semibold text-[#26313a] underline-offset-4 hover:underline">
-          {savedLabel === "remove" ? "View Look" : "View Outfit Details"}
+          View Look
         </Link>
       </div>
     </article>
