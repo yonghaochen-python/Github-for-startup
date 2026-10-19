@@ -1,0 +1,9 @@
+// Cloudflare Pages project that serves Virm at virm-virtualmirror.pages.dev.
+// It holds no app code: every request is handed to the real app Worker through a service binding,
+// so the address bar stays on pages.dev and logins, uploads and try-on behave exactly as on workers.dev.
+{
+  "name": "virm-virtualmirror",
+  "pages_build_output_dir": "./public",
+  "compatibility_date": "2026-09-28",
+  "services": [{ "binding": "APP", "service": "virm-virtualmirror" }]
+}
