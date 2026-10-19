@@ -77,7 +77,7 @@ export default function SavedLooksPage() {
             </p>
             <div className="grid gap-6 sm:grid-cols-2 xl:grid-cols-3">
               {saved.map((outfit) => (
-                <OutfitBoard key={outfit.id} outfit={outfit} onSavedChange={onSavedChange} savedLabel="remove" />
+                <OutfitBoard key={outfit.id} outfit={outfit} onSavedChange={onSavedChange} savedLabel="remove" showTryOn />
               ))}
             </div>
           </>

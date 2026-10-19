@@ -7,7 +7,7 @@ import { loadSavedImage } from "@/lib/images";
 import { orderedLayerEntries, type LayeringRole } from "@/lib/layering";
 import { runTryOn, TryOnError, type TryOnInputLayer } from "@/lib/tryOn";
 import type { ImageBytes } from "@/lib/tryOn/types";
-import { isSavedPhotoKey, loadPersonalPhoto, saveCurrentLook } from "@/lib/personalPhoto";
+import { isSavedPhotoKey, loadPersonalPhoto, saveCurrentLook, saveOutfitTryOn } from "@/lib/personalPhoto";
 
 const MAX_PHOTO_BYTES = 12 * 1024 * 1024;
 const MAX_GARMENT_BYTES = 4 * 1024 * 1024;
@@ -96,14 +96,18 @@ export async function POST(request: Request, ctx: RouteContext<"/api/outfits/[id
 
     const result = await trackTimed(user.id, "tryon", () => runTryOn({ person, layers, garmentSheet }, user.id));
 
-    // A real result made from the saved photo becomes the person's current look until they change it.
-    const look =
-      !result.isMock && result.imageDataUrl && !(sent instanceof File)
-        ? await saveCurrentLook(user.id, outfit.id, result.imageDataUrl).catch((err) => {
+    // A real result made from the saved photo becomes the person's current look until they change it, and
+    // stays with this outfit so its saved look shows it on them.
+    const keep = !result.isMock && result.imageDataUrl && !(sent instanceof File) ? result.imageDataUrl : null;
+    const [look] = keep
+      ? await Promise.all([
+          saveCurrentLook(user.id, outfit.id, keep).catch((err) => {
             console.error("Couldn't keep the try-on as the current look:", err);
             return null;
-          })
-        : null;
+          }),
+          saveOutfitTryOn(user.id, outfit.id, keep).catch((err) => console.error("Couldn't keep the outfit's try-on:", err)),
+        ])
+      : [null];
 
     return NextResponse.json({ result, look }, { headers: noStore });
   } catch (err) {

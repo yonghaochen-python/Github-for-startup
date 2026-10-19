@@ -82,3 +82,45 @@ export async function loadCurrentLook(userId: string): Promise<ImageBytes | null
 export async function clearCurrentLook(userId: string): Promise<void> {
   await env.UPLOADS.delete(lookKey(userId));
 }
+
+/**
+ * Each outfit's latest try-on picture, so saved looks can show the whole outfit on the person. Private like the
+ * photo, one per outfit at a fixed key; a refresh token lives in the object's metadata, so no database column is needed.
+ */
+const outfitTryOnPrefix = (userId: string) => `private/tryons/${userId}/`;
+const outfitTryOnKey = (userId: string, outfitId: string) => `${outfitTryOnPrefix(userId)}${outfitId}`;
+
+export async function saveOutfitTryOn(userId: string, outfitId: string, imageDataUrl: string): Promise<void> {
+  const match = /^data:(image\/[a-z+]+);base64,(.+)$/.exec(imageDataUrl);
+  if (!match) return;
+  await env.UPLOADS.put(outfitTryOnKey(userId, outfitId), Buffer.from(match[2], "base64"), {
+    httpMetadata: { contentType: match[1] },
+    customMetadata: { version: randomUUID().slice(0, 12) },
+  });
+}
+
+/** outfitId → refresh token, for every outfit of this person that has a try-on picture. */
+export async function listOutfitTryOns(userId: string): Promise<Map<string, string>> {
+  const prefix = outfitTryOnPrefix(userId);
+  const found = new Map<string, string>();
+  let cursor: string | undefined;
+  do {
+    const page = await env.UPLOADS.list({ prefix, cursor, include: ["customMetadata"] });
+    for (const object of page.objects) found.set(object.key.slice(prefix.length), object.customMetadata?.version ?? "1");
+    cursor = page.truncated ? page.cursor : undefined;
+  } while (cursor);
+  return found;
+}
+
+export async function loadOutfitTryOn(userId: string, outfitId: string): Promise<ImageBytes | null> {
+  return loadPersonalPhoto(outfitTryOnKey(userId, outfitId));
+}
+
+export async function deleteOutfitTryOns(userId: string, outfitIds: string[]): Promise<void> {
+  if (outfitIds.length > 0) await env.UPLOADS.delete(outfitIds.map((id) => outfitTryOnKey(userId, id)));
+}
+
+export async function deleteAllOutfitTryOns(userId: string): Promise<void> {
+  const ids = [...(await listOutfitTryOns(userId)).keys()];
+  for (let i = 0; i < ids.length; i += 1000) await deleteOutfitTryOns(userId, ids.slice(i, i + 1000));
+}

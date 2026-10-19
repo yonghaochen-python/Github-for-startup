@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { requireUser } from "@/lib/auth";
+import { deleteOutfitTryOns } from "@/lib/personalPhoto";
 import { CATEGORIES, FORMALITIES, SEASONS, LAYERING_ROLES, WARMTH_LEVELS } from "@/lib/classify";
 
 const EDITABLE_STRING_FIELDS = ["color", "pattern", "material", "description"] as const;
@@ -93,6 +94,7 @@ export async function DELETE(request: Request, ctx: RouteContext<"/api/closet/it
   });
   if (orphaned.length > 0) {
     await prisma.outfit.deleteMany({ where: { id: { in: orphaned.map((o) => o.id) } } });
+    await deleteOutfitTryOns(user.id, orphaned.map((o) => o.id)).catch(() => {});
   }
 
   return NextResponse.json({ ok: true });

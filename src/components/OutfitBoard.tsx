@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import Image from "next/image";
 import Link from "next/link";
 import type { Outfit } from "@/components/OutfitCard";
 import { EditorialOutfitVisual } from "@/components/EditorialOutfitVisual";
@@ -17,11 +18,14 @@ export function OutfitBoard({
   outfit,
   onSavedChange,
   savedLabel = "toggle",
+  showTryOn = false,
 }: {
   outfit: Outfit;
   onSavedChange?: (outfit: Outfit) => void;
   /** "toggle" shows Save Look / Saved; "remove" (on Saved Looks) shows Remove from Saved. */
   savedLabel?: "toggle" | "remove";
+  /** Show the person wearing it (their latest try-on of this outfit) when there is one. */
+  showTryOn?: boolean;
 }) {
   const { showToast } = useToast();
   const [saving, setSaving] = useState(false);
@@ -62,7 +66,28 @@ export function OutfitBoard({
       </header>
 
       <Link href={`/outfits/${outfit.id}`} aria-label="View outfit details" className="block bg-[#f5f6f4]">
-        <EditorialOutfitVisual items={items} />
+        {showTryOn && outfit.tryOn ? (
+          <div className="grid grid-cols-[minmax(0,1fr)_88px] gap-px bg-black/[0.05] sm:grid-cols-[minmax(0,1fr)_100px]">
+            <div className="relative aspect-[3/4] bg-white">
+              {/* eslint-disable-next-line @next/next/no-img-element -- private, owner-only image */}
+              <img
+                src={`/api/outfits/${outfit.id}/try-on/image?v=${outfit.tryOn}`}
+                alt="You wearing this look"
+                loading="lazy"
+                className="absolute inset-0 h-full w-full object-contain"
+              />
+            </div>
+            <div className="grid auto-rows-fr gap-px">
+              {items.slice(0, 5).map((item) => (
+                <div key={item.id} className="relative min-h-[64px] bg-white">
+                  <Image src={item.imageUrl} alt={item.description} fill unoptimized className="object-contain p-1.5" />
+                </div>
+              ))}
+            </div>
+          </div>
+        ) : (
+          <EditorialOutfitVisual items={items} />
+        )}
       </Link>
 
       <ol className="grid min-w-0 grid-cols-1 gap-1 border-t border-black/[0.06] px-5 py-4 text-[12px] text-[#3b4850]">
@@ -79,7 +104,7 @@ export function OutfitBoard({
 
       <div className="mt-auto flex flex-wrap items-center gap-2 border-t border-black/[0.06] px-5 py-4">
         <Link href={`/outfits/${outfit.id}/try-on?start=1`} className={btnPrimary}>
-          <MirrorIcon className="h-4 w-4" /> Try On
+          <MirrorIcon className="h-4 w-4" /> {showTryOn && outfit.tryOn ? "Try On Again" : "Try On"}
         </Link>
         {savedLabel === "remove" ? (
           <button onClick={() => setFavorite(false)} disabled={saving} className={btnSecondary}>

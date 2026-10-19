@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { track } from "@/lib/analytics";
-import { clearCurrentLook, getCurrentLook } from "@/lib/personalPhoto";
+import { clearCurrentLook, deleteOutfitTryOns, getCurrentLook } from "@/lib/personalPhoto";
 import { prisma } from "@/lib/prisma";
 import { requireUser } from "@/lib/auth";
 import { serializeOutfit } from "@/lib/outfits";
@@ -70,6 +70,7 @@ export async function PATCH(request: Request, ctx: RouteContext<"/api/outfits/[i
     // A current look of this outfit shows the old piece now, so take it off rather than show a stale try-on.
     const look = await getCurrentLook(user.id).catch(() => null);
     if (look?.outfitId === id) await clearCurrentLook(user.id).catch(() => {});
+    await deleteOutfitTryOns(user.id, [id]).catch(() => {});
 
     const newItems = [...outfit.items.map((oi) => oi.item).filter((i) => i.id !== b.removeItemId), replacement];
     try {

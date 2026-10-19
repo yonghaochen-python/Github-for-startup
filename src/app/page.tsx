@@ -407,13 +407,25 @@ function Dashboard({ closet, outfits }: { closet: ClothingItem[]; outfits: Outfi
                     href={`/outfits/${outfit.id}`}
                     className={`group block overflow-hidden rounded-[18px] bg-white shadow-[0_1px_0_rgba(18,24,33,0.03),0_10px_28px_rgba(18,30,45,0.05)] ${i === 2 ? "hidden sm:block" : ""}`}
                   >
-                    <div className="grid grid-cols-2 gap-px bg-[#e5eaec]">
-                      {outfit.layers.flatMap((l) => l.items).slice(0, 4).map((item) => (
-                        <div key={item.id} className="relative aspect-square bg-[#f6f7f7]">
-                          <Image src={item.imageUrl} alt={item.description} fill unoptimized className="object-cover" />
-                        </div>
-                      ))}
-                    </div>
+                    {outfit.tryOn ? (
+                      <div className="relative aspect-[3/4] bg-white">
+                        {/* eslint-disable-next-line @next/next/no-img-element -- private, owner-only image */}
+                        <img
+                          src={`/api/outfits/${outfit.id}/try-on/image?v=${outfit.tryOn}`}
+                          alt="You wearing this look"
+                          loading="lazy"
+                          className="absolute inset-0 h-full w-full object-contain"
+                        />
+                      </div>
+                    ) : (
+                      <div className="grid grid-cols-2 gap-px bg-[#e5eaec]">
+                        {outfit.layers.flatMap((l) => l.items).slice(0, 4).map((item) => (
+                          <div key={item.id} className="relative aspect-square bg-[#f6f7f7]">
+                            <Image src={item.imageUrl} alt={item.description} fill unoptimized className="object-cover" />
+                          </div>
+                        ))}
+                      </div>
+                    )}
                     <p className="truncate px-3 py-2 text-[11.5px] font-semibold capitalize text-[#3b4850] group-hover:underline">
                       {outfit.occasion ?? "Saved look"}
                     </p>

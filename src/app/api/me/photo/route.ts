@@ -5,6 +5,7 @@ import {
   MAX_PHOTO_BYTES,
   PHOTO_TYPES,
   clearCurrentLook,
+  deleteAllOutfitTryOns,
   deletePersonalPhoto,
   isSavedPhotoKey,
   loadPersonalPhoto,
@@ -77,6 +78,8 @@ export async function DELETE(request: Request) {
     await prisma.user.update({ where: { id: user.id }, data: { selfieUrl: null } });
     if (isSavedPhotoKey(user.selfieUrl)) await deletePersonalPhoto(user.selfieUrl);
     await clearCurrentLook(user.id).catch(() => {});
+    // Pictures of the person wearing saved looks go with the photo they were made from.
+    await deleteAllOutfitTryOns(user.id).catch(() => {});
     return NextResponse.json({ ok: true }, { headers: noStore });
   } catch (err) {
     console.error("Failed to remove try-on photo:", err);

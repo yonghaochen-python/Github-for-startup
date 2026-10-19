@@ -16,4 +16,6 @@ export type Outfit = {
   isFavorite: boolean;
   occasion: string | null;
   layers: OutfitLayer[];
+  /** Refresh token of this outfit's latest try-on picture, if there is one. */
+  tryOn?: string | null;
 };
