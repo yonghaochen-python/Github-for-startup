@@ -28,7 +28,7 @@ const STATUS_STEPS = [
   "Almost done…",
 ];
 
-const photoFrame = "relative mx-auto aspect-[3/4] w-full max-w-[260px] sm:max-w-[420px] overflow-hidden border border-[#d9dfdf] bg-[#eef2f3]";
+const photoFrame = "relative mx-auto aspect-[3/4] w-full max-w-[260px] sm:max-w-[420px] overflow-hidden rounded-[22px] bg-[#e6ecf1]";
 
 /**
  * Try-on for one outfit. The outfit comes from the URL (so "Try On" anywhere opens it already selected) and the
@@ -242,12 +242,12 @@ export default function TryOnPage() {
                   <SavedPhotoImage className="h-full w-full object-contain" />
                 )}
                 {result?.isMock && (
-                  <span className="absolute left-3 top-3 bg-[#1c2328]/90 px-3 py-1.5 text-[9px] font-bold tracking-[1.6px] text-white">
+                  <span className="absolute left-3 top-3 bg-[#121821]/90 px-3 py-1.5 text-[9px] font-bold tracking-[1.6px] text-white">
                     PROTOTYPE PREVIEW
                   </span>
                 )}
               </div>
-              <p className="mx-auto mt-3 max-w-[520px] text-[11.5px] leading-relaxed text-[#7e888e]">
+              <p className="mx-auto mt-3 max-w-[520px] text-[11.5px] leading-relaxed text-[#6b7783]">
                 {result?.isMock
                   ? "The AI try-on isn't connected here, so this shows your photo, not a generated image of you wearing the pieces."
                   : "Preview only. Fit and details may differ from the real clothes."}
@@ -284,7 +284,7 @@ export default function TryOnPage() {
                     Take Off Look
                   </button>
                 </div>
-                <p className="text-[11.5px] text-[#7e888e]">
+                <p className="text-[11.5px] text-[#6b7783]">
                   This stays on your photo until you change it.
                 </p>
               </div>
@@ -299,7 +299,7 @@ export default function TryOnPage() {
                 <div className={photoFrame}>
                   <MirrorImage className="h-full w-full object-cover object-top" />
                   {stage === "generating" && (
-                    <div className="absolute inset-0 flex items-center justify-center bg-[#1c2328]/35 backdrop-blur-[1px]">
+                    <div className="absolute inset-0 flex items-center justify-center bg-[#121821]/35 backdrop-blur-[1px]">
                       <span className="h-10 w-10 animate-spin rounded-full border-2 border-white/40 border-t-white" aria-hidden />
                     </div>
                   )}
@@ -307,11 +307,11 @@ export default function TryOnPage() {
                 {user?.look && (
                   <div className="mx-auto mt-3 max-w-[260px] sm:max-w-[420px]">
                     <CurrentLookBar />
-                    <p className="mt-1 text-[11px] text-[#7e888e]">The new try-on starts from your original photo.</p>
+                    <p className="mt-1 text-[11px] text-[#6b7783]">The new try-on starts from your original photo.</p>
                   </div>
                 )}
                 <div className="mx-auto mt-3 flex max-w-[260px] items-center sm:max-w-[420px] justify-between gap-3">
-                  <span className="text-[11.5px] text-[#7e888e]">{user?.look ? "Your current look" : "Your saved try-on photo"}</span>
+                  <span className="text-[11.5px] text-[#6b7783]">{user?.look ? "Your current look" : "Your saved try-on photo"}</span>
                   <button onClick={startChangingPhoto} disabled={stage === "generating"} className="text-[12px] font-semibold text-[#26313a] underline-offset-4 hover:underline disabled:opacity-50">
                     Change My Photo
                   </button>
@@ -320,13 +320,13 @@ export default function TryOnPage() {
               <SelectedOutfit name={outfitName} items={items} label="Selected Outfit" showChange={stage !== "generating"} />
             </div>
 
-            <div className="sticky bottom-[calc(64px+env(safe-area-inset-bottom))] z-20 -mx-5 mt-8 border-t border-[#d9dfdf] bg-[#f6f9fa]/95 px-5 py-3 backdrop-blur sm:-mx-8 sm:px-8 md:static md:mx-0 md:border-0 md:bg-transparent md:p-0 md:backdrop-blur-none">
+            <div className="sticky bottom-[calc(64px+env(safe-area-inset-bottom))] z-20 -mx-5 mt-8 border-t border-black/[0.07] bg-[#f6f9fa]/95 px-5 py-3 backdrop-blur sm:-mx-8 sm:px-8 md:static md:mx-0 md:border-0 md:bg-transparent md:p-0 md:backdrop-blur-none">
               <div className="flex flex-col items-start gap-3 md:flex-row md:items-center">
                 <button onClick={generate} disabled={stage === "generating"} className={`${btnPrimary} min-h-[52px] w-full px-8 text-[13.5px] md:w-auto`}>
                   <MirrorIcon className="h-4 w-4" />
                   {stage === "generating" ? "Generating…" : "Generate Try-On"}
                 </button>
-                <p role="status" aria-live="polite" className="text-[12.5px] text-[#5f6a70]">
+                <p role="status" aria-live="polite" className="text-[12.5px] text-[#4f5b66]">
                   {stage === "generating" ? STATUS_STEPS[statusIndex] : "Uses your saved photo."}
                 </p>
               </div>
@@ -361,25 +361,25 @@ function SelectedOutfit({
           </Link>
         )}
       </div>
-      <div className="border border-[#d9dfdf] bg-white">
-        <p className="border-b border-[#e5eaec] px-4 py-3 text-[12.5px] font-semibold capitalize text-[#1c2328]">
+      <div className="overflow-hidden rounded-[18px] bg-white shadow-[0_1px_0_rgba(18,24,33,0.03),0_10px_28px_rgba(18,30,45,0.05)]">
+        <p className="border-b border-black/[0.06] px-4 py-3 text-[12.5px] font-semibold capitalize text-[#121821]">
           {name} · {items.length} {items.length === 1 ? "piece" : "pieces"}
         </p>
         <ul>
           {items.map((item) => (
-            <li key={item.id} className="flex items-center gap-3.5 border-b border-[#eef1f2] px-4 py-2.5 last:border-b-0">
+            <li key={item.id} className="flex items-center gap-3.5 border-b border-black/[0.05] px-4 py-2.5 last:border-b-0">
               <div className="relative h-14 w-14 shrink-0 overflow-hidden bg-[#f3f5f5]">
                 <Image src={item.imageUrl} alt="" fill className="object-cover" unoptimized />
               </div>
               <div className="min-w-0 flex-1">
-                <p className="truncate text-[12.5px] font-semibold text-[#1c2328]">{item.description}</p>
+                <p className="truncate text-[12.5px] font-semibold text-[#121821]">{item.description}</p>
                 <span className="text-[11px] text-[#8b969c]">{LAYER_LABELS[item.layeringRole]}</span>
               </div>
             </li>
           ))}
         </ul>
       </div>
-      {note && <p className="mt-3 text-[11.5px] text-[#7e888e]">{note}</p>}
+      {note && <p className="mt-3 text-[11.5px] text-[#6b7783]">{note}</p>}
     </section>
   );
 }

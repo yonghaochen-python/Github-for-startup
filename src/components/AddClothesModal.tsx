@@ -194,7 +194,7 @@ export function AddClothesModal({ onClose, onAdded }: { onClose: () => void; onA
   return (
     <div className="fixed inset-0 z-50 flex items-start justify-center overflow-y-auto bg-[#172027]/85 px-4 py-8 sm:items-center">
       <div
-        className="w-full max-w-2xl rounded-xl border p-6 sm:p-8"
+        className="w-full max-w-2xl rounded-[24px] p-6 sm:p-8"
         style={{
           borderColor: "#c7d4da",
           background: "linear-gradient(145deg, #fff 0%, #edf4f7 72%, #f3e9eb 100%)",
@@ -216,18 +216,18 @@ export function AddClothesModal({ onClose, onAdded }: { onClose: () => void; onA
           </button>
         </div>
 
-        {error && <p className="mb-4 rounded-lg bg-red-50 px-4 py-3 text-sm text-red-700">{error}</p>}
+        {error && <p className="mb-4 rounded-[14px] bg-red-50 px-4 py-3 text-sm text-red-700">{error}</p>}
 
         {step === "upload" && (
           <div>
-            <div className="mb-5 inline-flex rounded-[6px] border border-[#cbd7dc] bg-white/60 p-1">
-              <span className="rounded-[4px] bg-[#242b30] px-4 py-2 text-xs font-semibold text-white">Upload a photo</span>
+            <div className="mb-5 inline-flex rounded-full bg-white p-1 shadow-[inset_0_0_0_1px_rgba(18,24,33,0.08)]">
+              <span className="rounded-full bg-[#121821] px-4 py-2 text-xs font-semibold text-white">Upload a photo</span>
               <button
                 type="button"
                 disabled
                 aria-disabled="true"
                 title="Coming soon"
-                className="cursor-not-allowed rounded-[4px] px-4 py-2 text-xs font-semibold text-[#9aa2a6]"
+                className="cursor-not-allowed rounded-full px-4 py-2 text-xs font-semibold text-[#9aa2a6]"
               >
                 Find Online — Coming Soon
               </button>
@@ -245,12 +245,12 @@ export function AddClothesModal({ onClose, onAdded }: { onClose: () => void; onA
               }}
               onDragLeave={() => setDragActive(false)}
               onDrop={handleDrop}
-              className={`flex cursor-pointer flex-col items-center gap-3 rounded-xl border-2 border-dashed px-6 py-14 text-center transition-colors ${
-                dragActive ? "border-[#354134] bg-[#f3f6f8]" : "border-[#dce2e4] hover:border-[#89949a]"
+              className={`flex cursor-pointer flex-col items-center gap-3 rounded-[20px] border-2 border-dashed px-6 py-14 text-center transition-colors ${
+                dragActive ? "border-[#121821] bg-[#f3f6f8]" : "border-black/[0.07] hover:border-[#89949a]"
               }`}
             >
               <span className="text-sm font-medium text-[#29343a]">Drop a photo here, or click to choose one</span>
-              <span className="rounded-[5px] bg-[#242b30] px-5 py-2.5 text-xs font-semibold text-white shadow-[inset_0_1px_0_#ffffff35,0_3px_10px_#222d3418] hover:bg-[#3b4750]">
+              <span className="rounded-full bg-[#121821] px-5 py-2.5 text-xs font-semibold text-white shadow-[inset_0_1px_0_#ffffff35,0_3px_10px_#222d3418] hover:bg-[#2a3542]">
                 Choose photo
               </span>
               <input type="file" accept={ACCEPTED_TYPES.join(",")} className="hidden" onChange={handleInputChange} />
@@ -263,7 +263,7 @@ export function AddClothesModal({ onClose, onAdded }: { onClose: () => void; onA
 
         {step === "analyzing" && (
           <div className="flex flex-col items-center gap-4 py-16">
-            <div className="h-8 w-8 animate-spin rounded-full border-2 border-[#dce2e4] border-t-[#29343a]" />
+            <div className="h-8 w-8 animate-spin rounded-full border-2 border-black/[0.07] border-t-[#29343a]" />
             <p className="text-sm text-[#445159]">Analyzing your photo…</p>
           </div>
         )}
@@ -294,7 +294,7 @@ export function AddClothesModal({ onClose, onAdded }: { onClose: () => void; onA
             </div>
 
             {items.length === 0 ? (
-              <div className="mb-5 rounded-xl border border-[#dce2e4] p-6 text-center">
+              <div className="mb-5 rounded-[18px] bg-[#f4f5f6] p-6 text-center">
                 <p className="mb-4 text-sm text-[#445159]">
                   We couldn&apos;t find clothes in this photo. Try spacing the pieces out, or add items manually.
                 </p>
@@ -305,13 +305,13 @@ export function AddClothesModal({ onClose, onAdded }: { onClose: () => void; onA
                       setImageUrl(null);
                       setItems([]);
                     }}
-                    className="rounded-[5px] border border-[#cbd3d7] px-4 py-2 text-sm font-medium text-[#333f46] hover:bg-[#e9edef]"
+                    className="rounded-full bg-white shadow-[inset_0_0_0_1px_rgba(18,24,33,0.12)] px-4 py-2 text-sm font-medium text-[#333f46] hover:bg-[#e9edef]"
                   >
                     Try another photo
                   </button>
                   <button
                     onClick={addManualItem}
-                    className="rounded-[5px] bg-[#242b30] px-4 py-2 text-sm font-medium text-white hover:bg-[#3b4750]"
+                    className="rounded-full bg-[#121821] px-4 py-2 text-sm font-medium text-white hover:bg-[#2a3542]"
                   >
                     Add an item manually
                   </button>
@@ -324,7 +324,7 @@ export function AddClothesModal({ onClose, onAdded }: { onClose: () => void; onA
                 </p>
                 <div className="mb-5 grid grid-cols-1 gap-4 sm:grid-cols-2">
                   {items.map((item, i) => (
-                    <div key={item.localId} className="rounded-xl border border-[#dce2e4] p-3">
+                    <div key={item.localId} className="rounded-[18px] bg-[#f4f5f6] p-3">
                       <div className="mb-3 flex gap-3">
                         <div className="relative h-20 w-20 shrink-0 overflow-hidden rounded-lg bg-[#faf9f7]">
                           {item.previewUrl && (
@@ -341,7 +341,7 @@ export function AddClothesModal({ onClose, onAdded }: { onClose: () => void; onA
                             value={item.description}
                             onChange={(e) => updateItem(item.localId, { description: e.target.value })}
                             placeholder="Item name / description"
-                            className="w-full rounded-lg border border-[#dce2e4] bg-white px-2 py-1.5 text-sm text-[#29343a]"
+                            className="w-full rounded-[10px] bg-white shadow-[inset_0_0_0_1px_rgba(18,24,33,0.12)] px-2 py-1.5 text-sm text-[#29343a]"
                           />
                         </div>
                       </div>
@@ -349,7 +349,7 @@ export function AddClothesModal({ onClose, onAdded }: { onClose: () => void; onA
                         <select
                           value={item.category}
                           onChange={(e) => updateItem(item.localId, { category: e.target.value as ClothingAttributes["category"] })}
-                          className="rounded-lg border border-[#dce2e4] bg-white px-2 py-1.5 text-xs capitalize text-[#29343a]"
+                          className="rounded-[10px] bg-white shadow-[inset_0_0_0_1px_rgba(18,24,33,0.12)] px-2 py-1.5 text-xs capitalize text-[#29343a]"
                         >
                           {CATEGORIES.map((c) => (
                             <option key={c} value={c}>
@@ -360,7 +360,7 @@ export function AddClothesModal({ onClose, onAdded }: { onClose: () => void; onA
                         <select
                           value={item.layeringRole}
                           onChange={(e) => updateItem(item.localId, { layeringRole: e.target.value as ClothingAttributes["layeringRole"] })}
-                          className="rounded-lg border border-[#dce2e4] bg-white px-2 py-1.5 text-xs text-[#29343a]"
+                          className="rounded-[10px] bg-white shadow-[inset_0_0_0_1px_rgba(18,24,33,0.12)] px-2 py-1.5 text-xs text-[#29343a]"
                         >
                           {LAYERING_ROLES.map((r) => (
                             <option key={r} value={r}>
@@ -373,19 +373,19 @@ export function AddClothesModal({ onClose, onAdded }: { onClose: () => void; onA
                           value={item.color}
                           onChange={(e) => updateItem(item.localId, { color: e.target.value })}
                           placeholder="Color"
-                          className="rounded-lg border border-[#dce2e4] bg-white px-2 py-1.5 text-xs text-[#29343a]"
+                          className="rounded-[10px] bg-white shadow-[inset_0_0_0_1px_rgba(18,24,33,0.12)] px-2 py-1.5 text-xs text-[#29343a]"
                         />
                         <input
                           type="text"
                           value={item.material}
                           onChange={(e) => updateItem(item.localId, { material: e.target.value })}
                           placeholder="Material"
-                          className="rounded-lg border border-[#dce2e4] bg-white px-2 py-1.5 text-xs text-[#29343a]"
+                          className="rounded-[10px] bg-white shadow-[inset_0_0_0_1px_rgba(18,24,33,0.12)] px-2 py-1.5 text-xs text-[#29343a]"
                         />
                         <select
                           value={item.formality}
                           onChange={(e) => updateItem(item.localId, { formality: e.target.value as ClothingAttributes["formality"] })}
-                          className="rounded-lg border border-[#dce2e4] bg-white px-2 py-1.5 text-xs capitalize text-[#29343a]"
+                          className="rounded-[10px] bg-white shadow-[inset_0_0_0_1px_rgba(18,24,33,0.12)] px-2 py-1.5 text-xs capitalize text-[#29343a]"
                         >
                           {FORMALITIES.map((f) => (
                             <option key={f} value={f}>
@@ -396,7 +396,7 @@ export function AddClothesModal({ onClose, onAdded }: { onClose: () => void; onA
                         <select
                           value={item.season}
                           onChange={(e) => updateItem(item.localId, { season: e.target.value as ClothingAttributes["season"] })}
-                          className="col-span-2 rounded-lg border border-[#dce2e4] bg-white px-2 py-1.5 text-xs capitalize text-[#29343a]"
+                          className="col-span-2 rounded-[10px] bg-white shadow-[inset_0_0_0_1px_rgba(18,24,33,0.12)] px-2 py-1.5 text-xs capitalize text-[#29343a]"
                         >
                           {SEASONS.map((s) => (
                             <option key={s} value={s}>
@@ -407,7 +407,7 @@ export function AddClothesModal({ onClose, onAdded }: { onClose: () => void; onA
                       </div>
                       <button
                         onClick={() => removeItem(item.localId)}
-                        className="mt-2 w-full rounded-[5px] border border-[#cbd3d7] py-1 text-xs font-medium text-[#333f46] hover:bg-[#e9edef]"
+                        className="mt-2 w-full rounded-full bg-white shadow-[inset_0_0_0_1px_rgba(18,24,33,0.12)] py-1 text-xs font-medium text-[#333f46] hover:bg-[#e9edef]"
                       >
                         Remove
                       </button>
@@ -427,7 +427,7 @@ export function AddClothesModal({ onClose, onAdded }: { onClose: () => void; onA
                 <button
                   onClick={handleConfirm}
                   disabled={confirming}
-                  className="w-full rounded-[5px] bg-[#242b30] px-5 py-3 text-sm font-semibold text-white shadow-[inset_0_1px_0_#ffffff35,0_3px_10px_#222d3418] hover:bg-[#3b4750] disabled:opacity-50"
+                  className="w-full rounded-full bg-[#121821] px-5 py-3 text-sm font-semibold text-white shadow-[inset_0_1px_0_#ffffff35,0_3px_10px_#222d3418] hover:bg-[#2a3542] disabled:opacity-50"
                 >
                   {confirming ? "Adding…" : "Add to My Closet"}
                 </button>

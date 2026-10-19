@@ -9,14 +9,14 @@ type Source = "camera" | "upload";
 const MAX_UPLOAD_BYTES = 25 * 1024 * 1024;
 
 const primaryButton =
-  "btn-tactile touch-manipulation min-h-[48px] rounded-[5px] bg-[#242b30] px-6 py-3 text-[13px] font-semibold text-white shadow-[inset_0_1px_0_#ffffff35,0_4px_14px_#222d3422] hover:bg-[#3b4750] disabled:opacity-50";
+  "btn-tactile touch-manipulation min-h-[48px] rounded-full bg-[#121821] px-6 py-3 text-[14px] font-medium text-white hover:bg-[#2a3542] disabled:opacity-50";
 const secondaryButton =
-  "btn-tactile touch-manipulation min-h-[48px] rounded-[5px] border border-[#cbd3d7] bg-white/60 px-6 py-3 text-[13px] font-semibold text-[#333f46] hover:bg-[#e9edef] disabled:opacity-50";
+  "btn-tactile touch-manipulation min-h-[48px] rounded-full bg-white px-6 py-3 text-[14px] font-medium text-[#121821] shadow-[inset_0_0_0_1px_rgba(18,24,33,0.12)] hover:shadow-[inset_0_0_0_1px_rgba(18,24,33,0.3)] disabled:opacity-50";
 
 /** On phones the actions stay pinned just above the bottom tab bar so they never need a scroll. */
 function ActionBar({ children }: { children: React.ReactNode }) {
   return (
-    <div className="sticky bottom-[calc(64px+env(safe-area-inset-bottom))] z-20 -mx-5 mt-4 border-t border-[#d9dfdf] bg-[#f6f9fa]/90 px-5 py-3 backdrop-blur sm:-mx-8 sm:px-8 md:bottom-0 md:pb-[max(12px,env(safe-area-inset-bottom))] lg:static lg:mx-auto lg:max-w-[520px] lg:border-0 lg:bg-transparent lg:px-0 lg:pb-0 lg:pt-0 lg:backdrop-blur-none">
+    <div className="sticky bottom-[calc(64px+env(safe-area-inset-bottom))] z-20 -mx-5 mt-4 border-t border-black/[0.07] bg-[#f6f9fa]/90 px-5 py-3 backdrop-blur sm:-mx-8 sm:px-8 md:bottom-0 md:pb-[max(12px,env(safe-area-inset-bottom))] lg:static lg:mx-auto lg:max-w-[520px] lg:border-0 lg:bg-transparent lg:px-0 lg:pb-0 lg:pt-0 lg:backdrop-blur-none">
       <div className="flex gap-3">{children}</div>
     </div>
   );
@@ -224,18 +224,18 @@ export function TryOnPhotoStep({
       <input ref={fileInputRef} type="file" accept="image/*" className="hidden" onChange={handleFile} />
 
       {error && (
-        <p role="alert" className="mb-4 rounded-lg bg-red-50 px-4 py-3 text-sm text-red-700">
+        <p role="alert" className="mb-4 rounded-[14px] bg-red-50 px-4 py-3 text-sm text-red-700">
           {error}
         </p>
       )}
 
       {mode === "choose" && (
-        <div className="grid gap-6 border border-[#d9dfdf] bg-white/70 p-5 sm:p-8 md:grid-cols-[minmax(0,240px)_1fr] md:gap-10">
+        <div className="grid gap-6 overflow-hidden rounded-[18px] bg-white shadow-[0_1px_0_rgba(18,24,33,0.03),0_10px_28px_rgba(18,30,45,0.05)]/70 p-5 sm:p-8 md:grid-cols-[minmax(0,240px)_1fr] md:gap-10">
           <button
             type="button"
             onClick={() => fileInputRef.current?.click()}
             disabled={starting || busy}
-            className="group flex aspect-[3/4] w-full max-w-[240px] flex-col items-center justify-center gap-3 justify-self-center border border-dashed border-[#aab6bc] bg-[#f4f7f8] text-[#5b676d] transition-colors hover:border-[#1c2328] hover:bg-white md:justify-self-start"
+            className="group flex aspect-[3/4] w-full max-w-[240px] flex-col items-center justify-center gap-3 justify-self-center rounded-[22px] border border-dashed border-[#aab6bc] bg-[#f4f7f8] text-[#5b676d] transition-colors hover:border-[#121821] hover:bg-white md:justify-self-start"
           >
             <svg viewBox="0 0 24 24" className="h-9 w-9" fill="none" stroke="currentColor" strokeWidth={1.2} aria-hidden>
               <circle cx="12" cy="5.5" r="2.5" />
@@ -244,8 +244,8 @@ export function TryOnPhotoStep({
             <span className="text-[12px] font-semibold">{busy ? "Preparing photo…" : "Choose a full-body photo"}</span>
           </button>
           <div>
-            <h2 className="font-display mb-2 text-[30px] font-normal leading-tight text-[#1c2328]">Your personal try-on photo</h2>
-            <p className="mb-5 max-w-md text-[13.5px] leading-relaxed text-[#5f6a70]">
+            <h2 className="font-display mb-2 text-[30px] font-normal leading-tight text-[#121821]">Your personal try-on photo</h2>
+            <p className="mb-5 max-w-md text-[13.5px] leading-relaxed text-[#4f5b66]">
               A clear, full-body photo. You&apos;ll use it for every try-on.
             </p>
             <ul className="mb-6 grid gap-2 text-[12.5px] text-[#4f5a60]">
@@ -268,12 +268,12 @@ export function TryOnPhotoStep({
                 {starting ? "Opening camera…" : "Take a Photo"}
               </button>
               {onCancel && (
-                <button onClick={onCancel} className="px-2 text-[12px] font-semibold text-[#5f6a70] underline-offset-4 hover:underline">
+                <button onClick={onCancel} className="px-2 text-[12px] font-semibold text-[#4f5b66] underline-offset-4 hover:underline">
                   Cancel
                 </button>
               )}
             </div>
-            <p className="mt-5 text-xs leading-relaxed text-[#7e888e]">
+            <p className="mt-5 text-xs leading-relaxed text-[#6b7783]">
               Nothing is saved until you press Save My Photo. Only you can see it, and you can change it anytime.
             </p>
           </div>
@@ -285,7 +285,7 @@ export function TryOnPhotoStep({
           <div
             ref={frameRef}
             style={frameStyle}
-            className="relative mx-auto overflow-hidden border border-[#d9dfdf] bg-[#1c2328]"
+            className="relative mx-auto overflow-hidden rounded-[22px] bg-[#121821]"
           >
             <video
               ref={videoRef}
@@ -315,12 +315,12 @@ export function TryOnPhotoStep({
           <div
             ref={frameRef}
             style={frameStyle}
-            className="relative mx-auto overflow-hidden border border-[#d9dfdf] bg-white"
+            className="relative mx-auto overflow-hidden overflow-hidden rounded-[18px] bg-white shadow-[0_1px_0_rgba(18,24,33,0.03),0_10px_28px_rgba(18,30,45,0.05)]"
           >
             {/* eslint-disable-next-line @next/next/no-img-element */}
             <img src={pending.url} alt="Your photo" className="h-full w-full object-contain" />
           </div>
-          <p className="mx-auto mt-3 max-w-[520px] text-xs text-[#7e888e]">
+          <p className="mx-auto mt-3 max-w-[520px] text-xs text-[#6b7783]">
             Make sure your whole body is visible.
           </p>
           <ActionBar>

@@ -53,17 +53,17 @@ function OutfitBoardView({ layers }: { layers: OutfitLayer[] }) {
 function ItemsGridView({ items }: { items: ClothingItem[] }) {
   const ordered = orderedLayerEntries(items).flatMap(({ role, items }) => items.map((item) => ({ ...item, role })));
   return (
-    <div className="border border-[#cbd7dc] bg-[#e1e5e6] p-6 sm:p-8">
-      <p className="mb-5 text-sm font-medium text-[#89949a]">
+    <div className="bg-white p-6 sm:p-8">
+      <p className="mb-5 text-sm text-[#4f5b66]">
         {items.length} item{items.length === 1 ? "" : "s"} from your closet
       </p>
       <div className="grid grid-cols-2 gap-2.5 sm:grid-cols-3">
         {ordered.map((item) => (
-          <div key={item.id} className="relative overflow-hidden bg-[#d4dadd] p-0">
+          <div key={item.id} className="relative overflow-hidden rounded-[16px] bg-[#f4f5f6]">
             <div className="relative aspect-square">
-              <Image src={item.imageUrl} alt={item.description} fill className="object-cover saturate-[.58]" unoptimized />
+              <Image src={item.imageUrl} alt={item.description} fill className="object-cover" unoptimized />
             </div>
-            <span className="absolute bottom-2 left-2 bg-[#fbfaf7e8] px-2 py-1.5 text-[9px] uppercase text-[#53644f]">
+            <span className="absolute bottom-2 left-2 rounded-full bg-white/90 px-2.5 py-1 text-[10px] text-[#2f3b47]">
               {LAYER_LABELS[item.role]}
             </span>
           </div>
@@ -225,7 +225,7 @@ export default function OutfitDetailPage() {
               setLoading(true);
               loadOutfit();
             }}
-            className="rounded-[5px] border border-[#cbd3d7] px-4 py-1.5 text-sm font-medium text-[#333f46] hover:bg-[#e9edef]"
+            className="rounded-full bg-white shadow-[inset_0_0_0_1px_rgba(18,24,33,0.12)] px-4 py-1.5 text-sm font-medium text-[#333f46] hover:bg-[#e9edef]"
           >
             Try again
           </button>
@@ -258,45 +258,45 @@ export default function OutfitDetailPage() {
 
   return (
     <main className="mx-auto w-full max-w-[1280px] flex-1 px-5 pb-16 pt-7 sm:px-8 sm:pt-10">
-      <nav aria-label="Breadcrumb" className="mb-6 flex items-center gap-2 text-[12px] font-semibold text-[#5f6a70]">
-        <Link href={outfit.isFavorite ? "/outfits/saved" : "/outfits"} className="hover:text-[#1c2328] hover:underline">
+      <nav aria-label="Breadcrumb" className="mb-6 flex items-center gap-2 text-[12px] font-semibold text-[#4f5b66]">
+        <Link href={outfit.isFavorite ? "/outfits/saved" : "/outfits"} className="hover:text-[#121821] hover:underline">
           {outfit.isFavorite ? "Saved Looks" : "AI Stylist"}
         </Link>
         <span aria-hidden>/</span>
-        <span className="text-[#1c2328]">Outfit details</span>
+        <span className="text-[#121821]">Outfit details</span>
       </nav>
 
-      <div className="mb-7 inline-flex border border-[#d7ddd2] p-[3px]">
+      <div className="mb-7 inline-flex rounded-full bg-white p-1 shadow-[inset_0_0_0_1px_rgba(18,24,33,0.12)]">
         <button
           onClick={() => setMode("outfit")}
-          className={`btn-tactile px-3.5 py-1.5 text-[9px] font-bold tracking-[1.2px] ${
-            mode === "outfit" ? "bg-[#1c2328] text-white" : "text-[#91998e] hover:text-[#5c665a]"
+          className={`btn-tactile rounded-full px-4 py-1.5 text-[12px] font-medium ${
+            mode === "outfit" ? "bg-[#121821] text-white" : "text-[#4f5b66] hover:text-[#121821]"
           }`}
         >
-          OUTFIT
+          Outfit
         </button>
         <button
           onClick={() => setMode("items")}
-          className={`btn-tactile px-3.5 py-1.5 text-[9px] font-bold tracking-[1.2px] ${
-            mode === "items" ? "bg-[#1c2328] text-white" : "text-[#91998e] hover:text-[#5c665a]"
+          className={`btn-tactile rounded-full px-4 py-1.5 text-[12px] font-medium ${
+            mode === "items" ? "bg-[#121821] text-white" : "text-[#4f5b66] hover:text-[#121821]"
           }`}
         >
-          ITEMS
+          Items
         </button>
       </div>
 
       <div className="grid gap-x-[6%] gap-y-8 lg:grid-cols-[1.03fr_.97fr]">
-        <div className="min-w-0">{mode === "outfit" ? <OutfitBoardView layers={boardLayers} /> : <ItemsGridView items={outfit.items} />}</div>
+        <div className="min-w-0 overflow-hidden rounded-[22px] bg-white shadow-[0_1px_0_rgba(18,24,33,0.03),0_14px_36px_rgba(18,30,45,0.06)]">{mode === "outfit" ? <OutfitBoardView layers={boardLayers} /> : <ItemsGridView items={outfit.items} />}</div>
 
         <div className="min-w-0 pt-1">
-          <p className="mb-2 text-[10px] font-bold uppercase tracking-[2.6px] text-[#7e888e]">Outfit details</p>
+          <p className="mb-2 text-[10px] font-bold uppercase tracking-[2.6px] text-[#6b7783]">Outfit details</p>
           <h1
-            className="mb-4 font-display font-normal capitalize tracking-[-1.5px] text-[#1c2328]"
+            className="mb-4 font-display font-normal capitalize tracking-[-1.5px] text-[#121821]"
             style={{ fontSize: "clamp(40px, 4.5vw, 64px)", lineHeight: 1.02 }}
           >
             {title}
           </h1>
-          <p className="max-w-[460px] text-[13.5px] leading-[1.8] text-[#5f6a70]">{outfit.rationale}</p>
+          <p className="max-w-[460px] text-[13.5px] leading-[1.8] text-[#4f5b66]">{outfit.rationale}</p>
 
           <div className="mt-6 flex flex-wrap items-center gap-3">
             <Link href={`/outfits/${outfit.id}/try-on?start=1`} className={btnPrimary}>
@@ -307,35 +307,35 @@ export default function OutfitDetailPage() {
               {saving ? "Saving…" : outfit.isFavorite ? "Saved — Remove" : "Save Look"}
             </button>
           </div>
-          <p className="mt-2 text-[11.5px] text-[#7e888e]">Try On uses your saved photo and starts right away.</p>
+          <p className="mt-2 text-[11.5px] text-[#6b7783]">Try On uses your saved photo and starts right away.</p>
 
           <div className="mt-6 flex flex-wrap gap-2">
             {outfit.occasion && (
-              <span className="border border-[#dce1d7] px-3 py-2 text-[10px] text-[#778174]">{outfit.occasion}</span>
+              <span className="rounded-full bg-white px-3 py-1.5 text-[12px] text-[#4f5b66] shadow-[inset_0_0_0_1px_rgba(18,24,33,0.1)]">{outfit.occasion}</span>
             )}
             {outfit.weather && (
-              <span className="border border-[#dce1d7] px-3 py-2 text-[10px] text-[#778174]">{outfit.weather}</span>
+              <span className="rounded-full bg-white px-3 py-1.5 text-[12px] text-[#4f5b66] shadow-[inset_0_0_0_1px_rgba(18,24,33,0.1)]">{outfit.weather}</span>
             )}
             {outfit.style && (
-              <span className="border border-[#dce1d7] px-3 py-2 text-[10px] capitalize text-[#778174]">
+              <span className="rounded-full bg-white px-3 py-1.5 text-[12px] capitalize text-[#4f5b66] shadow-[inset_0_0_0_1px_rgba(18,24,33,0.1)]">
                 {outfit.style}
               </span>
             )}
             {layersSummary !== "—" && (
-              <span className="border border-[#dce1d7] px-3 py-2 text-[10px] text-[#778174]">{layersSummary}</span>
+              <span className="rounded-full bg-white px-3 py-1.5 text-[12px] text-[#4f5b66] shadow-[inset_0_0_0_1px_rgba(18,24,33,0.1)]">{layersSummary}</span>
             )}
           </div>
 
           <div className="mt-10">
-            <div className="mb-2 flex items-baseline justify-between border-b border-[#dfe3da] pb-3.5">
-              <h2 className="font-display text-xl font-normal text-[#1c2328]">Pieces used</h2>
+            <div className="mb-2 flex items-baseline justify-between border-b border-black/[0.07] pb-3.5">
+              <h2 className="font-display text-xl font-normal text-[#121821]">Pieces used</h2>
               <span className="text-[9px] tracking-[1.5px] text-[#9ba49a]">{outfit.items.length} ITEMS</span>
             </div>
             <div className="flex flex-col">
               {outfit.items.map((item) => (
                 <div
                   key={item.id}
-                  className="group flex items-center gap-3.5 border-b border-[#e8eae3] py-3 transition-colors hover:bg-[#f7f8f5]"
+                  className="group flex items-center gap-3.5 border-b border-black/[0.05] py-3 transition-colors hover:bg-white/70"
                 >
                   <div className="relative h-[51px] w-[51px] shrink-0 overflow-hidden bg-[#efeee9]">
                     <Image
@@ -355,15 +355,15 @@ export default function OutfitDetailPage() {
             </div>
           </div>
 
-          {error && <p className="mt-5 rounded-lg bg-red-50 px-4 py-3 text-sm text-red-700">{error}</p>}
+          {error && <p className="mt-5 rounded-[14px] bg-red-50 px-4 py-3 text-sm text-red-700">{error}</p>}
 
-          <div className="mt-8 border-t border-[#dfe3da] pt-5">
+          <div className="mt-8 border-t border-black/[0.07] pt-5">
             <p className="mb-3 text-[9px] font-bold uppercase tracking-[1.8px] text-[#9da99a]">Change one item</p>
             {!swappingId ? (
               <select
                 value=""
                 onChange={(e) => setSwappingId(e.target.value || null)}
-                className="w-full border border-[#d6ddd1] bg-white px-3 py-2 text-sm text-[#222a2f]"
+                className="w-full rounded-full bg-white px-4 py-2.5 text-sm text-[#121821] shadow-[inset_0_0_0_1px_rgba(18,24,33,0.12)]"
               >
                 <option value="">Choose an item to change…</option>
                 {outfit.items.map((item) => (
@@ -378,7 +378,7 @@ export default function OutfitDetailPage() {
                 <select
                   value={replacementId}
                   onChange={(e) => setReplacementId(e.target.value)}
-                  className="w-full border border-[#d6ddd1] bg-white px-3 py-2 text-sm text-[#222a2f]"
+                  className="w-full rounded-full bg-white px-4 py-2.5 text-sm text-[#121821] shadow-[inset_0_0_0_1px_rgba(18,24,33,0.12)]"
                 >
                   <option value="">Choose replacement…</option>
                   {replacementOptions.map((opt) => (
@@ -397,7 +397,7 @@ export default function OutfitDetailPage() {
                   <button
                     onClick={confirmSwap}
                     disabled={!replacementId || swapping}
-                    className="btn-tactile flex-1 rounded-[5px] bg-[#242b30] px-3 py-2.5 text-xs font-medium text-white disabled:opacity-50"
+                    className="btn-tactile flex-1 rounded-full bg-[#121821] px-3 py-2.5 text-xs font-medium text-white disabled:opacity-50"
                   >
                     {swapping ? "Swapping…" : "Confirm"}
                   </button>
@@ -406,7 +406,7 @@ export default function OutfitDetailPage() {
                       setSwappingId(null);
                       setReplacementId("");
                     }}
-                    className="btn-tactile rounded-[5px] border border-[#cbd3d7] px-3 py-2.5 text-xs text-[#333f46]"
+                    className="btn-tactile rounded-full bg-white shadow-[inset_0_0_0_1px_rgba(18,24,33,0.12)] px-3 py-2.5 text-xs text-[#333f46]"
                   >
                     Cancel
                   </button>

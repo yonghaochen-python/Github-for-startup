@@ -28,7 +28,7 @@ export function EditorialOutfitVisual({ items, large = false }: { items: Garment
       className={`grid overflow-hidden bg-white ${large ? "min-h-[520px] sm:min-h-[640px]" : "min-h-[320px] sm:min-h-[390px]"}`}
       style={{ gridTemplateColumns: "minmax(112px, 32%) minmax(0, 1fr)" }}
     >
-      <div className="relative z-10 flex flex-col gap-4 border-r border-[#dce2e4] px-3 py-6 sm:px-5 sm:py-8">
+      <div className="relative z-10 flex flex-col gap-4 border-r border-black/[0.07] px-3 py-6 sm:px-5 sm:py-8">
         {visible.map((item, i) => (
           <div key={item.id} className="grid flex-1 grid-cols-[20px_minmax(0,1fr)] items-center gap-2">
             <span className="self-start pt-1 text-[10px] font-bold tracking-widest text-[#29343a]">

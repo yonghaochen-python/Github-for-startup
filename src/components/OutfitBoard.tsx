@@ -46,11 +46,11 @@ export function OutfitBoard({
   }
 
   return (
-    <article className="flex min-w-0 flex-col overflow-hidden border border-[#d9dfdf] bg-white">
+    <article className="flex min-w-0 flex-col overflow-hidden overflow-hidden rounded-[18px] bg-white shadow-[0_1px_0_rgba(18,24,33,0.03),0_10px_28px_rgba(18,30,45,0.05)]">
       <header className="flex items-start justify-between gap-3 px-5 pb-3 pt-4">
         <div>
           <p className="text-[9px] font-bold uppercase tracking-[1.8px] text-[#8b969c]">{outfit.occasion ?? "Outfit"}</p>
-          <h3 className="font-display text-[24px] font-normal leading-tight text-[#1c2328]">
+          <h3 className="font-display text-[24px] font-normal leading-tight text-[#121821]">
             {items.length}-piece look
           </h3>
         </div>
@@ -65,7 +65,7 @@ export function OutfitBoard({
         <EditorialOutfitVisual items={items} />
       </Link>
 
-      <ol className="grid min-w-0 grid-cols-1 gap-1 border-t border-[#e5eaec] px-5 py-4 text-[12px] text-[#3b4850]">
+      <ol className="grid min-w-0 grid-cols-1 gap-1 border-t border-black/[0.06] px-5 py-4 text-[12px] text-[#3b4850]">
         {items.map((item, i) => (
           <li key={item.id} className="flex min-w-0 gap-2">
             <span className="w-5 shrink-0 text-[10px] font-bold text-[#8b969c]">{String(i + 1).padStart(2, "0")}</span>
@@ -75,9 +75,9 @@ export function OutfitBoard({
         ))}
       </ol>
 
-      {outfit.rationale && <p className="px-5 pb-4 text-[12.5px] leading-relaxed text-[#5f6a70]">{outfit.rationale}</p>}
+      {outfit.rationale && <p className="px-5 pb-4 text-[12.5px] leading-relaxed text-[#4f5b66]">{outfit.rationale}</p>}
 
-      <div className="mt-auto flex flex-wrap items-center gap-2 border-t border-[#e5eaec] px-5 py-4">
+      <div className="mt-auto flex flex-wrap items-center gap-2 border-t border-black/[0.06] px-5 py-4">
         <Link href={`/outfits/${outfit.id}/try-on?start=1`} className={btnPrimary}>
           <MirrorIcon className="h-4 w-4" /> Try On
         </Link>
@@ -102,7 +102,7 @@ export function OutfitBoard({
 /** Placeholder boards shown while the stylist is working. */
 export function OutfitBoardSkeleton() {
   return (
-    <div aria-hidden className="animate-pulse border border-[#e1e6e8] bg-white">
+    <div aria-hidden className="animate-pulse overflow-hidden rounded-[18px] bg-white">
       <div className="space-y-2 px-5 py-4">
         <div className="h-2 w-16 bg-[#e5eaec]" />
         <div className="h-5 w-32 bg-[#e5eaec]" />

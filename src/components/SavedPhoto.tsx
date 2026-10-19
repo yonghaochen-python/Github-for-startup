@@ -49,10 +49,10 @@ export function CurrentLookBar({ dark = false }: { dark?: boolean }) {
   const { user } = useAuth();
   const takeOffLook = useTakeOffLook();
   if (!user?.look) return null;
-  const muted = dark ? "text-[#c3cdd2]" : "text-[#5f6a70]";
+  const muted = dark ? "text-[#c3cdd2]" : "text-[#4f5b66]";
   return (
     <div className={`flex flex-wrap items-center gap-x-3 gap-y-1 text-[12px] ${muted}`}>
-      <span className={`font-semibold ${dark ? "text-white" : "text-[#1c2328]"}`}>Currently wearing your latest try-on</span>
+      <span className={`font-semibold ${dark ? "text-white" : "text-[#121821]"}`}>Currently wearing your latest try-on</span>
       <Link href={`/outfits/${user.look.outfitId}`} className="underline-offset-4 hover:underline">
         View outfit
       </Link>
@@ -95,7 +95,7 @@ export function SavedPhotoSetup({ onSaved, onCancel }: { onSaved?: () => void; o
   return (
     <div>
       {error && (
-        <p role="alert" className="mb-4 rounded-[5px] border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
+        <p role="alert" className="mb-4 rounded-[14px] border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
           {error}
         </p>
       )}

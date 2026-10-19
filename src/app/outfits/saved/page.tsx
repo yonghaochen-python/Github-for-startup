@@ -72,7 +72,7 @@ export default function SavedLooksPage() {
           />
         ) : (
           <>
-            <p className="mb-5 text-[12.5px] text-[#7e888e]">
+            <p className="mb-5 text-[12.5px] text-[#6b7783]">
               {saved.length} saved {saved.length === 1 ? "look" : "looks"}
             </p>
             <div className="grid gap-6 sm:grid-cols-2 xl:grid-cols-3">

@@ -54,13 +54,13 @@ export default function ProfilePage() {
               <p className="mt-1.5 break-all text-[15px] text-[#121821]">{user?.email ?? "…"}</p>
               <p className="mt-1 text-[12px] text-[#6b7783]">Used to log in. Can&apos;t be changed.</p>
             </div>
-            <ul className="mt-8 grid grid-cols-3 gap-3 border-t border-[#dce2e4] pt-6">
+            <ul className="mt-8 grid grid-cols-3 gap-3 border-t border-black/[0.07] pt-6">
               {stats.map(({ label, value, href, Icon }) => (
                 <li key={label}>
                   <Link href={href} className="group block">
-                    <Icon className="mb-2 h-4 w-4 text-[#7e888e]" />
-                    <span className="block font-display text-[34px] leading-none text-[#1c2328]">{value ?? "—"}</span>
-                    <span className="mt-1 block text-[11.5px] text-[#5f6a70] group-hover:underline">{label}</span>
+                    <Icon className="mb-2 h-4 w-4 text-[#6b7783]" />
+                    <span className="block font-display text-[34px] leading-none text-[#121821]">{value ?? "—"}</span>
+                    <span className="mt-1 block text-[11.5px] text-[#4f5b66] group-hover:underline">{label}</span>
                   </Link>
                 </li>
               ))}
@@ -82,7 +82,7 @@ export default function ProfilePage() {
                 </div>
                 <div className="flex flex-col p-6 sm:p-8">
                   <p id="photo" className={`${eyebrow} mb-2`}>Your saved try-on photo</p>
-                  <p className="text-[13.5px] leading-relaxed text-[#5f6a70]">
+                  <p className="text-[13.5px] leading-relaxed text-[#4f5b66]">
                     Every try-on uses this photo. Only you can see it.
                   </p>
                   <div className="mt-3">

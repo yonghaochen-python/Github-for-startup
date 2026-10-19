@@ -20,15 +20,15 @@ const chip = (selected: boolean) =>
       : "bg-white text-[#2f3b47] shadow-[inset_0_0_0_1px_rgba(18,24,33,0.12)] hover:shadow-[inset_0_0_0_1px_rgba(18,24,33,0.3)]"
   }`;
 const inputClass =
-  "min-h-[44px] w-full rounded-[5px] border border-[#cbd7dc] bg-white/80 px-3 text-[13px] text-[#1c2328] outline-none placeholder:text-[#9aa5aa] focus:border-[#1c2328]";
+  "min-h-[44px] w-full rounded-full bg-white px-4 shadow-[inset_0_0_0_1px_rgba(18,24,33,0.12)] text-[13px] text-[#121821] outline-none placeholder:text-[#9aa5aa] focus:shadow-[inset_0_0_0_2px_#121821]";
 
 function Step({ n, title, hint, children }: { n: number; title: string; hint?: string; children: React.ReactNode }) {
   return (
-    <section className="grid gap-4 border-t border-[#dce2e4] py-6 sm:grid-cols-[200px_1fr] sm:gap-8">
+    <section className="grid gap-4 border-t border-black/[0.07] py-6 sm:grid-cols-[200px_1fr] sm:gap-8">
       <div>
         <p className={`${eyebrow} mb-1`}>Step {n}</p>
-        <h2 className="font-display text-[24px] font-normal leading-tight text-[#1c2328]">{title}</h2>
-        {hint && <p className="mt-1 text-[12px] leading-relaxed text-[#7e888e]">{hint}</p>}
+        <h2 className="font-display text-[24px] font-normal leading-tight text-[#121821]">{title}</h2>
+        {hint && <p className="mt-1 text-[12px] leading-relaxed text-[#6b7783]">{hint}</p>}
       </div>
       <div>{children}</div>
     </section>
@@ -162,11 +162,11 @@ export default function OutfitsPage() {
                   </button>
                 ))}
               </div>
-              <p className="mt-3 text-[11.5px] text-[#7e888e]">Leave empty for everyday outfits.</p>
+              <p className="mt-3 text-[11.5px] text-[#6b7783]">Leave empty for everyday outfits.</p>
             </Step>
 
             <Step n={2} title="Your preferences" hint="Optional.">
-              <p className="mb-2 text-[11px] font-semibold text-[#5f6a70]">Style</p>
+              <p className="mb-2 text-[11px] font-semibold text-[#4f5b66]">Style</p>
               <div className="mb-3 flex flex-wrap gap-2">
                 {STYLES.map((s) => (
                   <button key={s} onClick={() => setStyleChoice(s)} className={chip(styleChoice === s)} aria-pressed={styleChoice === s}>
@@ -178,21 +178,21 @@ export default function OutfitsPage() {
                 <input value={customStyle} onChange={(e) => setCustomStyle(e.target.value)} placeholder="Describe your style, e.g. soft tailoring" className={`${inputClass} mb-3 max-w-sm`} />
               )}
               <div className="mt-4 grid gap-3 sm:grid-cols-2">
-                <label className="text-[11px] font-semibold text-[#5f6a70]">
+                <label className="text-[11px] font-semibold text-[#4f5b66]">
                   Temperature
                   <input value={temperature} onChange={(e) => setTemperature(e.target.value)} placeholder="e.g. 65°F" className={`${inputClass} mt-1`} />
                 </label>
-                <label className="text-[11px] font-semibold text-[#5f6a70]">
+                <label className="text-[11px] font-semibold text-[#4f5b66]">
                   Weather
                   <select value={conditions} onChange={(e) => setConditions(e.target.value)} className={`${inputClass} mt-1`}>
                     {CONDITIONS.map((c) => <option key={c}>{c}</option>)}
                   </select>
                 </label>
-                <label className="text-[11px] font-semibold text-[#5f6a70]">
+                <label className="text-[11px] font-semibold text-[#4f5b66]">
                   Preferred colors
                   <input value={colorPreference} onChange={(e) => setColorPreference(e.target.value)} placeholder="e.g. neutrals, something with blue" className={`${inputClass} mt-1`} />
                 </label>
-                <label className="text-[11px] font-semibold text-[#5f6a70]">
+                <label className="text-[11px] font-semibold text-[#4f5b66]">
                   Anything else?
                   <input value={prompt} onChange={(e) => setPrompt(e.target.value)} placeholder="e.g. comfortable shoes, no shorts" className={`${inputClass} mt-1`} />
                 </label>
@@ -200,9 +200,9 @@ export default function OutfitsPage() {
             </Step>
 
             <Step n={3} title="Clothes to use" hint="Outfits use everything in your closet.">
-              <div className="flex flex-wrap items-center gap-3 border border-[#dce2e4] bg-white/60 px-4 py-3">
-                <ClosetIcon className="h-5 w-5 text-[#5f6a70]" />
-                <p className="text-[13px] text-[#1c2328]">
+              <div className="flex flex-wrap items-center gap-3 overflow-hidden rounded-[18px] bg-white shadow-[0_1px_0_rgba(18,24,33,0.03),0_10px_28px_rgba(18,30,45,0.05)]/60 px-4 py-3">
+                <ClosetIcon className="h-5 w-5 text-[#4f5b66]" />
+                <p className="text-[13px] text-[#121821]">
                   Your whole closet{closetCount !== null ? ` — ${closetCount} pieces` : ""}
                 </p>
                 <Link href="/closet" className="ml-auto text-[12px] font-semibold text-[#26313a] underline-offset-4 hover:underline">
@@ -231,11 +231,11 @@ export default function OutfitsPage() {
             <section aria-labelledby="results-title" aria-busy={generating} className="mt-10">
               <div className="mb-5">
                 <p className={`${eyebrow} mb-1`}>Your new looks</p>
-                <h2 id="results-title" className="font-display text-[34px] font-normal text-[#1c2328]">
+                <h2 id="results-title" className="font-display text-[34px] font-normal text-[#121821]">
                   {generating ? "Creating outfits…" : `${results.length} outfits for “${resultLabel}”`}
                 </h2>
                 {!generating && (
-                  <p className="mt-1 text-[13px] text-[#5f6a70]">
+                  <p className="mt-1 text-[13px] text-[#4f5b66]">
                     Try one on, or save it for later.
                   </p>
                 )}
@@ -253,7 +253,7 @@ export default function OutfitsPage() {
               <div className="mb-5 flex items-end justify-between gap-4">
                 <div>
                   <p className={`${eyebrow} mb-1`}>Recent</p>
-                  <h2 id="recent-title" className="font-display text-[30px] font-normal text-[#1c2328]">Your latest outfits</h2>
+                  <h2 id="recent-title" className="font-display text-[30px] font-normal text-[#121821]">Your latest outfits</h2>
                 </div>
                 <Link href="/outfits/saved" className="text-[12.5px] font-semibold text-[#26313a] underline-offset-4 hover:underline">
                   View Saved Looks

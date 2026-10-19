@@ -252,10 +252,10 @@ function Dashboard({ closet, outfits }: { closet: ClothingItem[]; outfits: Outfi
                 <p className={eyebrow}>Your Virtual Mirror</p>
                 {hasPhoto ? (
                   <>
-                    <h2 id="mirror-title" className="font-display text-[38px] font-normal leading-[1.05] text-[#1c2328] sm:text-[46px]">
+                    <h2 id="mirror-title" className="font-display text-[38px] font-normal leading-[1.05] text-[#121821] sm:text-[46px]">
                       Ready when you are.
                     </h2>
-                    <p className="max-w-md text-[14px] leading-relaxed text-[#5f6a70]">
+                    <p className="max-w-md text-[14px] leading-relaxed text-[#4f5b66]">
                       {user?.look
                         ? "Showing your latest try-on."
                         : "Your photo is saved. Pick any outfit to try on."}
@@ -275,10 +275,10 @@ function Dashboard({ closet, outfits }: { closet: ClothingItem[]; outfits: Outfi
                   </>
                 ) : (
                   <>
-                    <h2 id="mirror-title" className="font-display text-[38px] font-normal leading-[1.05] text-[#1c2328] sm:text-[46px]">
+                    <h2 id="mirror-title" className="font-display text-[38px] font-normal leading-[1.05] text-[#121821] sm:text-[46px]">
                       Start with your photo
                     </h2>
-                    <p className="max-w-md text-[14px] leading-relaxed text-[#5f6a70]">
+                    <p className="max-w-md text-[14px] leading-relaxed text-[#4f5b66]">
                       Upload one full-body photo. You&apos;ll use it for every try-on.
                     </p>
                     <div className="flex flex-wrap items-center gap-3">
@@ -289,7 +289,7 @@ function Dashboard({ closet, outfits }: { closet: ClothingItem[]; outfits: Outfi
                         View My Closet <ArrowRightIcon className="h-4 w-4" />
                       </Link>
                     </div>
-                    <p className="text-[11.5px] text-[#7e888e]">Only you can see it.</p>
+                    <p className="text-[11.5px] text-[#6b7783]">Only you can see it.</p>
                   </>
                 )}
               </div>
@@ -379,10 +379,10 @@ function Dashboard({ closet, outfits }: { closet: ClothingItem[]; outfits: Outfi
               <p className={`${eyebrow} mb-3 flex items-center gap-2`}>
                 <MirrorIcon className="h-4 w-4" /> Try On
               </p>
-              <h2 id="tryon-title" className="font-display text-[28px] font-normal leading-[1.1] text-[#1c2328]">
+              <h2 id="tryon-title" className="font-display text-[28px] font-normal leading-[1.1] text-[#121821]">
                 One photo, every outfit.
               </h2>
-              <p className="mt-2 flex-1 text-[13px] leading-relaxed text-[#5f6a70]">
+              <p className="mt-2 flex-1 text-[13px] leading-relaxed text-[#4f5b66]">
                 {hasPhoto
                   ? "Try any outfit on your saved photo."
                   : "Save one photo, then try on any outfit."}
@@ -407,7 +407,7 @@ function Dashboard({ closet, outfits }: { closet: ClothingItem[]; outfits: Outfi
                   <Link
                     key={outfit.id}
                     href={`/outfits/${outfit.id}`}
-                    className={`group block border border-[#dce2e4] bg-white ${i === 2 ? "hidden sm:block" : ""}`}
+                    className={`group block overflow-hidden rounded-[18px] bg-white shadow-[0_1px_0_rgba(18,24,33,0.03),0_10px_28px_rgba(18,30,45,0.05)] ${i === 2 ? "hidden sm:block" : ""}`}
                   >
                     <div className="grid grid-cols-2 gap-px bg-[#e5eaec]">
                       {outfit.layers.flatMap((l) => l.items).slice(0, 4).map((item) => (
@@ -447,7 +447,7 @@ function FeatureHead({ Icon, id, title, body }: { Icon: typeof ClosetIcon; id: s
         <Icon className="h-4 w-4" /> {title}
       </p>
       <h2 id={id} className="sr-only">{title}</h2>
-      <p className="max-w-md text-[13.5px] leading-relaxed text-[#5f6a70]">{body}</p>
+      <p className="max-w-md text-[13.5px] leading-relaxed text-[#4f5b66]">{body}</p>
     </div>
   );
 }

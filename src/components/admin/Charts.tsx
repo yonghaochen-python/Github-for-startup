@@ -49,8 +49,8 @@ export function LineChart({ days, values, label }: { days: string[]; values: num
   const points = values.map((v, i) => `${x(i)},${y(v)}`).join(" ");
   return (
     <Frame days={days} max={max} label={label}>
-      <polyline points={points} fill="none" stroke="#1c2328" strokeWidth={2} strokeLinejoin="round" />
-      {values.length <= 31 && values.map((v, i) => <circle key={i} cx={x(i)} cy={y(v)} r={2.5} fill="#1c2328" />)}
+      <polyline points={points} fill="none" stroke="#121821" strokeWidth={2} strokeLinejoin="round" />
+      {values.length <= 31 && values.map((v, i) => <circle key={i} cx={x(i)} cy={y(v)} r={2.5} fill="#121821" />)}
     </Frame>
   );
 }
@@ -69,7 +69,7 @@ export function BarChart({ days, values, label }: { days: string[]; values: numb
             y={top}
             width={Math.max(1, slot * 0.7)}
             height={H - PAD.bottom - top}
-            fill={v > 0 ? "#5f6a70" : "transparent"}
+            fill={v > 0 ? "#4f5b66" : "transparent"}
           >
             <title>{`${days[i]}: ${v}`}</title>
           </rect>
@@ -87,10 +87,10 @@ export function HBars({ rows }: { rows: { label: string; value: number; note?: s
       {rows.map((r) => (
         <li key={r.label} className="grid grid-cols-[110px_1fr_auto] items-center gap-3 text-[12.5px]">
           <span className="text-[#3b4850]">{r.label}</span>
-          <span className="h-2.5 bg-[#eef2f3]">
-            <span className="block h-full bg-[#1c2328]" style={{ width: `${(r.value / max) * 100}%` }} />
+          <span className="h-2.5 overflow-hidden rounded-full bg-[#eef2f3]">
+            <span className="block h-full rounded-full bg-[#121821]" style={{ width: `${(r.value / max) * 100}%` }} />
           </span>
-          <span className="tabular-nums text-[#1c2328]">
+          <span className="tabular-nums text-[#121821]">
             {r.value}
             {r.note && <span className="ml-2 text-[10.5px] font-semibold uppercase tracking-[1px] text-[#a03a2f]">{r.note}</span>}
           </span>

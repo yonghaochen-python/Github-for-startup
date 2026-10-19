@@ -36,7 +36,7 @@ export function PageHeader({
   return (
     <header className="pb-8 pt-8 sm:pb-10 sm:pt-12">
       {back && (
-        <Link href={back.href} className="mb-4 inline-flex items-center gap-1.5 text-[12px] font-semibold text-[#5f6a70] hover:text-[#1c2328]">
+        <Link href={back.href} className="mb-4 inline-flex items-center gap-1.5 text-[12px] font-semibold text-[#4f5b66] hover:text-[#121821]">
           <ArrowLeftIcon className="h-4 w-4" />
           {back.label}
         </Link>
@@ -80,7 +80,7 @@ export function EmptyState({
 /** Small numbered "how this works" steps shown near the controls they describe. */
 export function Steps({ steps }: { steps: string[] }) {
   return (
-    <ol className="flex flex-wrap gap-x-6 gap-y-2 text-[12px] text-[#5f6a70]">
+    <ol className="flex flex-wrap gap-x-6 gap-y-2 text-[12px] text-[#4f5b66]">
       {steps.map((step, i) => (
         <li key={step} className="flex items-center gap-2">
           <span className="flex h-5 w-5 items-center justify-center rounded-full bg-[#121821] text-[10px] font-semibold text-white">
@@ -96,7 +96,7 @@ export function Steps({ steps }: { steps: string[] }) {
 /** A visible error message with an optional way out. */
 export function ErrorNote({ message }: { message: string }) {
   return (
-    <p role="alert" className="rounded-[5px] border border-red-200 bg-red-50 px-4 py-3 text-[13px] text-red-700">
+    <p role="alert" className="rounded-[14px] border border-red-200 bg-red-50 px-4 py-3 text-[13px] text-red-700">
       {message}
     </p>
   );

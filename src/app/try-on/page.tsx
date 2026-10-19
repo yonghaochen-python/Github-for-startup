@@ -61,13 +61,13 @@ export default function TryOnHubPage() {
         <div className={showSetup ? "" : "grid gap-8 lg:grid-cols-[320px_1fr]"}>
           {!showSetup && (
             <aside aria-label="Your try-on photo" className="lg:sticky lg:top-24 lg:self-start">
-              <div className="border border-[#cbd7dc] bg-white/60">
+              <div className="overflow-hidden rounded-[22px] bg-white shadow-[0_1px_0_rgba(18,24,33,0.03),0_14px_36px_rgba(18,30,45,0.06)]">
                 <div className="relative aspect-[3/4] overflow-hidden bg-[#dfe6e9]">
                   <MirrorImage className="absolute inset-0 h-full w-full object-cover object-top" />
                 </div>
                 <div className="p-5">
                   <p className={`${eyebrow} mb-1.5`}>{user?.look ? "Your current look" : "Your saved try-on photo"}</p>
-                  <p className="text-[12.5px] leading-relaxed text-[#5f6a70]">
+                  <p className="text-[12.5px] leading-relaxed text-[#4f5b66]">
                     {user?.look
                       ? "Showing your latest try-on."
                       : "Only you can see this photo."}
@@ -82,7 +82,7 @@ export default function TryOnHubPage() {
                     <button onClick={() => setChanging(true)} className={btnSecondary}>
                       Change Photo
                     </button>
-                    <button onClick={removeSavedPhoto} className="px-2 text-[12px] font-semibold text-[#7e888e] hover:text-[#1c2328]">
+                    <button onClick={removeSavedPhoto} className="px-2 text-[12px] font-semibold text-[#6b7783] hover:text-[#121821]">
                       Remove
                     </button>
                   </div>
@@ -95,23 +95,23 @@ export default function TryOnHubPage() {
             <div className="mb-5 flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
               <div>
                 <p className={`${eyebrow} mb-1.5`}>{hasPhoto ? "Step 2" : "Then"}</p>
-                <h2 id="choose-title" className="scroll-mt-24 font-display text-[32px] font-normal leading-tight text-[#1c2328]">
+                <h2 id="choose-title" className="scroll-mt-24 font-display text-[32px] font-normal leading-tight text-[#121821]">
                   Choose an outfit
                 </h2>
-                <p className="mt-1 text-[13px] text-[#5f6a70]">
+                <p className="mt-1 text-[13px] text-[#4f5b66]">
                   {hasPhoto ? "Pick a look." : "Save your photo first."}
                 </p>
               </div>
               {outfits && outfits.length > 0 && (
-                <div role="tablist" aria-label="Which outfits" className="flex rounded-[6px] border border-[#cbd7dc] bg-white/60 p-1">
+                <div role="tablist" aria-label="Which outfits" className="flex rounded-full bg-white p-1 shadow-[inset_0_0_0_1px_rgba(18,24,33,0.08)]">
                   {(["saved", "recent"] as const).map((t) => (
                     <button
                       key={t}
                       role="tab"
                       aria-selected={activeTab === t}
                       onClick={() => setTab(t)}
-                      className={`rounded-[4px] px-3.5 py-2 text-[12px] font-semibold ${
-                        activeTab === t ? "bg-[#1c2328] text-white" : "text-[#5f6a70] hover:text-[#1c2328]"
+                      className={`rounded-full px-4 py-2 text-[12px] font-semibold ${
+                        activeTab === t ? "bg-[#121821] text-white" : "text-[#4f5b66] hover:text-[#121821]"
                       }`}
                     >
                       {t === "saved" ? `Saved looks (${saved.length})` : `All outfits (${outfits.length})`}
@@ -177,15 +177,15 @@ function OutfitPick({ outfit, disabled }: { outfit: Outfit; disabled: boolean })
       </div>
       <div className="flex items-center justify-between gap-2 px-3.5 py-3">
         <span className="min-w-0">
-          <span className="flex items-center gap-1.5 truncate text-[12.5px] font-semibold capitalize text-[#1c2328]">
+          <span className="flex items-center gap-1.5 truncate text-[12.5px] font-semibold capitalize text-[#121821]">
             {outfit.isFavorite && <BookmarkIcon className="h-3.5 w-3.5 shrink-0" />}
             {outfit.occasion ?? "Outfit"}
           </span>
-          <span className="text-[11px] text-[#7e888e]">
+          <span className="text-[11px] text-[#6b7783]">
             {items.length} {items.length === 1 ? "piece" : "pieces"}
           </span>
         </span>
-        <span className="flex shrink-0 items-center gap-1 text-[11.5px] font-semibold text-[#1c2328]">
+        <span className="flex shrink-0 items-center gap-1 text-[11.5px] font-semibold text-[#121821]">
           Try on <ArrowRightIcon className="h-3.5 w-3.5" />
         </span>
       </div>
@@ -193,7 +193,7 @@ function OutfitPick({ outfit, disabled }: { outfit: Outfit; disabled: boolean })
   );
   if (disabled) {
     return (
-      <div aria-disabled className="block cursor-not-allowed border border-[#dce2e4] bg-white opacity-60">
+      <div aria-disabled className="block cursor-not-allowed overflow-hidden rounded-[18px] bg-white shadow-[0_1px_0_rgba(18,24,33,0.03),0_10px_28px_rgba(18,30,45,0.05)] opacity-60">
         {body}
       </div>
     );
@@ -201,7 +201,7 @@ function OutfitPick({ outfit, disabled }: { outfit: Outfit; disabled: boolean })
   return (
     <Link
       href={`/outfits/${outfit.id}/try-on?start=1`}
-      className="block border border-[#dce2e4] bg-white transition-all hover:-translate-y-0.5 hover:border-[#9fadb4] hover:shadow-[0_14px_30px_rgba(20,28,32,0.1)]"
+      className="block overflow-hidden rounded-[18px] bg-white shadow-[0_1px_0_rgba(18,24,33,0.03),0_10px_28px_rgba(18,30,45,0.05)] transition-all hover:-translate-y-0.5 hover:border-[#9fadb4] hover:shadow-[0_14px_30px_rgba(20,28,32,0.1)]"
     >
       {body}
     </Link>

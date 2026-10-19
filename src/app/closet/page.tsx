@@ -56,9 +56,9 @@ function toEditForm(item: ClothingItem): EditForm {
 }
 
 const selectClass =
-  "min-h-[40px] rounded-[5px] border border-[#cbd7dc] bg-white/80 px-3 pr-8 text-[12.5px] capitalize text-[#26313a] outline-none focus:border-[#1c2328]";
+  "min-h-[40px] rounded-full bg-white px-4 pr-9 shadow-[inset_0_0_0_1px_rgba(18,24,33,0.12)] text-[12.5px] capitalize text-[#26313a] outline-none focus:shadow-[inset_0_0_0_2px_#121821]";
 const fieldClass =
-  "min-h-[40px] w-full rounded-[5px] border border-[#cbd7dc] bg-white px-3 py-2 text-[13px] text-[#1c2328] outline-none focus:border-[#1c2328]";
+  "min-h-[40px] w-full rounded-[12px] bg-white px-3 py-2 shadow-[inset_0_0_0_1px_rgba(18,24,33,0.12)] text-[13px] text-[#121821] outline-none focus:shadow-[inset_0_0_0_2px_#121821]";
 
 export default function ClosetPage() {
   const { showToast } = useToast();
@@ -228,9 +228,9 @@ export default function ClosetPage() {
         {showAddClothes && <AddClothesModal onClose={() => setShowAddClothes(false)} onAdded={afterAdding} />}
 
         {justAdded !== null && (
-          <div role="status" className="mb-6 flex flex-col gap-3 border border-[#cbd7dc] bg-white/80 px-5 py-4 sm:flex-row sm:items-center sm:justify-between">
-            <p className="flex items-center gap-2.5 text-[13.5px] text-[#1c2328]">
-              <span className="flex h-6 w-6 items-center justify-center rounded-full bg-[#1c2328] text-white">
+          <div role="status" className="mb-6 flex flex-col gap-3 border border-black/[0.1] bg-white/80 px-5 py-4 sm:flex-row sm:items-center sm:justify-between">
+            <p className="flex items-center gap-2.5 text-[13.5px] text-[#121821]">
+              <span className="flex h-6 w-6 items-center justify-center rounded-full bg-[#121821] text-white">
                 <CheckIcon className="h-3.5 w-3.5" />
               </span>
               {justAdded === 1 ? "Added to your closet." : `${justAdded} pieces added to your closet.`}
@@ -242,7 +242,7 @@ export default function ClosetPage() {
               <Link href="/outfits" className={btnPrimary}>
                 <SparkleIcon className="h-4 w-4" /> Start Styling
               </Link>
-              <button onClick={() => setJustAdded(null)} aria-label="Dismiss" className="px-2 text-[12px] font-semibold text-[#7e888e] hover:text-[#1c2328]">
+              <button onClick={() => setJustAdded(null)} aria-label="Dismiss" className="px-2 text-[12px] font-semibold text-[#6b7783] hover:text-[#121821]">
                 Dismiss
               </button>
             </div>
@@ -277,7 +277,7 @@ export default function ClosetPage() {
         ) : (
           <>
             {/* Categories */}
-            <div role="tablist" aria-label="Category" className="-mx-5 mb-4 flex gap-1 overflow-x-auto border-b border-[#dce2e4] px-5 sm:mx-0 sm:px-0">
+            <div role="tablist" aria-label="Category" className="-mx-5 mb-4 flex gap-1 overflow-x-auto border-b border-black/[0.07] px-5 sm:mx-0 sm:px-0">
               {CATEGORY_TABS.map((tab) => {
                 const active = category === tab.value;
                 return (
@@ -287,11 +287,11 @@ export default function ClosetPage() {
                     aria-selected={active}
                     onClick={() => setCategory(tab.value)}
                     className={`relative shrink-0 px-3.5 pb-3 pt-2 text-[13px] font-semibold ${
-                      active ? "text-[#1c2328]" : "text-[#7b878d] hover:text-[#1c2328]"
+                      active ? "text-[#121821]" : "text-[#7b878d] hover:text-[#121821]"
                     }`}
                   >
                     {tab.label} <span className="ml-0.5 text-[11px] font-normal text-[#9aa5aa]">{countFor(tab.value)}</span>
-                    {active && <span aria-hidden className="absolute inset-x-2 -bottom-px h-[2px] bg-[#1c2328]" />}
+                    {active && <span aria-hidden className="absolute inset-x-2 -bottom-px h-[2px] bg-[#121821]" />}
                   </button>
                 );
               })}
@@ -333,7 +333,7 @@ export default function ClosetPage() {
                   Clear filters
                 </button>
               )}
-              <span className="ml-auto text-[12px] text-[#7e888e]">
+              <span className="ml-auto text-[12px] text-[#6b7783]">
                 {filteredItems.length} {filteredItems.length === 1 ? "item" : "items"}
               </span>
             </div>
@@ -358,7 +358,7 @@ export default function ClosetPage() {
                       className="group block w-full text-left"
                       aria-label={`View ${item.description}`}
                     >
-                      <div className="relative aspect-square overflow-hidden border border-[#dce2e4] bg-[#f3f5f5] transition-colors group-hover:border-[#9fadb4]">
+                      <div className="relative aspect-square overflow-hidden rounded-[18px] bg-white shadow-[0_1px_0_rgba(18,24,33,0.03)] transition-shadow duration-300 group-hover:shadow-[0_14px_32px_rgba(18,30,45,0.12)]">
                         <Image
                           src={item.imageUrl}
                           alt=""
@@ -367,8 +367,8 @@ export default function ClosetPage() {
                           className="object-cover transition-transform duration-500 ease-out group-hover:scale-[1.04]"
                         />
                       </div>
-                      <p className="mt-2.5 truncate text-[13px] font-semibold text-[#1c2328]">{item.description}</p>
-                      <p className="text-[11.5px] capitalize text-[#7e888e]">
+                      <p className="mt-2.5 truncate text-[13px] font-semibold text-[#121821]">{item.description}</p>
+                      <p className="text-[11.5px] capitalize text-[#6b7783]">
                         {item.color} · {layerLabel(item.layeringRole)}
                       </p>
                     </button>
@@ -410,9 +410,9 @@ function QuickUpload({
   if (!visible) return null;
   return (
     <PageShell className="mt-10">
-      <p className="text-[12px] text-[#7e888e]">
+      <p className="text-[12px] text-[#6b7783]">
         Have separate photos of single items?{" "}
-        <label className="cursor-pointer font-semibold text-[#1c2328] underline underline-offset-4">
+        <label className="cursor-pointer font-semibold text-[#121821] underline underline-offset-4">
           {uploading ? "Uploading and labeling…" : "Upload them one per item"}
           <input
             type="file"
@@ -489,52 +489,52 @@ function ItemDetail({
         </div>
         <div className="flex flex-col p-6 sm:p-8">
           <div className="mb-5 flex items-start justify-between gap-4">
-            <h2 id="item-title" className="font-display text-[30px] font-normal leading-[1.1] text-[#1c2328]">
+            <h2 id="item-title" className="font-display text-[30px] font-normal leading-[1.1] text-[#121821]">
               {item.description}
             </h2>
-            <button ref={closeRef} onClick={onClose} className="shrink-0 text-[12px] font-semibold text-[#5f6a70] hover:text-[#1c2328]">
+            <button ref={closeRef} onClick={onClose} className="shrink-0 text-[12px] font-semibold text-[#4f5b66] hover:text-[#121821]">
               Close
             </button>
           </div>
 
           {editing ? (
             <div className="grid gap-3">
-              <label className="text-[11px] font-semibold text-[#5f6a70]">
+              <label className="text-[11px] font-semibold text-[#4f5b66]">
                 Name
                 <input value={form.description} onChange={(e) => setForm({ ...form, description: e.target.value })} className={`${fieldClass} mt-1`} />
               </label>
               <div className="grid grid-cols-2 gap-3">
-                <label className="text-[11px] font-semibold text-[#5f6a70]">
+                <label className="text-[11px] font-semibold text-[#4f5b66]">
                   Category
                   <select value={form.category} onChange={(e) => setForm({ ...form, category: e.target.value })} className={`${fieldClass} mt-1 capitalize`}>
                     {CATEGORIES.map((c) => <option key={c} value={c}>{c}</option>)}
                   </select>
                 </label>
-                <label className="text-[11px] font-semibold text-[#5f6a70]">
+                <label className="text-[11px] font-semibold text-[#4f5b66]">
                   Layer
                   <select value={form.layeringRole} onChange={(e) => setForm({ ...form, layeringRole: e.target.value })} className={`${fieldClass} mt-1`}>
                     {LAYERING_ROLES.map((r) => <option key={r} value={r}>{LAYER_LABELS[r]}</option>)}
                   </select>
                 </label>
-                <label className="text-[11px] font-semibold text-[#5f6a70]">
+                <label className="text-[11px] font-semibold text-[#4f5b66]">
                   Color
                   <input value={form.color} onChange={(e) => setForm({ ...form, color: e.target.value })} className={`${fieldClass} mt-1`} />
                 </label>
-                <label className="text-[11px] font-semibold text-[#5f6a70]">
+                <label className="text-[11px] font-semibold text-[#4f5b66]">
                   Pattern
                   <input value={form.pattern} onChange={(e) => setForm({ ...form, pattern: e.target.value })} className={`${fieldClass} mt-1`} />
                 </label>
-                <label className="text-[11px] font-semibold text-[#5f6a70]">
+                <label className="text-[11px] font-semibold text-[#4f5b66]">
                   Material
                   <input value={form.material} onChange={(e) => setForm({ ...form, material: e.target.value })} className={`${fieldClass} mt-1`} />
                 </label>
-                <label className="text-[11px] font-semibold text-[#5f6a70]">
+                <label className="text-[11px] font-semibold text-[#4f5b66]">
                   Occasion
                   <select value={form.formality} onChange={(e) => setForm({ ...form, formality: e.target.value })} className={`${fieldClass} mt-1`}>
                     {FORMALITIES.map((f) => <option key={f} value={f}>{FORMALITY_LABELS[f] ?? f}</option>)}
                   </select>
                 </label>
-                <label className="text-[11px] font-semibold text-[#5f6a70]">
+                <label className="text-[11px] font-semibold text-[#4f5b66]">
                   Season
                   <select value={form.season} onChange={(e) => setForm({ ...form, season: e.target.value })} className={`${fieldClass} mt-1 capitalize`}>
                     {SEASONS.map((s) => <option key={s} value={s}>{s}</option>)}
@@ -552,11 +552,11 @@ function ItemDetail({
             </div>
           ) : (
             <>
-              <dl className="grid grid-cols-2 gap-x-6 gap-y-3 border-t border-[#dce2e4] pt-5">
+              <dl className="grid grid-cols-2 gap-x-6 gap-y-3 border-t border-black/[0.07] pt-5">
                 {details.map(([label, value]) => (
                   <div key={label}>
                     <dt className="text-[10px] font-bold uppercase tracking-[1.8px] text-[#8b969c]">{label}</dt>
-                    <dd className="mt-0.5 text-[13px] capitalize text-[#1c2328]">{value}</dd>
+                    <dd className="mt-0.5 text-[13px] capitalize text-[#121821]">{value}</dd>
                   </div>
                 ))}
               </dl>

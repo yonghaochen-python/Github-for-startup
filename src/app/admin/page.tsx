@@ -25,9 +25,9 @@ function rangeFor(preset: Preset, custom: { from: string; to: string }) {
 
 function Stat({ label, value, hint }: { label: string; value: React.ReactNode; hint?: string }) {
   return (
-    <div className="border border-[#dce2e4] bg-white/70 px-4 py-4">
-      <p className="text-[11px] font-semibold text-[#5f6a70]">{label}</p>
-      <p className="mt-1 font-display text-[34px] leading-none text-[#1c2328]">{value}</p>
+    <div className="rounded-[18px] bg-white shadow-[0_1px_0_rgba(18,24,33,0.03),0_10px_28px_rgba(18,30,45,0.05)] px-4 py-4">
+      <p className="text-[11px] font-semibold text-[#4f5b66]">{label}</p>
+      <p className="mt-1 font-display text-[34px] leading-none text-[#121821]">{value}</p>
       {hint && <p className="mt-1.5 text-[11px] text-[#8b969c]">{hint}</p>}
     </div>
   );
@@ -36,8 +36,8 @@ function Stat({ label, value, hint }: { label: string; value: React.ReactNode; h
 function Section({ title, description, children }: { title: string; description?: string; children: React.ReactNode }) {
   return (
     <section className="mt-10">
-      <h2 className="font-display text-[28px] font-normal text-[#1c2328]">{title}</h2>
-      {description && <p className="mb-4 mt-1 max-w-2xl text-[13px] text-[#5f6a70]">{description}</p>}
+      <h2 className="font-display text-[28px] font-normal text-[#121821]">{title}</h2>
+      {description && <p className="mb-4 mt-1 max-w-2xl text-[13px] text-[#4f5b66]">{description}</p>}
       {children}
     </section>
   );
@@ -45,7 +45,7 @@ function Section({ title, description, children }: { title: string; description?
 
 function ChartCard({ title, children, empty }: { title: string; children: React.ReactNode; empty?: string | null }) {
   return (
-    <div className="border border-[#dce2e4] bg-white/70 p-4">
+    <div className="rounded-[18px] bg-white shadow-[0_1px_0_rgba(18,24,33,0.03),0_10px_28px_rgba(18,30,45,0.05)] p-4">
       <p className="mb-2 text-[12px] font-semibold text-[#3b4850]">{title}</p>
       {empty ? <p className="py-10 text-center text-[12.5px] text-[#8b969c]">{empty}</p> : children}
     </div>
@@ -137,8 +137,8 @@ export default function AdminPage() {
         />
 
         {/* Date filters */}
-        <div className="flex flex-wrap items-end gap-3 border-b border-[#dce2e4] pb-5">
-          <div role="tablist" aria-label="Date range" className="flex rounded-[6px] border border-[#cbd7dc] bg-white/60 p-1">
+        <div className="flex flex-wrap items-end gap-3 border-b border-black/[0.07] pb-5">
+          <div role="tablist" aria-label="Date range" className="flex rounded-full bg-white p-1 shadow-[inset_0_0_0_1px_rgba(18,24,33,0.08)]">
             {(
               [
                 ["today", "Today"],
@@ -152,8 +152,8 @@ export default function AdminPage() {
                 role="tab"
                 aria-selected={preset === value}
                 onClick={() => setPreset(value)}
-                className={`rounded-[4px] px-3.5 py-2 text-[12px] font-semibold ${
-                  preset === value ? "bg-[#1c2328] text-white" : "text-[#5f6a70] hover:text-[#1c2328]"
+                className={`rounded-full px-4 py-2 text-[12px] font-semibold ${
+                  preset === value ? "bg-[#121821] text-white" : "text-[#4f5b66] hover:text-[#121821]"
                 }`}
               >
                 {label}
@@ -162,18 +162,18 @@ export default function AdminPage() {
           </div>
           {preset === "custom" && (
             <div className="flex flex-wrap items-end gap-2">
-              <label className="text-[11px] font-semibold text-[#5f6a70]">
+              <label className="text-[11px] font-semibold text-[#4f5b66]">
                 From
-                <input type="date" value={custom.from} max={custom.to} onChange={(e) => setCustom({ ...custom, from: e.target.value })} className="mt-1 block min-h-[40px] rounded-[5px] border border-[#cbd7dc] bg-white px-2 text-[13px]" />
+                <input type="date" value={custom.from} max={custom.to} onChange={(e) => setCustom({ ...custom, from: e.target.value })} className="mt-1 block min-h-[40px] rounded-full bg-white px-3 shadow-[inset_0_0_0_1px_rgba(18,24,33,0.12)] text-[13px]" />
               </label>
-              <label className="text-[11px] font-semibold text-[#5f6a70]">
+              <label className="text-[11px] font-semibold text-[#4f5b66]">
                 To
-                <input type="date" value={custom.to} min={custom.from} max={iso(new Date())} onChange={(e) => setCustom({ ...custom, to: e.target.value })} className="mt-1 block min-h-[40px] rounded-[5px] border border-[#cbd7dc] bg-white px-2 text-[13px]" />
+                <input type="date" value={custom.to} min={custom.from} max={iso(new Date())} onChange={(e) => setCustom({ ...custom, to: e.target.value })} className="mt-1 block min-h-[40px] rounded-full bg-white px-3 shadow-[inset_0_0_0_1px_rgba(18,24,33,0.12)] text-[13px]" />
               </label>
               <button onClick={() => load(custom)} className={btnSecondary}>Apply</button>
             </div>
           )}
-          <p className="ml-auto text-[12px] text-[#7e888e]">
+          <p className="ml-auto text-[12px] text-[#6b7783]">
             {fmtDate(s.range.from)} – {fmtDate(s.range.to)}
           </p>
         </div>
@@ -181,7 +181,7 @@ export default function AdminPage() {
 
         {/* Tracking notice + summary */}
         <div className="mt-6 grid gap-4 lg:grid-cols-[1fr_1fr]">
-          <div className="border border-[#cbd7dc] bg-[#1c2328] p-5 text-white">
+          <div className="rounded-[22px] bg-[#121821] p-6 text-white">
             <p className="text-[10px] font-bold uppercase tracking-[2.4px] text-[#a9b6bc]">Summary</p>
             <p className="mt-2 font-display text-[28px] leading-tight">
               {summary.label === "not enough data"
@@ -196,7 +196,7 @@ export default function AdminPage() {
                   }.`}
             </p>
           </div>
-          <div className="border border-[#cbd7dc] bg-white/70 p-5">
+          <div className="rounded-[22px] bg-white/70 p-6 shadow-[inset_0_0_0_1px_rgba(18,24,33,0.06)]">
             <p className={eyebrow}>Data coverage</p>
             <p className="mt-2 text-[13px] leading-relaxed text-[#3b4850]">
               Sign-ups, closet uploads and outfits are counted from the start.{" "}
@@ -273,9 +273,9 @@ export default function AdminPage() {
         </Section>
 
         <Section title="Reliability and speed" description="Requests recorded since tracking started. Times are for successful requests: median and the slowest 5%.">
-          <div className="overflow-x-auto border border-[#dce2e4] bg-white/70">
+          <div className="overflow-x-auto rounded-[18px] bg-white shadow-[0_1px_0_rgba(18,24,33,0.03),0_10px_28px_rgba(18,30,45,0.05)]">
             <table className="w-full min-w-[560px] text-left text-[13px]">
-              <thead className="border-b border-[#dce2e4] text-[11px] uppercase tracking-[1.2px] text-[#7e888e]">
+              <thead className="border-b border-black/[0.07] text-[11px] uppercase tracking-[1.2px] text-[#6b7783]">
                 <tr>
                   <th className="px-4 py-3 font-semibold">Feature</th>
                   <th className="px-4 py-3 font-semibold">Requests</th>
@@ -293,8 +293,8 @@ export default function AdminPage() {
                     ["Clothes detection (Add Clothes)", s.performance.clothesDetection],
                   ] as const
                 ).map(([name, p]) => (
-                  <tr key={name} className="border-b border-[#eef1f2] last:border-0">
-                    <td className="px-4 py-3 text-[#1c2328]">{name}</td>
+                  <tr key={name} className="border-b border-black/[0.05] last:border-0">
+                    <td className="px-4 py-3 text-[#121821]">{name}</td>
                     <td className="px-4 py-3 tabular-nums">{p.total}</td>
                     <td className={`px-4 py-3 tabular-nums ${p.failed > 0 ? "text-[#a03a2f]" : ""}`}>{p.failed}</td>
                     <td className="px-4 py-3 tabular-nums">{pct(p.failureRate)}</td>
@@ -331,9 +331,9 @@ export default function AdminPage() {
           ) : accounts.length === 0 ? (
             <p className="text-[12.5px] text-[#8b969c]">No accounts yet.</p>
           ) : (
-            <div className="overflow-x-auto border border-[#dce2e4] bg-white/70">
+            <div className="overflow-x-auto rounded-[18px] bg-white shadow-[0_1px_0_rgba(18,24,33,0.03),0_10px_28px_rgba(18,30,45,0.05)]">
               <table className="w-full min-w-[560px] text-left text-[13px]">
-                <thead className="border-b border-[#dce2e4] text-[11px] uppercase tracking-[1.2px] text-[#7e888e]">
+                <thead className="border-b border-black/[0.07] text-[11px] uppercase tracking-[1.2px] text-[#6b7783]">
                   <tr>
                     <th className="px-4 py-3 font-semibold">Account</th>
                     <th className="px-4 py-3 font-semibold">Joined</th>
@@ -344,8 +344,8 @@ export default function AdminPage() {
                 </thead>
                 <tbody>
                   {accounts.map((a, i) => (
-                    <tr key={i} className="border-b border-[#eef1f2] last:border-0">
-                      <td className="px-4 py-2.5 text-[#1c2328]">{a.email}</td>
+                    <tr key={i} className="border-b border-black/[0.05] last:border-0">
+                      <td className="px-4 py-2.5 text-[#121821]">{a.email}</td>
                       <td className="px-4 py-2.5">{fmtDate(a.createdAt)}</td>
                       <td className="px-4 py-2.5">{a.lastActiveAt ? fmtDate(a.lastActiveAt) : "Not yet recorded"}</td>
                       <td className="px-4 py-2.5 tabular-nums">{a.closetItems}</td>
