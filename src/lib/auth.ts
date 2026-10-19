@@ -44,12 +44,12 @@ export async function verifyPassword(password: string, stored: string): Promise<
   return candidate === hashHex;
 }
 
-async function sha256Hex(value: string): Promise<string> {
+export async function sha256Hex(value: string): Promise<string> {
   const digest = await crypto.subtle.digest("SHA-256", new TextEncoder().encode(value));
   return toHex(digest);
 }
 
-function randomToken(): string {
+export function randomToken(): string {
   return toHex(crypto.getRandomValues(new Uint8Array(32)).buffer);
 }
 

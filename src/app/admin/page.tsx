@@ -326,6 +326,7 @@ export default function AdminPage() {
         </Section>
 
         <Section title="Accounts" description="Minimal information only: emails are partly hidden, and there's no access to anyone's closet or photos.">
+          <ResetLinkTool />
           {!accounts ? (
             <p className="text-[12.5px] text-[#8b969c]">Loading accounts…</p>
           ) : accounts.length === 0 ? (
@@ -359,5 +360,85 @@ export default function AdminPage() {
         </Section>
       </PageShell>
     </main>
+  );
+}
+
+/**
+ * Make a one-time password reset link for someone locked out. They open it and choose their own password;
+ * the link is shown here once and can't be looked up again.
+ */
+function ResetLinkTool() {
+  const [email, setEmail] = useState("");
+  const [busy, setBusy] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const [link, setLink] = useState<string | null>(null);
+  const [copied, setCopied] = useState(false);
+
+  async function make(e: React.FormEvent) {
+    e.preventDefault();
+    setError(null);
+    setLink(null);
+    setCopied(false);
+    setBusy(true);
+    try {
+      const res = await fetch("/api/admin/reset-link", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ email }),
+      });
+      const data = (await res.json().catch(() => ({}))) as { token?: string; error?: string };
+      if (!res.ok || !data.token) throw new Error(data.error ?? "Couldn't make a link right now.");
+      setLink(`${window.location.origin}/reset-password?token=${data.token}`);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Couldn't make a link right now.");
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  async function copy() {
+    if (!link) return;
+    try {
+      await navigator.clipboard.writeText(link);
+      setCopied(true);
+    } catch {
+      setCopied(false);
+    }
+  }
+
+  return (
+    <div className="mb-5 rounded-[18px] bg-white p-4 shadow-[0_1px_0_rgba(18,24,33,0.03),0_10px_28px_rgba(18,30,45,0.05)] sm:p-5">
+      <p className="text-[13px] font-semibold text-[#121821]">Password reset link</p>
+      <p className="mt-0.5 text-[12px] text-[#6b7783]">For someone who can&apos;t log in. They open the link and choose their own password.</p>
+      <form onSubmit={make} className="mt-3 flex flex-col gap-2 sm:flex-row">
+        <label htmlFor="reset-email" className="sr-only">
+          Account email
+        </label>
+        <input
+          id="reset-email"
+          type="email"
+          required
+          value={email}
+          onChange={(e) => setEmail(e.target.value)}
+          placeholder="Their account email"
+          className="h-11 min-w-0 flex-1 rounded-full bg-white px-4 text-[13px] text-[#121821] shadow-[inset_0_0_0_1px_rgba(18,24,33,0.14)] outline-none focus:shadow-[inset_0_0_0_2px_#121821]"
+        />
+        <button type="submit" disabled={busy} className={btnSecondary}>
+          {busy ? "Making…" : "Make link"}
+        </button>
+      </form>
+      {error && <p className="mt-2 text-[12.5px] text-[#a03a2f]">{error}</p>}
+      {link && (
+        <div className="mt-3 rounded-[14px] bg-[#f4f5f6] p-3">
+          <p className="break-all font-mono text-[11.5px] text-[#121821]">{link}</p>
+          <div className="mt-2 flex flex-wrap items-center gap-3">
+            <button onClick={copy} className="text-[12px] font-semibold text-[#121821] underline-offset-4 hover:underline">
+              {copied ? "Copied" : "Copy link"}
+            </button>
+            <span className="text-[11.5px] text-[#6b7783]">Works once, for 60 minutes. Send it only to the account owner.</span>
+          </div>
+        </div>
+      )}
+    </div>
   );
 }
