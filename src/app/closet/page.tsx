@@ -145,7 +145,7 @@ export default function ClosetPage() {
       const formData = new FormData();
       for (const file of files) formData.append("images", file);
       const res = await fetch("/api/closet/items", { method: "POST", body: formData });
-      const data = (await res.json()) as { error?: string; warning?: string; items?: unknown[] };
+      const data = (await res.json().catch(() => ({}))) as { error?: string; warning?: string; items?: unknown[] };
       if (!res.ok) throw new Error(data.error ?? "Upload failed");
       afterAdding(data.items?.length ?? files.length);
       if (data.warning) setError(data.warning);
@@ -174,7 +174,7 @@ export default function ClosetPage() {
     setReanalyzingId(id);
     try {
       const res = await fetch(`/api/closet/items/${id}/reanalyze`, { method: "POST" });
-      const data = (await res.json()) as { error?: string; item?: ClothingItem };
+      const data = (await res.json().catch(() => ({}))) as { error?: string; item?: ClothingItem };
       if (!res.ok || !data.item) throw new Error(data.error ?? "Re-analyze failed");
       const updated = data.item;
       setItems((prev) => prev.map((item) => (item.id === id ? updated : item)));
@@ -193,7 +193,7 @@ export default function ClosetPage() {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(form),
       });
-      const data = (await res.json()) as { error?: string; item?: ClothingItem };
+      const data = (await res.json().catch(() => ({}))) as { error?: string; item?: ClothingItem };
       if (!res.ok || !data.item) throw new Error(data.error ?? "Update failed");
       const updated = data.item;
       setItems((prev) => prev.map((item) => (item.id === id ? updated : item)));

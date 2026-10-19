@@ -71,7 +71,7 @@ export default function OutfitsPage() {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ occasion, weather, style, colorPreference: colorPreference || undefined, prompt: prompt || undefined }),
       });
-      const data = (await res.json()) as { error?: string; outfits?: Outfit[] };
+      const data = (await res.json().catch(() => ({}))) as { error?: string; outfits?: Outfit[] };
       if (!res.ok || !data.outfits) throw new Error(data.error ?? "Couldn't generate outfits");
       setResults(data.outfits);
     } catch (err) {

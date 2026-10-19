@@ -81,8 +81,8 @@ export default function LoginPage() {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ email, password }),
       });
-      const data = (await res.json()) as { error?: string };
-      if (!res.ok) throw new Error(data.error ?? "Something went wrong");
+      const data = (await res.json().catch(() => ({}))) as { error?: string };
+      if (!res.ok) throw new Error(data.error ?? "Couldn't sign you in right now. Please try again.");
       completeLogin(creating ? "Welcome to Virm. Your closet is ready." : "Welcome back to your wardrobe.");
     } catch (err) {
       setError(err instanceof Error ? err.message : "Something went wrong");

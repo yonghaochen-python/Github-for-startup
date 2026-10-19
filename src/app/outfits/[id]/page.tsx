@@ -8,6 +8,7 @@ import { LAYER_LABELS, orderedLayerEntries, suggestMissingPiece, type LayeringRo
 import { generateOutfitBoard, type OutfitBoard } from "@/lib/visualAssets";
 import { EditorialOutfitVisual } from "@/components/EditorialOutfitVisual";
 import { useToast } from "@/components/Toast";
+import { useAuth } from "@/components/AuthProvider";
 import { InlineLoading } from "@/components/InlineLoading";
 import { BookmarkIcon, MirrorIcon } from "@/components/Icons";
 import { btnPrimary, btnSecondary } from "@/components/ui";
@@ -75,6 +76,7 @@ function ItemsGridView({ items }: { items: ClothingItem[] }) {
 export default function OutfitDetailPage() {
   const params = useParams<{ id: string }>();
   const { showToast } = useToast();
+  const { refreshUser } = useAuth();
   const [outfit, setOutfit] = useState<Outfit | null>(null);
   const [closet, setCloset] = useState<ClothingItem[]>([]);
   const [board, setBoard] = useState<OutfitBoard<ClothingItem> | null>(null);
@@ -163,11 +165,12 @@ export default function OutfitDetailPage() {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ isFavorite: !wasFavorite }),
       });
-      const data = (await res.json()) as { outfit?: Outfit };
-      if (data.outfit) {
-        setOutfit(data.outfit);
-        showToast(wasFavorite ? "Look removed from saved collection." : "Look added to your saved collection.");
-      }
+      const data = (await res.json().catch(() => ({}))) as { outfit?: Outfit };
+      if (!res.ok || !data.outfit) throw new Error("save");
+      setOutfit(data.outfit);
+      showToast(wasFavorite ? "Removed from Saved Looks" : "Saved to your looks");
+    } catch {
+      showToast("Couldn't update this look. Please try again.");
     } finally {
       setSaving(false);
     }
@@ -183,12 +186,14 @@ export default function OutfitDetailPage() {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ removeItemId: swappingId, addItemId: replacementId }),
       });
-      const data = (await res.json()) as { error?: string; outfit?: Outfit };
+      const data = (await res.json().catch(() => ({}))) as { error?: string; outfit?: Outfit };
       if (!res.ok || !data.outfit) throw new Error(data.error ?? "Couldn't change that item");
       setOutfit(data.outfit);
       setSwappingId(null);
       setReplacementId("");
       showToast("Your outfit has been updated.");
+      // If this outfit was the current look, the server took it off; pick that up everywhere.
+      refreshUser();
     } catch (err) {
       setError(err instanceof Error ? err.message : "Couldn't change that item");
     } finally {

@@ -95,7 +95,7 @@ export function AddClothesModal({ onClose, onAdded }: { onClose: () => void; onA
       const formData = new FormData();
       formData.append("photo", file);
       const res = await fetch("/api/closet/detect", { method: "POST", body: formData });
-      const data = (await res.json()) as { error?: string; imageUrl?: string; items?: (ClothingAttributes & { name: string; boundingBox: BoundingBox })[] };
+      const data = (await res.json().catch(() => ({}))) as { error?: string; imageUrl?: string; items?: (ClothingAttributes & { name: string; boundingBox: BoundingBox })[] };
       if (!res.ok || !data.imageUrl) throw new Error(data.error ?? "Couldn't analyze that photo.");
 
       const img = await loadImage(data.imageUrl);

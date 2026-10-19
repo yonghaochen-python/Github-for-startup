@@ -118,7 +118,7 @@ export default function TryOnPage() {
       }
       setStatusIndex(1);
       const res = await fetch(`/api/outfits/${outfit.id}/try-on`, { method: "POST", body: formData });
-      const data = (await res.json()) as { error?: string; result?: TryOnResult };
+      const data = (await res.json().catch(() => ({}))) as { error?: string; result?: TryOnResult };
       if (!res.ok || !data.result) throw new Error(data.error ?? "Couldn't run the try-on right now.");
       setResult(data.result);
       setStage("result");
