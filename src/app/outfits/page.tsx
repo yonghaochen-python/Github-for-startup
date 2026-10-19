@@ -7,8 +7,7 @@ import { OutfitBoard, OutfitBoardSkeleton } from "@/components/OutfitBoard";
 import { ClosetIcon, PlusIcon, SearchIcon, SparkleIcon } from "@/components/Icons";
 import { EmptyState, ErrorNote, PageHeader, PageShell, btnPrimary, eyebrow } from "@/components/ui";
 
-const OCCASIONS = ["Everyday", "School", "Work", "Date", "Dinner", "Party", "Interview", "Special Event"];
-const THEME_IDEAS = ["Old money", "Rainy day in Paris", "90s grunge", "Beach wedding guest", "Cozy weekend", "Gallery opening"];
+const OCCASIONS = ["Everyday", "School", "Work", "Date", "Dinner", "Party", "Interview"];
 const MAX_THEME = 120;
 const STYLES = ["Casual", "Minimal", "Streetwear", "Preppy", "Feminine", "Clean", "Custom"];
 const CONDITIONS = ["Partly cloudy", "Sunny", "Cloudy", "Rainy", "Windy", "Snowy"];
@@ -147,7 +146,7 @@ export default function OutfitsPage() {
               </form>
               <p className="mb-2 mt-4 text-[11px] font-medium text-[#6b7783]">Quick picks</p>
               <div className="flex flex-wrap gap-2">
-                {[...OCCASIONS, ...THEME_IDEAS].map((o) => (
+                {OCCASIONS.map((o) => (
                   <button
                     key={o}
                     type="button"
