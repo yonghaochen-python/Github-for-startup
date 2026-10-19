@@ -11,27 +11,36 @@ const NewPill = () => (
   <span className="inline-flex items-center rounded-full bg-[#d93a2b] px-2.5 py-0.5 text-[10px] font-bold uppercase tracking-[1.6px] text-white">New</span>
 );
 
-/** The pieces stacked as layers beside a full-body photo: what Virm dresses, and what it dresses it on. */
+/** Before and after: the full-body photo, the pieces picked, and the real Virm try-on of them. */
 function LayersVisual() {
   return (
-    <div className="relative grid grid-cols-[minmax(0,1fr)_minmax(0,1fr)] items-center gap-4 overflow-hidden rounded-[28px] bg-[linear-gradient(150deg,#e3ebf2,#c7d4e0_55%,#dfe3ee)] p-5 sm:gap-6 sm:p-8">
-      <ol className="flex flex-col gap-2.5">
-        {LATEST_UPDATE.pieces.map((piece, i) => (
-          <li
-            key={piece.src}
-            className="flex items-center gap-3 rounded-[16px] bg-white/85 p-2 pr-3 shadow-[0_8px_20px_rgba(18,30,45,0.08)] backdrop-blur"
-            style={{ marginLeft: `${i * 6}%` }}
-          >
-            <span className="relative h-12 w-12 shrink-0 overflow-hidden rounded-[11px] bg-[#f4f5f6] sm:h-14 sm:w-14">
+    <div className="overflow-hidden rounded-[28px] bg-[linear-gradient(150deg,#e3ebf2,#c7d4e0_55%,#dfe3ee)] p-4 sm:p-6">
+      <ol className="mb-4 grid grid-cols-4 gap-2 sm:gap-3" aria-label="Pieces picked">
+        {LATEST_UPDATE.pieces.map((piece) => (
+          <li key={piece.src} className="flex flex-col items-center gap-1.5 rounded-[14px] bg-white/85 p-1.5 pb-2 shadow-[0_8px_20px_rgba(18,30,45,0.08)]">
+            <span className="relative aspect-square w-full overflow-hidden rounded-[10px] bg-[#f4f5f6]">
               <Image src={piece.src} alt="" fill unoptimized className="object-cover" />
             </span>
-            <span className="min-w-0 text-[11.5px] font-semibold text-[#121821] sm:text-[12.5px]">{piece.label}</span>
+            <span className="text-center text-[10.5px] font-semibold leading-tight text-[#121821] sm:text-[11.5px]">{piece.label}</span>
           </li>
         ))}
       </ol>
-      <div className="relative mx-auto aspect-[3/5] w-full max-w-[220px] overflow-hidden rounded-[22px] bg-[#e8e6e3] shadow-[0_14px_36px_rgba(18,30,45,0.12)]">
-        <Image src={LATEST_UPDATE.photo} alt="A full-body photo, standing and facing forward" fill unoptimized className="object-cover object-top" />
-        <span className="absolute left-3 top-3 rounded-full bg-white/90 px-2.5 py-1 text-[10px] font-semibold text-[#4f5b66]">Your photo</span>
+      <div className="grid grid-cols-2 gap-3 sm:gap-4">
+        {[
+          { src: LATEST_UPDATE.photo, label: "Before", alt: "Full-body photo before the try-on" },
+          { src: LATEST_UPDATE.after, label: "After", alt: "The same photo wearing the four pieces, made by Virm" },
+        ].map((shot) => (
+          <figure key={shot.label} className="relative m-0 aspect-[3/5] overflow-hidden rounded-[20px] bg-[#e8e6e3] shadow-[0_14px_36px_rgba(18,30,45,0.12)]">
+            <Image src={shot.src} alt={shot.alt} fill unoptimized className="object-cover object-top" />
+            <figcaption
+              className={`absolute left-3 top-3 rounded-full px-2.5 py-1 text-[10px] font-bold uppercase tracking-[1.2px] ${
+                shot.label === "After" ? "bg-[#121821] text-white" : "bg-white/90 text-[#4f5b66]"
+              }`}
+            >
+              {shot.label}
+            </figcaption>
+          </figure>
+        ))}
       </div>
     </div>
   );
