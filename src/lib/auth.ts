@@ -53,7 +53,7 @@ function randomToken(): string {
   return toHex(crypto.getRandomValues(new Uint8Array(32)).buffer);
 }
 
-export type SessionUser = { id: string; email: string; selfieUrl: string | null; role: string };
+export type SessionUser = { id: string; email: string; displayName: string | null; selfieUrl: string | null; role: string };
 
 export async function createSession(userId: string): Promise<{ cookie: string; expiresAt: Date }> {
   const token = randomToken();
@@ -124,7 +124,7 @@ export async function getOrCreateDevUser(): Promise<SessionUser> {
   const existing = await prisma.user.findUnique({ where: { email: DEV_USER_EMAIL } });
   if (existing) {
     await touchActivity(existing.id, existing.lastActiveAt);
-    return { id: existing.id, email: existing.email, selfieUrl: existing.selfieUrl, role: existing.role };
+    return { id: existing.id, email: existing.email, displayName: existing.displayName, selfieUrl: existing.selfieUrl, role: existing.role };
   }
 
   const passwordHash = await hashPassword(randomToken());
@@ -132,7 +132,7 @@ export async function getOrCreateDevUser(): Promise<SessionUser> {
   await prisma.clothingItem.createMany({
     data: SAMPLE_CLOSET.map((item) => ({ ...item, userId: user.id })),
   });
-  return { id: user.id, email: user.email, selfieUrl: user.selfieUrl, role: user.role };
+  return { id: user.id, email: user.email, displayName: user.displayName, selfieUrl: user.selfieUrl, role: user.role };
 }
 
 export async function getCurrentUser(request: Request): Promise<SessionUser | null> {
@@ -142,7 +142,13 @@ export async function getCurrentUser(request: Request): Promise<SessionUser | nu
     const session = await prisma.session.findUnique({ where: { tokenHash }, include: { user: true } });
     if (session && session.expiresAt >= new Date()) {
       await touchActivity(session.user.id, session.user.lastActiveAt);
-      return { id: session.user.id, email: session.user.email, selfieUrl: session.user.selfieUrl, role: session.user.role };
+      return {
+        id: session.user.id,
+        email: session.user.email,
+        displayName: session.user.displayName,
+        selfieUrl: session.user.selfieUrl,
+        role: session.user.role,
+      };
     }
   }
 

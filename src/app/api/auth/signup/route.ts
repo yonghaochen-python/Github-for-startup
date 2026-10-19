@@ -3,6 +3,7 @@ import { track } from "@/lib/analytics";
 import { prisma } from "@/lib/prisma";
 import { hashPassword, createSession, sessionCookieHeader, devSignedOutCookieHeader } from "@/lib/auth";
 import { SAMPLE_CLOSET } from "@/lib/sampleCloset";
+import { cleanDisplayName } from "@/lib/displayName";
 
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
@@ -10,6 +11,8 @@ export async function POST(request: Request) {
   const body: unknown = await request.json().catch(() => ({}));
   const email = body && typeof body === "object" && "email" in body ? String(body.email).trim().toLowerCase() : "";
   const password = body && typeof body === "object" && "password" in body ? String(body.password) : "";
+  // Optional; the email remains the login.
+  const displayName = body && typeof body === "object" && "displayName" in body ? cleanDisplayName(body.displayName) ?? null : null;
 
   if (!EMAIL_RE.test(email)) {
     return NextResponse.json({ error: "Enter a valid email address." }, { status: 400 });
@@ -24,7 +27,7 @@ export async function POST(request: Request) {
   }
 
   const passwordHash = await hashPassword(password);
-  const user = await prisma.user.create({ data: { email, passwordHash } });
+  const user = await prisma.user.create({ data: { email, passwordHash, displayName } });
   await prisma.clothingItem.createMany({
     data: SAMPLE_CLOSET.map((item) => ({ ...item, userId: user.id })),
   });

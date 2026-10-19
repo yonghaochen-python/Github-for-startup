@@ -13,6 +13,8 @@ model User {
   email        String   @unique
   passwordHash String
   selfieUrl    String?
+  /// The name shown in the app ("Hello, Maya"). Optional and editable; the email stays the login and can't change.
+  displayName  String?
   /// "user" for everyone; "admin" only when set directly in the database (no app path changes it).
   role         String    @default("user")
   /// Updated at most hourly from signed-in requests; powers active-user and retention stats.

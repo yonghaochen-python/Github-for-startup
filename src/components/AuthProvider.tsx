@@ -12,7 +12,10 @@ import { afterMinDelay } from "@/lib/minDelay";
  */
 export type CurrentUser = {
   id: string;
+  /** The login. Shown read-only; it can't be changed in the app. */
   email: string;
+  /** The name shown in the app, if the person set one. */
+  displayName?: string | null;
   photoVersion: string | null;
   look: { version: string; outfitId: string } | null;
   /** Only shows/hides the Admin link; every admin page and request is checked again on the server. */

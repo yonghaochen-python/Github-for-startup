@@ -47,7 +47,7 @@ type ClothingItem = {
 };
 
 export default function Home() {
-  const { status, user } = useAuth();
+  const { status } = useAuth();
   const signedIn = status === "signedIn";
   const [dataReady, setDataReady] = useState(false);
   const [closet, setCloset] = useState<ClothingItem[]>([]);
@@ -165,7 +165,7 @@ export default function Home() {
   // ---------- Signed in: a personal styling dashboard — what you have, and what to do next. ----------
   if (!dataReady) return <main className="flex-1" />;
 
-  return <Dashboard email={user?.email ?? ""} closet={closet} outfits={outfits} />;
+  return <Dashboard closet={closet} outfits={outfits} />;
 }
 
 function nextStep(hasPhoto: boolean, closetCount: number, outfitCount: number) {
@@ -175,11 +175,11 @@ function nextStep(hasPhoto: boolean, closetCount: number, outfitCount: number) {
   return { text: "Try a look on.", href: "/try-on", cta: "Try On an Outfit" };
 }
 
-function Dashboard({ email, closet, outfits }: { email: string; closet: ClothingItem[]; outfits: Outfit[] }) {
+function Dashboard({ closet, outfits }: { closet: ClothingItem[]; outfits: Outfit[] }) {
   const { user } = useAuth();
   const hasPhoto = Boolean(user?.photoVersion);
   const [settingUpPhoto, setSettingUpPhoto] = useState(false);
-  const firstName = email.split("@")[0];
+  const name = user?.displayName?.trim() || "";
   const saved = outfits.filter((o) => o.isFavorite);
   const latest = outfits[0];
   const step = nextStep(hasPhoto, closet.length, outfits.length);
@@ -196,12 +196,12 @@ function Dashboard({ email, closet, outfits }: { email: string; closet: Clothing
         <PageShell className="pb-12 pt-16 sm:pb-14 sm:pt-24">
           <p className={eyebrow}>{greeting}</p>
           <h1 className="mt-3 font-display text-[48px] font-normal leading-[0.98] tracking-[-1.6px] text-[#121821] sm:text-[72px]">
-            {firstName ? (
+            {name ? (
               <>
-                Hello, <em className="text-[#3d5266]">{firstName}</em>.
+                Hello, <em className="text-[#3d5266]">{name}</em>.
               </>
             ) : (
-              "Your closet, reflected."
+              "Hello."
             )}
           </h1>
           <p className="mt-4 max-w-xl text-[15.5px] leading-relaxed text-[#2f3b47]">

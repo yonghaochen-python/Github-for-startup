@@ -45,6 +45,7 @@ export default function LoginPage() {
   const { completeLogin } = useAuth();
   const [devLogin, setDevLogin] = useState(false);
   const [creating, setCreating] = useState(false);
+  const [displayName, setDisplayName] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [error, setError] = useState<string | null>(null);
@@ -78,7 +79,7 @@ export default function LoginPage() {
       const res = await fetch(`/api/auth/${creating ? "signup" : "login"}`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ email, password }),
+        body: JSON.stringify(creating ? { email, password, displayName: displayName || undefined } : { email, password }),
       });
       const data = (await res.json().catch(() => ({}))) as { error?: string };
       if (!res.ok) throw new Error(data.error ?? "Couldn't sign you in right now. Please try again.");
@@ -131,6 +132,20 @@ export default function LoginPage() {
               : "Sign in to your closet."}
           </p>
 
+          {creating && (
+            <label className="mb-5 flex flex-col gap-2.5 text-[8px] font-bold tracking-[1.6px] text-[#7f8a90]">
+              YOUR NAME <span className="sr-only">(optional)</span>
+              <input
+                type="text"
+                autoComplete="name"
+                maxLength={40}
+                value={displayName}
+                onChange={(e) => setDisplayName(e.target.value)}
+                placeholder="Optional"
+                className="h-[49px] w-full rounded-[3px] border border-[#d3dbde] bg-white px-3.5 text-xs font-normal tracking-normal text-[#29343a] outline-none focus:border-[#78878f] focus:shadow-[0_0_0_3px_#c8d1d536]"
+              />
+            </label>
+          )}
           <label className="flex flex-col gap-2.5 text-[8px] font-bold tracking-[1.6px] text-[#7f8a90]">
             EMAIL ADDRESS
             <input
