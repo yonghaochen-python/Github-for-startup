@@ -7,8 +7,8 @@
  * actually wins the cascade over the project's original warm-cream base).
  */
 :root {
-  --background: #f6fbfe;
-  --foreground: #222a2f;
+  --background: #f4f5f6;
+  --foreground: #121821;
   --ice: #f6fbfe;
   --surface: #ffffff;
   --border: #cbd7dc;
@@ -23,14 +23,18 @@
   --font-display: var(--font-instrument-serif);
 }
 
+/* Satin Mirror: calm off-white everywhere; the liquid glass is reserved for a few signature moments. */
 body {
-  background: linear-gradient(135deg, var(--ice) 0%, #edf4f7 38%, #e1eaee 59%, #f3f7f9 76%, #eee7dc 100%);
-  background-attachment: fixed;
+  background: #f4f5f6;
   color: var(--foreground);
   font-family: var(--font-sans), Arial, Helvetica, sans-serif;
 }
 
-/* LoadingScreen "Melt" — drifting, merging liquid-chrome blobs behind the wordmark. */
+::selection {
+  background: #c9d6e2;
+}
+
+/* LoadingScreen progress line. */
 @keyframes loading-bar {
   0% {
     transform: translateX(-110%);
@@ -43,83 +47,10 @@ body {
   animation: loading-bar 1.35s ease-in-out infinite;
 }
 
-.lava-group {
-  transform: translate(-50%, -50%);
-  animation: lava-loop 10s ease-in-out infinite;
-}
-.lava-blob {
-  filter: blur(16px);
-}
-@keyframes lava-loop {
-  to {
-    transform: translate(-50%, -50%) rotate(360deg);
-  }
-}
-@keyframes melt1 {
-  0%,
-  100% {
-    transform: translate(0, 0) scale(1);
-  }
-  50% {
-    transform: translate(6%, 10%) scale(1.12);
-  }
-}
-@keyframes melt2 {
-  0%,
-  100% {
-    transform: translate(0, 0) scale(1);
-  }
-  50% {
-    transform: translate(-10%, -8%) scale(0.88);
-  }
-}
-@keyframes melt3 {
-  0%,
-  100% {
-    transform: translate(0, 0) scale(1);
-  }
-  50% {
-    transform: translate(8%, -10%) scale(1.2);
-  }
-}
-.lava-blob-1 {
-  animation: melt1 6.5s ease-in-out infinite;
-}
-.lava-blob-2 {
-  animation: melt2 7.5s ease-in-out infinite;
-}
-.lava-blob-3 {
-  animation: melt3 8.5s ease-in-out infinite;
-}
-
 @media (prefers-reduced-motion: reduce) {
-  .lava-group,
-  .lava-blob-1,
-  .lava-blob-2,
-  .lava-blob-3,
   .loading-bar-fill {
     animation: none;
   }
-}
-
-/* HeroBlob — slow ambient drift, calm enough to sit behind a headline without competing. */
-@keyframes blob-drift {
-  0%,
-  100% {
-    transform: translate(0, 0) scale(1) rotate(0deg);
-    border-radius: 46% 54% 52% 48% / 56% 44% 60% 40%;
-  }
-  33% {
-    transform: translate(2%, -3%) scale(1.04) rotate(6deg);
-    border-radius: 58% 42% 40% 60% / 45% 55% 42% 58%;
-  }
-  66% {
-    transform: translate(-2%, 2%) scale(0.97) rotate(-5deg);
-    border-radius: 42% 58% 60% 40% / 60% 40% 55% 45%;
-  }
-}
-.blob-drift {
-  animation: blob-drift 16s ease-in-out infinite;
 }
 
 /* Shared tactile press feedback for buttons — consistent "expensive, not flashy" response. */
@@ -138,9 +69,6 @@ body {
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .blob-drift {
-    animation: none;
-  }
   .btn-tactile,
   .btn-tactile:hover,
   .btn-tactile:active {

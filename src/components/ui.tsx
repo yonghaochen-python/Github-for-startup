@@ -3,13 +3,16 @@ import { ArrowLeftIcon } from "@/components/Icons";
 
 /** Shared button looks: one dark primary action per screen, quiet secondary actions around it. */
 export const btnPrimary =
-  "btn-tactile inline-flex min-h-[44px] items-center justify-center gap-2 rounded-[5px] bg-[#1c2328] px-5 py-2.5 text-[12.5px] font-semibold text-white shadow-[inset_0_1px_0_#ffffff30,0_6px_18px_rgba(28,35,40,0.18)] hover:bg-[#35414a] disabled:opacity-50";
+  "btn-tactile inline-flex min-h-[46px] items-center justify-center gap-2 rounded-full bg-[#121821] px-6 py-2.5 text-[13.5px] font-medium text-white hover:bg-[#2a3542] disabled:opacity-50";
 export const btnSecondary =
-  "btn-tactile inline-flex min-h-[44px] items-center justify-center gap-2 rounded-[5px] border border-[#c3cfd4] bg-white/70 px-5 py-2.5 text-[12.5px] font-semibold text-[#26313a] hover:border-[#9fadb4] hover:bg-white disabled:opacity-50";
+  "btn-tactile inline-flex min-h-[46px] items-center justify-center gap-2 rounded-full bg-white px-6 py-2.5 text-[13.5px] font-medium text-[#121821] shadow-[inset_0_0_0_1px_rgba(18,24,33,0.14)] hover:shadow-[inset_0_0_0_1px_rgba(18,24,33,0.3)] disabled:opacity-50";
 export const btnText =
-  "inline-flex min-h-[44px] items-center gap-1.5 text-[12.5px] font-semibold text-[#26313a] underline-offset-4 hover:underline";
+  "inline-flex min-h-[44px] items-center gap-1.5 text-[13px] font-medium text-[#121821] underline-offset-4 hover:underline";
 
-export const eyebrow = "text-[10px] font-bold uppercase tracking-[2.6px] text-[#7e888e]";
+export const eyebrow = "text-[11px] font-medium uppercase tracking-[2.2px] text-[#6b7783]";
+
+/** The standard surface: white, softly lifted, rounded — instead of bordered boxes. */
+export const surface = "rounded-[22px] bg-white shadow-[0_1px_0_rgba(18,24,33,0.03),0_14px_36px_rgba(18,30,45,0.06)]";
 
 /** Page width + side padding used by every page. */
 export function PageShell({ children, className = "" }: { children: React.ReactNode; className?: string }) {
@@ -31,7 +34,7 @@ export function PageHeader({
   back?: { href: string; label: string };
 }) {
   return (
-    <header className="pb-7 pt-7 sm:pb-9 sm:pt-10">
+    <header className="pb-8 pt-8 sm:pb-10 sm:pt-12">
       {back && (
         <Link href={back.href} className="mb-4 inline-flex items-center gap-1.5 text-[12px] font-semibold text-[#5f6a70] hover:text-[#1c2328]">
           <ArrowLeftIcon className="h-4 w-4" />
@@ -41,10 +44,10 @@ export function PageHeader({
       <div className="flex flex-col gap-5 sm:flex-row sm:items-end sm:justify-between">
         <div className="max-w-2xl">
           {label && <p className={`${eyebrow} mb-2`}>{label}</p>}
-          <h1 className="font-display text-[40px] font-normal leading-[1.02] tracking-[-1.2px] text-[#1c2328] sm:text-[52px]">
+          <h1 className="font-display text-[44px] font-normal leading-[1] tracking-[-1.4px] text-[#121821] sm:text-[60px]">
             {title}
           </h1>
-          {description && <p className="mt-3 max-w-xl text-[14px] leading-relaxed text-[#5f6a70]">{description}</p>}
+          {description && <p className="mt-3 max-w-xl text-[15px] leading-relaxed text-[#4f5b66]">{description}</p>}
         </div>
         {actions && <div className="flex shrink-0 flex-wrap items-center gap-3">{actions}</div>}
       </div>
@@ -65,10 +68,10 @@ export function EmptyState({
   children?: React.ReactNode;
 }) {
   return (
-    <div className="flex flex-col items-start gap-4 border border-dashed border-[#b8c4ca] bg-white/50 px-6 py-10 sm:px-10 sm:py-14">
+    <div className="flex flex-col items-start gap-4 rounded-[22px] bg-white px-6 py-10 shadow-[0_1px_0_rgba(18,24,33,0.03),0_14px_36px_rgba(18,30,45,0.06)] sm:px-10 sm:py-14">
       {children}
-      <h2 className="font-display text-[30px] font-normal leading-tight text-[#1c2328]">{title}</h2>
-      <p className="max-w-md text-[13.5px] leading-relaxed text-[#5f6a70]">{body}</p>
+      <h2 className="font-display text-[34px] font-normal leading-tight text-[#121821]">{title}</h2>
+      <p className="max-w-md text-[14.5px] leading-relaxed text-[#4f5b66]">{body}</p>
       {action}
     </div>
   );
@@ -80,7 +83,7 @@ export function Steps({ steps }: { steps: string[] }) {
     <ol className="flex flex-wrap gap-x-6 gap-y-2 text-[12px] text-[#5f6a70]">
       {steps.map((step, i) => (
         <li key={step} className="flex items-center gap-2">
-          <span className="flex h-5 w-5 items-center justify-center rounded-full border border-[#b8c4ca] text-[10px] font-bold text-[#3b4850]">
+          <span className="flex h-5 w-5 items-center justify-center rounded-full bg-[#121821] text-[10px] font-semibold text-white">
             {i + 1}
           </span>
           {step}

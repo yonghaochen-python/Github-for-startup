@@ -32,10 +32,10 @@ function sectionFor(pathname: string | null): Section | null {
 function Wordmark() {
   return (
     <Link href="/" className="group flex shrink-0 items-baseline gap-3 leading-none" aria-label="Virm home">
-      <span className="font-display text-[34px] tracking-[-1px] text-[#1c2328] sm:text-[38px]">
+      <span className="font-display text-[34px] tracking-[-1px] text-[#121821] sm:text-[36px]">
         Vir<em className="font-normal">m</em>
       </span>
-      <span className="hidden text-[10px] font-semibold uppercase tracking-[2.2px] text-[#7e888e] lg:inline">
+      <span className="hidden text-[10px] font-medium uppercase tracking-[2.2px] text-[#6b7783] lg:inline">
         Your virtual mirror
       </span>
     </Link>
@@ -64,7 +64,7 @@ export function Nav() {
   if (pathname === "/login") return null;
 
   return (
-    <header className="sticky top-0 z-30 border-b border-[#cbd7dc] bg-[#f6f9fa]/90 backdrop-blur-md">
+    <header className="sticky top-0 z-30 border-b border-black/[0.06] bg-[#f4f5f6]/80 backdrop-blur-xl">
       <div className="mx-auto flex h-[68px] w-full max-w-[1440px] items-center gap-6 px-5 sm:px-8 md:h-[76px]">
         <Wordmark />
 
@@ -77,13 +77,12 @@ export function Nav() {
                   key={section}
                   href={href}
                   aria-current={active ? "page" : undefined}
-                  className={`relative flex items-center gap-2 rounded-[5px] px-3 py-2 text-[12.5px] font-semibold transition-colors lg:px-3.5 ${
-                    active ? "text-[#1c2328]" : "text-[#66727a] hover:bg-white/70 hover:text-[#1c2328]"
+                  className={`relative flex items-center gap-2 rounded-full px-3 py-2 text-[13px] font-medium transition-colors lg:px-3.5 ${
+                    active ? "bg-white text-[#121821] shadow-[0_1px_2px_rgba(18,24,33,0.08)]" : "text-[#5b6875] hover:text-[#121821]"
                   }`}
                 >
-                  <Icon className={`h-[17px] w-[17px] ${active ? "text-[#1c2328]" : "text-[#8b969c]"}`} />
+                  <Icon className={`h-[17px] w-[17px] ${active ? "text-[#121821]" : "text-[#8a96a1]"}`} />
                   {label}
-                  {active && <span aria-hidden className="absolute inset-x-3 -bottom-[17px] h-[2px] bg-[#1c2328]" />}
                 </Link>
               );
             })}
@@ -95,10 +94,10 @@ export function Nav() {
             <Link
               href="/admin"
               aria-current={pathname?.startsWith("/admin") ? "page" : undefined}
-              className={`rounded-[5px] border px-3 py-2 text-[11px] font-semibold ${
+              className={`rounded-full px-4 py-2 text-[12px] font-medium ${
                 pathname?.startsWith("/admin")
-                  ? "border-[#1c2328] bg-[#1c2328] text-white"
-                  : "border-[#cbd7dc] bg-white/70 text-[#3b4850] hover:bg-white"
+                  ? "bg-[#121821] text-white"
+                  : "bg-white text-[#121821] shadow-[inset_0_0_0_1px_rgba(18,24,33,0.12)] hover:shadow-[inset_0_0_0_1px_rgba(18,24,33,0.28)]"
               }`}
             >
               Admin
@@ -107,14 +106,14 @@ export function Nav() {
           {user ? (
             <button
               onClick={logout}
-              className="rounded-[5px] border border-[#cbd7dc] bg-white/70 px-3 py-2 text-[11px] font-semibold text-[#3b4850] hover:bg-white"
+              className="rounded-full bg-white px-4 py-2 text-[12px] font-medium text-[#121821] shadow-[inset_0_0_0_1px_rgba(18,24,33,0.12)] hover:shadow-[inset_0_0_0_1px_rgba(18,24,33,0.28)]"
             >
               Log out
             </button>
           ) : (
             <Link
               href="/login"
-              className="rounded-[5px] border border-[#cbd7dc] bg-white/70 px-3.5 py-2 text-[11px] font-semibold text-[#3b4850] hover:bg-white"
+              className="rounded-full bg-white px-4 py-2 text-[12px] font-medium text-[#121821] shadow-[inset_0_0_0_1px_rgba(18,24,33,0.12)] hover:shadow-[inset_0_0_0_1px_rgba(18,24,33,0.28)]"
             >
               Log in
             </Link>
@@ -137,7 +136,7 @@ export function MobileTabBar() {
       <div aria-hidden className="h-[calc(64px+env(safe-area-inset-bottom))] md:hidden" />
       <nav
         aria-label="Main"
-        className="fixed inset-x-0 bottom-0 z-30 border-t border-[#cbd7dc] bg-[#f8fafb]/95 pb-[env(safe-area-inset-bottom)] backdrop-blur-md md:hidden"
+        className="fixed inset-x-0 bottom-0 z-30 border-t border-black/[0.06] bg-[#f4f5f6]/85 pb-[env(safe-area-inset-bottom)] backdrop-blur-xl md:hidden"
       >
         <ul className="grid grid-cols-6">
           {LINKS.map(({ section, href, short, Icon }) => {
@@ -148,11 +147,11 @@ export function MobileTabBar() {
                   href={href}
                   aria-current={active ? "page" : undefined}
                   className={`flex h-16 flex-col items-center justify-center gap-1 text-[10px] font-semibold ${
-                    active ? "text-[#1c2328]" : "text-[#7b878d]"
+                    active ? "text-[#121821]" : "text-[#7a8792]"
                   }`}
                 >
                   <span
-                    className={`flex h-7 w-11 items-center justify-center rounded-full ${active ? "bg-[#1c2328] text-white" : ""}`}
+                    className={`flex h-7 w-11 items-center justify-center rounded-full ${active ? "bg-[#121821] text-white" : ""}`}
                   >
                     <Icon className="h-[18px] w-[18px]" />
                   </span>

@@ -3,7 +3,6 @@
 import { useEffect, useState } from "react";
 import Link from "next/link";
 import { useAuth } from "@/components/AuthProvider";
-import { HeroBlob } from "@/components/HeroBlob";
 
 const MODELS = {
   female: {
@@ -92,8 +91,6 @@ export default function LoginPage() {
 
   return (
     <main className="relative flex min-h-screen flex-1 flex-col overflow-hidden">
-      <HeroBlob variant="frost" className="-left-[10%] top-[-12%] h-[60%] w-[34%] opacity-40" />
-      <HeroBlob variant="mercury" className="-right-[12%] bottom-[-18%] h-[70%] w-[36%] opacity-40" />
 
       <header className="relative z-30 flex items-center justify-between px-6 pt-7 sm:px-10 lg:px-[42px] lg:pt-[31px]">
         <Link href="/" className="font-display text-[28px] leading-none tracking-[-0.7px] text-[#202529] lg:text-[32px]">

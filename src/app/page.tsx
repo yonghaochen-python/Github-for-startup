@@ -6,9 +6,9 @@ import Image from "next/image";
 import type { LayeringRole } from "@/lib/layering";
 import type { Outfit } from "@/components/OutfitCard";
 import { useAuth } from "@/components/AuthProvider";
-import { HeroBlob } from "@/components/HeroBlob";
+import { LiquidGlass } from "@/components/LiquidGlass";
 import { CurrentLookBar, MirrorImage, SavedPhotoSetup } from "@/components/SavedPhoto";
-import { PageHeader, PageShell, btnPrimary, btnSecondary, btnText, eyebrow } from "@/components/ui";
+import { PageShell, btnPrimary, btnSecondary, btnText, eyebrow } from "@/components/ui";
 import {
   ArrowRightIcon,
   BookmarkIcon,
@@ -76,106 +76,86 @@ export default function Home() {
   }, [signedIn]);
 
 
-  // ---------- Signed out: a pure introduction — what this is, and how to get started. ----------
+  // ---------- Signed out: a calm introduction — one satin-mirror moment, then what Virm does. ----------
   if (!signedIn) {
     return (
       <main className="flex-1">
-        <section className="relative overflow-hidden">
-          <HeroBlob variant="mercury" className="-right-[12%] top-[-18%] h-[85%] w-[52%] sm:h-[120%] sm:w-[38%]" />
-          <div className="relative mx-auto flex w-full max-w-[1440px] flex-col items-start gap-7 px-6 py-28 sm:px-8 sm:py-40">
-            <p className="text-[10px] font-bold uppercase tracking-[3px] text-[#7e888e]">Virm · Your virtual mirror for personal styling</p>
+        <section className="relative isolate -mt-px overflow-hidden" style={{ height: "min(86vh, 760px)" }}>
+          <LiquidGlass className="absolute inset-0 -z-10" />
+          <div aria-hidden className="absolute inset-0 -z-10 bg-[linear-gradient(180deg,rgba(244,245,246,.35)_0%,rgba(244,245,246,0)_30%,rgba(244,245,246,0)_55%,rgba(244,245,246,.55)_100%)]" />
+          <div className="mx-auto flex h-full w-full max-w-[1280px] flex-col justify-end px-5 pb-16 sm:px-8 sm:pb-20">
+            <p className={eyebrow}>Your virtual mirror for personal styling</p>
             <h1
-              className="max-w-2xl font-medium leading-[0.98] tracking-[-3px] text-[#1c2328]"
-              style={{ fontSize: "clamp(52px, 7vw, 108px)", textWrap: "balance" }}
+              className="mt-4 font-display font-normal leading-[0.95] tracking-[-2px] text-[#121821]"
+              style={{ fontSize: "clamp(56px, 8.5vw, 116px)" }}
             >
-              Your closet.
+              Your closet,
               <br />
-              Your style.
-              <br />
-              Your <em className="font-display font-normal text-[#5c6a71]">AI stylist.</em>
+              <em className="text-[#3d5266]">reflected.</em>
             </h1>
-            <p className="max-w-md text-[15px] leading-relaxed text-[#737d82]">
-              Turn the clothes you already own into personalized outfits — and see how they look together.
+            <p className="mt-5 max-w-md text-[16px] leading-relaxed text-[#2f3b47]">
+              Virm learns the pieces you own, styles them for wherever you&apos;re going, and shows each look on you.
             </p>
-            <div className="mt-4 flex flex-wrap gap-4">
-              <Link
-                href="/login"
-                className="btn-tactile rounded-[5px] bg-[#242b30] px-7 py-4 text-xs font-semibold tracking-wide text-white shadow-[inset_0_1px_0_#ffffff35,0_8px_24px_rgba(34,42,47,0.22)] hover:bg-[#3b4750]"
-              >
-                Create Account
+            <div className="mt-8 flex flex-wrap gap-3">
+              <Link href="/login" className={btnPrimary}>
+                Create your closet
               </Link>
-              <Link
-                href="/login"
-                className="btn-tactile rounded-[5px] border border-[#cbd3d7] bg-white/40 px-7 py-4 text-xs font-semibold tracking-wide text-[#333f46] hover:border-[#a6b2b8] hover:bg-[#e9edef]"
-              >
-                Log In
+              <Link href="/login" className={`${btnSecondary} bg-white/60 backdrop-blur`}>
+                Log in
               </Link>
             </div>
           </div>
         </section>
 
-        <section id="how-it-works" className="border-b border-[#dce2e4]">
-          <div className="mx-auto w-full max-w-[1440px] px-6 pt-28 sm:px-8">
-            <p className="mb-5 text-[10px] font-bold uppercase tracking-[3px] text-[#7e888e]">How Virm works</p>
-            <h2
-              className="mb-14 font-display font-normal tracking-[-1.5px] text-[#1c2328]"
-              style={{ fontSize: "clamp(38px, 5vw, 58px)", textWrap: "balance" }}
-            >
-              From closet to complete look.
-            </h2>
-          </div>
-          <div className="mx-auto grid w-full max-w-[1440px] grid-cols-1 border-t border-[#dce2e4] sm:grid-cols-2 lg:grid-cols-4">
+        <section id="how-it-works" className="mx-auto w-full max-w-[1280px] px-5 py-24 sm:px-8">
+          <p className={eyebrow}>How Virm works</p>
+          <h2 className="mt-3 max-w-2xl font-display text-[44px] font-normal leading-[1.02] tracking-[-1px] text-[#121821] sm:text-[56px]">
+            From closet to complete look.
+          </h2>
+          <ol className="mt-12 grid gap-x-10 gap-y-10 sm:grid-cols-2 lg:grid-cols-4">
             {STEPS.map((step, i) => (
-              <div
-                key={step.title}
-                className={`group border-b border-[#dce2e4] p-7 transition-colors duration-300 hover:bg-white/60 sm:border-r sm:p-8 ${
-                  i === STEPS.length - 1 ? "sm:border-r-0" : ""
-                } ${i % 2 === 1 ? "lg:border-r" : ""}`}
-              >
-                <span className="text-[9px] font-bold tracking-[1.5px] text-[#a7b0b4] transition-colors duration-300 group-hover:text-[#7e888e]">
-                  {String(i + 1).padStart(2, "0")}
-                </span>
-                <h3 className="mb-2.5 mt-10 font-display text-[30px] font-normal text-[#1c2328]">{step.title}</h3>
-                <p className="max-w-[190px] text-[12px] leading-relaxed text-[#828d92]">{step.body}</p>
-              </div>
+              <li key={step.title} className="border-t border-black/10 pt-6">
+                <span className="text-[12px] font-medium tabular-nums text-[#8a96a1]">{String(i + 1).padStart(2, "0")}</span>
+                <h3 className="mt-3 font-display text-[30px] font-normal text-[#121821]">{step.title}</h3>
+                <p className="mt-2 max-w-[240px] text-[14px] leading-relaxed text-[#4f5b66]">{step.body}</p>
+              </li>
             ))}
-          </div>
+          </ol>
         </section>
 
-        <section className="border-b border-[#dce2e4]">
-          <div className="mx-auto w-full max-w-[1440px] px-6 py-28 sm:px-8">
-            <h2
-              className="mb-3 font-display font-normal tracking-[-1px] text-[#1c2328]"
-              style={{ fontSize: "clamp(32px, 4vw, 44px)" }}
-            >
-              Start exploring instantly
-            </h2>
-            <p className="mb-12 max-w-md text-[13px] leading-relaxed text-[#737d82]">
-              Every new account starts with a 20-piece sample closet — men&apos;s and women&apos;s, summer and winter — so
-              there&apos;s something to style right away. Keep, edit, or remove any piece, and add your own.
-            </p>
-            <div className="grid grid-cols-2 gap-5 sm:grid-cols-4">
+        <section className="bg-white">
+          <div className="mx-auto w-full max-w-[1280px] px-5 py-24 sm:px-8">
+            <div className="flex flex-col gap-6 sm:flex-row sm:items-end sm:justify-between">
+              <div>
+                <p className={eyebrow}>Start exploring instantly</p>
+                <h2 className="mt-3 font-display text-[40px] font-normal leading-[1.02] tracking-[-0.8px] text-[#121821] sm:text-[52px]">
+                  A closet to style from day one.
+                </h2>
+                <p className="mt-3 max-w-lg text-[15px] leading-relaxed text-[#4f5b66]">
+                  Every new account starts with a 20-piece sample closet — men&apos;s and women&apos;s, summer and winter.
+                  Keep, edit, or remove any piece, and add your own.
+                </p>
+              </div>
+              <Link href="/login" className={`${btnPrimary} self-start sm:self-auto`}>
+                Create your closet
+              </Link>
+            </div>
+            <div className="mt-12 grid grid-cols-2 gap-x-5 gap-y-8 sm:grid-cols-4">
               {TEASER_ITEMS.map((item) => (
-                <div key={item.src} className="group overflow-hidden rounded-lg border border-[#cbd7dc] bg-white">
-                  <div className="relative aspect-square w-full overflow-hidden bg-[#e2e6e7]">
+                <figure key={item.src} className="group">
+                  <div className="relative aspect-square w-full overflow-hidden rounded-[18px] bg-[#f4f5f6]">
                     <Image
                       src={item.src}
                       alt={item.label}
                       fill
-                      className="object-cover transition-transform duration-500 ease-out group-hover:scale-[1.06]"
+                      className="object-cover transition-transform duration-700 ease-out group-hover:scale-[1.04]"
                       unoptimized
                     />
                   </div>
-                  <p className="px-3 py-2.5 text-xs text-[#737d82]">{item.label}</p>
-                </div>
+                  <figcaption className="mt-3 text-[13px] text-[#4f5b66]">{item.label}</figcaption>
+                </figure>
               ))}
             </div>
-            <Link
-              href="/login"
-              className="btn-tactile mt-10 inline-block rounded-[5px] bg-[#242b30] px-7 py-4 text-xs font-semibold tracking-wide text-white shadow-[inset_0_1px_0_#ffffff35,0_8px_24px_rgba(34,42,47,0.22)] hover:bg-[#3b4750]"
-            >
-              Create Account
-            </Link>
           </div>
         </section>
       </main>
@@ -204,20 +184,32 @@ function Dashboard({ email, closet, outfits }: { email: string; closet: Clothing
   const latest = outfits[0];
   const step = nextStep(hasPhoto, closet.length, outfits.length);
 
+  const hour = new Date().getHours();
+  const greeting = hour < 5 ? "Good evening" : hour < 12 ? "Good morning" : hour < 18 ? "Good afternoon" : "Good evening";
+
   return (
     <main className="flex-1 pb-16">
-      <PageShell>
-        <PageHeader
-          label="Home"
-          title={<>Good to see you{firstName ? <>, <em className="font-display">{firstName}</em></> : null}.</>}
-          description={
-            <>
-              {closet.length} {closet.length === 1 ? "piece" : "pieces"} in your closet · {saved.length} saved{" "}
-              {saved.length === 1 ? "look" : "looks"}. <span className="text-[#1c2328]">Next:</span> {step.text}
-            </>
-          }
-          actions={
-            step.href.startsWith("#") ? (
+      {/* Welcome: the one satin-mirror moment on the signed-in home. */}
+      <section className="relative isolate overflow-hidden">
+        <LiquidGlass className="absolute inset-0 -z-10" />
+        <div aria-hidden className="absolute inset-0 -z-10 bg-[linear-gradient(180deg,rgba(244,245,246,.25),rgba(244,245,246,0)_40%,rgba(244,245,246,.7))]" />
+        <PageShell className="pb-12 pt-16 sm:pb-14 sm:pt-24">
+          <p className={eyebrow}>{greeting}</p>
+          <h1 className="mt-3 font-display text-[48px] font-normal leading-[0.98] tracking-[-1.6px] text-[#121821] sm:text-[72px]">
+            {firstName ? (
+              <>
+                Hello, <em className="text-[#3d5266]">{firstName}</em>.
+              </>
+            ) : (
+              "Your closet, reflected."
+            )}
+          </h1>
+          <p className="mt-4 max-w-xl text-[15.5px] leading-relaxed text-[#2f3b47]">
+            {closet.length} {closet.length === 1 ? "piece" : "pieces"} in your closet · {saved.length} saved{" "}
+            {saved.length === 1 ? "look" : "looks"}. <span className="font-medium text-[#121821]">Next:</span> {step.text}
+          </p>
+          <div className="mt-7">
+            {step.href.startsWith("#") ? (
               <button onClick={() => setSettingUpPhoto(true)} className={btnPrimary}>
                 {step.cta}
               </button>
@@ -226,12 +218,15 @@ function Dashboard({ email, closet, outfits }: { email: string; closet: Clothing
                 {step.cta}
                 <ArrowRightIcon className="h-4 w-4" />
               </Link>
-            )
-          }
-        />
+            )}
+          </div>
+        </PageShell>
+      </section>
+
+      <PageShell className="pt-8">
 
         {/* Your Virtual Mirror */}
-        <section id="mirror" aria-labelledby="mirror-title" className="mb-6 scroll-mt-24 border border-[#cbd7dc] bg-white/60">
+        <section id="mirror" aria-labelledby="mirror-title" className="mb-6 scroll-mt-24 overflow-hidden rounded-[22px] bg-white shadow-[0_1px_0_rgba(18,24,33,0.03),0_14px_36px_rgba(18,30,45,0.06)]">
           {settingUpPhoto ? (
             <div className="p-4 sm:p-6">
               <SavedPhotoSetup onSaved={() => setSettingUpPhoto(false)} onCancel={() => setSettingUpPhoto(false)} />
@@ -305,7 +300,7 @@ function Dashboard({ email, closet, outfits }: { email: string; closet: Clothing
 
         <div className="grid gap-6 lg:grid-cols-12">
           {/* My Closet */}
-          <section aria-labelledby="closet-title" className="border border-[#cbd7dc] bg-white/60 lg:col-span-7">
+          <section aria-labelledby="closet-title" className="overflow-hidden rounded-[22px] bg-white shadow-[0_1px_0_rgba(18,24,33,0.03),0_14px_36px_rgba(18,30,45,0.06)] lg:col-span-7">
             <FeatureHead
               Icon={ClosetIcon}
               id="closet-title"
@@ -313,15 +308,15 @@ function Dashboard({ email, closet, outfits }: { email: string; closet: Clothing
               body={closet.length > 0 ? `${closet.length} pieces, organized and ready to style.` : "Add photos of clothes you already own to build your digital wardrobe."}
             />
             {closet.length > 0 ? (
-              <div className="grid grid-cols-3 gap-px bg-[#dce2e4] sm:grid-cols-4">
+              <div className="grid grid-cols-3 gap-2 px-6 sm:grid-cols-4 sm:px-8">
                 {closet.slice(0, 8).map((item, i) => (
-                  <div key={item.id} className={`relative aspect-square bg-[#f3f5f5] ${i >= 6 ? "hidden sm:block" : ""}`}>
+                  <div key={item.id} className={`relative aspect-square overflow-hidden rounded-[14px] bg-[#f4f5f6] ${i >= 6 ? "hidden sm:block" : ""}`}>
                     <Image src={item.imageUrl} alt={item.description} fill unoptimized className="object-cover" />
                   </div>
                 ))}
               </div>
             ) : (
-              <div className="mx-6 border border-dashed border-[#b8c4ca] px-5 py-8 text-[13px] text-[#5f6a70] sm:mx-8">
+              <div className="mx-6 rounded-[16px] bg-[#f4f5f6] px-5 py-8 text-[13.5px] text-[#4f5b66] sm:mx-8">
                 Your closet is empty. Upload a photo of one item — or a few laid out together — and we&apos;ll sort them
                 for you.
               </div>
@@ -335,7 +330,7 @@ function Dashboard({ email, closet, outfits }: { email: string; closet: Clothing
           </section>
 
           {/* AI Stylist */}
-          <section aria-labelledby="stylist-title" className="flex flex-col bg-[#1c2328] text-white lg:col-span-5">
+          <section aria-labelledby="stylist-title" className="flex flex-col overflow-hidden rounded-[22px] bg-[#121821] text-white lg:col-span-5">
             <div className="flex-1 p-6 sm:p-8">
               <p className="mb-4 flex items-center gap-2 text-[10px] font-bold uppercase tracking-[2.6px] text-[#a9b6bc]">
                 <SparkleIcon className="h-4 w-4" /> AI Stylist
@@ -359,7 +354,7 @@ function Dashboard({ email, closet, outfits }: { email: string; closet: Clothing
             <div className="flex flex-wrap items-center gap-3 border-t border-white/10 px-6 py-5 sm:px-8">
               <Link
                 href="/outfits"
-                className="btn-tactile inline-flex min-h-[44px] items-center gap-2 rounded-[5px] bg-white px-5 py-2.5 text-[12.5px] font-semibold text-[#1c2328] hover:bg-[#e9eef0]"
+                className="btn-tactile inline-flex min-h-[46px] items-center gap-2 rounded-full bg-white px-6 py-2.5 text-[13.5px] font-medium text-[#121821] hover:bg-[#e9eef3]"
               >
                 Create an Outfit <ArrowRightIcon className="h-4 w-4" />
               </Link>
@@ -372,7 +367,7 @@ function Dashboard({ email, closet, outfits }: { email: string; closet: Clothing
           </section>
 
           {/* Try On */}
-          <section aria-labelledby="tryon-title" className="grid grid-cols-[120px_1fr] border border-[#cbd7dc] bg-[linear-gradient(135deg,#f7f3ec,#eef2f3)] sm:grid-cols-[160px_1fr] lg:col-span-5">
+          <section aria-labelledby="tryon-title" className="grid grid-cols-[120px_1fr] overflow-hidden rounded-[22px] bg-[linear-gradient(135deg,#eef2f6,#e3eaf1)] sm:grid-cols-[160px_1fr] lg:col-span-5">
             <div className="relative min-h-[200px] overflow-hidden bg-[#dfe6e9]">
               {hasPhoto ? (
                 <MirrorImage className="absolute inset-0 h-full w-full object-cover object-top" />
@@ -401,7 +396,7 @@ function Dashboard({ email, closet, outfits }: { email: string; closet: Clothing
           </section>
 
           {/* Saved Looks */}
-          <section aria-labelledby="saved-title" className="border border-[#cbd7dc] bg-white/60 lg:col-span-7">
+          <section aria-labelledby="saved-title" className="overflow-hidden rounded-[22px] bg-white shadow-[0_1px_0_rgba(18,24,33,0.03),0_14px_36px_rgba(18,30,45,0.06)] lg:col-span-7">
             <FeatureHead
               Icon={BookmarkIcon}
               id="saved-title"
@@ -430,7 +425,7 @@ function Dashboard({ email, closet, outfits }: { email: string; closet: Clothing
                 ))}
               </div>
             ) : (
-              <div className="mx-6 border border-dashed border-[#b8c4ca] px-5 py-8 text-[13px] text-[#5f6a70] sm:mx-8">
+              <div className="mx-6 rounded-[16px] bg-[#f4f5f6] px-5 py-8 text-[13.5px] text-[#4f5b66] sm:mx-8">
                 Nothing saved yet. When the stylist makes a look you love, press Save Look to keep it here.
               </div>
             )}
