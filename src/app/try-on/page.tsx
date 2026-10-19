@@ -67,11 +67,7 @@ export default function TryOnHubPage() {
                 </div>
                 <div className="p-5">
                   <p className={`${eyebrow} mb-1.5`}>{user?.look ? "Latest try-on" : "Your photo"}</p>
-                  {user?.look ? (
-                    <CurrentLookBar />
-                  ) : (
-                    <p className="text-[12.5px] leading-relaxed text-[#4f5b66]">Only you can see this photo.</p>
-                  )}
+                  {!user?.look && <p className="text-[12.5px] leading-relaxed text-[#4f5b66]">Only you can see this photo.</p>}
                   <div className="mt-4 flex flex-wrap gap-2">
                     <a href="#choose-title" className={btnPrimary}>
                       Choose Outfit
@@ -79,8 +75,11 @@ export default function TryOnHubPage() {
                     <button onClick={() => setChanging(true)} className={btnSecondary}>
                       Change Photo
                     </button>
-                    <button onClick={removeSavedPhoto} className="px-2 text-[12px] font-semibold text-[#6b7783] hover:text-[#121821]">
-                      Remove
+                  </div>
+                  <div className="mt-4 flex flex-wrap items-center gap-x-3 gap-y-1 text-[12px]">
+                    <CurrentLookBar />
+                    <button onClick={removeSavedPhoto} className="font-semibold text-[#a03a2f] underline-offset-4 hover:underline">
+                      Remove photo
                     </button>
                   </div>
                 </div>

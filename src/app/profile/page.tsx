@@ -85,14 +85,14 @@ export default function ProfilePage() {
                   <p className="text-[13.5px] leading-relaxed text-[#4f5b66]">
                     Every try-on uses this photo. Only you can see it.
                   </p>
-                  <div className="mt-3">
-                    <CurrentLookBar />
-                  </div>
                   <div className="mt-auto flex flex-wrap gap-3 pt-6">
                     <Link href="/try-on" className={btnPrimary}>Try On an Outfit</Link>
                     <button onClick={() => setChanging(true)} className={btnSecondary}>Change Photo</button>
-                    <button onClick={removeSavedPhoto} className="min-h-[44px] px-2 text-[12.5px] font-semibold text-[#a03a2f] hover:underline">
-                      Remove Photo
+                  </div>
+                  <div className="mt-4 flex flex-wrap items-center gap-x-3 gap-y-1 text-[12px]">
+                    <CurrentLookBar />
+                    <button onClick={removeSavedPhoto} className="font-semibold text-[#a03a2f] underline-offset-4 hover:underline">
+                      Remove photo
                     </button>
                   </div>
                 </div>

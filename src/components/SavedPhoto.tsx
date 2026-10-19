@@ -56,7 +56,7 @@ export function CurrentLookBar({ dark = false }: { dark?: boolean }) {
         View this outfit
       </Link>
       <button onClick={takeOffLook} className="underline-offset-4 hover:underline">
-        Take it off
+        Show original photo
       </button>
     </div>
   );
