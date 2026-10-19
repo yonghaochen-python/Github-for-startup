@@ -9,13 +9,15 @@ import { InlineLoading } from "@/components/InlineLoading";
 import { useAuth } from "@/components/AuthProvider";
 import { CurrentLookBar, MirrorImage, SavedPhotoImage, SavedPhotoSetup, useTakeOffLook } from "@/components/SavedPhoto";
 import { useToast } from "@/components/Toast";
-import { BookmarkIcon, CheckIcon, MirrorIcon } from "@/components/Icons";
+import { MirrorIcon } from "@/components/Icons";
+import { SaveToggle } from "@/components/SaveToggle";
 import { ErrorNote, PageHeader, PageShell, btnPrimary, btnSecondary, btnText, eyebrow } from "@/components/ui";
 import { garmentSheetJpeg, photoToJpeg } from "@/lib/clientImage";
 
 type OutfitItem = { id: string; imageUrl: string; description: string; layeringRole: LayeringRole };
 type OutfitLayer = { role: LayeringRole; items: OutfitItem[] };
 type Outfit = { id: string; isFavorite: boolean; occasion: string | null; style: string | null; layers: OutfitLayer[] };
+type ClosetPiece = OutfitItem;
 type NotShown = { role: LayeringRole; description: string; reason: string };
 type TryOnResult = { isMock: boolean; provider: string; imageDataUrl: string | null; layers: OutfitLayer[]; notShown?: NotShown[] };
 
@@ -143,22 +145,48 @@ export default function TryOnPage() {
     // eslint-disable-next-line react-hooks/exhaustive-deps -- runs once when everything it needs is ready
   }, [loadState, configLoaded, hasPhoto, changingPhoto]);
 
-  async function saveLook() {
-    if (!outfit || outfit.isFavorite) return;
+  async function toggleSaved() {
+    if (!outfit) return;
+    const isFavorite = !outfit.isFavorite;
     setSaving(true);
     try {
       const res = await fetch(`/api/outfits/${outfit.id}`, {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ isFavorite: true }),
+        body: JSON.stringify({ isFavorite }),
       });
       if (!res.ok) throw new Error("save");
-      setOutfit((prev) => (prev ? { ...prev, isFavorite: true } : prev));
-      showToast("Saved to your looks");
+      setOutfit((prev) => (prev ? { ...prev, isFavorite } : prev));
+      showToast(isFavorite ? "Saved" : "Unsaved");
     } catch {
-      setError("Couldn't save this look. Please try again.");
+      setError("Couldn't update this look. Please try again.");
     } finally {
       setSaving(false);
+    }
+  }
+
+  /** Change one piece for another from the closet, or take it out (addItemId null). The outfit itself is updated. */
+  async function editPiece(removeItemId: string, addItemId: string | null) {
+    if (!outfit) return false;
+    setError(null);
+    try {
+      const res = await fetch(`/api/outfits/${outfit.id}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(addItemId ? { removeItemId, addItemId } : { removeItemId }),
+      });
+      const data = (await res.json().catch(() => ({}))) as { outfit?: Outfit; error?: string };
+      if (!res.ok || !data.outfit) throw new Error(data.error ?? "edit");
+      setOutfit(data.outfit);
+      // The old try-on shows the old pieces, so go back to the photo and let them generate the new version.
+      setResult(null);
+      setStage("ready");
+      refreshUser();
+      showToast(addItemId ? "Piece changed" : "Piece removed");
+      return true;
+    } catch (err) {
+      setError(err instanceof Error && err.message !== "edit" ? err.message : "Couldn't change that piece. Please try again.");
+      return false;
     }
   }
 
@@ -258,16 +286,10 @@ export default function TryOnPage() {
             </div>
             <div className="flex min-w-0 flex-col gap-6">
               <div className="flex flex-col gap-3">
-                <button onClick={saveLook} disabled={saving || outfit.isFavorite} className={`${btnPrimary} w-full`}>
-                  {outfit.isFavorite ? (
-                    <><CheckIcon className="h-4 w-4" /> Look Saved</>
-                  ) : (
-                    <><BookmarkIcon className="h-4 w-4" /> {saving ? "Saving…" : "Save Look"}</>
-                  )}
-                </button>
-                <div className="grid grid-cols-2 gap-3">
-                  <Link href="/try-on" className={btnSecondary}>Try Another Outfit</Link>
-                  <button onClick={startChangingPhoto} className={btnSecondary}>Change My Photo</button>
+                <div className="flex items-center gap-3">
+                  <SaveToggle saved={outfit.isFavorite} busy={saving} onToggle={toggleSaved} />
+                  <Link href="/try-on" className={`${btnSecondary} flex-1`}>Try Another Outfit</Link>
+                  <button onClick={startChangingPhoto} className={`${btnSecondary} flex-1`}>Change My Photo</button>
                 </div>
                 <div className="flex flex-wrap items-center gap-x-5">
                   <Link href="/outfits" className={btnText}>Back to Outfits</Link>
@@ -281,14 +303,14 @@ export default function TryOnPage() {
                     }}
                     className={btnText}
                   >
-                    Take Off Look
+                    Show Original Photo
                   </button>
                 </div>
                 <p className="text-[11.5px] text-[#6b7783]">
                   This stays on your photo until you change it.
                 </p>
               </div>
-              <SelectedOutfit name={outfitName} items={items} />
+              <SelectedOutfit name={outfitName} items={items} onEdit={editPiece} />
             </div>
           </div>
         ) : (
@@ -316,7 +338,7 @@ export default function TryOnPage() {
                   </button>
                 </div>
               </section>
-              <SelectedOutfit name={outfitName} items={items} label="Selected Outfit" showChange={stage !== "generating"} />
+              <SelectedOutfit name={outfitName} items={items} label="Selected Outfit" onEdit={stage !== "generating" ? editPiece : undefined} />
             </div>
 
             <div className="sticky bottom-[calc(64px+env(safe-area-inset-bottom))] z-20 -mx-5 mt-8 border-t border-black/[0.07] bg-[#f6f9fa]/95 px-5 py-3 backdrop-blur sm:-mx-8 sm:px-8 md:static md:mx-0 md:border-0 md:bg-transparent md:p-0 md:backdrop-blur-none">
@@ -342,40 +364,104 @@ function SelectedOutfit({
   items,
   label = "Selected Outfit",
   note,
-  showChange = true,
+  onEdit,
 }: {
   name: string;
   items: OutfitItem[];
   label?: string;
   note?: string;
-  showChange?: boolean;
+  /** When given, each piece can be changed for another closet piece or removed. */
+  onEdit?: (removeItemId: string, addItemId: string | null) => Promise<boolean>;
 }) {
+  const [closet, setCloset] = useState<ClosetPiece[] | null>(null);
+  const [changingId, setChangingId] = useState<string | null>(null);
+  const [busyId, setBusyId] = useState<string | null>(null);
+
+  async function openChange(itemId: string) {
+    setChangingId((current) => (current === itemId ? null : itemId));
+    if (closet) return;
+    try {
+      const res = await fetch("/api/closet/items");
+      const data = (await res.json()) as { items?: ClosetPiece[] };
+      setCloset(data.items ?? []);
+    } catch {
+      setCloset([]);
+    }
+  }
+
+  async function run(itemId: string, addItemId: string | null) {
+    if (!onEdit) return;
+    setBusyId(itemId);
+    if (await onEdit(itemId, addItemId)) setChangingId(null);
+    setBusyId(null);
+  }
+
+  const inOutfit = new Set(items.map((i) => i.id));
+  const action = "text-[12px] font-semibold text-[#26313a] underline-offset-4 hover:underline disabled:opacity-50";
+
   return (
     <section aria-label={label} className="min-w-0">
-      <div className="mb-3 flex items-center justify-between gap-3">
-        <p className={eyebrow}>{label}</p>
-        {showChange && (
-          <Link href="/try-on" className="text-[12px] font-semibold text-[#26313a] underline-offset-4 hover:underline">
-            Change outfit
-          </Link>
-        )}
-      </div>
+      <p className={`${eyebrow} mb-3`}>{label}</p>
       <div className="overflow-hidden rounded-[18px] bg-white shadow-[0_1px_0_rgba(18,24,33,0.03),0_10px_28px_rgba(18,30,45,0.05)]">
         <p className="border-b border-black/[0.06] px-4 py-3 text-[12.5px] font-semibold capitalize text-[#121821]">
           {name} · {items.length} {items.length === 1 ? "piece" : "pieces"}
         </p>
         <ul>
-          {items.map((item) => (
-            <li key={item.id} className="flex items-center gap-3.5 border-b border-black/[0.05] px-4 py-2.5 last:border-b-0">
-              <div className="relative h-14 w-14 shrink-0 overflow-hidden bg-[#f3f5f5]">
-                <Image src={item.imageUrl} alt="" fill className="object-cover" unoptimized />
-              </div>
-              <div className="min-w-0 flex-1">
-                <p className="truncate text-[12.5px] font-semibold text-[#121821]">{item.description}</p>
-                <span className="text-[11px] text-[#8b969c]">{LAYER_LABELS[item.layeringRole]}</span>
-              </div>
-            </li>
-          ))}
+          {items.map((item) => {
+            const options = (closet ?? []).filter((c) => c.layeringRole === item.layeringRole && !inOutfit.has(c.id));
+            return (
+              <li key={item.id} className="border-b border-black/[0.05] last:border-b-0">
+                <div className="flex items-center gap-3.5 px-4 py-2.5">
+                  <div className="relative h-14 w-14 shrink-0 overflow-hidden rounded-[10px] bg-[#f3f5f5]">
+                    <Image src={item.imageUrl} alt="" fill className="object-cover" unoptimized />
+                  </div>
+                  <div className="min-w-0 flex-1">
+                    <p className="truncate text-[12.5px] font-semibold text-[#121821]">{item.description}</p>
+                    <span className="text-[11px] text-[#8b969c]">{LAYER_LABELS[item.layeringRole]}</span>
+                  </div>
+                  {onEdit && (
+                    <div className="flex shrink-0 items-center gap-3">
+                      <button onClick={() => openChange(item.id)} disabled={busyId !== null} aria-expanded={changingId === item.id} className={action}>
+                        {changingId === item.id ? "Cancel" : "Change"}
+                      </button>
+                      {items.length > 1 && (
+                        <button onClick={() => run(item.id, null)} disabled={busyId !== null} className={`${action} text-[#a03a2f]`}>
+                          {busyId === item.id && changingId !== item.id ? "Removing…" : "Remove"}
+                        </button>
+                      )}
+                    </div>
+                  )}
+                </div>
+                {changingId === item.id && (
+                  <div className="bg-[#f4f5f6] px-4 py-3">
+                    {closet === null ? (
+                      <p className="text-[11.5px] text-[#6b7783]">Loading your closet…</p>
+                    ) : options.length === 0 ? (
+                      <p className="text-[11.5px] text-[#6b7783]">No other {LAYER_LABELS[item.layeringRole]?.toLowerCase() ?? "pieces"} pieces in your closet.</p>
+                    ) : (
+                      <>
+                        <p className="mb-2 text-[11.5px] text-[#6b7783]">Swap for:</p>
+                        <div className="flex gap-2 overflow-x-auto pb-1">
+                          {options.map((option) => (
+                            <button
+                              key={option.id}
+                              onClick={() => run(item.id, option.id)}
+                              disabled={busyId !== null}
+                              title={option.description}
+                              aria-label={`Swap for ${option.description}`}
+                              className="relative h-16 w-16 shrink-0 overflow-hidden rounded-[10px] bg-white shadow-[inset_0_0_0_1px_rgba(18,24,33,0.08)] hover:shadow-[inset_0_0_0_2px_#121821] disabled:opacity-50"
+                            >
+                              <Image src={option.imageUrl} alt="" fill className="object-cover" unoptimized />
+                            </button>
+                          ))}
+                        </div>
+                      </>
+                    )}
+                  </div>
+                )}
+              </li>
+            );
+          })}
         </ul>
       </div>
       {note && <p className="mt-3 text-[11.5px] text-[#6b7783]">{note}</p>}

@@ -57,29 +57,37 @@ export async function PATCH(request: Request, ctx: RouteContext<"/api/outfits/[i
     if (b.isFavorite && !outfit.isFavorite) await track(user.id, "look_saved");
   }
 
-  if (typeof b.removeItemId === "string" && typeof b.addItemId === "string") {
+  // Change one piece (removeItemId + addItemId) or take one out (removeItemId alone; an outfit keeps at least one).
+  if (typeof b.removeItemId === "string") {
+    const addItemId = typeof b.addItemId === "string" ? b.addItemId : null;
     const stillOwns = outfit.items.some((oi) => oi.itemId === b.removeItemId);
-    const replacement = await prisma.clothingItem.findUnique({ where: { id: b.addItemId } });
-    if (!stillOwns || !replacement || replacement.userId !== user.id) {
+    const replacement = addItemId ? await prisma.clothingItem.findUnique({ where: { id: addItemId } }) : null;
+    if (!stillOwns || (addItemId && (!replacement || replacement.userId !== user.id))) {
       return NextResponse.json({ error: "Invalid item swap." }, { status: 400 });
+    }
+    if (!addItemId && outfit.items.length <= 1) {
+      return NextResponse.json({ error: "An outfit needs at least one piece." }, { status: 400 });
+    }
+    if (replacement && outfit.items.some((oi) => oi.itemId === replacement.id)) {
+      return NextResponse.json({ error: "That piece is already in this outfit." }, { status: 400 });
     }
 
     await prisma.outfitItem.delete({ where: { outfitId_itemId: { outfitId: id, itemId: b.removeItemId } } });
-    await prisma.outfitItem.create({ data: { outfitId: id, itemId: b.addItemId } });
+    if (replacement) await prisma.outfitItem.create({ data: { outfitId: id, itemId: replacement.id } });
 
-    // A current look of this outfit shows the old piece now, so take it off rather than show a stale try-on.
+    // A try-on of this outfit shows the old piece now, so take it off rather than show a stale picture.
     const look = await getCurrentLook(user.id).catch(() => null);
     if (look?.outfitId === id) await clearCurrentLook(user.id).catch(() => {});
     await deleteOutfitTryOns(user.id, [id]).catch(() => {});
 
-    const newItems = [...outfit.items.map((oi) => oi.item).filter((i) => i.id !== b.removeItemId), replacement];
+    const newItems = [...outfit.items.map((oi) => oi.item).filter((i) => i.id !== b.removeItemId), ...(replacement ? [replacement] : [])];
     try {
       const rationale = await explainOutfit(newItems);
       await prisma.outfit.update({ where: { id }, data: { rationale } });
     } catch (err) {
-      // The swap itself already succeeded above — don't fail the whole request
+      // The change itself already succeeded above — don't fail the whole request
       // just because the follow-up rationale call did.
-      console.error("Failed to refresh rationale after item swap:", err);
+      console.error("Failed to refresh rationale after item change:", err);
     }
   }
 
