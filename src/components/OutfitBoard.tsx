@@ -98,7 +98,7 @@ export function OutfitBoard({
 
       <div className="mt-auto flex flex-wrap items-center gap-2 border-t border-black/[0.06] px-5 py-4">
         <Link href={`/outfits/${outfit.id}/try-on?start=1`} className={btnPrimary}>
-          <MirrorIcon className="h-4 w-4" /> {showTryOn && outfit.tryOn ? "Try On Again" : "Try On"}
+          <MirrorIcon className="h-4 w-4" /> Try On
         </Link>
         <Link href={`/outfits/${outfit.id}`} className="min-h-[44px] px-1 py-3 text-[12.5px] font-semibold text-[#26313a] underline-offset-4 hover:underline">
           View Look

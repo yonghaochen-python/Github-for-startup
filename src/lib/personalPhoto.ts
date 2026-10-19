@@ -99,14 +99,18 @@ export async function saveOutfitTryOn(userId: string, outfitId: string, imageDat
   });
 }
 
-/** outfitId → refresh token, for every outfit of this person that has a try-on picture. */
-export async function listOutfitTryOns(userId: string): Promise<Map<string, string>> {
+export type OutfitTryOn = { version: string; at: string };
+
+/** outfitId → refresh token and when it was made, for every outfit of this person that has a try-on picture. */
+export async function listOutfitTryOns(userId: string): Promise<Map<string, OutfitTryOn>> {
   const prefix = outfitTryOnPrefix(userId);
-  const found = new Map<string, string>();
+  const found = new Map<string, OutfitTryOn>();
   let cursor: string | undefined;
   do {
     const page = await env.UPLOADS.list({ prefix, cursor, include: ["customMetadata"] });
-    for (const object of page.objects) found.set(object.key.slice(prefix.length), object.customMetadata?.version ?? "1");
+    for (const object of page.objects) {
+      found.set(object.key.slice(prefix.length), { version: object.customMetadata?.version ?? "1", at: object.uploaded.toISOString() });
+    }
     cursor = page.truncated ? page.cursor : undefined;
   } while (cursor);
   return found;

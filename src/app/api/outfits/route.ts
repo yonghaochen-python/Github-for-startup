@@ -3,7 +3,7 @@ import { prisma } from "@/lib/prisma";
 import { requireUser } from "@/lib/auth";
 import { serializeOutfit } from "@/lib/outfits";
 import { withRetry } from "@/lib/dbRetry";
-import { getCurrentLook, listOutfitTryOns, loadCurrentLook, saveOutfitTryOn } from "@/lib/personalPhoto";
+import { getCurrentLook, listOutfitTryOns, loadCurrentLook, saveOutfitTryOn, type OutfitTryOn } from "@/lib/personalPhoto";
 
 export async function GET(request: Request) {
   let user;
@@ -22,7 +22,9 @@ export async function GET(request: Request) {
       })
     );
     const tryOns = await outfitTryOns(user.id);
-    return NextResponse.json({ outfits: outfits.map((o) => ({ ...serializeOutfit(o), tryOn: tryOns.get(o.id) ?? null })) });
+    return NextResponse.json({
+      outfits: outfits.map((o) => ({ ...serializeOutfit(o), tryOn: tryOns.get(o.id)?.version ?? null, tryOnAt: tryOns.get(o.id)?.at ?? null })),
+    });
   } catch (err) {
     console.error("Failed to load outfits:", err);
     return NextResponse.json({ error: "Couldn't load your outfits right now." }, { status: 500 });
@@ -33,7 +35,7 @@ export async function GET(request: Request) {
  * Which outfits have a try-on picture. Try-ons made before pictures were kept per outfit only exist as the
  * current look, so that one is copied over to its outfit the first time.
  */
-async function outfitTryOns(userId: string): Promise<Map<string, string>> {
+async function outfitTryOns(userId: string): Promise<Map<string, OutfitTryOn>> {
   try {
     const found = await listOutfitTryOns(userId);
     const look = await getCurrentLook(userId);

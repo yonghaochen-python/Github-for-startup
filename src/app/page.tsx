@@ -4,7 +4,7 @@ import { useEffect, useState } from "react";
 import Link from "next/link";
 import Image from "next/image";
 import type { LayeringRole } from "@/lib/layering";
-import type { Outfit } from "@/components/OutfitCard";
+import { byLatestTryOn, type Outfit } from "@/components/OutfitCard";
 import { useAuth } from "@/components/AuthProvider";
 import { LiquidGlass } from "@/components/LiquidGlass";
 import { CurrentLookBar, MirrorImage, SavedPhotoSetup } from "@/components/SavedPhoto";
@@ -180,7 +180,7 @@ function Dashboard({ closet, outfits }: { closet: ClothingItem[]; outfits: Outfi
   const hasPhoto = Boolean(user?.photoVersion);
   const [settingUpPhoto, setSettingUpPhoto] = useState(false);
   const name = user?.displayName?.trim() || "";
-  const saved = outfits.filter((o) => o.isFavorite);
+  const saved = outfits.filter((o) => o.isFavorite).sort(byLatestTryOn);
   const latest = outfits[0];
   const step = nextStep(hasPhoto, closet.length, outfits.length);
 

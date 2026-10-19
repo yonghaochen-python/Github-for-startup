@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react";
 import Link from "next/link";
-import type { Outfit } from "@/components/OutfitCard";
+import { byLatestTryOn, type Outfit } from "@/components/OutfitCard";
 import { OutfitBoard } from "@/components/OutfitBoard";
 import { InlineLoading } from "@/components/InlineLoading";
 import { SparkleIcon } from "@/components/Icons";
@@ -35,7 +35,7 @@ export default function SavedLooksPage() {
     loadOutfits();
   }, []);
 
-  const saved = outfits.filter((o) => o.isFavorite || shownIds?.has(o.id));
+  const saved = outfits.filter((o) => o.isFavorite || shownIds?.has(o.id)).sort(byLatestTryOn);
   const onSavedChange = (updated: Outfit) => setOutfits((list) => list.map((o) => (o.id === updated.id ? updated : o)));
 
   return (
