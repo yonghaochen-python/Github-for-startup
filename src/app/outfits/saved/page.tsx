@@ -46,8 +46,8 @@ export default function SavedLooksPage() {
           description="Your favorites, ready to try on."
           actions={
             saved.length > 0 ? (
-              <Link href="/outfits" className={btnSecondary}>
-                <SparkleIcon className="h-4 w-4" /> Create an Outfit
+              <Link href="/studio" className={btnSecondary}>
+                <SparkleIcon className="h-4 w-4" /> Open Studio
               </Link>
             ) : undefined
           }
@@ -67,8 +67,8 @@ export default function SavedLooksPage() {
             title="No saved looks yet"
             body="Press Save Look on any outfit to keep it here."
             action={
-              <Link href="/outfits" className={btnPrimary}>
-                <SparkleIcon className="h-4 w-4" /> Create an Outfit
+              <Link href="/studio" className={btnPrimary}>
+                <SparkleIcon className="h-4 w-4" /> Open Studio
               </Link>
             }
           />

@@ -4,15 +4,14 @@ import { useEffect } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useAuth } from "@/components/AuthProvider";
-import { BookmarkIcon, ClosetIcon, HomeIcon, MirrorIcon, SparkleIcon, UserIcon } from "@/components/Icons";
+import { BookmarkIcon, ClosetIcon, HomeIcon, SparkleIcon, UserIcon } from "@/components/Icons";
 
-type Section = "home" | "closet" | "stylist" | "tryon" | "saved" | "profile";
+type Section = "home" | "closet" | "studio" | "saved" | "profile";
 
 const LINKS: { section: Section; href: string; label: string; short: string; Icon: typeof HomeIcon }[] = [
   { section: "home", href: "/", label: "Home", short: "Home", Icon: HomeIcon },
   { section: "closet", href: "/closet", label: "My Closet", short: "Closet", Icon: ClosetIcon },
-  { section: "stylist", href: "/outfits", label: "AI Stylist", short: "Stylist", Icon: SparkleIcon },
-  { section: "tryon", href: "/try-on", label: "Try On", short: "Try On", Icon: MirrorIcon },
+  { section: "studio", href: "/studio", label: "Studio", short: "Studio", Icon: SparkleIcon },
   { section: "saved", href: "/outfits/saved", label: "Saved Looks", short: "Saved", Icon: BookmarkIcon },
   { section: "profile", href: "/profile", label: "Profile", short: "Profile", Icon: UserIcon },
 ];
@@ -22,9 +21,8 @@ function sectionFor(pathname: string | null): Section | null {
   const p = pathname ?? "/";
   if (p === "/") return "home";
   if (p.startsWith("/closet")) return "closet";
-  if (p === "/try-on" || /^\/outfits\/[^/]+\/try-on/.test(p)) return "tryon";
   if (p.startsWith("/outfits/saved")) return "saved";
-  if (p.startsWith("/outfits")) return "stylist";
+  if (p.startsWith("/studio") || p.startsWith("/outfits") || p === "/try-on") return "studio";
   if (p.startsWith("/profile")) return "profile";
   return null;
 }

@@ -13,7 +13,7 @@ export type EventName =
   | "clothes_detect"
   | "clothes_added"
   | "look_saved"
-  | `visit_${"home" | "closet" | "stylist" | "tryon" | "saved" | "profile"}`;
+  | `visit_${"home" | "closet" | "studio" | "stylist" | "tryon" | "saved" | "profile"}`;
 
 export async function track(
   userId: string | null,

@@ -171,7 +171,7 @@ export default function Home() {
 function nextStep(hasPhoto: boolean, closetCount: number, outfitCount: number) {
   if (closetCount === 0) return { text: "Add a few clothes to get started.", href: "/closet?add=1", cta: "Add Clothes" };
   if (!hasPhoto) return { text: "Save a full-body photo to try outfits on.", href: "#mirror", cta: "Upload My Photo" };
-  if (outfitCount === 0) return { text: "Create your first outfit.", href: "/outfits", cta: "Create an Outfit" };
+  if (outfitCount === 0) return { text: "Create your first outfit.", href: "/studio", cta: "Open Studio" };
   return null;
 }
 
@@ -268,7 +268,7 @@ function Dashboard({ closet, outfits }: { closet: ClothingItem[]; outfits: Outfi
                       <p className="max-w-md text-[14px] leading-relaxed text-[#4f5b66]">Pick any outfit to try on.</p>
                     )}
                     <div className="flex flex-wrap items-center gap-3">
-                      <Link href="/try-on" className={btnPrimary}>
+                      <Link href="/studio" className={btnPrimary}>
                         <MirrorIcon className="h-4 w-4" /> Try On an Outfit
                       </Link>
                       <button onClick={() => setSettingUpPhoto(true)} className={btnSecondary}>
@@ -327,17 +327,17 @@ function Dashboard({ closet, outfits }: { closet: ClothingItem[]; outfits: Outfi
             </FeatureActions>
           </section>
 
-          {/* AI Stylist */}
+          {/* Studio */}
           <section aria-labelledby="stylist-title" className="flex flex-col overflow-hidden rounded-[22px] bg-[#121821] text-white lg:col-span-5">
             <div className="flex-1 p-6 sm:p-8">
               <p className="mb-4 flex items-center gap-2 text-[10px] font-bold uppercase tracking-[2.6px] text-[#a9b6bc]">
-                <SparkleIcon className="h-4 w-4" /> AI Stylist
+                <SparkleIcon className="h-4 w-4" /> Studio
               </p>
               <h2 id="stylist-title" className="font-display text-[34px] font-normal leading-[1.05] sm:text-[40px]">
                 Outfits from what you <em>already own</em>.
               </h2>
               <p className="mt-3 max-w-sm text-[13.5px] leading-relaxed text-[#c3cdd2]">
-                Type any theme. Get three outfits.
+                Type a theme or pick pieces, then try it on.
               </p>
               {latest && (
                 <div className="mt-6 flex gap-2" aria-label="Your latest outfit">
@@ -351,10 +351,10 @@ function Dashboard({ closet, outfits }: { closet: ClothingItem[]; outfits: Outfi
             </div>
             <div className="flex flex-wrap items-center gap-3 border-t border-white/10 px-6 py-5 sm:px-8">
               <Link
-                href="/outfits"
+                href="/studio"
                 className="btn-tactile inline-flex min-h-[46px] items-center gap-2 rounded-full bg-white px-6 py-2.5 text-[13.5px] font-medium text-[#121821] hover:bg-[#e9eef3]"
               >
-                Create an Outfit <ArrowRightIcon className="h-4 w-4" />
+                Open Studio <ArrowRightIcon className="h-4 w-4" />
               </Link>
               {latest && (
                 <Link href={`/outfits/${latest.id}`} className="text-[12px] font-semibold text-[#c3cdd2] underline-offset-4 hover:text-white hover:underline">
@@ -364,35 +364,8 @@ function Dashboard({ closet, outfits }: { closet: ClothingItem[]; outfits: Outfi
             </div>
           </section>
 
-          {/* Try On */}
-          <section aria-labelledby="tryon-title" className="grid grid-cols-[120px_1fr] overflow-hidden rounded-[22px] bg-[linear-gradient(135deg,#eef2f6,#e3eaf1)] sm:grid-cols-[160px_1fr] lg:col-span-5">
-            <div className="relative min-h-[200px] overflow-hidden bg-[#dfe6e9]">
-              {hasPhoto ? (
-                <MirrorImage className="absolute inset-0 h-full w-full object-cover object-top" />
-              ) : (
-                <div className="absolute inset-0 flex items-center justify-center text-[#9fadb4]">
-                  <MirrorIcon className="h-10 w-10" />
-                </div>
-              )}
-            </div>
-            <div className="flex flex-col p-5 sm:p-7">
-              <p className={`${eyebrow} mb-3 flex items-center gap-2`}>
-                <MirrorIcon className="h-4 w-4" /> Try On
-              </p>
-              <h2 id="tryon-title" className="font-display text-[28px] font-normal leading-[1.1] text-[#121821]">
-                One photo, every outfit.
-              </h2>
-              <p className="mt-2 flex-1 text-[13px] leading-relaxed text-[#4f5b66]">
-                {hasPhoto ? "" : "Start by saving a full-body photo."}
-              </p>
-              <Link href="/try-on" className={`${btnPrimary} mt-4 self-start`}>
-                Start Try-On
-              </Link>
-            </div>
-          </section>
-
           {/* Saved Looks */}
-          <section aria-labelledby="saved-title" className="overflow-hidden rounded-[22px] bg-white shadow-[0_1px_0_rgba(18,24,33,0.03),0_14px_36px_rgba(18,30,45,0.06)] lg:col-span-7">
+          <section aria-labelledby="saved-title" className="overflow-hidden rounded-[22px] bg-white shadow-[0_1px_0_rgba(18,24,33,0.03),0_14px_36px_rgba(18,30,45,0.06)] lg:col-span-12">
             <FeatureHead
               Icon={BookmarkIcon}
               id="saved-title"
@@ -440,7 +413,7 @@ function Dashboard({ closet, outfits }: { closet: ClothingItem[]; outfits: Outfi
             <FeatureActions>
               <Link href="/outfits/saved" className={btnPrimary}>View Saved Looks</Link>
               {saved.length === 0 && (
-                <Link href="/outfits" className={btnSecondary}>Create an Outfit</Link>
+                <Link href="/studio" className={btnSecondary}>Open Studio</Link>
               )}
             </FeatureActions>
           </section>

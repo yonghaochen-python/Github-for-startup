@@ -2,7 +2,7 @@ import { NextResponse } from "next/server";
 import { getCurrentUser } from "@/lib/auth";
 import { trackVisit } from "@/lib/analytics";
 
-const SECTIONS = new Set(["home", "closet", "stylist", "tryon", "saved", "profile"]);
+const SECTIONS = new Set(["home", "closet", "studio", "saved", "profile"]);
 
 /** Notes that a signed-in person opened one of the main sections. Only the section name is recorded. */
 export async function POST(request: Request) {

@@ -36,7 +36,7 @@ export default function ProfilePage() {
 
   const stats: { label: string; value: number | null; href: string; Icon: typeof ClosetIcon }[] = [
     { label: "Closet items", value: closetCount, href: "/closet", Icon: ClosetIcon },
-    { label: "Outfits created", value: outfitCount, href: "/outfits", Icon: SparkleIcon },
+    { label: "Outfits created", value: outfitCount, href: "/outfits/saved", Icon: SparkleIcon },
     { label: "Saved looks", value: savedCount, href: "/outfits/saved", Icon: BookmarkIcon },
   ];
 
@@ -86,7 +86,7 @@ export default function ProfilePage() {
                     Every try-on uses this photo. Only you can see it.
                   </p>
                   <div className="mt-auto flex flex-wrap gap-3 pt-6">
-                    <Link href="/try-on" className={btnPrimary}>Try On an Outfit</Link>
+                    <Link href="/studio" className={btnPrimary}>Open Studio</Link>
                     <button onClick={() => setChanging(true)} className={btnSecondary}>Change Photo</button>
                   </div>
                   <div className="mt-4 flex flex-wrap items-center gap-x-3 gap-y-1 text-[12px]">

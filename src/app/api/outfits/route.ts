@@ -1,8 +1,9 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { requireUser } from "@/lib/auth";
-import { serializeOutfit } from "@/lib/outfits";
+import { ownedPieces, serializeOutfit } from "@/lib/outfits";
 import { withRetry } from "@/lib/dbRetry";
+import { explainOutfit } from "@/lib/generateOutfits";
 import { getCurrentLook, listOutfitTryOns, loadCurrentLook, saveOutfitTryOn, type OutfitTryOn } from "@/lib/personalPhoto";
 
 export async function GET(request: Request) {
@@ -28,6 +29,33 @@ export async function GET(request: Request) {
   } catch (err) {
     console.error("Failed to load outfits:", err);
     return NextResponse.json({ error: "Couldn't load your outfits right now." }, { status: 500 });
+  }
+}
+
+/** A new outfit from pieces the person picked themselves (the Studio). */
+export async function POST(request: Request) {
+  let user;
+  try {
+    user = await requireUser(request);
+  } catch (res) {
+    return res as Response;
+  }
+
+  const body = (await request.json().catch(() => ({}))) as { itemIds?: unknown; occasion?: unknown };
+  const items = await ownedPieces(user.id, body.itemIds);
+  if (!items) return NextResponse.json({ error: "Pick at least one piece from your closet." }, { status: 400 });
+  const occasion = typeof body.occasion === "string" && body.occasion.trim() ? body.occasion.trim().slice(0, 120) : null;
+
+  try {
+    const rationale = await explainOutfit(items).catch(() => "");
+    const outfit = await prisma.outfit.create({
+      data: { userId: user.id, rationale, occasion, items: { create: items.map((item) => ({ itemId: item.id })) } },
+      include: { items: { include: { item: true } } },
+    });
+    return NextResponse.json({ outfit: { ...serializeOutfit(outfit), tryOn: null } });
+  } catch (err) {
+    console.error("Failed to create outfit:", err);
+    return NextResponse.json({ error: "Couldn't save this outfit right now." }, { status: 500 });
   }
 }
 

@@ -1,5 +1,6 @@
 import type { ClothingItem, Outfit, OutfitItem } from "@/generated/prisma/client";
-import { orderedLayerEntries } from "@/lib/layering";
+import { orderedLayerEntries, sanitizeLayeredOutfit } from "@/lib/layering";
+import { prisma } from "@/lib/prisma";
 
 type OutfitWithItems = Outfit & { items: (OutfitItem & { item: ClothingItem })[] };
 
@@ -23,3 +24,15 @@ export function serializeOutfit(outfit: OutfitWithItems) {
     layers: orderedLayerEntries(items),
   };
 }
+
+const MAX_PIECES = 12;
+
+/** Ids of the person's own closet pieces, in a valid combination (no bottom with a one-piece), or null if any isn't theirs. */
+export async function ownedPieces(userId: string, value: unknown) {
+  if (!Array.isArray(value) || value.length === 0 || value.length > MAX_PIECES) return null;
+  const ids = [...new Set(value.filter((v): v is string => typeof v === "string"))];
+  const items = await prisma.clothingItem.findMany({ where: { id: { in: ids }, userId } });
+  if (items.length !== ids.length) return null;
+  return sanitizeLayeredOutfit(items);
+}
+

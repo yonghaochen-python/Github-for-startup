@@ -3,7 +3,7 @@ import { track } from "@/lib/analytics";
 import { clearCurrentLook, deleteOutfitTryOns, getCurrentLook, outfitTryOnVersion } from "@/lib/personalPhoto";
 import { prisma } from "@/lib/prisma";
 import { requireUser } from "@/lib/auth";
-import { serializeOutfit } from "@/lib/outfits";
+import { ownedPieces, serializeOutfit } from "@/lib/outfits";
 import { explainOutfit } from "@/lib/generateOutfits";
 import { withRetry } from "@/lib/dbRetry";
 
@@ -55,6 +55,24 @@ export async function PATCH(request: Request, ctx: RouteContext<"/api/outfits/[i
   if (typeof b.isFavorite === "boolean") {
     await prisma.outfit.update({ where: { id }, data: { isFavorite: b.isFavorite } });
     if (b.isFavorite && !outfit.isFavorite) await track(user.id, "look_saved");
+  }
+
+  // Replace all the pieces at once (the Studio).
+  if (b.itemIds !== undefined) {
+    const items = await ownedPieces(user.id, b.itemIds);
+    if (!items) return NextResponse.json({ error: "Pick at least one piece from your closet." }, { status: 400 });
+    const before = new Set(outfit.items.map((oi) => oi.itemId));
+    const changed = items.length !== before.size || items.some((item) => !before.has(item.id));
+    if (changed) {
+      await prisma.outfitItem.deleteMany({ where: { outfitId: id } });
+      await prisma.outfitItem.createMany({ data: items.map((item) => ({ outfitId: id, itemId: item.id })) });
+      // A try-on of this outfit shows the old pieces now, so take it off rather than show a stale picture.
+      const look = await getCurrentLook(user.id).catch(() => null);
+      if (look?.outfitId === id) await clearCurrentLook(user.id).catch(() => {});
+      await deleteOutfitTryOns(user.id, [id]).catch(() => {});
+      const rationale = await explainOutfit(items).catch(() => null);
+      if (rationale) await prisma.outfit.update({ where: { id }, data: { rationale } });
+    }
   }
 
   // Change one piece (removeItemId + addItemId) or take one out (removeItemId alone; an outfit keeps at least one).
