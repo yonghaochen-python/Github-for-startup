@@ -107,15 +107,14 @@ export default function OutfitsPage() {
     <main className="flex-1 pb-16">
       <PageShell>
         <PageHeader
-          label="AI Stylist"
-          title="AI Stylist"
-          description="Create outfits from the pieces you already own. Describe any theme or occasion, and your stylist builds looks from your closet."
+                    title="AI Stylist"
+          description="Outfits from the clothes you own."
         />
 
         {tooFewPieces ? (
           <EmptyState
             title="Add a few pieces first"
-            body="Your stylist builds looks only from clothes in your closet, so it needs at least two pieces to work with."
+            body="You need at least two pieces in your closet to create outfits."
             action={
               <Link href="/closet?add=1" className={btnPrimary}>
                 <PlusIcon className="h-4 w-4" /> Add Clothes
@@ -124,7 +123,7 @@ export default function OutfitsPage() {
           />
         ) : (
           <div className="max-w-4xl">
-            <Step n={1} title="What's the theme?" hint="Type anything — an occasion, a mood, a place or an era.">
+            <Step n={1} title="What's the theme?" hint="An occasion, a mood, a place, an era.">
               <form
                 onSubmit={(e) => {
                   e.preventDefault();
@@ -163,10 +162,10 @@ export default function OutfitsPage() {
                   </button>
                 ))}
               </div>
-              <p className="mt-3 text-[11.5px] text-[#7e888e]">Leave it empty for versatile everyday looks.</p>
+              <p className="mt-3 text-[11.5px] text-[#7e888e]">Leave empty for everyday outfits.</p>
             </Step>
 
-            <Step n={2} title="Your preferences" hint="Optional — skip anything you don't mind.">
+            <Step n={2} title="Your preferences" hint="Optional.">
               <p className="mb-2 text-[11px] font-semibold text-[#5f6a70]">Style</p>
               <div className="mb-3 flex flex-wrap gap-2">
                 {STYLES.map((s) => (
@@ -200,7 +199,7 @@ export default function OutfitsPage() {
               </div>
             </Step>
 
-            <Step n={3} title="Clothes to use" hint="Your stylist works with everything in your closet.">
+            <Step n={3} title="Clothes to use" hint="Outfits use everything in your closet.">
               <div className="flex flex-wrap items-center gap-3 border border-[#dce2e4] bg-white/60 px-4 py-3">
                 <ClosetIcon className="h-5 w-5 text-[#5f6a70]" />
                 <p className="text-[13px] text-[#1c2328]">
@@ -212,7 +211,7 @@ export default function OutfitsPage() {
               </div>
             </Step>
 
-            <Step n={4} title="Generate" hint="Takes a few seconds. Each look uses only your own clothes.">
+            <Step n={4} title="Generate" hint="Takes a few seconds.">
               <button onClick={handleGenerate} disabled={generating} className={`${btnPrimary} min-h-[52px] px-7 text-[13.5px]`}>
                 <SparkleIcon className="h-4 w-4" />
                 {generating ? "Creating your outfits…" : "Generate My Outfits"}
@@ -233,11 +232,11 @@ export default function OutfitsPage() {
               <div className="mb-5">
                 <p className={`${eyebrow} mb-1`}>Your new looks</p>
                 <h2 id="results-title" className="font-display text-[34px] font-normal text-[#1c2328]">
-                  {generating ? "Your stylist is putting looks together…" : `${results.length} outfits for “${resultLabel}”`}
+                  {generating ? "Creating outfits…" : `${results.length} outfits for “${resultLabel}”`}
                 </h2>
                 {!generating && (
                   <p className="mt-1 text-[13px] text-[#5f6a70]">
-                    Press Try On to see a look on your saved photo, or Save Look to keep it.
+                    Try one on, or save it for later.
                   </p>
                 )}
               </div>

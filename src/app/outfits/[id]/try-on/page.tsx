@@ -22,10 +22,10 @@ type TryOnResult = { isMock: boolean; provider: string; imageDataUrl: string | n
 type Stage = "ready" | "generating" | "result";
 
 const STATUS_STEPS = [
-  "Preparing your outfit…",
-  "Sending your photo and pieces to the try-on studio…",
-  "Dressing your photo — this usually takes 10–20 seconds…",
-  "Adding the finishing details…",
+  "Getting your outfit ready…",
+  "Creating your try-on…",
+  "Usually takes 10–20 seconds…",
+  "Almost done…",
 ];
 
 const photoFrame = "relative mx-auto aspect-[3/4] w-full max-w-[260px] sm:max-w-[420px] overflow-hidden border border-[#d9dfdf] bg-[#eef2f3]";
@@ -181,7 +181,6 @@ export default function TryOnPage() {
       <main className="flex-1 pb-16">
         <PageShell>
           <PageHeader
-            label="Try On"
             title="Outfit not available"
             description={loadState === "error" ? "Couldn't load this outfit. Please try again." : "This outfit doesn't exist anymore."}
             actions={<Link href="/try-on" className={btnPrimary}>Choose Another Outfit</Link>}
@@ -201,19 +200,18 @@ export default function TryOnPage() {
     <main className="flex-1 pb-16">
       <PageShell>
         <PageHeader
-          label="Try On"
           back={{ href: `/outfits/${outfit.id}`, label: "Back to outfit details" }}
           title={stage === "result" || wearingThis ? "Your try-on" : "Try this outfit on"}
           description={
             changingPhoto
-              ? "Choose a new full-body photo. Once you save it, it replaces your current one for every try-on."
+              ? "Choose a new full-body photo. It replaces your current one."
               : needsPhoto
-              ? "First, save one full-body photo. After that, every outfit uses it automatically."
+              ? "Save a full-body photo first. You only do this once."
               : stage === "generating"
-                ? "Generating your try-on with your saved photo. You can stay on this page — it takes a few seconds."
+                ? "Creating your try-on…"
               : stage === "result" || wearingThis
-                ? "Here's the look on you. It stays on your photo until you try another outfit or take it off."
-                : "Your saved photo and this outfit are ready. Press Generate Try-On to see them together."
+                ? "Here's the look on you."
+                : "Ready to try on."
           }
         />
 
@@ -229,7 +227,7 @@ export default function TryOnPage() {
               onSaved={() => setChangingPhoto(false)}
               onCancel={hasPhoto ? () => setChangingPhoto(false) : undefined}
             />
-            <SelectedOutfit name={outfitName} items={items} note="This outfit stays selected while you save your photo." />
+            <SelectedOutfit name={outfitName} items={items} note="This outfit stays selected." />
           </div>
         ) : (stage === "result" && result) || wearingThis ? (
           <div ref={resultRef} className="grid scroll-mt-24 gap-10 lg:grid-cols-[minmax(0,1.1fr)_minmax(0,.9fr)]">
@@ -252,7 +250,7 @@ export default function TryOnPage() {
               <p className="mx-auto mt-3 max-w-[520px] text-[11.5px] leading-relaxed text-[#7e888e]">
                 {result?.isMock
                   ? "The AI try-on isn't connected here, so this shows your photo, not a generated image of you wearing the pieces."
-                  : "AI-generated preview — fit and small details may differ slightly from the real pieces."}
+                  : "Preview only. Fit and details may differ from the real clothes."}
                 {result?.notShown && result.notShown.length > 0 && (
                   <> Not shown: {result.notShown.map((n) => n.description).join(", ")}.</>
                 )}
@@ -287,7 +285,7 @@ export default function TryOnPage() {
                   </button>
                 </div>
                 <p className="text-[11.5px] text-[#7e888e]">
-                  This look stays on your photo across Virm until you try another outfit or take it off.
+                  This stays on your photo until you change it.
                 </p>
               </div>
               <SelectedOutfit name={outfitName} items={items} />
@@ -329,7 +327,7 @@ export default function TryOnPage() {
                   {stage === "generating" ? "Generating…" : "Generate Try-On"}
                 </button>
                 <p role="status" aria-live="polite" className="text-[12.5px] text-[#5f6a70]">
-                  {stage === "generating" ? STATUS_STEPS[statusIndex] : "Uses your saved photo — no upload needed."}
+                  {stage === "generating" ? STATUS_STEPS[statusIndex] : "Uses your saved photo."}
                 </p>
               </div>
             </div>

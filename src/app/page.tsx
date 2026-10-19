@@ -20,10 +20,10 @@ import {
 } from "@/components/Icons";
 
 const STEPS = [
-  { title: "Add Clothes", body: "Upload the pieces you already own." },
-  { title: "Build Closet", body: "Create a personal digital wardrobe." },
-  { title: "Get Styled", body: "Tell your AI stylist where you're going." },
-  { title: "See Outfit", body: "Wear a look built from your real clothes." },
+  { title: "Add clothes", body: "Photograph what you own." },
+  { title: "Build your closet", body: "Everything in one place." },
+  { title: "Get styled", body: "Say where you're going." },
+  { title: "Try it on", body: "See the outfit on you." },
 ];
 
 
@@ -94,7 +94,7 @@ export default function Home() {
               <em className="text-[#3d5266]">reflected.</em>
             </h1>
             <p className="mt-5 max-w-md text-[16px] leading-relaxed text-[#2f3b47]">
-              Virm learns the pieces you own, styles them for wherever you&apos;re going, and shows each look on you.
+              Outfits from the clothes you own, shown on you.
             </p>
             <div className="mt-8 flex flex-wrap gap-3">
               <Link href="/login" className={btnPrimary}>
@@ -132,8 +132,8 @@ export default function Home() {
                   A closet to style from day one.
                 </h2>
                 <p className="mt-3 max-w-lg text-[15px] leading-relaxed text-[#4f5b66]">
-                  Every new account starts with a 20-piece sample closet — men&apos;s and women&apos;s, summer and winter.
-                  Keep, edit, or remove any piece, and add your own.
+                  New accounts start with 20 sample pieces, men&apos;s and women&apos;s. Keep them, edit them, or add your
+                  own.
                 </p>
               </div>
               <Link href="/login" className={`${btnPrimary} self-start sm:self-auto`}>
@@ -169,10 +169,10 @@ export default function Home() {
 }
 
 function nextStep(hasPhoto: boolean, closetCount: number, outfitCount: number) {
-  if (closetCount === 0) return { text: "Start by adding a few clothes you own — your closet powers everything else.", href: "/closet?add=1", cta: "Add Clothes" };
-  if (!hasPhoto) return { text: "Save one full-body photo so you can see any outfit on yourself.", href: "#mirror", cta: "Upload My Photo" };
-  if (outfitCount === 0) return { text: "Ask your AI stylist to put together a look from your closet.", href: "/outfits", cta: "Create an Outfit" };
-  return { text: "Pick a look and see it on your saved photo.", href: "/try-on", cta: "Try On an Outfit" };
+  if (closetCount === 0) return { text: "Add a few clothes to get started.", href: "/closet?add=1", cta: "Add Clothes" };
+  if (!hasPhoto) return { text: "Save a full-body photo to try outfits on.", href: "#mirror", cta: "Upload My Photo" };
+  if (outfitCount === 0) return { text: "Create your first outfit.", href: "/outfits", cta: "Create an Outfit" };
+  return { text: "Try a look on.", href: "/try-on", cta: "Try On an Outfit" };
 }
 
 function Dashboard({ email, closet, outfits }: { email: string; closet: ClothingItem[]; outfits: Outfit[] }) {
@@ -257,8 +257,8 @@ function Dashboard({ email, closet, outfits }: { email: string; closet: Clothing
                     </h2>
                     <p className="max-w-md text-[14px] leading-relaxed text-[#5f6a70]">
                       {user?.look
-                        ? "Your latest try-on stays on your photo until you try something else or take it off."
-                        : "Your try-on photo is saved. Pick any outfit and see it on you — no new upload needed."}
+                        ? "Showing your latest try-on."
+                        : "Your photo is saved. Pick any outfit to try on."}
                     </p>
                     <CurrentLookBar />
                     <div className="flex flex-wrap items-center gap-3">
@@ -279,8 +279,7 @@ function Dashboard({ email, closet, outfits }: { email: string; closet: Clothing
                       Start with your photo
                     </h2>
                     <p className="max-w-md text-[14px] leading-relaxed text-[#5f6a70]">
-                      Upload one full-body photo to see how different outfits look on you. Save it once and reuse it
-                      whenever you try on a new look.
+                      Upload one full-body photo. You&apos;ll use it for every try-on.
                     </p>
                     <div className="flex flex-wrap items-center gap-3">
                       <button onClick={() => setSettingUpPhoto(true)} className={btnPrimary}>
@@ -290,7 +289,7 @@ function Dashboard({ email, closet, outfits }: { email: string; closet: Clothing
                         View My Closet <ArrowRightIcon className="h-4 w-4" />
                       </Link>
                     </div>
-                    <p className="text-[11.5px] text-[#7e888e]">Saved privately to your account. Only you can see it.</p>
+                    <p className="text-[11.5px] text-[#7e888e]">Only you can see it.</p>
                   </>
                 )}
               </div>
@@ -305,7 +304,7 @@ function Dashboard({ email, closet, outfits }: { email: string; closet: Clothing
               Icon={ClosetIcon}
               id="closet-title"
               title="My Closet"
-              body={closet.length > 0 ? `${closet.length} pieces, organized and ready to style.` : "Add photos of clothes you already own to build your digital wardrobe."}
+              body={closet.length > 0 ? `${closet.length} pieces.` : "Add photos of clothes you own."}
             />
             {closet.length > 0 ? (
               <div className="grid grid-cols-3 gap-2 px-6 sm:grid-cols-4 sm:px-8">
@@ -317,8 +316,7 @@ function Dashboard({ email, closet, outfits }: { email: string; closet: Clothing
               </div>
             ) : (
               <div className="mx-6 rounded-[16px] bg-[#f4f5f6] px-5 py-8 text-[13.5px] text-[#4f5b66] sm:mx-8">
-                Your closet is empty. Upload a photo of one item — or a few laid out together — and we&apos;ll sort them
-                for you.
+                Your closet is empty. Add a photo of one item, or a few laid out together.
               </div>
             )}
             <FeatureActions>
@@ -339,7 +337,7 @@ function Dashboard({ email, closet, outfits }: { email: string; closet: Clothing
                 Outfits from what you <em>already own</em>.
               </h2>
               <p className="mt-3 max-w-sm text-[13.5px] leading-relaxed text-[#c3cdd2]">
-                Choose an occasion and the weather, and your stylist builds complete looks from your closet.
+                Type a theme or occasion and get three outfits from your closet.
               </p>
               {latest && (
                 <div className="mt-6 flex gap-2" aria-label="Your latest outfit">
@@ -386,8 +384,8 @@ function Dashboard({ email, closet, outfits }: { email: string; closet: Clothing
               </h2>
               <p className="mt-2 flex-1 text-[13px] leading-relaxed text-[#5f6a70]">
                 {hasPhoto
-                  ? "Use your saved photo to preview a different outfit — as many as you like."
-                  : "Save one photo, then preview as many outfits on yourself as you like."}
+                  ? "Try any outfit on your saved photo."
+                  : "Save one photo, then try on any outfit."}
               </p>
               <Link href="/try-on" className={`${btnPrimary} mt-4 self-start`}>
                 Start Try-On
@@ -401,7 +399,7 @@ function Dashboard({ email, closet, outfits }: { email: string; closet: Clothing
               Icon={BookmarkIcon}
               id="saved-title"
               title="Saved Looks"
-              body={saved.length > 0 ? "Your favorite combinations, ready to wear again." : "Keep your favorite outfit combinations in one place."}
+              body={saved.length > 0 ? "Looks you've saved." : "Save looks you like to find them here."}
             />
             {saved.length > 0 ? (
               <div className="grid grid-cols-2 gap-4 px-6 sm:grid-cols-3 sm:px-8">
@@ -426,7 +424,7 @@ function Dashboard({ email, closet, outfits }: { email: string; closet: Clothing
               </div>
             ) : (
               <div className="mx-6 rounded-[16px] bg-[#f4f5f6] px-5 py-8 text-[13.5px] text-[#4f5b66] sm:mx-8">
-                Nothing saved yet. When the stylist makes a look you love, press Save Look to keep it here.
+                Nothing saved yet. Press Save Look on any outfit to keep it here.
               </div>
             )}
             <FeatureActions>

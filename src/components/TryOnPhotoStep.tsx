@@ -246,8 +246,7 @@ export function TryOnPhotoStep({
           <div>
             <h2 className="font-display mb-2 text-[30px] font-normal leading-tight text-[#1c2328]">Your personal try-on photo</h2>
             <p className="mb-5 max-w-md text-[13.5px] leading-relaxed text-[#5f6a70]">
-              Upload a clear, full-body photo of yourself. We&apos;ll save it to your profile so you can reuse it for
-              future outfit previews.
+              A clear, full-body photo. You&apos;ll use it for every try-on.
             </p>
             <ul className="mb-6 grid gap-2 text-[12.5px] text-[#4f5a60]">
               {PHOTO_TIPS.map((tip) => (
@@ -275,8 +274,7 @@ export function TryOnPhotoStep({
               )}
             </div>
             <p className="mt-5 text-xs leading-relaxed text-[#7e888e]">
-              Nothing is saved until you press Save My Photo. It&apos;s stored privately on your account — only you can
-              see it — and you can change or remove it anytime.
+              Nothing is saved until you press Save My Photo. Only you can see it, and you can change it anytime.
             </p>
           </div>
         </div>
@@ -323,7 +321,7 @@ export function TryOnPhotoStep({
             <img src={pending.url} alt="Your photo" className="h-full w-full object-contain" />
           </div>
           <p className="mx-auto mt-3 max-w-[520px] text-xs text-[#7e888e]">
-            Check that your whole body is visible. This is the photo every try-on will use.
+            Make sure your whole body is visible.
           </p>
           <ActionBar>
             <button onClick={() => onConfirm(pending.blob)} disabled={saving} className={`${primaryButton} flex-1`}>

@@ -40,9 +40,8 @@ export default function SavedLooksPage() {
     <main className="flex-1 pb-16">
       <PageShell>
         <PageHeader
-          label="Saved Looks"
-          title="Saved Looks"
-          description="Keep your favorite outfit combinations in one place. Try any of them on with your saved photo in one click."
+                    title="Saved Looks"
+          description="Looks you've saved."
           actions={
             saved.length > 0 ? (
               <Link href="/outfits" className={btnSecondary}>
@@ -63,8 +62,8 @@ export default function SavedLooksPage() {
           </div>
         ) : saved.length === 0 ? (
           <EmptyState
-            title="Your favorite outfits will live here."
-            body="Generate an outfit you love and save it to find it here later."
+            title="No saved looks yet"
+            body="Press Save Look on any outfit to keep it here."
             action={
               <Link href="/outfits" className={btnPrimary}>
                 <SparkleIcon className="h-4 w-4" /> Create an Outfit

@@ -191,7 +191,7 @@ export default function OutfitDetailPage() {
       setOutfit(data.outfit);
       setSwappingId(null);
       setReplacementId("");
-      showToast("Your outfit has been updated.");
+      showToast("Outfit updated");
       // If this outfit was the current look, the server took it off; pick that up everywhere.
       refreshUser();
     } catch (err) {
@@ -426,7 +426,7 @@ export default function OutfitDetailPage() {
 
           {showMissingPiece && (
             <p className="mt-3 bg-amber-50 px-4 py-3 text-sm text-amber-900">
-              {missingPieceMessage ?? "This outfit already covers every layer it needs — nothing missing here."}
+              {missingPieceMessage ?? "Nothing missing. This outfit is complete."}
             </p>
           )}
         </div>

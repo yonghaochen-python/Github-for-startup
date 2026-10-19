@@ -39,7 +39,7 @@ export function useTakeOffLook() {
       return false;
     }
     await refreshUser();
-    showToast("Look taken off — showing your original photo");
+    showToast("Look taken off");
     return true;
   };
 }
@@ -83,7 +83,7 @@ export function SavedPhotoSetup({ onSaved, onCancel }: { onSaved?: () => void; o
       const data = (await res.json().catch(() => ({}))) as { error?: string };
       if (!res.ok) throw new Error(data.error ?? "Couldn't save your photo right now. Please try again.");
       await refreshUser();
-      showToast("Your try-on photo is saved");
+      showToast("Photo saved");
       onSaved?.();
     } catch (err) {
       setError(err instanceof Error ? err.message : "Couldn't save your photo right now. Please try again.");
@@ -116,7 +116,7 @@ export function useRemoveSavedPhoto() {
       return false;
     }
     await refreshUser();
-    showToast("Your try-on photo was removed");
+    showToast("Photo removed");
     return true;
   };
 }

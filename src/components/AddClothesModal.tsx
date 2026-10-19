@@ -233,10 +233,10 @@ export function AddClothesModal({ onClose, onAdded }: { onClose: () => void; onA
               </button>
             </div>
             <h2 className="mb-1 text-xl font-semibold tracking-tight text-[#29343a]">
-              Add multiple clothing pieces at once
+              Add clothes
             </h2>
             <p className="mb-5 text-sm text-[#445159]">
-              Upload a photo of several clothing items. AI will identify each piece and add them to your closet.
+              Upload a photo of one item or several. Virm finds each piece and labels it.
             </p>
             <label
               onDragOver={(e) => {
@@ -256,8 +256,7 @@ export function AddClothesModal({ onClose, onAdded }: { onClose: () => void; onA
               <input type="file" accept={ACCEPTED_TYPES.join(",")} className="hidden" onChange={handleInputChange} />
             </label>
             <p className="mt-4 text-xs text-[#89949a]">
-              For best results, place clothing pieces separately so each item is clearly visible. On mobile, your
-              photo picker can also open the camera directly.
+              Lay pieces out separately so each one is clearly visible.
             </p>
           </div>
         )}
@@ -297,8 +296,7 @@ export function AddClothesModal({ onClose, onAdded }: { onClose: () => void; onA
             {items.length === 0 ? (
               <div className="mb-5 rounded-xl border border-[#dce2e4] p-6 text-center">
                 <p className="mb-4 text-sm text-[#445159]">
-                  We couldn&apos;t confidently identify the clothing in this photo. Try a photo with the pieces more
-                  separated, or add items manually.
+                  We couldn&apos;t find clothes in this photo. Try spacing the pieces out, or add items manually.
                 </p>
                 <div className="flex flex-wrap justify-center gap-3">
                   <button

@@ -209,9 +209,8 @@ export default function ClosetPage() {
     <main className="flex-1 pb-16">
       <PageShell>
         <PageHeader
-          label="My Closet"
-          title="My Closet"
-          description="Everything you own, organized in one place. Add photos of clothes you already own to build your digital wardrobe."
+                    title="My Closet"
+          description="Everything you own, in one place."
           actions={
             <>
               <button onClick={() => setShowAddClothes(true)} className={btnPrimary}>
@@ -234,7 +233,7 @@ export default function ClosetPage() {
               <span className="flex h-6 w-6 items-center justify-center rounded-full bg-[#1c2328] text-white">
                 <CheckIcon className="h-3.5 w-3.5" />
               </span>
-              {justAdded === 1 ? "Your piece is in your closet." : `${justAdded} pieces are in your closet.`} What next?
+              {justAdded === 1 ? "Added to your closet." : `${justAdded} pieces added to your closet.`}
             </p>
             <div className="flex flex-wrap items-center gap-2">
               <button onClick={() => setShowAddClothes(true)} className={btnSecondary}>
@@ -268,7 +267,7 @@ export default function ClosetPage() {
         ) : items.length === 0 ? (
           <EmptyState
             title="Your closet is empty"
-            body="Start with a photo of one piece, or several pieces laid out together — Virm finds each item and labels it for you. You can check and edit everything before it's added."
+            body="Add a photo of one piece, or several laid out together. Virm labels each item, and you can edit before saving."
             action={
               <button onClick={() => setShowAddClothes(true)} className={btnPrimary}>
                 <PlusIcon className="h-4 w-4" /> Add Your First Item
@@ -342,7 +341,7 @@ export default function ClosetPage() {
             {filteredItems.length === 0 ? (
               <EmptyState
                 title="Nothing matches"
-                body="No pieces fit these filters. Try another category, clear the filters, or add something new."
+                body="Nothing matches these filters."
                 action={
                   <div className="flex flex-wrap gap-3">
                     <button onClick={() => { clearFilters(); setCategory("all"); }} className={btnSecondary}>Show all items</button>

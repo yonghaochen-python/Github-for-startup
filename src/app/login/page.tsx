@@ -82,7 +82,7 @@ export default function LoginPage() {
       });
       const data = (await res.json().catch(() => ({}))) as { error?: string };
       if (!res.ok) throw new Error(data.error ?? "Couldn't sign you in right now. Please try again.");
-      completeLogin(creating ? "Welcome to Virm. Your closet is ready." : "Welcome back to your wardrobe.");
+      completeLogin(creating ? "Welcome to Virm. Your closet is ready." : "Welcome back.");
     } catch (err) {
       setError(err instanceof Error ? err.message : "Something went wrong");
       setSubmitting(false);
@@ -127,8 +127,8 @@ export default function LoginPage() {
           </h1>
           <p className="mb-8 text-xs leading-[1.75] text-[#7c878d]">
             {creating
-              ? "Create an account to build your digital closet and discover new ways to wear it."
-              : "Sign in to return to your closet, saved looks, and personal AI stylist."}
+              ? "Build your closet and see new ways to wear it."
+              : "Sign in to your closet."}
           </p>
 
           <label className="flex flex-col gap-2.5 text-[8px] font-bold tracking-[1.6px] text-[#7f8a90]">
@@ -172,8 +172,8 @@ export default function LoginPage() {
 
           {creating && (
             <p className="mt-3 text-[10px] leading-relaxed text-[#7e888e]">
-              Virm records basic, anonymous usage — like which features are opened and whether AI requests succeed — to
-              improve the app. It never includes your photos, clothes or password.
+              We record anonymous usage, like which pages are opened, to improve Virm. Never your photos, clothes or
+              password.
             </p>
           )}
 

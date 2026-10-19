@@ -41,7 +41,7 @@ export default function ProfilePage() {
   return (
     <main className="flex-1 pb-16">
       <PageShell>
-        <PageHeader label="Profile" title="Profile" description="Your account, your try-on photo, and your wardrobe at a glance." />
+        <PageHeader title="Profile" description="Your account and try-on photo." />
 
         <div className="grid gap-6 lg:grid-cols-[minmax(0,1fr)_minmax(0,1.2fr)]">
           <section aria-labelledby="account" className="border border-[#cbd7dc] bg-white/60 p-6 sm:p-8">
@@ -76,7 +76,7 @@ export default function ProfilePage() {
                 <div className="flex flex-col p-6 sm:p-8">
                   <p id="photo" className={`${eyebrow} mb-2`}>Your saved try-on photo</p>
                   <p className="text-[13.5px] leading-relaxed text-[#5f6a70]">
-                    Every try-on uses this photo. It&apos;s stored privately on your account and only you can see it.
+                    Every try-on uses this photo. Only you can see it.
                   </p>
                   <div className="mt-3">
                     <CurrentLookBar />

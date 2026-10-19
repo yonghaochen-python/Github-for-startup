@@ -45,12 +45,11 @@ export default function TryOnHubPage() {
     <main className="flex-1 pb-16">
       <PageShell>
         <PageHeader
-          label="Try On"
-          title="Try On"
-          description="Use your saved photo to preview any outfit on yourself. Upload once, then try as many looks as you like."
+                    title="Try On"
+          description="Try any outfit on your saved photo."
         />
         <div className="mb-8">
-          <Steps steps={["Save your full-body photo", "Choose an outfit", "Generate your try-on"]} />
+          <Steps steps={["Save your photo", "Pick an outfit", "See it on you"]} />
         </div>
 
         {showSetup ? (
@@ -70,8 +69,8 @@ export default function TryOnHubPage() {
                   <p className={`${eyebrow} mb-1.5`}>{user?.look ? "Your current look" : "Your saved try-on photo"}</p>
                   <p className="text-[12.5px] leading-relaxed text-[#5f6a70]">
                     {user?.look
-                      ? "Your latest try-on stays on until you try another outfit. New try-ons start from your original photo."
-                      : "Every try-on uses this photo. Only you can see it."}
+                      ? "Showing your latest try-on."
+                      : "Only you can see this photo."}
                   </p>
                   <div className="mt-2">
                     <CurrentLookBar />
@@ -100,7 +99,7 @@ export default function TryOnHubPage() {
                   Choose an outfit
                 </h2>
                 <p className="mt-1 text-[13px] text-[#5f6a70]">
-                  {hasPhoto ? "Pick a look to see it on your saved photo." : "Save your photo above first, then pick a look here."}
+                  {hasPhoto ? "Pick a look." : "Save your photo first."}
                 </p>
               </div>
               {outfits && outfits.length > 0 && (
@@ -128,7 +127,7 @@ export default function TryOnHubPage() {
             {outfits && outfits.length === 0 && (
               <EmptyState
                 title="No outfits yet"
-                body="Ask the AI Stylist for a look built from your closet. It will appear here, ready to try on."
+                body="Create an outfit in AI Stylist and it will show up here."
                 action={
                   <Link href="/outfits" className={btnPrimary}>
                     <SparkleIcon className="h-4 w-4" /> Create an Outfit
@@ -140,7 +139,7 @@ export default function TryOnHubPage() {
             {outfits && outfits.length > 0 && shown.length === 0 && (
               <EmptyState
                 title="No saved looks yet"
-                body="Save a look you love from the AI Stylist, or switch to All outfits to try any of them."
+                body="Switch to All outfits to see everything you've created."
                 action={
                   <button onClick={() => setTab("recent")} className={btnSecondary}>
                     Show all outfits

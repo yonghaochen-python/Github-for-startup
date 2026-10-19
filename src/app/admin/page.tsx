@@ -132,9 +132,8 @@ export default function AdminPage() {
     <main className="flex-1 pb-16">
       <PageShell>
         <PageHeader
-          label="Admin"
-          title="Virm dashboard"
-          description="Owner-only. Every number comes from your real database; days are counted in UTC. No photos or clothing details are shown here."
+          title="Dashboard"
+          description="Owner only. Real numbers from your database; days are in UTC."
         />
 
         {/* Date filters */}
