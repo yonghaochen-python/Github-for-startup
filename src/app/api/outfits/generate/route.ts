@@ -6,9 +6,11 @@ import { requireUser } from "@/lib/auth";
 import { serializeOutfit } from "@/lib/outfits";
 import { sanitizeLayeredOutfit } from "@/lib/layering";
 
-function str(value: unknown): string | undefined {
-  return typeof value === "string" && value.trim() ? value.trim() : undefined;
+function str(value: unknown, maxLength = 200): string | undefined {
+  return typeof value === "string" && value.trim() ? value.trim().slice(0, maxLength) : undefined;
 }
+
+const MAX_THEME_LENGTH = 120;
 
 export async function POST(request: Request) {
   let user;
@@ -20,8 +22,11 @@ export async function POST(request: Request) {
 
   const body: unknown = await request.json().catch(() => ({}));
   const b = body && typeof body === "object" ? (body as Record<string, unknown>) : {};
+  const theme = str(b.theme, MAX_THEME_LENGTH);
   const outfitRequest: OutfitRequest = {
-    occasion: str(b.occasion),
+    theme,
+    // A searched theme doubles as the outfit's label (shown as its occasion on cards).
+    occasion: theme ?? str(b.occasion),
     weather: str(b.weather),
     style: str(b.style),
     colorPreference: str(b.colorPreference),

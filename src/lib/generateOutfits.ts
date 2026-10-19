@@ -45,6 +45,8 @@ export type GeneratedOutfit = {
 };
 
 export type OutfitRequest = {
+  /** Free-text theme the person searched for, e.g. "old money" or "rainy day in Paris". */
+  theme?: string;
   occasion?: string;
   weather?: string;
   style?: string;
@@ -103,7 +105,15 @@ function generateOutfitsFromClosetPlaceholder(closet: ClothingItem[]): Generated
 
 function describeRequest(request: OutfitRequest): string {
   const lines: string[] = [];
-  if (request.occasion) lines.push(`Occasion: ${request.occasion}`);
+  if (request.theme) {
+    lines.push(
+      `Theme the person asked for: "${request.theme}".`,
+      "Treat this as the main brief: interpret its style, era, setting, formality and mood, and build every",
+      "outfit around it using only their closet. If the closet can't fully capture the theme, get as close as",
+      "possible and say briefly in the rationale which kind of piece would complete the look."
+    );
+  }
+  if (request.occasion && request.occasion !== request.theme) lines.push(`Occasion: ${request.occasion}`);
   if (request.weather) lines.push(`Weather: ${request.weather}`);
   if (request.style) lines.push(`Preferred style: ${request.style}`);
   if (request.colorPreference) lines.push(`Color preference: ${request.colorPreference}`);

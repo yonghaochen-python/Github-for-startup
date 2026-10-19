@@ -4,16 +4,20 @@ import { useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import type { Outfit } from "@/components/OutfitCard";
 import { OutfitBoard, OutfitBoardSkeleton } from "@/components/OutfitBoard";
-import { ClosetIcon, PlusIcon, SparkleIcon } from "@/components/Icons";
+import { ClosetIcon, PlusIcon, SearchIcon, SparkleIcon } from "@/components/Icons";
 import { EmptyState, ErrorNote, PageHeader, PageShell, btnPrimary, eyebrow } from "@/components/ui";
 
 const OCCASIONS = ["Everyday", "School", "Work", "Date", "Dinner", "Party", "Interview", "Special Event"];
+const THEME_IDEAS = ["Old money", "Rainy day in Paris", "90s grunge", "Beach wedding guest", "Cozy weekend", "Gallery opening"];
+const MAX_THEME = 120;
 const STYLES = ["Casual", "Minimal", "Streetwear", "Preppy", "Feminine", "Clean", "Custom"];
 const CONDITIONS = ["Partly cloudy", "Sunny", "Cloudy", "Rainy", "Windy", "Snowy"];
 
 const chip = (selected: boolean) =>
-  `btn-tactile min-h-[40px] rounded-[5px] border px-4 text-[12.5px] font-medium transition-colors ${
-    selected ? "border-[#1c2328] bg-[#1c2328] text-white" : "border-[#cbd7dc] bg-white/70 text-[#3b4850] hover:border-[#7e888e]"
+  `btn-tactile min-h-[38px] rounded-full px-4 text-[13px] transition-colors ${
+    selected
+      ? "bg-[#121821] text-white"
+      : "bg-white text-[#2f3b47] shadow-[inset_0_0_0_1px_rgba(18,24,33,0.12)] hover:shadow-[inset_0_0_0_1px_rgba(18,24,33,0.3)]"
   }`;
 const inputClass =
   "min-h-[44px] w-full rounded-[5px] border border-[#cbd7dc] bg-white/80 px-3 text-[13px] text-[#1c2328] outline-none placeholder:text-[#9aa5aa] focus:border-[#1c2328]";
@@ -39,7 +43,10 @@ export default function OutfitsPage() {
   const [error, setError] = useState<string | null>(null);
   const resultsRef = useRef<HTMLDivElement | null>(null);
 
-  const [occasion, setOccasion] = useState("Everyday");
+  const [theme, setTheme] = useState("");
+  const themeInputRef = useRef<HTMLInputElement | null>(null);
+  // What the results are "for": the searched theme, or Everyday when nothing was typed.
+  const [resultLabel, setResultLabel] = useState("everyday");
   const [styleChoice, setStyleChoice] = useState("Casual");
   const [customStyle, setCustomStyle] = useState("");
   const [temperature, setTemperature] = useState("");
@@ -62,6 +69,7 @@ export default function OutfitsPage() {
     setError(null);
     setGenerating(true);
     setResults([]);
+    setResultLabel(theme.trim() || "everyday");
     requestAnimationFrame(() => resultsRef.current?.scrollIntoView({ behavior: "smooth", block: "start" }));
     try {
       const style = styleChoice === "Custom" ? customStyle || undefined : styleChoice;
@@ -69,7 +77,14 @@ export default function OutfitsPage() {
       const res = await fetch("/api/outfits/generate", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ occasion, weather, style, colorPreference: colorPreference || undefined, prompt: prompt || undefined }),
+        body: JSON.stringify({
+          theme: theme.trim() || undefined,
+          occasion: theme.trim() ? undefined : "Everyday",
+          weather,
+          style,
+          colorPreference: colorPreference || undefined,
+          prompt: prompt || undefined,
+        }),
       });
       const data = (await res.json().catch(() => ({}))) as { error?: string; outfits?: Outfit[] };
       if (!res.ok || !data.outfits) throw new Error(data.error ?? "Couldn't generate outfits");
@@ -94,7 +109,7 @@ export default function OutfitsPage() {
         <PageHeader
           label="AI Stylist"
           title="AI Stylist"
-          description="Create outfits from the pieces you already own. Choose an occasion and generate outfit ideas from your closet."
+          description="Create outfits from the pieces you already own. Describe any theme or occasion, and your stylist builds looks from your closet."
         />
 
         {tooFewPieces ? (
@@ -109,14 +124,46 @@ export default function OutfitsPage() {
           />
         ) : (
           <div className="max-w-4xl">
-            <Step n={1} title="Where are you going?" hint="Pick the occasion you're dressing for.">
+            <Step n={1} title="What's the theme?" hint="Type anything — an occasion, a mood, a place or an era.">
+              <form
+                onSubmit={(e) => {
+                  e.preventDefault();
+                  if (!generating) handleGenerate();
+                }}
+                className="flex items-center gap-2 rounded-full bg-white p-1.5 pl-5 shadow-[0_1px_0_rgba(18,24,33,0.03),0_10px_28px_rgba(18,30,45,0.07)] focus-within:shadow-[0_0_0_2px_#121821]"
+              >
+                <SearchIcon className="h-[18px] w-[18px] shrink-0 text-[#6b7783]" />
+                <label htmlFor="theme" className="sr-only">Theme or occasion</label>
+                <input
+                  id="theme"
+                  ref={themeInputRef}
+                  value={theme}
+                  onChange={(e) => setTheme(e.target.value.slice(0, MAX_THEME))}
+                  placeholder="e.g. old money, rainy day in Paris, first date"
+                  className="min-h-[44px] min-w-0 flex-1 bg-transparent text-[15px] text-[#121821] outline-none placeholder:text-[#9aa5aa]"
+                />
+                <button type="submit" disabled={generating} className={`${btnPrimary} shrink-0`}>
+                  {generating ? "Styling…" : "Style it"}
+                </button>
+              </form>
+              <p className="mb-2 mt-4 text-[11px] font-medium text-[#6b7783]">Quick picks</p>
               <div className="flex flex-wrap gap-2">
-                {OCCASIONS.map((o) => (
-                  <button key={o} onClick={() => setOccasion(o)} className={chip(occasion === o)} aria-pressed={occasion === o}>
+                {[...OCCASIONS, ...THEME_IDEAS].map((o) => (
+                  <button
+                    key={o}
+                    type="button"
+                    onClick={() => {
+                      setTheme(o);
+                      themeInputRef.current?.focus();
+                    }}
+                    className={chip(theme.trim().toLowerCase() === o.toLowerCase())}
+                    aria-pressed={theme.trim().toLowerCase() === o.toLowerCase()}
+                  >
                     {o}
                   </button>
                 ))}
               </div>
+              <p className="mt-3 text-[11.5px] text-[#7e888e]">Leave it empty for versatile everyday looks.</p>
             </Step>
 
             <Step n={2} title="Your preferences" hint="Optional — skip anything you don't mind.">
@@ -186,7 +233,7 @@ export default function OutfitsPage() {
               <div className="mb-5">
                 <p className={`${eyebrow} mb-1`}>Your new looks</p>
                 <h2 id="results-title" className="font-display text-[34px] font-normal text-[#1c2328]">
-                  {generating ? "Your stylist is putting looks together…" : `${results.length} outfits for ${occasion.toLowerCase()}`}
+                  {generating ? "Your stylist is putting looks together…" : `${results.length} outfits for “${resultLabel}”`}
                 </h2>
                 {!generating && (
                   <p className="mt-1 text-[13px] text-[#5f6a70]">
