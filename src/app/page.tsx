@@ -6,6 +6,7 @@ import Image from "next/image";
 import type { LayeringRole } from "@/lib/layering";
 import { byLatestTryOn, type Outfit } from "@/components/OutfitCard";
 import { useAuth } from "@/components/AuthProvider";
+import { WhatsNewCard, WhatsNewSection } from "@/components/WhatsNew";
 import { LiquidGlass } from "@/components/LiquidGlass";
 import { CurrentLookBar, MirrorImage, SavedPhotoSetup } from "@/components/SavedPhoto";
 import { PageShell, btnPrimary, btnSecondary, eyebrow } from "@/components/ui";
@@ -106,6 +107,8 @@ export default function Home() {
             </div>
           </div>
         </section>
+
+        <WhatsNewSection />
 
         <section id="how-it-works" className="mx-auto w-full max-w-[1280px] px-5 py-24 sm:px-8">
           <p className={eyebrow}>How Virm works</p>
@@ -232,6 +235,7 @@ function Dashboard({ closet, outfits }: { closet: ClothingItem[]; outfits: Outfi
       </section>
 
       <PageShell className="pt-8">
+        <WhatsNewCard />
 
         {/* Your Virtual Mirror */}
         <section id="mirror" aria-labelledby="mirror-title" className="mb-6 scroll-mt-24 overflow-hidden rounded-[22px] bg-white shadow-[0_1px_0_rgba(18,24,33,0.03),0_14px_36px_rgba(18,30,45,0.06)]">
