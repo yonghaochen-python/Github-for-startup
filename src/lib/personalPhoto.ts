@@ -124,3 +124,15 @@ export async function deleteAllOutfitTryOns(userId: string): Promise<void> {
   const ids = [...(await listOutfitTryOns(userId)).keys()];
   for (let i = 0; i < ids.length; i += 1000) await deleteOutfitTryOns(userId, ids.slice(i, i + 1000));
 }
+
+/** This outfit's try-on picture refresh token, if it has one (taking over the current look the first time). */
+export async function outfitTryOnVersion(userId: string, outfitId: string): Promise<string | null> {
+  const head = await env.UPLOADS.head(outfitTryOnKey(userId, outfitId));
+  if (head) return head.customMetadata?.version ?? "1";
+  const look = await getCurrentLook(userId);
+  if (look?.outfitId !== outfitId) return null;
+  const image = await loadCurrentLook(userId);
+  if (!image) return null;
+  await saveOutfitTryOn(userId, outfitId, `data:${image.mediaType};base64,${Buffer.from(image.bytes).toString("base64")}`);
+  return (await env.UPLOADS.head(outfitTryOnKey(userId, outfitId)))?.customMetadata?.version ?? null;
+}

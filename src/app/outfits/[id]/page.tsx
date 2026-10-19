@@ -34,6 +34,8 @@ type Outfit = {
   style: string | null;
   items: ClothingItem[];
   layers: OutfitLayer[];
+  /** Refresh token of the person's latest try-on of this outfit, if there is one. */
+  tryOn?: string | null;
 };
 
 const TORSO_PROGRESSION: LayeringRole[] = ["base_layer", "one_piece", "mid_layer", "outer_layer"];
@@ -44,9 +46,9 @@ const TORSO_PROGRESSION: LayeringRole[] = ["base_layer", "one_piece", "mid_layer
  * large, standing in for a composed "worn" shot. Not a real composite image:
  * see lib/visualAssets.ts.
  */
-function OutfitBoardView({ layers }: { layers: OutfitLayer[] }) {
+function OutfitBoardView({ layers, wornImageSrc }: { layers: OutfitLayer[]; wornImageSrc?: string }) {
   const garments = layers.flatMap((l) => l.items);
-  return <EditorialOutfitVisual items={garments} large />;
+  return <EditorialOutfitVisual items={garments} large wornImageSrc={wornImageSrc} />;
 }
 
 /** Each piece shown isolated on its own clean card, per spec step 2. */
@@ -291,7 +293,7 @@ export default function OutfitDetailPage() {
       </div>
 
       <div className="grid gap-x-[6%] gap-y-8 lg:grid-cols-[1.03fr_.97fr]">
-        <div className="min-w-0 overflow-hidden rounded-[22px] bg-white shadow-[0_1px_0_rgba(18,24,33,0.03),0_14px_36px_rgba(18,30,45,0.06)]">{mode === "outfit" ? <OutfitBoardView layers={boardLayers} /> : <ItemsGridView items={outfit.items} />}</div>
+        <div className="min-w-0 overflow-hidden rounded-[22px] bg-white shadow-[0_1px_0_rgba(18,24,33,0.03),0_14px_36px_rgba(18,30,45,0.06)]">{mode === "outfit" ? <OutfitBoardView layers={boardLayers} wornImageSrc={outfit.tryOn ? `/api/outfits/${outfit.id}/try-on/image?v=${outfit.tryOn}` : undefined} /> : <ItemsGridView items={outfit.items} />}</div>
 
         <div className="min-w-0 pt-1">
           <p className="mb-2 text-[10px] font-bold uppercase tracking-[2.6px] text-[#6b7783]">Outfit details</p>

@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { track } from "@/lib/analytics";
-import { clearCurrentLook, deleteOutfitTryOns, getCurrentLook } from "@/lib/personalPhoto";
+import { clearCurrentLook, deleteOutfitTryOns, getCurrentLook, outfitTryOnVersion } from "@/lib/personalPhoto";
 import { prisma } from "@/lib/prisma";
 import { requireUser } from "@/lib/auth";
 import { serializeOutfit } from "@/lib/outfits";
@@ -30,7 +30,7 @@ export async function GET(request: Request, ctx: RouteContext<"/api/outfits/[id]
   try {
     const outfit = await loadOwnedOutfit(id, user.id);
     if (!outfit) return NextResponse.json({ error: "Outfit not found." }, { status: 404 });
-    return NextResponse.json({ outfit: serializeOutfit(outfit) });
+    return NextResponse.json({ outfit: { ...serializeOutfit(outfit), tryOn: await tryOnOf(user.id, id) } });
   } catch (err) {
     console.error("Failed to load outfit:", err);
     return NextResponse.json({ error: "Couldn't load this outfit right now." }, { status: 500 });
@@ -85,5 +85,13 @@ export async function PATCH(request: Request, ctx: RouteContext<"/api/outfits/[i
 
   const updated = await loadOwnedOutfit(id, user.id);
   if (!updated) return NextResponse.json({ error: "Outfit not found." }, { status: 404 });
-  return NextResponse.json({ outfit: serializeOutfit(updated) });
+  return NextResponse.json({ outfit: { ...serializeOutfit(updated), tryOn: await tryOnOf(user.id, id) } });
+}
+
+/** The outfit's try-on picture version; a storage hiccup just means the page shows the clothes instead. */
+function tryOnOf(userId: string, outfitId: string) {
+  return outfitTryOnVersion(userId, outfitId).catch((err) => {
+    console.error("Couldn't check the outfit's try-on picture:", err);
+    return null;
+  });
 }

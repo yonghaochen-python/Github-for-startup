@@ -17,7 +17,16 @@ const WORN_PRIORITY: LayeringRole[] = ["outer_layer", "one_piece", "mid_layer"];
  * person-wearing-outfit compositing exists yet, so this reuses real item photos
  * rather than faking one).
  */
-export function EditorialOutfitVisual({ items, large = false }: { items: Garment[]; large?: boolean }) {
+export function EditorialOutfitVisual({
+  items,
+  large = false,
+  wornImageSrc,
+}: {
+  items: Garment[];
+  large?: boolean;
+  /** The person's own try-on of this outfit; shown as the big picture instead of the main piece. */
+  wornImageSrc?: string;
+}) {
   const nonAccessory = items.filter((i) => i.layeringRole !== "accessory");
   const wornItem = nonAccessory.find((i) => WORN_PRIORITY.includes(i.layeringRole)) ?? nonAccessory[0] ?? items[0];
   const visible = large ? items : items.slice(0, 3);
@@ -53,6 +62,15 @@ export function EditorialOutfitVisual({ items, large = false }: { items: Garment
         )}
       </div>
 
+      {wornImageSrc ? (
+        <div className="relative min-w-0 overflow-hidden bg-white">
+          {/* eslint-disable-next-line @next/next/no-img-element -- private, owner-only image */}
+          <img src={wornImageSrc} alt="You wearing this look" className="absolute inset-0 h-full w-full object-contain" />
+          <span className="absolute right-4 bottom-4 z-20 text-[9px] font-bold tracking-widest text-[#89949a] [writing-mode:vertical-rl]">
+            ON YOU
+          </span>
+        </div>
+      ) : (
       <div className="relative min-w-0 overflow-hidden bg-[#faf9f7] after:absolute after:inset-x-[12%] after:bottom-[8%] after:h-[9%] after:rounded-full after:bg-[#29343a]/10 after:blur-xl after:content-['']">
         {wornItem && (
           <Image
@@ -68,6 +86,7 @@ export function EditorialOutfitVisual({ items, large = false }: { items: Garment
           THE COMPLETE LOOK
         </span>
       </div>
+      )}
     </div>
   );
 }
