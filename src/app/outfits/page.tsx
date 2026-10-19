@@ -4,7 +4,7 @@ import { useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import type { Outfit } from "@/components/OutfitCard";
 import { OutfitBoard, OutfitBoardSkeleton } from "@/components/OutfitBoard";
-import { ClosetIcon, PlusIcon, SearchIcon, SparkleIcon } from "@/components/Icons";
+import { PlusIcon, SearchIcon, SparkleIcon } from "@/components/Icons";
 import { EmptyState, ErrorNote, PageHeader, PageShell, btnPrimary, eyebrow } from "@/components/ui";
 
 const OCCASIONS = ["Everyday", "School", "Work", "Date", "Dinner", "Party", "Interview"];
@@ -198,19 +198,7 @@ export default function OutfitsPage() {
               </div>
             </Step>
 
-            <Step n={3} title="Clothes to use">
-              <div className="flex flex-wrap items-center gap-3 overflow-hidden rounded-[18px] bg-white shadow-[0_1px_0_rgba(18,24,33,0.03),0_10px_28px_rgba(18,30,45,0.05)]/60 px-4 py-3">
-                <ClosetIcon className="h-5 w-5 text-[#4f5b66]" />
-                <p className="text-[13px] text-[#121821]">
-                  Your whole closet{closetCount !== null ? ` — ${closetCount} pieces` : ""}
-                </p>
-                <Link href="/closet" className="ml-auto text-[12px] font-semibold text-[#26313a] underline-offset-4 hover:underline">
-                  Review closet
-                </Link>
-              </div>
-            </Step>
-
-            <Step n={4} title="Generate" hint="Takes a few seconds.">
+            <Step n={3} title="Generate from closet" hint="Takes a few seconds.">
               <button onClick={handleGenerate} disabled={generating} className={`${btnPrimary} min-h-[52px] px-7 text-[13.5px]`}>
                 <SparkleIcon className="h-4 w-4" />
                 {generating ? "Creating your outfits…" : "Generate My Outfits"}
