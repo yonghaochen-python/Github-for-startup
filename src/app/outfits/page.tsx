@@ -199,7 +199,7 @@ export default function OutfitsPage() {
               </div>
             </Step>
 
-            <Step n={3} title="Clothes to use" hint="Outfits use everything in your closet.">
+            <Step n={3} title="Clothes to use">
               <div className="flex flex-wrap items-center gap-3 overflow-hidden rounded-[18px] bg-white shadow-[0_1px_0_rgba(18,24,33,0.03),0_10px_28px_rgba(18,30,45,0.05)]/60 px-4 py-3">
                 <ClosetIcon className="h-5 w-5 text-[#4f5b66]" />
                 <p className="text-[13px] text-[#121821]">

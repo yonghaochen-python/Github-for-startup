@@ -41,7 +41,7 @@ export default function SavedLooksPage() {
       <PageShell>
         <PageHeader
                     title="Saved Looks"
-          description="Looks you've saved."
+          description="Your favorites, ready to try on."
           actions={
             saved.length > 0 ? (
               <Link href="/outfits" className={btnSecondary}>

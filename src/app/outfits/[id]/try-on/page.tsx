@@ -211,7 +211,7 @@ export default function TryOnPage() {
                 ? "Creating your try-on…"
               : stage === "result" || wearingThis
                 ? "Here's the look on you."
-                : "Ready to try on."
+                : undefined
           }
         />
 
@@ -307,11 +307,10 @@ export default function TryOnPage() {
                 {user?.look && (
                   <div className="mx-auto mt-3 max-w-[260px] sm:max-w-[420px]">
                     <CurrentLookBar />
-                    <p className="mt-1 text-[11px] text-[#6b7783]">The new try-on starts from your original photo.</p>
+                    <p className="mt-1 text-[11px] text-[#6b7783]">New try-ons start from your original photo.</p>
                   </div>
                 )}
-                <div className="mx-auto mt-3 flex max-w-[260px] items-center sm:max-w-[420px] justify-between gap-3">
-                  <span className="text-[11.5px] text-[#6b7783]">{user?.look ? "Your current look" : "Your saved try-on photo"}</span>
+                <div className="mx-auto mt-3 flex max-w-[260px] items-center sm:max-w-[420px] justify-end gap-3">
                   <button onClick={startChangingPhoto} disabled={stage === "generating"} className="text-[12px] font-semibold text-[#26313a] underline-offset-4 hover:underline disabled:opacity-50">
                     Change My Photo
                   </button>
@@ -327,7 +326,7 @@ export default function TryOnPage() {
                   {stage === "generating" ? "Generating…" : "Generate Try-On"}
                 </button>
                 <p role="status" aria-live="polite" className="text-[12.5px] text-[#4f5b66]">
-                  {stage === "generating" ? STATUS_STEPS[statusIndex] : "Uses your saved photo."}
+                  {stage === "generating" ? STATUS_STEPS[statusIndex] : ""}
                 </p>
               </div>
             </div>

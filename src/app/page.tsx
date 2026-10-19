@@ -8,7 +8,7 @@ import type { Outfit } from "@/components/OutfitCard";
 import { useAuth } from "@/components/AuthProvider";
 import { LiquidGlass } from "@/components/LiquidGlass";
 import { CurrentLookBar, MirrorImage, SavedPhotoSetup } from "@/components/SavedPhoto";
-import { PageShell, btnPrimary, btnSecondary, btnText, eyebrow } from "@/components/ui";
+import { PageShell, btnPrimary, btnSecondary, eyebrow } from "@/components/ui";
 import {
   ArrowRightIcon,
   BookmarkIcon,
@@ -172,7 +172,7 @@ function nextStep(hasPhoto: boolean, closetCount: number, outfitCount: number) {
   if (closetCount === 0) return { text: "Add a few clothes to get started.", href: "/closet?add=1", cta: "Add Clothes" };
   if (!hasPhoto) return { text: "Save a full-body photo to try outfits on.", href: "#mirror", cta: "Upload My Photo" };
   if (outfitCount === 0) return { text: "Create your first outfit.", href: "/outfits", cta: "Create an Outfit" };
-  return { text: "Try a look on.", href: "/try-on", cta: "Try On an Outfit" };
+  return null;
 }
 
 function Dashboard({ closet, outfits }: { closet: ClothingItem[]; outfits: Outfit[] }) {
@@ -206,8 +206,15 @@ function Dashboard({ closet, outfits }: { closet: ClothingItem[]; outfits: Outfi
           </h1>
           <p className="mt-4 max-w-xl text-[15.5px] leading-relaxed text-[#2f3b47]">
             {closet.length} {closet.length === 1 ? "piece" : "pieces"} in your closet · {saved.length} saved{" "}
-            {saved.length === 1 ? "look" : "looks"}. <span className="font-medium text-[#121821]">Next:</span> {step.text}
+            {saved.length === 1 ? "look" : "looks"}.
+            {step && (
+              <>
+                {" "}
+                <span className="font-medium text-[#121821]">Next:</span> {step.text}
+              </>
+            )}
           </p>
+          {step && (
           <div className="mt-7">
             {step.href.startsWith("#") ? (
               <button onClick={() => setSettingUpPhoto(true)} className={btnPrimary}>
@@ -220,6 +227,7 @@ function Dashboard({ closet, outfits }: { closet: ClothingItem[]; outfits: Outfi
               </Link>
             )}
           </div>
+          )}
         </PageShell>
       </section>
 
@@ -245,22 +253,20 @@ function Dashboard({ closet, outfits }: { closet: ClothingItem[]; outfits: Outfi
                   </div>
                 )}
                 <span className="absolute left-4 top-4 bg-white/85 px-2.5 py-1 text-[9px] font-bold uppercase tracking-[2px] text-[#3b4850]">
-                  {user?.look ? "Your current look" : hasPhoto ? "Your saved photo" : "No photo yet"}
+                  {user?.look ? "Latest try-on" : hasPhoto ? "Your photo" : "No photo yet"}
                 </span>
               </div>
               <div className="flex flex-col justify-center gap-5 p-6 sm:p-10">
-                <p className={eyebrow}>Your Virtual Mirror</p>
                 {hasPhoto ? (
                   <>
                     <h2 id="mirror-title" className="font-display text-[38px] font-normal leading-[1.05] text-[#121821] sm:text-[46px]">
-                      Ready when you are.
+                      Your mirror
                     </h2>
-                    <p className="max-w-md text-[14px] leading-relaxed text-[#4f5b66]">
-                      {user?.look
-                        ? "Showing your latest try-on."
-                        : "Your photo is saved. Pick any outfit to try on."}
-                    </p>
-                    <CurrentLookBar />
+                    {user?.look ? (
+                      <CurrentLookBar />
+                    ) : (
+                      <p className="max-w-md text-[14px] leading-relaxed text-[#4f5b66]">Pick any outfit to try on.</p>
+                    )}
                     <div className="flex flex-wrap items-center gap-3">
                       <Link href="/try-on" className={btnPrimary}>
                         <MirrorIcon className="h-4 w-4" /> Try On an Outfit
@@ -268,9 +274,6 @@ function Dashboard({ closet, outfits }: { closet: ClothingItem[]; outfits: Outfi
                       <button onClick={() => setSettingUpPhoto(true)} className={btnSecondary}>
                         Change Photo
                       </button>
-                      <Link href="/closet" className={btnText}>
-                        View My Closet <ArrowRightIcon className="h-4 w-4" />
-                      </Link>
                     </div>
                   </>
                 ) : (
@@ -285,9 +288,6 @@ function Dashboard({ closet, outfits }: { closet: ClothingItem[]; outfits: Outfi
                       <button onClick={() => setSettingUpPhoto(true)} className={btnPrimary}>
                         <CameraIcon className="h-4 w-4" /> Upload My Photo
                       </button>
-                      <Link href="/closet" className={btnText}>
-                        View My Closet <ArrowRightIcon className="h-4 w-4" />
-                      </Link>
                     </div>
                     <p className="text-[11.5px] text-[#6b7783]">Only you can see it.</p>
                   </>
@@ -304,7 +304,7 @@ function Dashboard({ closet, outfits }: { closet: ClothingItem[]; outfits: Outfi
               Icon={ClosetIcon}
               id="closet-title"
               title="My Closet"
-              body={closet.length > 0 ? `${closet.length} pieces.` : "Add photos of clothes you own."}
+              body={closet.length > 0 ? "Browse, sort and add clothes." : "Add photos of clothes you own."}
             />
             {closet.length > 0 ? (
               <div className="grid grid-cols-3 gap-2 px-6 sm:grid-cols-4 sm:px-8">
@@ -337,7 +337,7 @@ function Dashboard({ closet, outfits }: { closet: ClothingItem[]; outfits: Outfi
                 Outfits from what you <em>already own</em>.
               </h2>
               <p className="mt-3 max-w-sm text-[13.5px] leading-relaxed text-[#c3cdd2]">
-                Type a theme or occasion and get three outfits from your closet.
+                Type any theme. Get three outfits.
               </p>
               {latest && (
                 <div className="mt-6 flex gap-2" aria-label="Your latest outfit">
@@ -383,9 +383,7 @@ function Dashboard({ closet, outfits }: { closet: ClothingItem[]; outfits: Outfi
                 One photo, every outfit.
               </h2>
               <p className="mt-2 flex-1 text-[13px] leading-relaxed text-[#4f5b66]">
-                {hasPhoto
-                  ? "Try any outfit on your saved photo."
-                  : "Save one photo, then try on any outfit."}
+                {hasPhoto ? "" : "Start by saving a full-body photo."}
               </p>
               <Link href="/try-on" className={`${btnPrimary} mt-4 self-start`}>
                 Start Try-On
@@ -399,7 +397,7 @@ function Dashboard({ closet, outfits }: { closet: ClothingItem[]; outfits: Outfi
               Icon={BookmarkIcon}
               id="saved-title"
               title="Saved Looks"
-              body={saved.length > 0 ? "Looks you've saved." : "Save looks you like to find them here."}
+              body={saved.length > 0 ? "Your favorites, ready to try on." : "Save looks you like to find them here."}
             />
             {saved.length > 0 ? (
               <div className="grid grid-cols-2 gap-4 px-6 sm:grid-cols-3 sm:px-8">

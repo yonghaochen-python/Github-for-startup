@@ -81,7 +81,7 @@ export default function ProfilePage() {
                   <MirrorImage className="absolute inset-0 h-full w-full object-cover object-top" />
                 </div>
                 <div className="flex flex-col p-6 sm:p-8">
-                  <p id="photo" className={`${eyebrow} mb-2`}>Your saved try-on photo</p>
+                  <p id="photo" className={`${eyebrow} mb-2`}>Try-on photo</p>
                   <p className="text-[13.5px] leading-relaxed text-[#4f5b66]">
                     Every try-on uses this photo. Only you can see it.
                   </p>

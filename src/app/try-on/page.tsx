@@ -66,15 +66,12 @@ export default function TryOnHubPage() {
                   <MirrorImage className="absolute inset-0 h-full w-full object-cover object-top" />
                 </div>
                 <div className="p-5">
-                  <p className={`${eyebrow} mb-1.5`}>{user?.look ? "Your current look" : "Your saved try-on photo"}</p>
-                  <p className="text-[12.5px] leading-relaxed text-[#4f5b66]">
-                    {user?.look
-                      ? "Showing your latest try-on."
-                      : "Only you can see this photo."}
-                  </p>
-                  <div className="mt-2">
+                  <p className={`${eyebrow} mb-1.5`}>{user?.look ? "Latest try-on" : "Your photo"}</p>
+                  {user?.look ? (
                     <CurrentLookBar />
-                  </div>
+                  ) : (
+                    <p className="text-[12.5px] leading-relaxed text-[#4f5b66]">Only you can see this photo.</p>
+                  )}
                   <div className="mt-4 flex flex-wrap gap-2">
                     <a href="#choose-title" className={btnPrimary}>
                       Choose Outfit
@@ -98,9 +95,7 @@ export default function TryOnHubPage() {
                 <h2 id="choose-title" className="scroll-mt-24 font-display text-[32px] font-normal leading-tight text-[#121821]">
                   Choose an outfit
                 </h2>
-                <p className="mt-1 text-[13px] text-[#4f5b66]">
-                  {hasPhoto ? "Pick a look." : "Save your photo first."}
-                </p>
+                {!hasPhoto && <p className="mt-1 text-[13px] text-[#4f5b66]">Save your photo first.</p>}
               </div>
               {outfits && outfits.length > 0 && (
                 <div role="tablist" aria-label="Which outfits" className="flex rounded-full bg-white p-1 shadow-[inset_0_0_0_1px_rgba(18,24,33,0.08)]">

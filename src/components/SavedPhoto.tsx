@@ -44,7 +44,7 @@ export function useTakeOffLook() {
   };
 }
 
-/** "Currently wearing" line with the two manual changes: open that outfit, or take the look off. */
+/** The two manual changes to the current look: open that outfit, or take the look off. */
 export function CurrentLookBar({ dark = false }: { dark?: boolean }) {
   const { user } = useAuth();
   const takeOffLook = useTakeOffLook();
@@ -52,12 +52,11 @@ export function CurrentLookBar({ dark = false }: { dark?: boolean }) {
   const muted = dark ? "text-[#c3cdd2]" : "text-[#4f5b66]";
   return (
     <div className={`flex flex-wrap items-center gap-x-3 gap-y-1 text-[12px] ${muted}`}>
-      <span className={`font-semibold ${dark ? "text-white" : "text-[#121821]"}`}>Currently wearing your latest try-on</span>
-      <Link href={`/outfits/${user.look.outfitId}`} className="underline-offset-4 hover:underline">
-        View outfit
+      <Link href={`/outfits/${user.look.outfitId}`} className={`font-semibold underline-offset-4 hover:underline ${dark ? "text-white" : "text-[#121821]"}`}>
+        View this outfit
       </Link>
       <button onClick={takeOffLook} className="underline-offset-4 hover:underline">
-        Take Off Look
+        Take it off
       </button>
     </div>
   );
