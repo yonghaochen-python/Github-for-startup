@@ -151,8 +151,8 @@ export default function Home() {
               Start exploring instantly
             </h2>
             <p className="mb-12 max-w-md text-[13px] leading-relaxed text-[#737d82]">
-              Every new account comes with a small sample closet, so there&apos;s something to work with before you
-              upload a single photo.
+              Every new account starts with a 20-piece sample closet — men&apos;s and women&apos;s, summer and winter — so
+              there&apos;s something to style right away. Keep, edit, or remove any piece, and add your own.
             </p>
             <div className="grid grid-cols-2 gap-5 sm:grid-cols-4">
               {TEASER_ITEMS.map((item) => (
