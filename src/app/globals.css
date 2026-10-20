@@ -61,21 +61,21 @@ body {
  * (white cards, pale chips, gradient panels) keeps its normal dark text, so cards read the same at any hour.
  */
 /* Text with no color of its own follows the background: light on the night page, dark inside light surfaces. */
-html[data-period="night"] :is(main, .site-nav, .site-tabbar) {
+html[data-period="night"] :is(main, .site-nav, .site-tabbar, .site-footer) {
   color: #eef2f6;
 }
-html[data-period="night"] :is(main, .site-nav, .site-tabbar) :is(.bg-white, [class^="bg-white/"], [class*=" bg-white/"], [class^="bg-[#f"], [class*=" bg-[#f"], [class^="bg-[#e"], [class*=" bg-[#e"], [class^="bg-[linear-gradient"], [class*=" bg-[linear-gradient"], .bg-red-50) {
+html[data-period="night"] :is(main, .site-nav, .site-tabbar, .site-footer) :is(.bg-white, [class^="bg-white/"], [class*=" bg-white/"], [class^="bg-[#f"], [class*=" bg-[#f"], [class^="bg-[#e"], [class*=" bg-[#e"], [class^="bg-[linear-gradient"], [class*=" bg-[linear-gradient"], .bg-red-50) {
   color: #121821;
 }
-html[data-period="night"] :is(main, .site-nav, .site-tabbar)
+html[data-period="night"] :is(main, .site-nav, .site-tabbar, .site-footer)
   :is(.text-\[\#121821\], .text-\[\#29343a\], .text-\[\#26313a\], .text-\[\#3b4850\], .text-\[\#2f3b47\], .text-\[\#333f46\], .text-\[\#222a2f\], .text-\[\#202529\], .text-\[\#1c2328\]):not(:is(.bg-white, [class^="bg-white/"], [class*=" bg-white/"], [class^="bg-[#f"], [class*=" bg-[#f"], [class^="bg-[#e"], [class*=" bg-[#e"], [class^="bg-[linear-gradient"], [class*=" bg-[linear-gradient"], .bg-red-50), :is(.bg-white, [class^="bg-white/"], [class*=" bg-white/"], [class^="bg-[#f"], [class*=" bg-[#f"], [class^="bg-[#e"], [class*=" bg-[#e"], [class^="bg-[linear-gradient"], [class*=" bg-[linear-gradient"], .bg-red-50) *) {
   color: #eef2f6;
 }
-html[data-period="night"] :is(main, .site-nav, .site-tabbar)
+html[data-period="night"] :is(main, .site-nav, .site-tabbar, .site-footer)
   :is(.text-\[\#4f5b66\], .text-\[\#445159\], .text-\[\#3d5266\], .text-\[\#5b6875\], .text-\[\#48565d\], .text-\[\#4f5a60\], .text-\[\#5b676d\]):not(:is(.bg-white, [class^="bg-white/"], [class*=" bg-white/"], [class^="bg-[#f"], [class*=" bg-[#f"], [class^="bg-[#e"], [class*=" bg-[#e"], [class^="bg-[linear-gradient"], [class*=" bg-[linear-gradient"], .bg-red-50), :is(.bg-white, [class^="bg-white/"], [class*=" bg-white/"], [class^="bg-[#f"], [class*=" bg-[#f"], [class^="bg-[#e"], [class*=" bg-[#e"], [class^="bg-[linear-gradient"], [class*=" bg-[linear-gradient"], .bg-red-50) *) {
   color: #b9c3d0;
 }
-html[data-period="night"] :is(main, .site-nav, .site-tabbar)
+html[data-period="night"] :is(main, .site-nav, .site-tabbar, .site-footer)
   :is(.text-\[\#5d6874\], .text-\[\#6b7783\], .text-\[\#8a96a1\], .text-\[\#8b969c\], .text-\[\#89949a\], .text-\[\#7a8792\], .text-\[\#7f8a90\], .text-\[\#7e888e\], .text-\[\#6e7b82\], .text-\[\#7b878d\], .text-\[\#7c878d\], .text-\[\#8b959a\], .text-\[\#9aa5aa\], .text-\[\#9aa2a6\], .text-\[\#a0a9ad\], .text-\[\#8b9087\], .text-\[\#8a9488\], .text-\[\#899786\], .text-\[\#9ba49a\], .text-\[\#9da99a\]):not(:is(.bg-white, [class^="bg-white/"], [class*=" bg-white/"], [class^="bg-[#f"], [class*=" bg-[#f"], [class^="bg-[#e"], [class*=" bg-[#e"], [class^="bg-[linear-gradient"], [class*=" bg-[linear-gradient"], .bg-red-50), :is(.bg-white, [class^="bg-white/"], [class*=" bg-white/"], [class^="bg-[#f"], [class*=" bg-[#f"], [class^="bg-[#e"], [class*=" bg-[#e"], [class^="bg-[linear-gradient"], [class*=" bg-[linear-gradient"], .bg-red-50) *) {
   color: #8e9bae;
 }
@@ -101,6 +101,43 @@ html[data-period="night"] .glass-legible {
 }
 html[data-period="night"] .glass-legible em {
   color: #c9d6ff;
+}
+
+/* Reading pages (About, Privacy, Terms…). */
+.info-prose h2 {
+  margin: 2em 0 0.5em;
+  font-size: 17px;
+  font-weight: 600;
+  color: #121821;
+}
+.info-prose h2:first-child {
+  margin-top: 0;
+}
+.info-prose p + p,
+.info-prose p + ul,
+.info-prose p + ol {
+  margin-top: 0.75em;
+}
+.info-prose ul,
+.info-prose ol {
+  display: grid;
+  gap: 0.5em;
+  padding-left: 1.25em;
+}
+.info-prose ul {
+  list-style: disc;
+}
+.info-prose ol {
+  list-style: decimal;
+}
+.info-prose :is(ul, ol) + p {
+  margin-top: 1em;
+}
+.info-prose a {
+  color: #121821;
+  font-weight: 600;
+  text-decoration: underline;
+  text-underline-offset: 3px;
 }
 
 /* Night sky: glitter behind the page, stars of different sizes twinkling at random (night only). */
@@ -168,6 +205,9 @@ html[data-period="night"] .night-sky {
   background-color: rgb(var(--page-rgb) / 0.88);
 }
 /* Night: the menu bar and phone tab bar go dark to match. */
+html[data-period="night"] .site-footer {
+  border-color: rgb(255 255 255 / 0.08);
+}
 html[data-period="night"] :is(.site-nav, .site-tabbar) {
   background-color: rgb(15 20 28 / 0.78);
   border-color: rgb(255 255 255 / 0.08);

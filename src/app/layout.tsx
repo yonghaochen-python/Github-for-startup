@@ -6,6 +6,7 @@ import { ToastProvider } from "@/components/Toast";
 import { AuthProvider } from "@/components/AuthProvider";
 import { TimeOfDaySync } from "@/components/TimeOfDay";
 import { NightSky } from "@/components/NightSky";
+import { Footer } from "@/components/Footer";
 import { PERIOD_BOOT_SCRIPT } from "@/lib/timeOfDay";
 import "./globals.css";
 
@@ -41,6 +42,7 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
             <Nav />
             <DemoModeBanner />
             <div className="flex flex-1 flex-col">{children}</div>
+            <Footer />
             <MobileTabBar />
           </AuthProvider>
         </ToastProvider>

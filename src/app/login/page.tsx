@@ -229,9 +229,6 @@ export default function LoginPage() {
         <ModelPanel model={MODELS.male} className="hidden justify-self-start lg:block lg:translate-y-6" />
       </div>
 
-      <p className="relative z-10 pb-6 text-center text-[11px] font-semibold tracking-[1.4px] text-[#4f5b66]">
-        PRIVATE BY DESIGN · YOUR CLOSET STAYS YOURS
-      </p>
     </main>
   );
 }

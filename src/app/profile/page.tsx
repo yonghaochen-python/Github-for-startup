@@ -100,8 +100,81 @@ export default function ProfilePage() {
             )}
           </section>
         </div>
+        <DeleteAccount />
       </PageShell>
     </main>
+  );
+}
+
+/** Permanently delete the account, after typing the password. */
+function DeleteAccount() {
+  const { logout } = useAuth();
+  const [open, setOpen] = useState(false);
+  const [password, setPassword] = useState("");
+  const [busy, setBusy] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  async function remove(e: React.FormEvent) {
+    e.preventDefault();
+    setBusy(true);
+    setError(null);
+    try {
+      const res = await fetch("/api/me/account", {
+        method: "DELETE",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ password }),
+      });
+      const data = (await res.json().catch(() => ({}))) as { error?: string };
+      if (!res.ok) throw new Error(data.error ?? "Couldn't delete your account right now.");
+      await logout();
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Couldn't delete your account right now.");
+      setBusy(false);
+    }
+  }
+
+  return (
+    <section aria-labelledby="delete-account" className="mt-8 rounded-[22px] bg-white p-6 shadow-[0_1px_0_rgba(18,24,33,0.03),0_14px_36px_rgba(18,30,45,0.06)] sm:p-8">
+      <h2 id="delete-account" className="text-[15px] font-semibold text-[#121821]">
+        Delete account
+      </h2>
+      <p className="mt-1 max-w-xl text-[13.5px] leading-relaxed text-[#4f5b66]">
+        Permanently deletes your account, closet, photos, try-ons and saved looks. This can&apos;t be undone.
+      </p>
+      {!open ? (
+        <button onClick={() => setOpen(true)} className="mt-4 text-[13px] font-semibold text-[#a03a2f] underline-offset-4 hover:underline">
+          Delete my account
+        </button>
+      ) : (
+        <form onSubmit={remove} className="mt-4 flex max-w-md flex-col gap-3">
+          <label htmlFor="delete-password" className="text-[12.5px] font-semibold text-[#3b4850]">
+            Type your password to confirm
+          </label>
+          <input
+            id="delete-password"
+            type="password"
+            autoComplete="current-password"
+            required
+            value={password}
+            onChange={(e) => setPassword(e.target.value)}
+            className="h-12 rounded-full bg-white px-5 text-[14px] text-[#121821] shadow-[inset_0_0_0_1px_rgba(18,24,33,0.18)] outline-none focus:shadow-[inset_0_0_0_2px_#a03a2f]"
+          />
+          {error && <ErrorNote message={error} />}
+          <div className="flex flex-wrap items-center gap-3">
+            <button
+              type="submit"
+              disabled={busy || !password}
+              className="btn-tactile inline-flex min-h-[46px] items-center rounded-full bg-[#a03a2f] px-6 text-[13.5px] font-semibold text-white hover:bg-[#8a3127] disabled:opacity-50"
+            >
+              {busy ? "Deleting…" : "Delete forever"}
+            </button>
+            <button type="button" onClick={() => { setOpen(false); setPassword(""); setError(null); }} className={btnText}>
+              Cancel
+            </button>
+          </div>
+        </form>
+      )}
+    </section>
   );
 }
 
