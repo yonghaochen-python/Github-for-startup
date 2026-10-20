@@ -25,6 +25,14 @@ const fontSerif = Instrument_Serif({
 export const metadata: Metadata = {
   title: "Virm — Your virtual mirror for personal styling",
   description: "Your virtual mirror for personal styling: a digital closet, AI outfits from what you own, and virtual try-on.",
+  // The Virm "V" on satin glass, in the browser tab and on phone home screens.
+  icons: {
+    icon: [
+      { url: "/favicon.ico", sizes: "any" },
+      { url: "/icon-192.png", type: "image/png", sizes: "192x192" },
+    ],
+    apple: "/apple-touch-icon.png",
+  },
 };
 
 export default function RootLayout({ children }: LayoutProps<"/">) {
