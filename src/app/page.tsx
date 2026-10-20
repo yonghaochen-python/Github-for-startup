@@ -108,13 +108,11 @@ export default function Home() {
           <div className="mx-auto w-full max-w-[1280px] px-5 py-24 sm:px-8">
             <div className="flex flex-col gap-6 sm:flex-row sm:items-end sm:justify-between">
               <div>
-                <p className={eyebrow}>Start exploring instantly</p>
-                <h2 className="mt-3 font-display text-[40px] font-normal leading-[1.02] tracking-[-0.8px] text-[#121821] sm:text-[52px]">
-                  A closet to style from day one.
+                <h2 className="font-display text-[40px] font-normal leading-[1.02] tracking-[-0.8px] text-[#121821] sm:text-[52px]">
+                  Start your Virm collection.
                 </h2>
                 <p className="mt-3 max-w-lg text-[15px] leading-relaxed text-[#4f5b66]">
-                  New accounts start with 20 sample pieces, men&apos;s and women&apos;s. Keep them, edit them, or add your
-                  own.
+                  20 pieces to start with, men&apos;s and women&apos;s.
                 </p>
               </div>
             </div>
