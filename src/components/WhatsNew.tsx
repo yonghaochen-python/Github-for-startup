@@ -119,8 +119,8 @@ export function WhatsNewSection() {
         <p className="mt-4 max-w-md text-[15px] leading-relaxed text-[#4f5b66]">
           {LATEST_UPDATE.body}
         </p>
-        <Link href="/try" className={`${btnPrimary} mt-7`}>
-          Try it free <ArrowRightIcon className="h-4 w-4" />
+        <Link href="/login?create=1" className={`${btnPrimary} mt-7`}>
+          Create your closet <ArrowRightIcon className="h-4 w-4" />
         </Link>
       </div>
       <LayersVisual />
