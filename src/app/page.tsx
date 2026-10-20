@@ -94,11 +94,8 @@ export default function Home() {
               <em className="text-[#2b4560]">on you.</em>
             </h1>
             <div className="mt-9 flex flex-wrap gap-3">
-              <Link href="/login?create=1" className={btnPrimary}>
-                Create your closet
-              </Link>
-              <Link href="/login" className={`${btnSecondary} bg-white/90 backdrop-blur`}>
-                Log in
+              <Link href="/login" className={btnPrimary}>
+                Log in · Create your closet
               </Link>
             </div>
           </div>
