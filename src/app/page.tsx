@@ -20,12 +20,6 @@ import {
   SparkleIcon,
 } from "@/components/Icons";
 
-const STEPS = [
-  { title: "Add clothes", body: "Photograph what you own." },
-  { title: "Build your closet", body: "Everything in one place." },
-  { title: "Get styled", body: "Say where you're going." },
-  { title: "Try it on", body: "See the outfit on you." },
-];
 
 
 const TEASER_ITEMS = [
@@ -106,21 +100,6 @@ export default function Home() {
 
         <WhatsNewSection />
 
-        <section id="how-it-works" className="mx-auto w-full max-w-[1280px] px-5 py-24 sm:px-8">
-          <p className={eyebrow}>How Virm works</p>
-          <h2 className="mt-3 max-w-2xl font-display text-[44px] font-normal leading-[1.02] tracking-[-1px] text-[#121821] sm:text-[56px]">
-            From closet to complete look.
-          </h2>
-          <ol className="mt-12 grid gap-x-10 gap-y-10 sm:grid-cols-2 lg:grid-cols-4">
-            {STEPS.map((step, i) => (
-              <li key={step.title} className="border-t border-black/10 pt-6">
-                <span className="text-[12px] font-medium tabular-nums text-[#8a96a1]">{String(i + 1).padStart(2, "0")}</span>
-                <h3 className="mt-3 font-display text-[30px] font-normal text-[#121821]">{step.title}</h3>
-                <p className="mt-2 max-w-[240px] text-[14px] leading-relaxed text-[#4f5b66]">{step.body}</p>
-              </li>
-            ))}
-          </ol>
-        </section>
 
         <section className="bg-white">
           <div className="mx-auto w-full max-w-[1280px] px-5 py-24 sm:px-8">

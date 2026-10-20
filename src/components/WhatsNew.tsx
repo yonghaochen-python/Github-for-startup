@@ -29,7 +29,7 @@ function Step({ n, children }: { n: number; children: React.ReactNode }) {
 function LayersVisual() {
   return (
     <div className="overflow-hidden rounded-[28px] bg-[linear-gradient(150deg,#e3ebf2,#c7d4e0_55%,#dfe3ee)] p-4 sm:p-6">
-      <div className="mb-3 flex flex-wrap gap-x-6 gap-y-2">
+      <div className="mb-3 grid grid-cols-2 gap-3 sm:gap-4">
         <Step n={1}>Add your clothes</Step>
         <Step n={2}>Pick your pieces</Step>
       </div>
