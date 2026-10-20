@@ -3,13 +3,6 @@ export type Period = "morning" | "midday" | "afternoon" | "night";
 
 export const PERIODS: Period[] = ["morning", "midday", "afternoon", "night"];
 
-export const PERIOD_LABEL: Record<Period, string> = {
-  morning: "Morning",
-  midday: "Midday",
-  afternoon: "Afternoon",
-  night: "Night",
-};
-
 /** Morning 5:00–9:59, midday 10:00–14:59, afternoon 15:00–18:59, night 19:00–4:59. */
 export function periodAt(date: Date): Period {
   const h = date.getHours();

@@ -56,26 +56,6 @@ body {
   transition: background-color 0.6s ease;
 }
 
-/* The small "Night · 9:41 PM" label. */
-.ambient-time {
-  background: rgb(255 255 255 / 0.6);
-  color: #4f5b66;
-  box-shadow: inset 0 0 0 1px rgb(18 24 33 / 0.08);
-  backdrop-filter: blur(8px);
-}
-.ambient-dot {
-  background: #8fa3b8;
-}
-html[data-period="morning"] .ambient-dot {
-  background: #f2a07b;
-}
-html[data-period="afternoon"] .ambient-dot {
-  background: #d9a54f;
-}
-html[data-period="night"] .ambient-dot {
-  background: #a99be8;
-}
-
 /*
  * Night: text and lines that sit straight on the dark background turn light. Anything inside a light surface
  * (white cards, pale chips, gradient panels) keeps its normal dark text, so cards read the same at any hour.
@@ -110,11 +90,6 @@ html[data-period="night"] main :is(a, button):is([class^="bg-[#121821]"], [class
   ) {
   background-color: #eef2f6;
   color: #121821;
-}
-html[data-period="night"] .ambient-time {
-  background: rgb(255 255 255 / 0.08);
-  color: #c9d2de;
-  box-shadow: inset 0 0 0 1px rgb(255 255 255 / 0.12);
 }
 
 /* The menu bar and phone tab bar: translucent page color by day, dark at night. */
