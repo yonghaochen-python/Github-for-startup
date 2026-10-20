@@ -273,7 +273,7 @@ export function TryOnPhotoStep({
                 </button>
               )}
             </div>
-            <p className="mt-5 text-xs leading-relaxed text-[#6b7783]">
+            <p className="mt-5 text-xs leading-relaxed text-[#5d6874]">
               Nothing is saved until you press Save My Photo. Only you can see it, and you can change it anytime.
             </p>
           </div>
@@ -296,7 +296,7 @@ export function TryOnPhotoStep({
               style={{ objectFit: "cover" }}
             />
           </div>
-          <p className="mx-auto mt-3 max-w-[520px] text-xs text-[#8b9087]">
+          <p className="mx-auto mt-3 max-w-[520px] text-xs text-[#5d6874]">
             Step back so your whole body is in the frame, with good light on you.
           </p>
           <ActionBar>
@@ -320,7 +320,7 @@ export function TryOnPhotoStep({
             {/* eslint-disable-next-line @next/next/no-img-element */}
             <img src={pending.url} alt="Your photo" className="h-full w-full object-contain" />
           </div>
-          <p className="mx-auto mt-3 max-w-[520px] text-xs text-[#6b7783]">
+          <p className="mx-auto mt-3 max-w-[520px] text-xs text-[#5d6874]">
             Make sure your whole body is visible.
           </p>
           <ActionBar>

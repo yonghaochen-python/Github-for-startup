@@ -74,7 +74,7 @@ export default function SavedLooksPage() {
           />
         ) : (
           <>
-            <p className="mb-5 text-[12.5px] text-[#6b7783]">
+            <p className="mb-5 text-[12.5px] text-[#5d6874]">
               {saved.filter((o) => o.isFavorite).length} saved {saved.filter((o) => o.isFavorite).length === 1 ? "look" : "looks"}
             </p>
             <div className="grid gap-6 sm:grid-cols-2 xl:grid-cols-3">

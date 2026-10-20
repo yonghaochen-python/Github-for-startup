@@ -202,7 +202,7 @@ export function AddClothesModal({ onClose, onAdded }: { onClose: () => void; onA
         }}
       >
         <div className="mb-5 flex items-center justify-between">
-          <p className="text-xs font-medium uppercase tracking-widest text-[#89949a]">
+          <p className="text-xs font-medium uppercase tracking-widest text-[#5d6874]">
             {step === "upload" && "Add clothes — step 1 of 3"}
             {step === "analyzing" && "Add clothes — step 2 of 3"}
             {(step === "review" || step === "confirming") && "Add clothes — step 3 of 3"}
@@ -210,7 +210,7 @@ export function AddClothesModal({ onClose, onAdded }: { onClose: () => void; onA
           <button
             onClick={onClose}
             aria-label="Close"
-            className="flex h-7 w-7 items-center justify-center rounded-full text-[#89949a] hover:bg-[#f3f6f8]"
+            className="flex h-7 w-7 items-center justify-center rounded-full text-[#5d6874] hover:bg-[#f3f6f8]"
           >
             ×
           </button>
@@ -227,7 +227,7 @@ export function AddClothesModal({ onClose, onAdded }: { onClose: () => void; onA
                 disabled
                 aria-disabled="true"
                 title="Coming soon"
-                className="cursor-not-allowed rounded-full px-4 py-2 text-xs font-semibold text-[#9aa2a6]"
+                className="cursor-not-allowed rounded-full px-4 py-2 text-xs font-semibold text-[#5d6874]"
               >
                 Find Online — Coming Soon
               </button>
@@ -255,7 +255,7 @@ export function AddClothesModal({ onClose, onAdded }: { onClose: () => void; onA
               </span>
               <input type="file" accept={ACCEPTED_TYPES.join(",")} className="hidden" onChange={handleInputChange} />
             </label>
-            <p className="mt-4 text-xs text-[#89949a]">
+            <p className="mt-4 text-xs text-[#5d6874]">
               Lay pieces out separately so each one is clearly visible.
             </p>
           </div>
@@ -333,7 +333,7 @@ export function AddClothesModal({ onClose, onAdded }: { onClose: () => void; onA
                           )}
                         </div>
                         <div className="flex-1">
-                          <p className="mb-1 text-xs font-medium uppercase tracking-wide text-[#89949a]">
+                          <p className="mb-1 text-xs font-medium uppercase tracking-wide text-[#5d6874]">
                             Item {i + 1}
                           </p>
                           <input
@@ -419,7 +419,7 @@ export function AddClothesModal({ onClose, onAdded }: { onClose: () => void; onA
                   <button onClick={addManualItem} className="text-sm font-medium text-[#445159] hover:underline">
                     + Add item manually
                   </button>
-                  <p className="text-sm text-[#89949a]">
+                  <p className="text-sm text-[#5d6874]">
                     {items.length} item{items.length === 1 ? "" : "s"} ready to add
                   </p>
                 </div>

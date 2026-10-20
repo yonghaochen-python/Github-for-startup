@@ -277,7 +277,7 @@ export default function StudioPage() {
         <h1 className="sr-only">Studio</h1>
 
         <form onSubmit={styleTheme} className="mb-5 flex items-center gap-2 rounded-full bg-white p-1.5 pl-5 shadow-[0_1px_0_rgba(18,24,33,0.03),0_14px_36px_rgba(18,30,45,0.06)]">
-          <SearchIcon className="h-[18px] w-[18px] shrink-0 text-[#6b7783]" />
+          <SearchIcon className="h-[18px] w-[18px] shrink-0 text-[#5d6874]" />
           <label htmlFor="studio-theme" className="sr-only">
             Theme
           </label>
@@ -343,7 +343,7 @@ export default function StudioPage() {
               <div className="mb-3 flex items-center justify-between gap-3">
                 <p className="text-[13px] font-semibold text-[#121821]">
                   {look.occasion ? <span className="capitalize">{look.occasion}</span> : "Your look"}
-                  <span className="ml-2 font-normal text-[#6b7783]">
+                  <span className="ml-2 font-normal text-[#5d6874]">
                     {pieces.length} {pieces.length === 1 ? "piece" : "pieces"}
                   </span>
                 </p>
@@ -368,7 +368,7 @@ export default function StudioPage() {
                   </div>
                 )}
                 {pieces.length > 0 && (
-                  <button onClick={startOver} className="text-[12px] font-semibold text-[#6b7783] underline-offset-4 hover:text-[#121821] hover:underline">
+                  <button onClick={startOver} className="text-[12px] font-semibold text-[#5d6874] underline-offset-4 hover:text-[#121821] hover:underline">
                     Start over
                   </button>
                 )}
@@ -424,7 +424,7 @@ export default function StudioPage() {
                     aria-selected={active}
                     onClick={() => setTab(t.value)}
                     className={`relative shrink-0 px-2.5 pb-3 pt-1 text-[13px] ${
-                      active ? "font-semibold text-[#121821] after:absolute after:inset-x-2.5 after:bottom-0 after:h-[2px] after:rounded-full after:bg-[#121821]" : "text-[#6b7783] hover:text-[#121821]"
+                      active ? "font-semibold text-[#121821] after:absolute after:inset-x-2.5 after:bottom-0 after:h-[2px] after:rounded-full after:bg-[#121821]" : "text-[#5d6874] hover:text-[#121821]"
                     }`}
                   >
                     {t.label}
@@ -441,7 +441,7 @@ export default function StudioPage() {
                   ))}
                 </div>
               ) : tabItems.length === 0 ? (
-                <p className="px-1 py-6 text-[13px] text-[#6b7783]">
+                <p className="px-1 py-6 text-[13px] text-[#5d6874]">
                   Nothing here yet.{" "}
                   <Link href="/closet?add=1" className="font-semibold text-[#121821] underline-offset-4 hover:underline">
                     Add clothes

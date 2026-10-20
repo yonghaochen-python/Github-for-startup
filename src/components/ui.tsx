@@ -9,7 +9,7 @@ export const btnSecondary =
 export const btnText =
   "inline-flex min-h-[44px] items-center gap-1.5 text-[13px] font-medium text-[#121821] underline-offset-4 hover:underline";
 
-export const eyebrow = "text-[11px] font-medium uppercase tracking-[2.2px] text-[#6b7783]";
+export const eyebrow = "text-[11px] font-medium uppercase tracking-[2.2px] text-[#5d6874]";
 
 /** The standard surface: white, softly lifted, rounded — instead of bordered boxes. */
 export const surface = "rounded-[22px] bg-white shadow-[0_1px_0_rgba(18,24,33,0.03),0_14px_36px_rgba(18,30,45,0.06)]";

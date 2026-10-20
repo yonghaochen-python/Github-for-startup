@@ -28,7 +28,7 @@ function Stat({ label, value, hint }: { label: string; value: React.ReactNode; h
     <div className="rounded-[18px] bg-white shadow-[0_1px_0_rgba(18,24,33,0.03),0_10px_28px_rgba(18,30,45,0.05)] px-4 py-4">
       <p className="text-[11px] font-semibold text-[#4f5b66]">{label}</p>
       <p className="mt-1 font-display text-[34px] leading-none text-[#121821]">{value}</p>
-      {hint && <p className="mt-1.5 text-[11px] text-[#8b969c]">{hint}</p>}
+      {hint && <p className="mt-1.5 text-[11px] text-[#5d6874]">{hint}</p>}
     </div>
   );
 }
@@ -47,7 +47,7 @@ function ChartCard({ title, children, empty }: { title: string; children: React.
   return (
     <div className="rounded-[18px] bg-white shadow-[0_1px_0_rgba(18,24,33,0.03),0_10px_28px_rgba(18,30,45,0.05)] p-4">
       <p className="mb-2 text-[12px] font-semibold text-[#3b4850]">{title}</p>
-      {empty ? <p className="py-10 text-center text-[12.5px] text-[#8b969c]">{empty}</p> : children}
+      {empty ? <p className="py-10 text-center text-[12.5px] text-[#5d6874]">{empty}</p> : children}
     </div>
   );
 }
@@ -173,7 +173,7 @@ export default function AdminPage() {
               <button onClick={() => load(custom)} className={btnSecondary}>Apply</button>
             </div>
           )}
-          <p className="ml-auto text-[12px] text-[#6b7783]">
+          <p className="ml-auto text-[12px] text-[#5d6874]">
             {fmtDate(s.range.from)} – {fmtDate(s.range.to)}
           </p>
         </div>
@@ -196,7 +196,7 @@ export default function AdminPage() {
                   }.`}
             </p>
           </div>
-          <div className="rounded-[22px] bg-white/70 p-6 shadow-[inset_0_0_0_1px_rgba(18,24,33,0.06)]">
+          <div className="rounded-[22px] bg-white p-6 shadow-[inset_0_0_0_1px_rgba(18,24,33,0.06)]">
             <p className={eyebrow}>Data coverage</p>
             <p className="mt-2 text-[13px] leading-relaxed text-[#3b4850]">
               Sign-ups, closet uploads and outfits are counted from the start.{" "}
@@ -246,7 +246,7 @@ export default function AdminPage() {
             </ChartCard>
             <ChartCard title="Feature visits" empty={noEventsYet ? "No visits recorded yet." : null}>
               <HBars rows={featuresMarked} />
-              <p className="mt-3 text-[11px] text-[#8b969c]">“Underused” = fewer than 20% of the most-used feature&apos;s visits.</p>
+              <p className="mt-3 text-[11px] text-[#5d6874]">“Underused” = fewer than 20% of the most-used feature&apos;s visits.</p>
             </ChartCard>
           </div>
         </Section>
@@ -275,7 +275,7 @@ export default function AdminPage() {
         <Section title="Reliability and speed" description="Requests recorded since tracking started. Times are for successful requests: median and the slowest 5%.">
           <div className="overflow-x-auto rounded-[18px] bg-white shadow-[0_1px_0_rgba(18,24,33,0.03),0_10px_28px_rgba(18,30,45,0.05)]">
             <table className="w-full min-w-[560px] text-left text-[13px]">
-              <thead className="border-b border-black/[0.07] text-[11px] uppercase tracking-[1.2px] text-[#6b7783]">
+              <thead className="border-b border-black/[0.07] text-[11px] uppercase tracking-[1.2px] text-[#5d6874]">
                 <tr>
                   <th className="px-4 py-3 font-semibold">Feature</th>
                   <th className="px-4 py-3 font-semibold">Requests</th>
@@ -319,7 +319,7 @@ export default function AdminPage() {
           <div className="grid grid-cols-2 gap-3 md:grid-cols-3">
             <Stat label="Came back" value={pct(s.retention.rate)} hint={`${s.retention.returned} of ${s.retention.eligible} people`} />
           </div>
-          <p className="mt-2 text-[11.5px] text-[#8b969c]">
+          <p className="mt-2 text-[11.5px] text-[#5d6874]">
             &ldquo;Came back&rdquo; uses last-active dates, which only started being recorded with tracking — it will become more
             accurate over time.
           </p>
@@ -328,13 +328,13 @@ export default function AdminPage() {
         <Section title="Accounts" description="Minimal information only: emails are partly hidden, and there's no access to anyone's closet or photos.">
           <ResetLinkTool />
           {!accounts ? (
-            <p className="text-[12.5px] text-[#8b969c]">Loading accounts…</p>
+            <p className="text-[12.5px] text-[#5d6874]">Loading accounts…</p>
           ) : accounts.length === 0 ? (
-            <p className="text-[12.5px] text-[#8b969c]">No accounts yet.</p>
+            <p className="text-[12.5px] text-[#5d6874]">No accounts yet.</p>
           ) : (
             <div className="overflow-x-auto rounded-[18px] bg-white shadow-[0_1px_0_rgba(18,24,33,0.03),0_10px_28px_rgba(18,30,45,0.05)]">
               <table className="w-full min-w-[560px] text-left text-[13px]">
-                <thead className="border-b border-black/[0.07] text-[11px] uppercase tracking-[1.2px] text-[#6b7783]">
+                <thead className="border-b border-black/[0.07] text-[11px] uppercase tracking-[1.2px] text-[#5d6874]">
                   <tr>
                     <th className="px-4 py-3 font-semibold">Account</th>
                     <th className="px-4 py-3 font-semibold">Joined</th>
@@ -409,7 +409,7 @@ function ResetLinkTool() {
   return (
     <div className="mb-5 rounded-[18px] bg-white p-4 shadow-[0_1px_0_rgba(18,24,33,0.03),0_10px_28px_rgba(18,30,45,0.05)] sm:p-5">
       <p className="text-[13px] font-semibold text-[#121821]">Password reset link</p>
-      <p className="mt-0.5 text-[12px] text-[#6b7783]">For someone who can&apos;t log in. They open the link and choose their own password.</p>
+      <p className="mt-0.5 text-[12px] text-[#5d6874]">For someone who can&apos;t log in. They open the link and choose their own password.</p>
       <form onSubmit={make} className="mt-3 flex flex-col gap-2 sm:flex-row">
         <label htmlFor="reset-email" className="sr-only">
           Account email
@@ -435,7 +435,7 @@ function ResetLinkTool() {
             <button onClick={copy} className="text-[12px] font-semibold text-[#121821] underline-offset-4 hover:underline">
               {copied ? "Copied" : "Copy link"}
             </button>
-            <span className="text-[11.5px] text-[#6b7783]">Works once, for 60 minutes. Send it only to the account owner.</span>
+            <span className="text-[11.5px] text-[#5d6874]">Works once, for 60 minutes. Send it only to the account owner.</span>
           </div>
         </div>
       )}

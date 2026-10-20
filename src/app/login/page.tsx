@@ -33,7 +33,7 @@ function ModelPanel({ model, className = "" }: { model: (typeof MODELS)[keyof ty
           className="h-full w-full object-cover object-top saturate-[.9] transition-transform duration-700 ease-out group-hover:scale-[1.03]"
         />
       </div>
-      <figcaption className="mt-3 flex items-baseline gap-3 text-[9px] font-bold tracking-[1.6px] text-[#7e888e]">
+      <figcaption className="mt-3 flex items-baseline gap-3 text-[11px] font-semibold tracking-[1.4px] text-[#4f5b66]">
         <span className="text-[#29343a]">{model.index}</span>
         <span className="uppercase">{model.pieces}</span>
       </figcaption>
@@ -97,7 +97,7 @@ export default function LoginPage() {
         <Link href="/" className="font-display text-[28px] leading-none tracking-[-0.7px] text-[#202529] lg:text-[32px]">
           Vir<em className="font-normal">m</em>
         </Link>
-        <Link href="/" className="text-[10px] font-bold text-[#6e7b82] hover:text-[#29343a]">
+        <Link href="/" className="text-[12px] font-semibold text-[#3b4850] hover:text-[#121821]">
           ← Back to explore
         </Link>
       </header>
@@ -117,23 +117,23 @@ export default function LoginPage() {
 
         <form
           onSubmit={handleSubmit}
-          className="mx-auto w-full max-w-[430px] border bg-white/55 p-7 backdrop-blur-sm sm:p-9"
+          className="mx-auto w-full max-w-[430px] rounded-[24px] bg-white p-7 shadow-[0_1px_0_rgba(18,24,33,0.03),0_18px_44px_rgba(18,30,45,0.10)] sm:p-9"
           style={{ borderColor: "#cbd7dcb0", boxShadow: "0 18px 44px rgba(20,32,40,0.07)" }}
         >
-          <p className="text-[10px] font-bold uppercase tracking-[2.2px] text-[#7e888e]">
+          <p className="text-[11px] font-semibold uppercase tracking-[2.2px] text-[#4f5b66]">
             {creating ? "Create your wardrobe" : "Member access"}
           </p>
           <h1 className="font-display mb-3 mt-4 text-[44px] font-normal leading-none tracking-[-1.4px] text-[#1c2328] sm:text-[52px]">
             {creating ? "Begin with your closet." : "Welcome back."}
           </h1>
-          <p className="mb-8 text-xs leading-[1.75] text-[#7c878d]">
+          <p className="mb-8 text-[14px] leading-relaxed text-[#4f5b66]">
             {creating
               ? "Build your closet and see new ways to wear it."
               : "Sign in to your closet."}
           </p>
 
           {creating && (
-            <label className="mb-5 flex flex-col gap-2.5 text-[8px] font-bold tracking-[1.6px] text-[#7f8a90]">
+            <label className="mb-5 flex flex-col gap-2.5 text-[11px] font-semibold tracking-[1.4px] text-[#3b4850]">
               YOUR NAME <span className="sr-only">(optional)</span>
               <input
                 type="text"
@@ -142,11 +142,11 @@ export default function LoginPage() {
                 value={displayName}
                 onChange={(e) => setDisplayName(e.target.value)}
                 placeholder="Optional"
-                className="h-[49px] w-full rounded-[3px] border border-[#d3dbde] bg-white px-3.5 text-xs font-normal tracking-normal text-[#29343a] outline-none focus:border-[#78878f] focus:shadow-[0_0_0_3px_#c8d1d536]"
+                className="h-12 w-full rounded-[12px] bg-white px-4 text-[14px] font-normal tracking-normal text-[#121821] shadow-[inset_0_0_0_1px_rgba(18,24,33,0.18)] outline-none placeholder:text-[#6b7783] focus:shadow-[inset_0_0_0_2px_#121821]"
               />
             </label>
           )}
-          <label className="flex flex-col gap-2.5 text-[8px] font-bold tracking-[1.6px] text-[#7f8a90]">
+          <label className="flex flex-col gap-2.5 text-[11px] font-semibold tracking-[1.4px] text-[#3b4850]">
             EMAIL ADDRESS
             <input
               type="email"
@@ -155,10 +155,10 @@ export default function LoginPage() {
               value={email}
               onChange={(e) => setEmail(e.target.value)}
               placeholder="you@example.com"
-              className="h-[49px] w-full rounded-[3px] border border-[#d3dbde] bg-white px-3.5 text-xs font-normal tracking-normal text-[#29343a] outline-none focus:border-[#78878f] focus:shadow-[0_0_0_3px_#c8d1d536]"
+              className="h-12 w-full rounded-[12px] bg-white px-4 text-[14px] font-normal tracking-normal text-[#121821] shadow-[inset_0_0_0_1px_rgba(18,24,33,0.18)] outline-none placeholder:text-[#6b7783] focus:shadow-[inset_0_0_0_2px_#121821]"
             />
           </label>
-          <label className="mt-5 flex flex-col gap-2.5 text-[8px] font-bold tracking-[1.6px] text-[#7f8a90]">
+          <label className="mt-5 flex flex-col gap-2.5 text-[11px] font-semibold tracking-[1.4px] text-[#3b4850]">
             PASSWORD
             <input
               type="password"
@@ -168,7 +168,7 @@ export default function LoginPage() {
               value={password}
               onChange={(e) => setPassword(e.target.value)}
               placeholder={creating ? "At least 8 characters" : "Enter your password"}
-              className="h-[49px] w-full rounded-[3px] border border-[#d3dbde] bg-white px-3.5 text-xs font-normal tracking-normal text-[#29343a] outline-none focus:border-[#78878f] focus:shadow-[0_0_0_3px_#c8d1d536]"
+              className="h-12 w-full rounded-[12px] bg-white px-4 text-[14px] font-normal tracking-normal text-[#121821] shadow-[inset_0_0_0_1px_rgba(18,24,33,0.18)] outline-none placeholder:text-[#6b7783] focus:shadow-[inset_0_0_0_2px_#121821]"
             />
           </label>
 
@@ -177,7 +177,7 @@ export default function LoginPage() {
           <button
             type="submit"
             disabled={submitting}
-            className="btn-tactile mt-7 flex h-[52px] w-full items-center justify-between rounded-[4px] border border-[#283239] bg-[#283239] px-[17px] text-[11px] font-bold text-white shadow-[inset_0_1px_#ffffff33] hover:bg-[#414d54] disabled:opacity-60"
+            className="btn-tactile mt-7 flex h-[52px] w-full items-center justify-between rounded-full bg-[#121821] px-6 text-[14px] font-semibold text-white hover:bg-[#414d54] disabled:opacity-60"
           >
             {submitting ? "Please wait…" : creating ? "Create My Closet" : "Enter Virm"}
             <span aria-hidden className="text-base">
@@ -186,7 +186,7 @@ export default function LoginPage() {
           </button>
 
           {creating && (
-            <p className="mt-3 text-[10px] leading-relaxed text-[#7e888e]">
+            <p className="mt-3 text-[12px] leading-relaxed text-[#4f5b66]">
               We record anonymous usage, like which pages are opened, to improve Virm. Never your photos, clothes or
               password.
             </p>
@@ -194,7 +194,7 @@ export default function LoginPage() {
 
           {devLogin && (
             <>
-              <div className="my-5 flex items-center gap-3 text-[8px] font-bold tracking-[1.6px] text-[#a0a9ad]">
+              <div className="my-5 flex items-center gap-3 text-[11px] font-semibold tracking-[1.6px] text-[#5d6874]">
                 <span className="h-px flex-1 bg-[#d3dbde]" />
                 OR
                 <span className="h-px flex-1 bg-[#d3dbde]" />
@@ -203,15 +203,15 @@ export default function LoginPage() {
                 type="button"
                 onClick={handleDevLogin}
                 disabled={submitting}
-                className="btn-tactile flex h-[48px] w-full items-center justify-between rounded-[4px] border border-[#cbd7dc] bg-white/70 px-[17px] text-[11px] font-bold text-[#3b4850] hover:bg-white disabled:opacity-60"
+                className="btn-tactile flex h-12 w-full items-center justify-between rounded-full bg-white px-6 text-[14px] font-semibold text-[#121821] shadow-[inset_0_0_0_1px_rgba(18,24,33,0.18)] hover:bg-[#f4f5f6] disabled:opacity-60"
               >
                 Continue with dev account
-                <span className="text-[8px] tracking-[1.4px] text-[#8b959a]">NO PASSWORD</span>
+                <span className="text-[11px] tracking-[1.2px] text-[#4f5b66]">NO PASSWORD</span>
               </button>
             </>
           )}
 
-          <div className="mt-6 flex justify-center gap-[7px] text-[10px] text-[#8b959a]">
+          <div className="mt-6 flex justify-center gap-[7px] text-[13px] text-[#4f5b66]">
             <span>{creating ? "Already have an account?" : "New to Virm?"}</span>
             <button
               type="button"
@@ -219,7 +219,7 @@ export default function LoginPage() {
                 setCreating((v) => !v);
                 setError(null);
               }}
-              className="border-0 border-b border-[#8f9a9f] pb-0.5 font-bold text-[#48565d]"
+              className="border-0 border-b border-[#121821] pb-0.5 font-semibold text-[#121821]"
             >
               {creating ? "Sign in" : "Create an account"}
             </button>
@@ -229,7 +229,7 @@ export default function LoginPage() {
         <ModelPanel model={MODELS.male} className="hidden justify-self-start lg:block lg:translate-y-6" />
       </div>
 
-      <p className="relative z-10 pb-6 text-center text-[7px] font-bold tracking-[1.4px] text-[#a0a9ad]">
+      <p className="relative z-10 pb-6 text-center text-[11px] font-semibold tracking-[1.4px] text-[#4f5b66]">
         PRIVATE BY DESIGN · YOUR CLOSET STAYS YOURS
       </p>
     </main>

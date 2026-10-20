@@ -91,7 +91,7 @@ export default function Home() {
               <Link href="/login" className={btnPrimary}>
                 Create your closet
               </Link>
-              <Link href="/login" className={`${btnSecondary} bg-white/60 backdrop-blur`}>
+              <Link href="/login" className={`${btnSecondary} bg-white/90 backdrop-blur`}>
                 Log in
               </Link>
             </div>
@@ -231,7 +231,7 @@ function Dashboard({ closet, outfits }: { closet: ClothingItem[]; outfits: Outfi
                     </svg>
                   </div>
                 )}
-                <span className="absolute left-4 top-4 bg-white/85 px-2.5 py-1 text-[9px] font-bold uppercase tracking-[2px] text-[#3b4850]">
+                <span className="absolute left-4 top-4 bg-white/85 px-2.5 py-1 text-[10.5px] font-bold uppercase tracking-[1.8px] text-[#26313a]">
                   {user?.look ? "Latest try-on" : hasPhoto ? "Your photo" : "No photo yet"}
                 </span>
               </div>
@@ -268,7 +268,7 @@ function Dashboard({ closet, outfits }: { closet: ClothingItem[]; outfits: Outfi
                         <CameraIcon className="h-4 w-4" /> Upload My Photo
                       </button>
                     </div>
-                    <p className="text-[11.5px] text-[#6b7783]">Only you can see it.</p>
+                    <p className="text-[11.5px] text-[#5d6874]">Only you can see it.</p>
                   </>
                 )}
               </div>

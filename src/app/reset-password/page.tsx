@@ -89,7 +89,7 @@ export default function ResetPasswordPage() {
               <button type="submit" disabled={saving} className={`${btnPrimary} mt-2 w-full`}>
                 {saving ? "Saving…" : "Save new password"}
               </button>
-              <p className="text-[12px] text-[#6b7783]">This signs you out on every other device.</p>
+              <p className="text-[12px] text-[#5d6874]">This signs you out on every other device.</p>
             </form>
           )}
         </div>

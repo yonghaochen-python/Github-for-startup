@@ -56,7 +56,7 @@ export function EditorialOutfitVisual({
           </div>
         ))}
         {!large && hiddenCount > 0 && (
-          <span className="text-right text-[9px] font-bold tracking-wider text-[#89949a]">
+          <span className="text-right text-[10.5px] font-bold tracking-wider text-[#5d6874]">
             +{hiddenCount} PIECE{hiddenCount === 1 ? "" : "S"}
           </span>
         )}
@@ -66,7 +66,7 @@ export function EditorialOutfitVisual({
         <div className="relative min-w-0 overflow-hidden bg-white">
           {/* eslint-disable-next-line @next/next/no-img-element -- private, owner-only image */}
           <img src={wornImageSrc} alt="You wearing this look" className="absolute inset-0 h-full w-full object-contain" />
-          <span className="absolute right-4 bottom-4 z-20 text-[9px] font-bold tracking-widest text-[#89949a] [writing-mode:vertical-rl]">
+          <span className="absolute right-4 bottom-4 z-20 text-[10px] font-bold tracking-widest text-[#5d6874] [writing-mode:vertical-rl]">
             ON YOU
           </span>
         </div>
@@ -82,7 +82,7 @@ export function EditorialOutfitVisual({
             style={{ objectFit: "contain" }}
           />
         )}
-        <span className="absolute right-4 bottom-4 z-20 text-[9px] font-bold tracking-widest text-[#89949a] [writing-mode:vertical-rl]">
+        <span className="absolute right-4 bottom-4 z-20 text-[10px] font-bold tracking-widest text-[#5d6874] [writing-mode:vertical-rl]">
           THE COMPLETE LOOK
         </span>
       </div>

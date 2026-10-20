@@ -33,7 +33,7 @@ function Wordmark() {
       <span className="font-display text-[34px] tracking-[-1px] text-[#121821] sm:text-[36px]">
         Vir<em className="font-normal">m</em>
       </span>
-      <span className="hidden text-[10px] font-medium uppercase tracking-[2.2px] text-[#6b7783] lg:inline">
+      <span className="hidden text-[10px] font-semibold uppercase tracking-[2.2px] text-[#4f5b66] lg:inline">
         Your virtual mirror
       </span>
     </Link>
@@ -79,7 +79,7 @@ export function Nav() {
                     active ? "bg-white text-[#121821] shadow-[0_1px_2px_rgba(18,24,33,0.08)]" : "text-[#5b6875] hover:text-[#121821]"
                   }`}
                 >
-                  <Icon className={`h-[17px] w-[17px] ${active ? "text-[#121821]" : "text-[#8a96a1]"}`} />
+                  <Icon className={`h-[17px] w-[17px] ${active ? "text-[#121821]" : "text-[#5d6874]"}`} />
                   {label}
                 </Link>
               );
@@ -145,7 +145,7 @@ export function MobileTabBar() {
                   href={href}
                   aria-current={active ? "page" : undefined}
                   className={`flex h-16 flex-col items-center justify-center gap-1 text-[10px] font-semibold ${
-                    active ? "text-[#121821]" : "text-[#7a8792]"
+                    active ? "text-[#121821]" : "text-[#5d6874]"
                   }`}
                 >
                   <span

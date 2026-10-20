@@ -52,13 +52,13 @@ export default function ProfilePage() {
             <div className="mt-6">
               <p className={eyebrow}>Email</p>
               <p className="mt-1.5 break-all text-[15px] text-[#121821]">{user?.email ?? "…"}</p>
-              <p className="mt-1 text-[12px] text-[#6b7783]">Used to log in. Can&apos;t be changed.</p>
+              <p className="mt-1 text-[12px] text-[#5d6874]">Used to log in. Can&apos;t be changed.</p>
             </div>
             <ul className="mt-8 grid grid-cols-3 gap-3 border-t border-black/[0.07] pt-6">
               {stats.map(({ label, value, href, Icon }) => (
                 <li key={label}>
                   <Link href={href} className="group block">
-                    <Icon className="mb-2 h-4 w-4 text-[#6b7783]" />
+                    <Icon className="mb-2 h-4 w-4 text-[#5d6874]" />
                     <span className="block font-display text-[34px] leading-none text-[#121821]">{value ?? "—"}</span>
                     <span className="mt-1 block text-[11.5px] text-[#4f5b66] group-hover:underline">{label}</span>
                   </Link>
@@ -142,7 +142,7 @@ function NameEditor() {
       <div>
         <p className={eyebrow}>Name</p>
         <div className="mt-1.5 flex flex-wrap items-baseline gap-x-4 gap-y-1">
-          <p className={`font-display text-[32px] leading-tight ${current ? "text-[#121821]" : "text-[#8a96a1]"}`}>
+          <p className={`font-display text-[32px] leading-tight ${current ? "text-[#121821]" : "text-[#5d6874]"}`}>
             {current || "No name yet"}
           </p>
           <button
@@ -174,7 +174,7 @@ function NameEditor() {
         placeholder="What should Virm call you?"
         className="mt-2 min-h-[46px] w-full rounded-full bg-[#f4f5f6] px-5 text-[15px] text-[#121821] outline-none focus:shadow-[0_0_0_2px_#121821]"
       />
-      <p className="mt-1.5 text-[12px] text-[#6b7783]">Shown in Virm. Leave empty to remove it.</p>
+      <p className="mt-1.5 text-[12px] text-[#5d6874]">Shown in Virm. Leave empty to remove it.</p>
       {error && (
         <div className="mt-3">
           <ErrorNote message={error} />

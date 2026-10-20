@@ -228,7 +228,7 @@ export default function ClosetPage() {
         {showAddClothes && <AddClothesModal onClose={() => setShowAddClothes(false)} onAdded={afterAdding} />}
 
         {justAdded !== null && (
-          <div role="status" className="mb-6 flex flex-col gap-3 border border-black/[0.1] bg-white/80 px-5 py-4 sm:flex-row sm:items-center sm:justify-between">
+          <div role="status" className="mb-6 flex flex-col gap-3 rounded-[18px] bg-white px-5 py-4 shadow-[0_1px_0_rgba(18,24,33,0.03),0_10px_28px_rgba(18,30,45,0.05)] sm:flex-row sm:items-center sm:justify-between">
             <p className="flex items-center gap-2.5 text-[13.5px] text-[#121821]">
               <span className="flex h-6 w-6 items-center justify-center rounded-full bg-[#121821] text-white">
                 <CheckIcon className="h-3.5 w-3.5" />
@@ -242,7 +242,7 @@ export default function ClosetPage() {
               <Link href="/studio" className={btnPrimary}>
                 <SparkleIcon className="h-4 w-4" /> Start Styling
               </Link>
-              <button onClick={() => setJustAdded(null)} aria-label="Dismiss" className="px-2 text-[12px] font-semibold text-[#6b7783] hover:text-[#121821]">
+              <button onClick={() => setJustAdded(null)} aria-label="Dismiss" className="px-2 text-[12px] font-semibold text-[#5d6874] hover:text-[#121821]">
                 Dismiss
               </button>
             </div>
@@ -287,10 +287,10 @@ export default function ClosetPage() {
                     aria-selected={active}
                     onClick={() => setCategory(tab.value)}
                     className={`relative shrink-0 px-3.5 pb-3 pt-2 text-[13px] font-semibold ${
-                      active ? "text-[#121821]" : "text-[#7b878d] hover:text-[#121821]"
+                      active ? "text-[#121821]" : "text-[#5d6874] hover:text-[#121821]"
                     }`}
                   >
-                    {tab.label} <span className="ml-0.5 text-[11px] font-normal text-[#9aa5aa]">{countFor(tab.value)}</span>
+                    {tab.label} <span className="ml-0.5 text-[11px] font-normal text-[#5d6874]">{countFor(tab.value)}</span>
                     {active && <span aria-hidden className="absolute inset-x-2 -bottom-px h-[2px] bg-[#121821]" />}
                   </button>
                 );
@@ -333,7 +333,7 @@ export default function ClosetPage() {
                   Clear filters
                 </button>
               )}
-              <span className="ml-auto text-[12px] text-[#6b7783]">
+              <span className="ml-auto text-[12px] text-[#5d6874]">
                 {filteredItems.length} {filteredItems.length === 1 ? "item" : "items"}
               </span>
             </div>
@@ -368,7 +368,7 @@ export default function ClosetPage() {
                         />
                       </div>
                       <p className="mt-2.5 truncate text-[13px] font-semibold text-[#121821]">{item.description}</p>
-                      <p className="text-[11.5px] capitalize text-[#6b7783]">
+                      <p className="text-[11.5px] capitalize text-[#5d6874]">
                         {item.color} · {layerLabel(item.layeringRole)}
                       </p>
                     </button>
@@ -410,7 +410,7 @@ function QuickUpload({
   if (!visible) return null;
   return (
     <PageShell className="mt-10">
-      <p className="text-[12px] text-[#6b7783]">
+      <p className="text-[12px] text-[#5d6874]">
         Have separate photos of single items?{" "}
         <label className="cursor-pointer font-semibold text-[#121821] underline underline-offset-4">
           {uploading ? "Uploading and labeling…" : "Upload them one per item"}
@@ -555,7 +555,7 @@ function ItemDetail({
               <dl className="grid grid-cols-2 gap-x-6 gap-y-3 border-t border-black/[0.07] pt-5">
                 {details.map(([label, value]) => (
                   <div key={label}>
-                    <dt className="text-[10px] font-bold uppercase tracking-[1.8px] text-[#8b969c]">{label}</dt>
+                    <dt className="text-[10px] font-bold uppercase tracking-[1.8px] text-[#5d6874]">{label}</dt>
                     <dd className="mt-0.5 text-[13px] capitalize text-[#121821]">{value}</dd>
                   </div>
                 ))}

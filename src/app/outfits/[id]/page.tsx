@@ -244,7 +244,7 @@ export default function OutfitDetailPage() {
   if (notFound || !outfit) {
     return (
       <main className="mx-auto w-full max-w-5xl flex-1 px-6 py-12">
-        <p className="text-sm text-[#89949a]">
+        <p className="text-sm text-[#5d6874]">
           Outfit not found. Back to{" "}
           <Link href="/studio" className="text-[#26313a] hover:underline">
             outfits
@@ -297,7 +297,7 @@ export default function OutfitDetailPage() {
         <div className="min-w-0 overflow-hidden rounded-[22px] bg-white shadow-[0_1px_0_rgba(18,24,33,0.03),0_14px_36px_rgba(18,30,45,0.06)]">{mode === "outfit" ? <OutfitBoardView layers={boardLayers} wornImageSrc={outfit.tryOn ? `/api/outfits/${outfit.id}/try-on/image?v=${outfit.tryOn}` : undefined} /> : <ItemsGridView items={outfit.items} />}</div>
 
         <div className="min-w-0 pt-1">
-          <p className="mb-2 text-[10px] font-bold uppercase tracking-[2.6px] text-[#6b7783]">Outfit details</p>
+          <p className="mb-2 text-[10px] font-bold uppercase tracking-[2.6px] text-[#5d6874]">Outfit details</p>
           <h1
             className="mb-4 font-display font-normal capitalize tracking-[-1.5px] text-[#121821]"
             style={{ fontSize: "clamp(40px, 4.5vw, 64px)", lineHeight: 1.02 }}
@@ -312,7 +312,7 @@ export default function OutfitDetailPage() {
             </Link>
             <SaveToggle saved={outfit.isFavorite} busy={saving} onToggle={toggleFavorite} />
           </div>
-          <p className="mt-2 text-[11.5px] text-[#6b7783]">Try On uses your saved photo and starts right away.</p>
+          <p className="mt-2 text-[11.5px] text-[#5d6874]">Try On uses your saved photo and starts right away.</p>
 
           <div className="mt-6 flex flex-wrap gap-2">
             {outfit.occasion && (
@@ -334,7 +334,7 @@ export default function OutfitDetailPage() {
           <div className="mt-10">
             <div className="mb-2 flex items-baseline justify-between border-b border-black/[0.07] pb-3.5">
               <h2 className="font-display text-xl font-normal text-[#121821]">Pieces used</h2>
-              <span className="text-[9px] tracking-[1.5px] text-[#9ba49a]">{outfit.items.length} ITEMS</span>
+              <span className="text-[11px] tracking-[1.4px] text-[#5d6874]">{outfit.items.length} ITEMS</span>
             </div>
             <div className="flex flex-col">
               {outfit.items.map((item) => (
@@ -353,7 +353,7 @@ export default function OutfitDetailPage() {
                   </div>
                   <div className="min-w-0 flex-1">
                     <p className="truncate text-[11px] font-semibold text-[#222a2f]">{item.description}</p>
-                    <span className="text-[9px] tracking-[1.1px] text-[#9ba49a]">{LAYER_LABELS[item.layeringRole]}</span>
+                    <span className="text-[11px] tracking-[1px] text-[#5d6874]">{LAYER_LABELS[item.layeringRole]}</span>
                   </div>
                 </div>
               ))}
@@ -363,7 +363,7 @@ export default function OutfitDetailPage() {
           {error && <p className="mt-5 rounded-[14px] bg-red-50 px-4 py-3 text-sm text-red-700">{error}</p>}
 
           <div className="mt-8 border-t border-black/[0.07] pt-5">
-            <p className="mb-3 text-[9px] font-bold uppercase tracking-[1.8px] text-[#9da99a]">Change one item</p>
+            <p className="mb-3 text-[11px] font-bold uppercase tracking-[1.6px] text-[#4f5b66]">Change one item</p>
             {!swappingId ? (
               <select
                 value=""
@@ -379,7 +379,7 @@ export default function OutfitDetailPage() {
               </select>
             ) : (
               <div className="flex flex-col gap-2">
-                <p className="text-xs text-[#899786]">Replacing: {swappingItem?.description}</p>
+                <p className="text-xs text-[#5d6874]">Replacing: {swappingItem?.description}</p>
                 <select
                   value={replacementId}
                   onChange={(e) => setReplacementId(e.target.value)}
@@ -393,7 +393,7 @@ export default function OutfitDetailPage() {
                   ))}
                 </select>
                 {replacementOptions.length === 0 && (
-                  <p className="text-xs text-[#8a9488]">
+                  <p className="text-xs text-[#5d6874]">
                     No other {swappingItem ? LAYER_LABELS[swappingItem.layeringRole].toLowerCase() : ""} pieces in
                     your closet yet.
                   </p>

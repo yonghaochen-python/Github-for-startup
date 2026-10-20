@@ -51,7 +51,7 @@ export function OutfitBoard({
     <article className="flex min-w-0 flex-col overflow-hidden overflow-hidden rounded-[18px] bg-white shadow-[0_1px_0_rgba(18,24,33,0.03),0_10px_28px_rgba(18,30,45,0.05)]">
       <header className="flex items-start justify-between gap-3 px-5 pb-3 pt-4">
         <div>
-          <p className="text-[9px] font-bold uppercase tracking-[1.8px] text-[#8b969c]">{outfit.occasion ?? "Outfit"}</p>
+          <p className="text-[11px] font-bold uppercase tracking-[1.6px] text-[#5d6874]">{outfit.occasion ?? "Outfit"}</p>
           <h3 className="font-display text-[24px] font-normal leading-tight text-[#121821]">
             {items.length}-piece look
           </h3>
@@ -87,9 +87,9 @@ export function OutfitBoard({
       <ol className="grid min-w-0 grid-cols-1 gap-1 border-t border-black/[0.06] px-5 py-4 text-[12px] text-[#3b4850]">
         {items.map((item, i) => (
           <li key={item.id} className="flex min-w-0 gap-2">
-            <span className="w-5 shrink-0 text-[10px] font-bold text-[#8b969c]">{String(i + 1).padStart(2, "0")}</span>
+            <span className="w-5 shrink-0 text-[10px] font-bold text-[#5d6874]">{String(i + 1).padStart(2, "0")}</span>
             <span className="min-w-0 truncate">{item.description}</span>
-            <span className="ml-auto shrink-0 text-[10.5px] text-[#8b969c]">{LAYER_LABELS[item.layeringRole] ?? ""}</span>
+            <span className="ml-auto shrink-0 text-[10.5px] text-[#5d6874]">{LAYER_LABELS[item.layeringRole] ?? ""}</span>
           </li>
         ))}
       </ol>

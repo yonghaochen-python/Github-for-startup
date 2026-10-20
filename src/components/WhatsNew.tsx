@@ -189,7 +189,7 @@ export function WhatsNewCard() {
       <button
         onClick={close}
         aria-label="Close"
-        className="absolute right-3 top-3 flex h-7 w-7 items-center justify-center rounded-full text-[16px] leading-none text-[#6b7783] hover:bg-[#f4f5f6] hover:text-[#121821]"
+        className="absolute right-3 top-3 flex h-7 w-7 items-center justify-center rounded-full text-[16px] leading-none text-[#5d6874] hover:bg-[#f4f5f6] hover:text-[#121821]"
       >
         ×
       </button>

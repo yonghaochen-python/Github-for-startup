@@ -4,7 +4,7 @@ export function InlineLoading({ label = "Loading…" }: { label?: string }) {
     <div
       role="status"
       aria-label={label}
-      className="flex min-h-[40vh] items-center justify-center text-[10px] font-bold uppercase tracking-[3px] text-[#9aa2a6]"
+      className="flex min-h-[40vh] items-center justify-center text-[10px] font-bold uppercase tracking-[3px] text-[#5d6874]"
     >
       {label}
     </div>
