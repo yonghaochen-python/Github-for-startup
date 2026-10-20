@@ -1,21 +1,17 @@
 "use client";
 
 import { useEffect } from "react";
-import { periodAt, previewPeriod } from "@/lib/timeOfDay";
+import { refreshSky } from "@/lib/timeOfDay";
 
-/** Keeps <html data-period> in step with the visitor's local time, checking every minute. Renders nothing. */
+/** Keeps the page's sky in step with the visitor's local time, updating once a minute. Renders nothing. */
 export function TimeOfDaySync() {
   useEffect(() => {
-    const apply = () => {
-      const period = previewPeriod() ?? periodAt(new Date());
-      if (document.documentElement.dataset.period !== period) document.documentElement.dataset.period = period;
-    };
-    apply();
+    refreshSky();
     let interval: ReturnType<typeof setInterval> | undefined;
-    // Line up with the start of each minute, then check once a minute.
+    // Line up with the start of each minute, then update once a minute; the colors fade between updates.
     const first = setTimeout(() => {
-      apply();
-      interval = setInterval(apply, 60_000);
+      refreshSky();
+      interval = setInterval(refreshSky, 60_000);
     }, 60_000 - (Date.now() % 60_000));
     return () => {
       clearTimeout(first);

@@ -77,7 +77,7 @@ export default function Home() {
       <main className="flex-1">
         <section className="relative isolate -mt-px overflow-hidden" style={{ height: "min(86vh, 760px)" }}>
           <LiquidGlass className="absolute inset-0 -z-10" />
-          <div aria-hidden className="absolute inset-0 -z-10 bg-[linear-gradient(180deg,rgb(var(--page-rgb)/.35)_0%,rgb(var(--page-rgb)/0)_30%,rgb(var(--page-rgb)/0)_55%,rgb(var(--page-rgb)/.55)_100%)]" />
+          <div aria-hidden className="absolute inset-0 -z-10 bg-[linear-gradient(180deg,color-mix(in_srgb,var(--page)_35%,transparent)_0%,transparent_30%,transparent_55%,color-mix(in_srgb,var(--page)_55%,transparent)_100%)]" />
           <div className="glass-legible mx-auto flex h-full w-full max-w-[1280px] flex-col justify-end px-5 pb-16 sm:px-8 sm:pb-20">
             <h1
               className="font-display font-normal leading-[0.95] tracking-[-2px] text-[#121821]"
@@ -170,7 +170,7 @@ function Dashboard({ closet, outfits }: { closet: ClothingItem[]; outfits: Outfi
       {/* Welcome: the one satin-mirror moment on the signed-in home. */}
       <section className="relative isolate overflow-hidden">
         <LiquidGlass className="absolute inset-0 -z-10" />
-        <div aria-hidden className="absolute inset-0 -z-10 bg-[linear-gradient(180deg,rgb(var(--page-rgb)/.25),rgb(var(--page-rgb)/0)_40%,rgb(var(--page-rgb)/.7))]" />
+        <div aria-hidden className="absolute inset-0 -z-10 bg-[linear-gradient(180deg,color-mix(in_srgb,var(--page)_25%,transparent),transparent_40%,color-mix(in_srgb,var(--page)_70%,transparent))]" />
         <PageShell className="glass-legible pb-12 pt-16 sm:pb-14 sm:pt-24">
           <p className="text-[11px] font-semibold uppercase tracking-[2.4px] text-[#26313a]">{greeting}</p>
           <h1 className="mt-3 font-display text-[48px] font-normal leading-[0.98] tracking-[-1.6px] text-[#121821] sm:text-[72px]">

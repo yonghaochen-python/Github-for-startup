@@ -7,7 +7,7 @@ import { AuthProvider } from "@/components/AuthProvider";
 import { TimeOfDaySync } from "@/components/TimeOfDay";
 import { NightSky } from "@/components/NightSky";
 import { Footer } from "@/components/Footer";
-import { PERIOD_BOOT_SCRIPT } from "@/lib/timeOfDay";
+import { SKY_BOOT_SCRIPT } from "@/lib/timeOfDay";
 import "./globals.css";
 
 const fontSans = DM_Sans({
@@ -39,8 +39,8 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
   return (
     <html lang="en" className={`${fontSans.variable} ${fontSerif.variable} h-full antialiased`} suppressHydrationWarning>
       <head>
-        {/* Picks morning / midday / afternoon / night from the local time before the first paint. */}
-        <script dangerouslySetInnerHTML={{ __html: PERIOD_BOOT_SCRIPT }} />
+        {/* Paints the sky for the local time before the first frame. */}
+        <script dangerouslySetInnerHTML={{ __html: SKY_BOOT_SCRIPT }} />
       </head>
       <body className="min-h-full flex flex-col">
         <TimeOfDaySync />

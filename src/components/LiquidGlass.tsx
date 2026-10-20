@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useRef } from "react";
-import { GLASS_PALETTE, type Period } from "@/lib/timeOfDay";
+import { currentSky, type Sky } from "@/lib/timeOfDay";
 
 /**
  * Virm's signature "satin mirror": a matte, light-blue glass surface whose soft light drifts slowly.
@@ -63,7 +63,15 @@ void main(){
   gl_FragColor = vec4(col, 1.);
 }`;
 
-const currentPeriod = (): Period => (document.documentElement.dataset.period as Period) || "midday";
+/** The sky the page is showing now (set by TimeOfDaySync), or worked out here if it hasn't run yet. */
+const pageSky = (): Sky => (window as unknown as { __virmSky?: Sky }).__virmSky ?? currentSky();
+
+const toCss = (c: number[]) => `rgb(${c.map((v) => Math.round(v * 255)).join(" ")})`;
+const fallbackFor = (sky: Sky) =>
+  `radial-gradient(120% 90% at 30% 25%, ${toCss(sky.glass.sheen)} 0%, ${toCss(sky.glass.light)} 45%, ${toCss(sky.glass.shadow)} 100%)`;
+
+type GlassTones = { shadow: number[]; light: number[]; sheen: number[]; accent: number[]; stars: number };
+const tonesOf = (sky: Sky): GlassTones => ({ ...sky.glass, stars: sky.stars });
 
 export function LiquidGlass({ className = "" }: { className?: string }) {
   const ref = useRef<HTMLCanvasElement | null>(null);
@@ -73,7 +81,7 @@ export function LiquidGlass({ className = "" }: { className?: string }) {
     if (!canvas) return;
     const gl = canvas.getContext("webgl", { antialias: false, alpha: false, preserveDrawingBuffer: false });
     if (!gl) {
-      canvas.style.background = GLASS_PALETTE[currentPeriod()].fallback;
+      canvas.style.background = fallbackFor(pageSky());
       return;
     }
     const compile = (type: number, src: string) => {
@@ -87,7 +95,7 @@ export function LiquidGlass({ className = "" }: { className?: string }) {
     gl.attachShader(prog, compile(gl.FRAGMENT_SHADER, FRAGMENT));
     gl.linkProgram(prog);
     if (!gl.getProgramParameter(prog, gl.LINK_STATUS)) {
-      canvas.style.background = GLASS_PALETTE[currentPeriod()].fallback;
+      canvas.style.background = fallbackFor(pageSky());
       return;
     }
     gl.useProgram(prog);
@@ -98,18 +106,28 @@ export function LiquidGlass({ className = "" }: { className?: string }) {
     gl.vertexAttribPointer(loc, 2, gl.FLOAT, false, 0, 0);
     const uRes = gl.getUniformLocation(prog, "r");
     const uTime = gl.getUniformLocation(prog, "t");
-    const applyPalette = () => {
-      const c = GLASS_PALETTE[currentPeriod()];
-      gl.uniform3fv(gl.getUniformLocation(prog, "SHADOW"), c.shadow);
-      gl.uniform3fv(gl.getUniformLocation(prog, "LIGHT"), c.light);
-      gl.uniform3fv(gl.getUniformLocation(prog, "SHEEN"), c.sheen);
-      gl.uniform3fv(gl.getUniformLocation(prog, "LILAC"), c.accent);
-      gl.uniform1f(gl.getUniformLocation(prog, "STARS"), currentPeriod() === "night" ? 1 : 0);
-    };
-    applyPalette();
-
     const reduceMotion = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
-    let visible = true;
+    // The tones on screen ease toward the sky's tones over a few seconds, so the glass never jumps.
+    let shown = tonesOf(pageSky());
+    let target = shown;
+    const ease = (from: number[], to: number[], k: number) => from.map((v, i) => v + (to[i] - v) * k);
+    const applyPalette = (k: number) => {
+      shown = {
+        shadow: ease(shown.shadow, target.shadow, k),
+        light: ease(shown.light, target.light, k),
+        sheen: ease(shown.sheen, target.sheen, k),
+        accent: ease(shown.accent, target.accent, k),
+        stars: shown.stars + (target.stars - shown.stars) * k,
+      };
+      gl.uniform3fv(gl.getUniformLocation(prog, "SHADOW"), shown.shadow);
+      gl.uniform3fv(gl.getUniformLocation(prog, "LIGHT"), shown.light);
+      gl.uniform3fv(gl.getUniformLocation(prog, "SHEEN"), shown.sheen);
+      gl.uniform3fv(gl.getUniformLocation(prog, "LILAC"), shown.accent);
+      gl.uniform1f(gl.getUniformLocation(prog, "STARS"), shown.stars);
+    };
+    applyPalette(1);
+
+        let visible = true;
     let last = 0;
     let frame = 0;
     const resize = () => {
@@ -130,12 +148,15 @@ export function LiquidGlass({ className = "" }: { className?: string }) {
     resizeObserver.observe(canvas);
     const visibility = new IntersectionObserver(([entry]) => (visible = entry.isIntersecting));
     visibility.observe(canvas);
-    // Repaint in the new colors when the time of day changes.
-    const periodWatch = new MutationObserver(() => {
-      applyPalette();
-      draw(last);
-    });
-    periodWatch.observe(document.documentElement, { attributes: true, attributeFilter: ["data-period"] });
+    // When the sky changes (once a minute), aim for its tones; with reduced motion, switch straight to them.
+    const onSky = () => {
+      target = tonesOf(pageSky());
+      if (reduceMotion) {
+        applyPalette(1);
+        draw(last);
+      }
+    };
+    window.addEventListener("virm-sky", onSky);
     resize();
     draw(0);
 
@@ -143,6 +164,8 @@ export function LiquidGlass({ className = "" }: { className?: string }) {
       const loop = (ms: number) => {
         if (visible && !document.hidden && ms - last > 33) {
           last = ms;
+          // About 4 seconds to settle on a new sky at ~30 frames a second.
+          if (shown !== target) applyPalette(0.04);
           draw(ms);
         }
         frame = requestAnimationFrame(loop);
@@ -153,7 +176,7 @@ export function LiquidGlass({ className = "" }: { className?: string }) {
       cancelAnimationFrame(frame);
       resizeObserver.disconnect();
       visibility.disconnect();
-      periodWatch.disconnect();
+      window.removeEventListener("virm-sky", onSky);
       gl.getExtension("WEBGL_lose_context")?.loseContext();
     };
   }, []);

@@ -24,36 +24,48 @@
 }
 
 /*
- * Time of day: <html data-period> is set from the visitor's local time (lib/timeOfDay) and checked every minute.
- * --page is the flat page color that hero fades blend into; --page-bg is the full background.
+ * Time of day: lib/timeOfDay blends a sky for the visitor's local time and sets these colors once a minute.
+ * Registering them as colors lets the browser fade between updates (4s), so the page never jumps.
+ * --page is the flat page color that hero fades and the menu bar blend into.
  */
-:root,
-html[data-period="midday"] {
-  --page-rgb: 244 245 246;
-  --page-bg: linear-gradient(180deg, #f8fafc 0%, #f2f4f6 55%, #f4f5f6 100%);
+@property --page-top {
+  syntax: "<color>";
+  inherits: true;
+  initial-value: #f8fafc;
 }
-html[data-period="morning"] {
-  --page-rgb: 246 241 238;
-  --page-bg: linear-gradient(180deg, #fbebe1 0%, #f4eeee 35%, #eaf0f6 100%);
+@property --page-mid {
+  syntax: "<color>";
+  inherits: true;
+  initial-value: #f2f4f6;
 }
-html[data-period="afternoon"] {
-  --page-rgb: 245 239 229;
-  --page-bg: linear-gradient(180deg, #f8ecd9 0%, #f4eee4 45%, #efebe5 100%);
+@property --page-bottom {
+  syntax: "<color>";
+  inherits: true;
+  initial-value: #f4f5f6;
+}
+@property --page {
+  syntax: "<color>";
+  inherits: true;
+  initial-value: #f2f4f6;
+}
+html {
+  transition:
+    --page-top 4s ease,
+    --page-mid 4s ease,
+    --page-bottom 4s ease,
+    --page 4s ease;
 }
 html[data-period="night"] {
-  --page-rgb: 18 23 33;
-  --page-bg: linear-gradient(180deg, #0f141c 0%, #141a26 50%, #1c1a31 100%);
   color-scheme: dark;
 }
 
 /* Satin Mirror: the liquid glass is reserved for a few signature moments. */
 body {
-  background: rgb(var(--page-rgb));
-  background-image: var(--page-bg);
+  background-color: var(--page);
+  background-image: linear-gradient(180deg, var(--page-top) 0%, var(--page-mid) 50%, var(--page-bottom) 100%);
   background-attachment: fixed;
   color: var(--foreground);
   font-family: var(--font-sans), Arial, Helvetica, sans-serif;
-  transition: background-color 0.6s ease;
 }
 
 /*
@@ -94,7 +106,7 @@ html[data-period="night"] main :is(a, button):is([class^="bg-[#121821]"], [class
 
 /* Text on the glass banners: a soft glow behind it keeps it readable on any time-of-day color. */
 .glass-legible {
-  text-shadow: 0 1px 14px rgb(var(--page-rgb) / 0.75);
+  text-shadow: 0 1px 14px color-mix(in srgb, var(--page) 75%, transparent);
 }
 html[data-period="night"] .glass-legible {
   text-shadow: 0 1px 14px rgb(8 11 18 / 0.7);
@@ -146,6 +158,11 @@ html[data-period="night"] .glass-legible em {
 }
 html[data-period="night"] .night-sky {
   display: block;
+}
+/* Stars fade in over dusk and out before dawn (lib/timeOfDay sets --stars from 0 to 1). */
+.night-sky {
+  opacity: var(--stars, 1);
+  transition: opacity 4s ease;
 }
 .night-star {
   opacity: var(--glow, 0.5);
@@ -199,10 +216,10 @@ html[data-period="night"] .night-sky {
 
 /* The menu bar and phone tab bar: translucent page color by day, dark at night. */
 .site-nav {
-  background-color: rgb(var(--page-rgb) / 0.8);
+  background-color: color-mix(in srgb, var(--page) 80%, transparent);
 }
 .site-tabbar {
-  background-color: rgb(var(--page-rgb) / 0.88);
+  background-color: color-mix(in srgb, var(--page) 88%, transparent);
 }
 /* Night: the menu bar and phone tab bar go dark to match. */
 html[data-period="night"] .site-footer {
