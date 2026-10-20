@@ -106,7 +106,7 @@ export function WhatsNewSection() {
   return (
     <section
       aria-labelledby="whats-new-title"
-      className="mx-auto grid w-full max-w-[1280px] items-center gap-10 px-5 pt-20 sm:px-8 lg:grid-cols-2 lg:gap-16"
+      className="mx-auto grid w-full max-w-[1280px] items-center gap-10 px-5 pt-12 sm:px-8 lg:grid-cols-2 lg:gap-16"
     >
       <div>
         <NewPill />

@@ -81,7 +81,7 @@ export default function Home() {
   if (!signedIn) {
     return (
       <main className="flex-1">
-        <section className="relative isolate -mt-px overflow-hidden" style={{ height: "min(86vh, 760px)" }}>
+        <section className="relative isolate -mt-px overflow-hidden" style={{ height: "clamp(420px, 60vh, 580px)" }}>
           <LiquidGlass className="absolute inset-0 -z-10" />
           <div aria-hidden className="absolute inset-0 -z-10 bg-[linear-gradient(180deg,color-mix(in_srgb,var(--page)_35%,transparent)_0%,transparent_30%,transparent_55%,color-mix(in_srgb,var(--page)_55%,transparent)_100%)]" />
           <div className="glass-legible mx-auto flex h-full w-full max-w-[1280px] flex-col justify-end px-5 pb-16 sm:px-8 sm:pb-20">
