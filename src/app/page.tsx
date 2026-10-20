@@ -117,9 +117,6 @@ export default function Home() {
                   own.
                 </p>
               </div>
-              <Link href="/login?create=1" className={`${btnPrimary} self-start sm:self-auto`}>
-                Create your closet
-              </Link>
             </div>
             <div className="mt-12 grid grid-cols-2 gap-x-5 gap-y-8 sm:grid-cols-4">
               {TEASER_ITEMS.map((item) => (
