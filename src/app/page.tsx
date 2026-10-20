@@ -84,17 +84,17 @@ export default function Home() {
         <section className="relative isolate -mt-px overflow-hidden" style={{ height: "min(86vh, 760px)" }}>
           <LiquidGlass className="absolute inset-0 -z-10" />
           <div aria-hidden className="absolute inset-0 -z-10 bg-[linear-gradient(180deg,rgb(var(--page-rgb)/.35)_0%,rgb(var(--page-rgb)/0)_30%,rgb(var(--page-rgb)/0)_55%,rgb(var(--page-rgb)/.55)_100%)]" />
-          <div className="mx-auto flex h-full w-full max-w-[1280px] flex-col justify-end px-5 pb-16 sm:px-8 sm:pb-20">
-            <p className={eyebrow}>Your virtual mirror for personal styling</p>
+          <div className="glass-legible mx-auto flex h-full w-full max-w-[1280px] flex-col justify-end px-5 pb-16 sm:px-8 sm:pb-20">
+            <p className="text-[11px] font-semibold uppercase tracking-[2.4px] text-[#26313a]">Your virtual mirror for personal styling</p>
             <h1
               className="mt-4 font-display font-normal leading-[0.95] tracking-[-2px] text-[#121821]"
               style={{ fontSize: "clamp(56px, 8.5vw, 116px)" }}
             >
               Your closet,
               <br />
-              <em className="text-[#3d5266]">reflected.</em>
+              <em className="text-[#2b4560]">reflected.</em>
             </h1>
-            <p className="mt-5 max-w-md text-[16px] leading-relaxed text-[#2f3b47]">
+            <p className="mt-5 max-w-md text-[16px] font-medium leading-relaxed text-[#1c2328]">
               Outfits from the clothes you own, shown on you.
             </p>
             <div className="mt-8 flex flex-wrap gap-3">
@@ -196,18 +196,18 @@ function Dashboard({ closet, outfits }: { closet: ClothingItem[]; outfits: Outfi
       <section className="relative isolate overflow-hidden">
         <LiquidGlass className="absolute inset-0 -z-10" />
         <div aria-hidden className="absolute inset-0 -z-10 bg-[linear-gradient(180deg,rgb(var(--page-rgb)/.25),rgb(var(--page-rgb)/0)_40%,rgb(var(--page-rgb)/.7))]" />
-        <PageShell className="pb-12 pt-16 sm:pb-14 sm:pt-24">
-          <p className={eyebrow}>{greeting}</p>
+        <PageShell className="glass-legible pb-12 pt-16 sm:pb-14 sm:pt-24">
+          <p className="text-[11px] font-semibold uppercase tracking-[2.4px] text-[#26313a]">{greeting}</p>
           <h1 className="mt-3 font-display text-[48px] font-normal leading-[0.98] tracking-[-1.6px] text-[#121821] sm:text-[72px]">
             {name ? (
               <>
-                Hello, <em className="text-[#3d5266]">{name}</em>.
+                Hello, <em className="text-[#2b4560]">{name}</em>.
               </>
             ) : (
               "Hello."
             )}
           </h1>
-          <p className="mt-4 max-w-xl text-[15.5px] leading-relaxed text-[#2f3b47]">
+          <p className="mt-4 max-w-xl text-[15.5px] font-medium leading-relaxed text-[#1c2328]">
             {closet.length} {closet.length === 1 ? "piece" : "pieces"} in your closet · {saved.length} saved{" "}
             {saved.length === 1 ? "look" : "looks"}.
             {step && (

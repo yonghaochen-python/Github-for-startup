@@ -92,6 +92,17 @@ html[data-period="night"] main :is(a, button):is([class^="bg-[#121821]"], [class
   color: #121821;
 }
 
+/* Text on the glass banners: a soft glow behind it keeps it readable on any time-of-day color. */
+.glass-legible {
+  text-shadow: 0 1px 14px rgb(var(--page-rgb) / 0.75);
+}
+html[data-period="night"] .glass-legible {
+  text-shadow: 0 1px 14px rgb(8 11 18 / 0.7);
+}
+html[data-period="night"] .glass-legible em {
+  color: #c9d6ff;
+}
+
 /* Night sky: glitter behind the page, stars of different sizes twinkling at random (night only). */
 .night-sky {
   display: none;
