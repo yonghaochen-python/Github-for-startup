@@ -1,8 +1,16 @@
 "use client";
 
-import { useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { CATEGORIES, FORMALITIES, SEASONS, LAYERING_ROLES, type ClothingAttributes } from "@/lib/clothingTaxonomy";
 import { LAYER_LABELS } from "@/lib/layering";
+import { Tips, type Tip } from "@/components/Tips";
+
+const ADD_TIPS: Tip[] = [
+  { target: '[data-tip="add-photo"]', text: "Each number marks a piece Virm found." },
+  { target: '[data-tip="add-item"]', text: "Check its name and details. Fix anything that's wrong." },
+  { target: '[data-tip="add-remove"]', text: "Not yours, or not needed? Remove it." },
+  { target: '[data-tip="add-confirm"]', text: "All good? Add them to your closet." },
+];
 
 type BoundingBox = { x: number; y: number; width: number; height: number };
 
@@ -78,6 +86,12 @@ export function AddClothesModal({ onClose, onAdded }: { onClose: () => void; onA
   const [items, setItems] = useState<ReviewItem[]>([]);
   const [confirming, setConfirming] = useState(false);
   const imgElRef = useRef<HTMLImageElement | null>(null);
+  const overlayRef = useRef<HTMLDivElement | null>(null);
+
+  // Each step starts at the top of the popup (the photo), even after scrolling down on the previous one.
+  useEffect(() => {
+    overlayRef.current?.scrollTo({ top: 0 });
+  }, [step]);
 
   async function handleFile(file: File) {
     setError(null);
@@ -192,9 +206,9 @@ export function AddClothesModal({ onClose, onAdded }: { onClose: () => void; onA
   }
 
   return (
-    <div className="fixed inset-0 z-50 flex items-start justify-center overflow-y-auto bg-[#172027]/85 px-4 py-8 sm:items-center">
+    <div ref={overlayRef} className="fixed inset-0 z-50 flex items-start justify-center overflow-y-auto bg-[#172027]/85 px-4 py-8">
       <div
-        className="w-full max-w-2xl rounded-[24px] p-6 sm:p-8"
+        className="my-auto w-full max-w-2xl shrink-0 rounded-[24px] p-6 sm:p-8"
         style={{
           borderColor: "#c7d4da",
           background: "linear-gradient(145deg, #fff 0%, #edf4f7 72%, #f3e9eb 100%)",
@@ -270,9 +284,9 @@ export function AddClothesModal({ onClose, onAdded }: { onClose: () => void; onA
 
         {(step === "review" || step === "confirming") && imageUrl && (
           <div>
-            <div className="relative mb-5 w-full overflow-hidden rounded-xl bg-[#faf9f7]">
+            <div data-tip="add-photo" className="relative mx-auto mb-5 w-fit max-w-full overflow-hidden rounded-xl bg-[#faf9f7]">
               {/* eslint-disable-next-line @next/next/no-img-element */}
-              <img src={imageUrl} alt="Uploaded photo" className="block w-full" />
+              <img src={imageUrl} alt="Uploaded photo" className="block max-h-[55vh] w-auto max-w-full" />
               {items.map((item, i) =>
                 item.boundingBox.width >= 0.999 && item.boundingBox.height >= 0.999 ? null : (
                   <div
@@ -324,7 +338,7 @@ export function AddClothesModal({ onClose, onAdded }: { onClose: () => void; onA
                 </p>
                 <div className="mb-5 grid grid-cols-1 gap-4 sm:grid-cols-2">
                   {items.map((item, i) => (
-                    <div key={item.localId} className="rounded-[18px] bg-[#f4f5f6] p-3">
+                    <div key={item.localId} data-tip={i === 0 ? "add-item" : undefined} className="rounded-[18px] bg-[#f4f5f6] p-3">
                       <div className="mb-3 flex gap-3">
                         <div className="relative h-20 w-20 shrink-0 overflow-hidden rounded-lg bg-[#faf9f7]">
                           {item.previewUrl && (
@@ -406,6 +420,7 @@ export function AddClothesModal({ onClose, onAdded }: { onClose: () => void; onA
                         </select>
                       </div>
                       <button
+                        data-tip={i === 0 ? "add-remove" : undefined}
                         onClick={() => removeItem(item.localId)}
                         className="mt-2 w-full rounded-full bg-white shadow-[inset_0_0_0_1px_rgba(18,24,33,0.12)] py-1 text-xs font-medium text-[#333f46] hover:bg-[#e9edef]"
                       >
@@ -424,7 +439,9 @@ export function AddClothesModal({ onClose, onAdded }: { onClose: () => void; onA
                   </p>
                 </div>
 
+                <Tips id="add-clothes" tips={ADD_TIPS} />
                 <button
+                  data-tip="add-confirm"
                   onClick={handleConfirm}
                   disabled={confirming}
                   className="w-full rounded-full bg-[#121821] px-5 py-3 text-sm font-semibold text-white shadow-[inset_0_1px_0_#ffffff35,0_3px_10px_#222d3418] hover:bg-[#2a3542] disabled:opacity-50"

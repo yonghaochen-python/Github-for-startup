@@ -49,6 +49,15 @@ function findTarget(selector: string): Element | null {
   );
 }
 
+/** The nearest scrolling box around an element other than the page itself (e.g. a popup), if any. */
+function scrollBox(el: Element): Element | null {
+  for (let n = el.parentElement; n && n !== document.body; n = n.parentElement) {
+    const overflow = getComputedStyle(n).overflowY;
+    if ((overflow === "auto" || overflow === "scroll") && n.scrollHeight > n.clientHeight) return n;
+  }
+  return null;
+}
+
 /** Menu bars stay put while the page scrolls, so there's nothing to scroll to. */
 const inFixedBar = (el: Element) => Boolean(el.closest(".site-nav, .site-tabbar"));
 const GAP = 12;
@@ -88,7 +97,12 @@ export function Tips({ id, tips, delay = 900 }: { id: string; tips: Tip[]; delay
     if (el && !inFixedBar(el)) {
       const r = el.getBoundingClientRect();
       const fits = r.height < window.innerHeight - 260;
-      window.scrollTo({ top: window.scrollY + r.top - (fits ? (window.innerHeight - r.height) / 2 : 100), behavior: "smooth" });
+      if (scrollBox(el)) {
+        // Inside a scrolling popup: let the browser scroll that popup.
+        el.scrollIntoView({ block: fits ? "center" : "start", behavior: "smooth" });
+      } else {
+        window.scrollTo({ top: window.scrollY + r.top - (fits ? (window.innerHeight - r.height) / 2 : 100), behavior: "smooth" });
+      }
     }
     const frame = requestAnimationFrame(measure);
     const timer = setTimeout(measure, 450);
