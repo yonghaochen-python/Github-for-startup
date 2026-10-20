@@ -92,7 +92,7 @@ html[data-period="night"] main :is(a, button):is([class^="bg-[#121821]"], [class
   color: #121821;
 }
 
-/* Night sky: small stars behind the page that blink at random (night only). */
+/* Night sky: glitter behind the page, stars of different sizes twinkling at random (night only). */
 .night-sky {
   display: none;
 }
@@ -102,24 +102,50 @@ html[data-period="night"] .night-sky {
 .night-star {
   opacity: var(--glow, 0.5);
   box-shadow: 0 0 4px rgb(200 210 255 / 0.6);
-  animation: star-blink 9s linear infinite;
+  animation: star-twinkle 5s ease-in-out infinite;
 }
-/* Steady most of the time; a quick blink once per cycle. Each star has its own length and start, so they never sync. */
-@keyframes star-blink {
+@keyframes star-twinkle {
   0%,
-  44%,
-  56%,
   100% {
     opacity: var(--glow, 0.5);
   }
   50% {
-    opacity: 0.04;
+    opacity: 0.08;
+  }
+}
+/* The bigger glitter: a soft four-point shine that stays faint, then flashes now and then. */
+.night-shine {
+  translate: -50% -50%;
+  background:
+    radial-gradient(circle, #fff 0 12%, rgb(220 228 255 / 0.5) 22%, transparent 40%),
+    linear-gradient(to right, transparent 46%, rgb(235 240 255 / 0.95) 50%, transparent 54%),
+    linear-gradient(to bottom, transparent 46%, rgb(235 240 255 / 0.95) 50%, transparent 54%);
+  mask-image: radial-gradient(circle, #000 18%, transparent 70%);
+  -webkit-mask-image: radial-gradient(circle, #000 18%, transparent 70%);
+  filter: drop-shadow(0 0 3px rgb(200 210 255 / 0.8));
+  opacity: 0.35;
+  scale: 0.35;
+  animation: star-shine 9s ease-in-out infinite;
+}
+@keyframes star-shine {
+  0%,
+  42%,
+  58%,
+  100% {
+    opacity: 0.35;
+    scale: 0.35;
+    rotate: 0deg;
+  }
+  50% {
+    opacity: 1;
+    scale: 1;
+    rotate: 25deg;
   }
 }
 @media (prefers-reduced-motion: reduce) {
-  .night-star {
+  .night-star,
+  .night-shine {
     animation: none;
-    opacity: 0.5;
   }
 }
 

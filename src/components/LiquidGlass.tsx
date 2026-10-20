@@ -38,19 +38,27 @@ void main(){
   col = mix(col, LILAC, .22*k*smoothstep(.3, .9, f));
   col *= .92 + .12*smoothstep(1.2, .1, length(uv-.5));
   if (STARS > 0.) {
+    // Glitter: stars of different sizes; about a third of them now and then flash with a four-point shine.
+    // Each star keeps its own random schedule, and neighbouring cells are checked so shines can cross cells.
     vec2 sp = gl_FragCoord.xy / 6.;
-    vec2 cell = floor(sp);
-    float rnd = h(cell);
-    if (rnd > .988) {
-      vec2 at = vec2(h(cell + 1.3), h(cell + 7.1)) - .5;
-      float d = length(fract(sp) - .5 - at * .5);
-      // Each star keeps its own schedule: steady most of the time, then a short blink every ~5-14 seconds.
-      float speed = mix(1.08, 3.03, h(cell + 3.7));
-      float phase = fract(t * speed + h(cell + 5.3));
-      float blink = smoothstep(0., .04, phase) * smoothstep(.1, .05, phase);
-      float glow = mix(.45, 1., h(cell + 9.1)) * (1. - .92 * blink);
-      col += vec3(.86, .9, 1.) * smoothstep(.42, 0., d) * glow * STARS * .85;
+    vec2 base = floor(sp);
+    float light = 0.;
+    for (int j = -1; j <= 1; j++) {
+      for (int i = -1; i <= 1; i++) {
+        vec2 cell = base + vec2(float(i), float(j));
+        if (h(cell) < .984) continue;
+        vec2 d = sp - (cell + .5 + (vec2(h(cell + 1.3), h(cell + 7.1)) - .5) * .5);
+        float phase = fract(t * mix(1.08, 3.03, h(cell + 3.7)) + h(cell + 5.3));
+        float flash = smoothstep(0., .05, phase) * smoothstep(.16, .06, phase);
+        float size = mix(.16, .5, h(cell + 9.1));
+        float shiny = step(.66, h(cell + 11.3));
+        float core = smoothstep(size, 0., length(d)) * (.5 + .5 * flash);
+        float rays = shiny * flash * (smoothstep(.12, 0., abs(d.y)) * smoothstep(1.7, 0., abs(d.x))
+                                    + smoothstep(.12, 0., abs(d.x)) * smoothstep(1.7, 0., abs(d.y)));
+        light += core + rays * .9;
+      }
     }
+    col += vec3(.88, .91, 1.) * light * STARS * .85;
   }
   gl_FragColor = vec4(col, 1.);
 }`;
