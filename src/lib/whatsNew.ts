@@ -4,8 +4,8 @@
  */
 export const LATEST_UPDATE = {
   id: "layered-try-on-2026-10",
-  title: "Try on a whole outfit, layer by layer",
-  body: "Pick a coat, a sweater, a skirt and boots. Virm puts them all on your full-body photo at once, layered the way you'd wear them.",
+  title: "Photo virtual try-on",
+  body: "Whole outfits, layered on your own photo.",
   /** A full-body example photo (head to toe, facing forward; Unsplash License) and a real Virm try-on of the pieces on it. */
   photo: "/whats-new/full-body.jpg",
   after: "/whats-new/after.jpg",
