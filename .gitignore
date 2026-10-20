@@ -56,3 +56,6 @@ next-env.d.ts
 /dist/
 .vinext/
 .cloudflare/
+
+# MediaPipe browser files, copied from node_modules on install (scripts/copy-mediapipe.mjs)
+/public/mediapipe/wasm

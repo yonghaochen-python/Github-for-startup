@@ -2,6 +2,7 @@
 
 import { useEffect, useRef, useState } from "react";
 import { photoToJpeg } from "@/lib/clientImage";
+import { frameToBody, preloadAutoFrame } from "@/lib/autoFrame";
 
 type Mode = "choose" | "camera" | "review";
 type Source = "camera" | "upload";
@@ -67,6 +68,9 @@ export function TryOnPhotoStep({
   const [busy, setBusy] = useState(false);
   const [cameraReady, setCameraReady] = useState(false);
   const [pending, setPending] = useState<{ blob: Blob; url: string } | null>(null);
+  // When the photo was cropped to fit the person, the uncropped version is kept so they can switch back.
+  const [framing, setFraming] = useState<{ cropped: Blob; original: Blob; useCropped: boolean } | null>(null);
+  const [frameNote, setFrameNote] = useState<string | null>(null);
 
   const videoRef = useRef<HTMLVideoElement | null>(null);
   const frameRef = useRef<HTMLDivElement | null>(null);
@@ -174,14 +178,39 @@ export function TryOnPhotoStep({
       const raw = await new Promise<Blob>((resolve, reject) =>
         canvas.toBlob((b) => (b ? resolve(b) : reject(new Error("capture"))), "image/jpeg", 0.95)
       );
-      setPendingPhoto(await photoToJpeg(raw));
       stopCamera();
+      await preparePhoto(raw);
       setMode("review");
     } catch {
       setError("Couldn't capture that photo. Please try again.");
     } finally {
       setBusy(false);
     }
+  }
+
+  // Start fetching the body-detection model while the person picks a photo.
+  useEffect(() => preloadAutoFrame(), []);
+
+  /** Prepares a chosen or captured photo: crops it head to toe when the feet are in it, otherwise keeps it as is. */
+  async function preparePhoto(raw: Blob) {
+    const [original, frame] = await Promise.all([photoToJpeg(raw), frameToBody(raw)]);
+    if (frame.framed) {
+      const cropped = await photoToJpeg(frame.blob);
+      setFraming({ cropped, original, useCropped: true });
+      setFrameNote(null);
+      setPendingPhoto(cropped);
+    } else {
+      setFraming(null);
+      setFrameNote(frame.reason === "no-feet" ? "Your feet aren't in this photo, so it's kept as it is." : null);
+      setPendingPhoto(original);
+    }
+  }
+
+  function toggleCrop() {
+    if (!framing) return;
+    const useCropped = !framing.useCropped;
+    setFraming({ ...framing, useCropped });
+    setPendingPhoto(useCropped ? framing.cropped : framing.original);
   }
 
   async function handleFile(e: React.ChangeEvent<HTMLInputElement>) {
@@ -199,7 +228,7 @@ export function TryOnPhotoStep({
     }
     setBusy(true);
     try {
-      setPendingPhoto(await photoToJpeg(file));
+      await preparePhoto(file);
       setSource("upload");
       setMode("review");
     } catch {
@@ -211,6 +240,8 @@ export function TryOnPhotoStep({
 
   function retake() {
     setPendingPhoto(null);
+    setFraming(null);
+    setFrameNote(null);
     if (source === "camera") {
       startCamera();
     } else {
@@ -320,8 +351,17 @@ export function TryOnPhotoStep({
             {/* eslint-disable-next-line @next/next/no-img-element */}
             <img src={pending.url} alt="Your photo" className="h-full w-full object-contain" />
           </div>
-          <p className="mx-auto mt-3 max-w-[520px] text-xs text-[#5d6874]">
-            Make sure your whole body is visible.
+          <p className="mx-auto mt-3 flex max-w-[520px] flex-wrap items-center gap-x-3 gap-y-1 text-xs text-[#5d6874]">
+            {framing ? (
+              <>
+                <span>{framing.useCropped ? "Cropped to fit you, head to toe." : "Showing your original photo."}</span>
+                <button onClick={toggleCrop} disabled={saving} className="font-semibold text-[#121821] underline-offset-4 hover:underline">
+                  {framing.useCropped ? "Use original" : "Use cropped"}
+                </button>
+              </>
+            ) : (
+              (frameNote ?? "Make sure your whole body is visible.")
+            )}
           </p>
           <ActionBar>
             <button onClick={() => onConfirm(pending.blob)} disabled={saving} className={`${primaryButton} flex-1`}>

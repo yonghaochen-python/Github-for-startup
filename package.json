@@ -7,7 +7,7 @@
     "build": "next build",
     "start": "next start",
     "lint": "eslint",
-    "postinstall": "prisma generate",
+    "postinstall": "prisma generate && node scripts/copy-mediapipe.mjs",
     "dev:vinext": "vite dev --port 3001",
     "build:vinext": "vite build",
     "start:vinext": "vite preview",
@@ -15,6 +15,7 @@
   },
   "dependencies": {
     "@anthropic-ai/sdk": "^0.128.0",
+    "@mediapipe/tasks-vision": "1.0.1",
     "@prisma/adapter-better-sqlite3": "^7.10.0",
     "@prisma/adapter-d1": "^7.10.0",
     "@prisma/client": "7.10.0",
