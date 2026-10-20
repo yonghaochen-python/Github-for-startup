@@ -5,6 +5,7 @@ import { DemoModeBanner } from "@/components/DemoModeBanner";
 import { ToastProvider } from "@/components/Toast";
 import { AuthProvider } from "@/components/AuthProvider";
 import { TimeOfDaySync } from "@/components/TimeOfDay";
+import { NightSky } from "@/components/NightSky";
 import { PERIOD_BOOT_SCRIPT } from "@/lib/timeOfDay";
 import "./globals.css";
 
@@ -34,6 +35,7 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
       </head>
       <body className="min-h-full flex flex-col">
         <TimeOfDaySync />
+        <NightSky />
         <ToastProvider>
           <AuthProvider>
             <Nav />

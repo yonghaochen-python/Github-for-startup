@@ -17,6 +17,7 @@ precision mediump float;
 uniform vec2 r; uniform float t;
 // The palette follows the time of day (see lib/timeOfDay): morning peach, midday blue, afternoon gold, night violet.
 uniform vec3 SHADOW; uniform vec3 LIGHT; uniform vec3 SHEEN; uniform vec3 LILAC;
+uniform float STARS; // 1 at night: small stars that slowly twinkle
 float h(vec2 p){ return fract(sin(dot(p, vec2(127.1, 311.7))) * 43758.5453); }
 float n(vec2 p){ vec2 i=floor(p), f=fract(p); f=f*f*(3.-2.*f);
   return mix(mix(h(i),h(i+vec2(1,0)),f.x), mix(h(i+vec2(0,1)),h(i+vec2(1,1)),f.x), f.y); }
@@ -36,6 +37,17 @@ void main(){
   vec3 col = mix(SHADOW, LIGHT, smoothstep(.25, .9, f*.75 + diff*.6)) + SHEEN*.22*pow(diff, 4.);
   col = mix(col, LILAC, .22*k*smoothstep(.3, .9, f));
   col *= .92 + .12*smoothstep(1.2, .1, length(uv-.5));
+  if (STARS > 0.) {
+    vec2 sp = gl_FragCoord.xy / 6.;
+    vec2 cell = floor(sp);
+    float rnd = h(cell);
+    if (rnd > .988) {
+      vec2 at = vec2(h(cell + 1.3), h(cell + 7.1)) - .5;
+      float d = length(fract(sp) - .5 - at * .5);
+      float twinkle = .3 + .7 * (.5 + .5 * sin(t * 28. + rnd * 90.));
+      col += vec3(.86, .9, 1.) * smoothstep(.42, 0., d) * twinkle * STARS * .85;
+    }
+  }
   gl_FragColor = vec4(col, 1.);
 }`;
 
@@ -80,6 +92,7 @@ export function LiquidGlass({ className = "" }: { className?: string }) {
       gl.uniform3fv(gl.getUniformLocation(prog, "LIGHT"), c.light);
       gl.uniform3fv(gl.getUniformLocation(prog, "SHEEN"), c.sheen);
       gl.uniform3fv(gl.getUniformLocation(prog, "LILAC"), c.accent);
+      gl.uniform1f(gl.getUniformLocation(prog, "STARS"), currentPeriod() === "night" ? 1 : 0);
     };
     applyPalette();
 

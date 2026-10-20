@@ -92,6 +92,34 @@ html[data-period="night"] main :is(a, button):is([class^="bg-[#121821]"], [class
   color: #121821;
 }
 
+/* Night sky: small stars behind the page that slowly fade in and out (night only). */
+.night-sky {
+  display: none;
+}
+html[data-period="night"] .night-sky {
+  display: block;
+}
+.night-star {
+  opacity: 0.25;
+  box-shadow: 0 0 4px rgb(200 210 255 / 0.6);
+  animation: star-twinkle 5s ease-in-out infinite;
+}
+@keyframes star-twinkle {
+  0%,
+  100% {
+    opacity: 0.15;
+  }
+  50% {
+    opacity: 0.85;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .night-star {
+    animation: none;
+    opacity: 0.5;
+  }
+}
+
 /* The menu bar and phone tab bar: translucent page color by day, dark at night. */
 .site-nav {
   background-color: rgb(var(--page-rgb) / 0.8);
