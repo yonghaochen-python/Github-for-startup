@@ -94,11 +94,11 @@ export default function Home() {
               <em className="text-[#2b4560]">on you.</em>
             </h1>
             <div className="mt-9 flex flex-wrap gap-3">
-              <Link href="/login" className={btnPrimary}>
+              <Link href="/login?create=1" className={btnPrimary}>
                 Create your closet
               </Link>
-              <Link href="/login" className={`${btnSecondary} bg-white/90 backdrop-blur`}>
-                Log in
+              <Link href="/try" className={`${btnSecondary} bg-white/90 backdrop-blur`}>
+                Try it free
               </Link>
             </div>
           </div>
@@ -120,7 +120,7 @@ export default function Home() {
                   own.
                 </p>
               </div>
-              <Link href="/login" className={`${btnPrimary} self-start sm:self-auto`}>
+              <Link href="/login?create=1" className={`${btnPrimary} self-start sm:self-auto`}>
                 Create your closet
               </Link>
             </div>

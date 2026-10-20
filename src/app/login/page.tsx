@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import Link from "next/link";
+import { useSearchParams } from "next/navigation";
 import { useAuth } from "@/components/AuthProvider";
 
 const MODELS = {
@@ -44,7 +45,9 @@ function ModelPanel({ model, className = "" }: { model: (typeof MODELS)[keyof ty
 export default function LoginPage() {
   const { completeLogin } = useAuth();
   const [devLogin, setDevLogin] = useState(false);
-  const [creating, setCreating] = useState(false);
+  // "Create your closet" links open straight on sign-up (?create=1).
+  const searchParams = useSearchParams();
+  const [creating, setCreating] = useState(searchParams.get("create") === "1");
   const [displayName, setDisplayName] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
@@ -224,6 +227,12 @@ export default function LoginPage() {
               {creating ? "Sign in" : "Create an account"}
             </button>
           </div>
+          <p className="mt-3 text-center text-[13px] text-[#4f5b66]">
+            Just looking?{" "}
+            <Link href="/try" className="font-semibold text-[#121821] underline-offset-4 hover:underline">
+              Try it free
+            </Link>
+          </p>
         </form>
 
         <ModelPanel model={MODELS.male} className="hidden justify-self-start lg:block lg:translate-y-6" />
