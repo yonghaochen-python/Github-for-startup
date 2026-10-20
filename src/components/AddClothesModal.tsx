@@ -29,8 +29,8 @@ function clamp(value: number, min: number, max: number) {
   return Math.max(min, Math.min(max, value));
 }
 
-/** Crops a region of a same-origin, already-loaded <img> into a real PNG blob. */
-function cropToBlob(img: HTMLImageElement, box: BoundingBox): Promise<Blob> {
+/** Crops a region of a same-origin, already-loaded <img> into a real PNG blob (or a smaller JPEG, for checking). */
+function cropToBlob(img: HTMLImageElement, box: BoundingBox, maxSide?: number): Promise<Blob> {
   const nw = img.naturalWidth || 1;
   const nh = img.naturalHeight || 1;
   const sx = clamp(box.x, 0, 1) * nw;
@@ -40,15 +40,99 @@ function cropToBlob(img: HTMLImageElement, box: BoundingBox): Promise<Blob> {
   const sw = Math.max(1, Math.min(rawW, nw - sx));
   const sh = Math.max(1, Math.min(rawH, nh - sy));
 
+  const scale = maxSide ? Math.min(1, maxSide / Math.max(sw, sh)) : 1;
   const canvas = document.createElement("canvas");
-  canvas.width = sw;
-  canvas.height = sh;
+  canvas.width = Math.max(1, Math.round(sw * scale));
+  canvas.height = Math.max(1, Math.round(sh * scale));
   const ctx = canvas.getContext("2d");
   if (!ctx) return Promise.reject(new Error("Canvas not supported"));
-  ctx.drawImage(img, sx, sy, sw, sh, 0, 0, sw, sh);
+  ctx.drawImage(img, sx, sy, sw, sh, 0, 0, canvas.width, canvas.height);
 
   return new Promise((resolve, reject) => {
-    canvas.toBlob((blob) => (blob ? resolve(blob) : reject(new Error("Crop failed"))), "image/png");
+    canvas.toBlob((blob) => (blob ? resolve(blob) : reject(new Error("Crop failed"))), maxSide ? "image/jpeg" : "image/png", 0.9);
+  });
+}
+
+/** The size the AI looks at photos (larger ones are shrunk to this anyway). */
+const AI_MAX_SIDE = 1568;
+
+/**
+ * Turns the chosen photo upright (phone photos are often stored sideways with a "rotate me" note) and shrinks it to
+ * the size the AI sees, so the AI and the cut-outs work from exactly the same picture. Falls back to the original.
+ */
+async function preparePhoto(file: File): Promise<{ blob: Blob; width: number; height: number } | null> {
+  try {
+    const bitmap = await createImageBitmap(file, { imageOrientation: "from-image" });
+    const scale = Math.min(1, AI_MAX_SIDE / Math.max(bitmap.width, bitmap.height));
+    const canvas = document.createElement("canvas");
+    canvas.width = Math.round(bitmap.width * scale);
+    canvas.height = Math.round(bitmap.height * scale);
+    canvas.getContext("2d")!.drawImage(bitmap, 0, 0, canvas.width, canvas.height);
+    bitmap.close();
+    const blob = await new Promise<Blob | null>((resolve) => canvas.toBlob(resolve, "image/jpeg", 0.92));
+    return blob ? { blob, width: canvas.width, height: canvas.height } : null;
+  } catch {
+    return null;
+  }
+}
+
+/** A roomy area around a detected box, so the check can find the item even when the first box was off. */
+function roomyBox(box: BoundingBox): BoundingBox {
+  const padX = Math.max(box.width * 0.35, 0.06);
+  const padY = Math.max(box.height * 0.35, 0.06);
+  const x = clamp(box.x - padX, 0, 1);
+  const y = clamp(box.y - padY, 0, 1);
+  return {
+    x,
+    y,
+    width: clamp(box.x + box.width + padX, 0, 1) - x,
+    height: clamp(box.y + box.height + padY, 0, 1) - y,
+  };
+}
+
+const CHECK_MAX_SIDE = 768;
+
+type DetectedPiece = ClothingAttributes & { name: string; boundingBox: BoundingBox };
+
+/**
+ * Checks each detected piece against a close-up of where it was found. Pieces that aren't really there are dropped
+ * (so a picture that doesn't match its description is never saved); the rest get a tighter box.
+ */
+async function checkPieces(img: HTMLImageElement, pieces: DetectedPiece[]): Promise<DetectedPiece[]> {
+  if (!pieces.length) return pieces;
+  const roomy = pieces.map((p) => roomyBox(p.boundingBox));
+  const formData = new FormData();
+  const meta = [];
+  for (const [i, piece] of pieces.entries()) {
+    const blob = await cropToBlob(img, roomy[i], CHECK_MAX_SIDE);
+    const size = await createImageBitmap(blob).then((b) => {
+      const s = { width: b.width, height: b.height };
+      b.close();
+      return s;
+    });
+    formData.append("crops", blob, `${i}.jpg`);
+    meta.push({ name: piece.name, description: piece.description, ...size });
+  }
+  formData.append("items", JSON.stringify(meta));
+
+  const res = await fetch("/api/closet/detect/check", { method: "POST", body: formData });
+  const data = (await res.json().catch(() => ({}))) as { error?: string; results?: { found: boolean; box: BoundingBox | null }[] };
+  if (!res.ok || !data.results) throw new Error(data.error ?? "Couldn't check those pieces.");
+
+  return pieces.flatMap((piece, i) => {
+    const r = data.results![i];
+    if (!r?.found) return [];
+    if (!r.box) return [piece];
+    // Back from close-up fractions to whole-photo fractions, with a little breathing room around the item.
+    const area = roomy[i];
+    const pad = 0.04;
+    const x = area.x + (r.box.x - r.box.width * pad) * area.width;
+    const y = area.y + (r.box.y - r.box.height * pad) * area.height;
+    const w = r.box.width * (1 + 2 * pad) * area.width;
+    const h = r.box.height * (1 + 2 * pad) * area.height;
+    const bx = clamp(x, 0, 1);
+    const by = clamp(y, 0, 1);
+    return [{ ...piece, boundingBox: { x: bx, y: by, width: clamp(x + w, 0, 1) - bx, height: clamp(y + h, 0, 1) - by } }];
   });
 }
 
@@ -85,6 +169,8 @@ export function AddClothesModal({ onClose, onAdded }: { onClose: () => void; onA
   const [imageUrl, setImageUrl] = useState<string | null>(null);
   const [items, setItems] = useState<ReviewItem[]>([]);
   const [confirming, setConfirming] = useState(false);
+  const [checking, setChecking] = useState(false);
+  const [leftOut, setLeftOut] = useState(0);
   const imgElRef = useRef<HTMLImageElement | null>(null);
   const overlayRef = useRef<HTMLDivElement | null>(null);
 
@@ -105,17 +191,29 @@ export function AddClothesModal({ onClose, onAdded }: { onClose: () => void; onA
     }
 
     setStep("analyzing");
+    setChecking(false);
+    setLeftOut(0);
     try {
+      const prepared = await preparePhoto(file);
       const formData = new FormData();
-      formData.append("photo", file);
+      if (prepared) {
+        formData.append("photo", prepared.blob, "photo.jpg");
+        formData.append("width", String(prepared.width));
+        formData.append("height", String(prepared.height));
+      } else {
+        formData.append("photo", file);
+      }
       const res = await fetch("/api/closet/detect", { method: "POST", body: formData });
-      const data = (await res.json().catch(() => ({}))) as { error?: string; imageUrl?: string; items?: (ClothingAttributes & { name: string; boundingBox: BoundingBox })[] };
+      const data = (await res.json().catch(() => ({}))) as { error?: string; imageUrl?: string; items?: DetectedPiece[] };
       if (!res.ok || !data.imageUrl) throw new Error(data.error ?? "Couldn't analyze that photo.");
 
       const img = await loadImage(data.imageUrl);
       imgElRef.current = img;
 
-      const detected = data.items ?? [];
+      setChecking(true);
+      const found = data.items ?? [];
+      const detected = await checkPieces(img, found);
+      setLeftOut(found.length - detected.length);
       const withPreviews = await Promise.all(
         detected.map(async (item) => {
           let previewUrl = data.imageUrl!;
@@ -278,7 +376,7 @@ export function AddClothesModal({ onClose, onAdded }: { onClose: () => void; onA
         {step === "analyzing" && (
           <div className="flex flex-col items-center gap-4 py-16">
             <div className="h-8 w-8 animate-spin rounded-full border-2 border-black/[0.07] border-t-[#29343a]" />
-            <p className="text-sm text-[#445159]">Analyzing your photo…</p>
+            <p className="text-sm text-[#445159]">{checking ? "Checking each piece…" : "Analyzing your photo…"}</p>
           </div>
         )}
 
@@ -306,6 +404,12 @@ export function AddClothesModal({ onClose, onAdded }: { onClose: () => void; onA
                 )
               )}
             </div>
+
+            {leftOut > 0 && (
+              <p className="mb-4 text-center text-[13px] text-[#5b6870]">
+                Left out {leftOut === 1 ? "1 piece" : `${leftOut} pieces`} we couldn&apos;t match to the photo.
+              </p>
+            )}
 
             {items.length === 0 ? (
               <div className="mb-5 rounded-[18px] bg-[#f4f5f6] p-6 text-center">

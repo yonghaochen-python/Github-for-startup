@@ -39,8 +39,13 @@ export async function POST(request: Request) {
     );
   }
 
+  // The app sends the photo's size so the AI can mark each piece in exact pixels.
+  const width = Number(formData.get("width"));
+  const height = Number(formData.get("height"));
+  const size = width > 0 && height > 0 ? { width: Math.round(width), height: Math.round(height) } : undefined;
+
   try {
-    const items = await trackTimed(user.id, "clothes_detect", () => detectClothingItems(image));
+    const items = await trackTimed(user.id, "clothes_detect", () => detectClothingItems(image, size));
     return NextResponse.json({ imageUrl: image.url, items });
   } catch (err) {
     console.error("Item detection failed:", err);
