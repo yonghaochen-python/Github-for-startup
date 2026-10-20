@@ -97,8 +97,8 @@ export default function Home() {
               <Link href="/login?create=1" className={btnPrimary}>
                 Create your closet
               </Link>
-              <Link href="/try" className={`${btnSecondary} bg-white/90 backdrop-blur`}>
-                Try it free
+              <Link href="/login" className={`${btnSecondary} bg-white/90 backdrop-blur`}>
+                Log in
               </Link>
             </div>
           </div>
