@@ -7,6 +7,9 @@ import { OutfitBoard } from "@/components/OutfitBoard";
 import { InlineLoading } from "@/components/InlineLoading";
 import { SparkleIcon } from "@/components/Icons";
 import { EmptyState, ErrorNote, PageHeader, PageShell, btnPrimary, btnSecondary } from "@/components/ui";
+import { Tips, type Tip } from "@/components/Tips";
+
+const SAVED_TIPS: Tip[] = [{ target: '[aria-label="Saved. Tap to unsave"]', text: "Tap the red bookmark to unsave a look." }];
 
 export default function SavedLooksPage() {
   const [outfits, setOutfits] = useState<Outfit[]>([]);
@@ -40,6 +43,7 @@ export default function SavedLooksPage() {
 
   return (
     <main className="flex-1 pb-16">
+      <Tips id="saved" tips={SAVED_TIPS} delay={1400} />
       <PageShell>
         <PageHeader
                     title="Saved Looks"

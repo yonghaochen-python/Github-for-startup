@@ -12,6 +12,13 @@ import { useToast } from "@/components/Toast";
 import { MirrorIcon, PlusIcon, SearchIcon } from "@/components/Icons";
 import { EmptyState, ErrorNote, PageShell, btnPrimary } from "@/components/ui";
 import { requestTryOn, type TryOnResult } from "@/lib/tryOnClient";
+import { Tips, type Tip } from "@/components/Tips";
+
+const STUDIO_TIPS: Tip[] = [
+  { target: '[data-tip="studio-theme"]', text: "Type a theme for outfit ideas, or pick clothes yourself." },
+  { target: '[data-tip="studio-closet"]', text: "Tap to add. Tap again to take it off." },
+  { target: '[data-tip="studio-tryon"]', text: "Try it on. The bookmark saves the look." },
+];
 
 /** The closet tabs, in the order people dress. */
 const TABS = [
@@ -275,8 +282,9 @@ export default function StudioPage() {
     <main className="flex-1 pb-16">
       <PageShell className="pt-6 sm:pt-8">
         <h1 className="sr-only">Studio</h1>
+        <Tips id="studio" tips={STUDIO_TIPS} />
 
-        <form onSubmit={styleTheme} className="mb-5 flex items-center gap-2 rounded-full bg-white p-1.5 pl-5 shadow-[0_1px_0_rgba(18,24,33,0.03),0_14px_36px_rgba(18,30,45,0.06)]">
+        <form onSubmit={styleTheme} data-tip="studio-theme" className="mb-5 flex items-center gap-2 rounded-full bg-white p-1.5 pl-5 shadow-[0_1px_0_rgba(18,24,33,0.03),0_14px_36px_rgba(18,30,45,0.06)]">
           <SearchIcon className="h-[18px] w-[18px] shrink-0 text-[#5d6874]" />
           <label htmlFor="studio-theme" className="sr-only">
             Theme
@@ -401,7 +409,7 @@ export default function StudioPage() {
                 </ul>
               )}
 
-              <div className="mt-4 flex items-center gap-3">
+              <div data-tip="studio-tryon" className="mt-4 flex items-center gap-3">
                 <SaveToggle saved={!changed && look.isFavorite} busy={saving || pieces.length === 0} onToggle={toggleSaved} />
                 <button onClick={tryOn} disabled={trying || pieces.length === 0 || !hasPhoto} className={`${btnPrimary} min-h-[48px] flex-1`}>
                   <MirrorIcon className="h-4 w-4" />
@@ -412,7 +420,7 @@ export default function StudioPage() {
           </section>
 
           {/* The closet, by category. Tap to add; tap again to remove. */}
-          <section aria-label="Your closet" className="min-w-0 self-start overflow-hidden rounded-[22px] bg-white shadow-[0_1px_0_rgba(18,24,33,0.03),0_14px_36px_rgba(18,30,45,0.06)] lg:sticky lg:top-24">
+          <section aria-label="Your closet" data-tip="studio-closet" className="min-w-0 self-start overflow-hidden rounded-[22px] bg-white shadow-[0_1px_0_rgba(18,24,33,0.03),0_14px_36px_rgba(18,30,45,0.06)] lg:sticky lg:top-24">
             <div role="tablist" aria-label="Closet sections" className="flex gap-1 overflow-x-auto border-b border-black/[0.06] px-3 pt-3">
               {TABS.map((t) => {
                 const active = t.value === tab;

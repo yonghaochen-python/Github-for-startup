@@ -8,11 +8,13 @@ import { useAuth } from "@/components/AuthProvider";
 import { CurrentLookBar, MirrorImage, SavedPhotoSetup, useRemoveSavedPhoto } from "@/components/SavedPhoto";
 import { BookmarkIcon, ClosetIcon, SparkleIcon } from "@/components/Icons";
 import { ErrorNote, PageHeader, PageShell, btnPrimary, btnSecondary, btnText, eyebrow } from "@/components/ui";
+import { resetTips } from "@/components/Tips";
 
 type Outfit = { id: string; isFavorite: boolean };
 
 export default function ProfilePage() {
   const { user, logout } = useAuth();
+  const { showToast } = useToast();
   const hasPhoto = Boolean(user?.photoVersion);
   const removeSavedPhoto = useRemoveSavedPhoto();
   const [changing, setChanging] = useState(false);
@@ -65,9 +67,20 @@ export default function ProfilePage() {
                 </li>
               ))}
             </ul>
-            <button onClick={logout} className={`${btnSecondary} mt-8`}>
-              Log out of Virm
-            </button>
+            <div className="mt-8 flex flex-wrap items-center gap-4">
+              <button onClick={logout} className={btnSecondary}>
+                Log out of Virm
+              </button>
+              <button
+                onClick={() => {
+                  resetTips();
+                  showToast("Tips will show again on each page");
+                }}
+                className="text-[13px] font-semibold text-[#3b4850] underline-offset-4 hover:text-[#121821] hover:underline"
+              >
+                Show tips again
+              </button>
+            </div>
           </section>
 
           <section aria-labelledby="photo" className="overflow-hidden rounded-[22px] bg-white shadow-[0_1px_0_rgba(18,24,33,0.03),0_14px_36px_rgba(18,30,45,0.06)]">

@@ -19,6 +19,12 @@ import {
   PlusIcon,
   SparkleIcon,
 } from "@/components/Icons";
+import { Tips, type Tip } from "@/components/Tips";
+
+const HOME_TIPS: Tip[] = [
+  { target: "#mirror", text: "Your latest try-on shows here." },
+  { target: '[aria-labelledby="stylist-title"]', text: "Open the Studio to put an outfit together." },
+];
 
 
 
@@ -167,6 +173,7 @@ function Dashboard({ closet, outfits }: { closet: ClothingItem[]; outfits: Outfi
 
   return (
     <main className="flex-1 pb-16">
+      <Tips id="home" tips={HOME_TIPS} />
       {/* Welcome: the one satin-mirror moment on the signed-in home. */}
       <section className="relative isolate overflow-hidden">
         <LiquidGlass className="absolute inset-0 -z-10" />

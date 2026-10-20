@@ -11,6 +11,12 @@ import { useToast } from "@/components/Toast";
 import { InlineLoading } from "@/components/InlineLoading";
 import { CheckIcon, PlusIcon, SparkleIcon } from "@/components/Icons";
 import { EmptyState, ErrorNote, PageHeader, PageShell, btnPrimary, btnSecondary, btnText } from "@/components/ui";
+import { Tips, type Tip } from "@/components/Tips";
+
+const CLOSET_TIPS: Tip[] = [
+  { target: '[data-tip="closet-add"]', text: "Add a photo of one piece, or a few laid out together." },
+  { target: '[data-tip="closet-filter"]', text: "Filter by type, color or season." },
+];
 
 type ClothingItem = {
   id: string;
@@ -207,13 +213,14 @@ export default function ClosetPage() {
 
   return (
     <main className="flex-1 pb-16">
+      <Tips id="closet" tips={CLOSET_TIPS} />
       <PageShell>
         <PageHeader
                     title="My Closet"
           description="Everything you own, in one place."
           actions={
             <>
-              <button onClick={() => setShowAddClothes(true)} className={btnPrimary}>
+              <button onClick={() => setShowAddClothes(true)} data-tip="closet-add" className={btnPrimary}>
                 <PlusIcon className="h-4 w-4" /> Add Clothes
               </button>
               {items.length >= 2 && (
@@ -277,7 +284,7 @@ export default function ClosetPage() {
         ) : (
           <>
             {/* Categories */}
-            <div role="tablist" aria-label="Category" className="-mx-5 mb-4 flex gap-1 overflow-x-auto border-b border-black/[0.07] px-5 sm:mx-0 sm:px-0">
+            <div role="tablist" aria-label="Category" data-tip="closet-filter" className="-mx-5 mb-4 flex gap-1 overflow-x-auto border-b border-black/[0.07] px-5 sm:mx-0 sm:px-0">
               {CATEGORY_TABS.map((tab) => {
                 const active = category === tab.value;
                 return (

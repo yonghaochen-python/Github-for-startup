@@ -152,6 +152,56 @@ html[data-period="night"] .glass-legible em {
   text-underline-offset: 3px;
 }
 
+/* First-visit tips (components/Tips): a dark bubble by day, a light one at night, so it always stands out. */
+.tip-bubble,
+.tip-arrow {
+  background: #121821;
+  color: #fff;
+}
+.tip-bubble {
+  box-shadow: 0 14px 36px rgb(18 30 45 / 0.28);
+}
+.tip-count {
+  color: #b9c3d0;
+}
+.tip-skip {
+  color: #dbe2ea;
+}
+.tip-next {
+  background: #fff;
+  color: #121821;
+}
+.tip-ring {
+  box-shadow:
+    0 0 0 2px #121821,
+    0 0 0 7px rgb(18 24 33 / 0.12);
+  transition:
+    left 0.25s ease,
+    top 0.25s ease,
+    width 0.25s ease,
+    height 0.25s ease;
+}
+html[data-period="night"] .tip-bubble,
+html[data-period="night"] .tip-arrow {
+  background: #fff;
+  color: #121821;
+}
+html[data-period="night"] .tip-count {
+  color: #5d6874;
+}
+html[data-period="night"] .tip-skip {
+  color: #3b4850;
+}
+html[data-period="night"] .tip-next {
+  background: #121821;
+  color: #fff;
+}
+html[data-period="night"] .tip-ring {
+  box-shadow:
+    0 0 0 2px #eef2f6,
+    0 0 0 7px rgb(238 242 246 / 0.18);
+}
+
 /* Night sky: glitter behind the page, stars of different sizes twinkling at random (night only). */
 .night-sky {
   display: none;
