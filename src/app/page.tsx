@@ -7,6 +7,7 @@ import type { LayeringRole } from "@/lib/layering";
 import { byLatestTryOn, type Outfit } from "@/components/OutfitCard";
 import { useAuth } from "@/components/AuthProvider";
 import { WhatsNewCard, WhatsNewSection } from "@/components/WhatsNew";
+import { AmbientTime } from "@/components/TimeOfDay";
 import { LiquidGlass } from "@/components/LiquidGlass";
 import { CurrentLookBar, MirrorImage, SavedPhotoSetup } from "@/components/SavedPhoto";
 import { PageShell, btnPrimary, btnSecondary, eyebrow } from "@/components/ui";
@@ -83,8 +84,9 @@ export default function Home() {
       <main className="flex-1">
         <section className="relative isolate -mt-px overflow-hidden" style={{ height: "min(86vh, 760px)" }}>
           <LiquidGlass className="absolute inset-0 -z-10" />
-          <div aria-hidden className="absolute inset-0 -z-10 bg-[linear-gradient(180deg,rgba(244,245,246,.35)_0%,rgba(244,245,246,0)_30%,rgba(244,245,246,0)_55%,rgba(244,245,246,.55)_100%)]" />
+          <div aria-hidden className="absolute inset-0 -z-10 bg-[linear-gradient(180deg,rgb(var(--page-rgb)/.35)_0%,rgb(var(--page-rgb)/0)_30%,rgb(var(--page-rgb)/0)_55%,rgb(var(--page-rgb)/.55)_100%)]" />
           <div className="mx-auto flex h-full w-full max-w-[1280px] flex-col justify-end px-5 pb-16 sm:px-8 sm:pb-20">
+            <AmbientTime className="mb-4 self-start" />
             <p className={eyebrow}>Your virtual mirror for personal styling</p>
             <h1
               className="mt-4 font-display font-normal leading-[0.95] tracking-[-2px] text-[#121821]"
@@ -195,9 +197,12 @@ function Dashboard({ closet, outfits }: { closet: ClothingItem[]; outfits: Outfi
       {/* Welcome: the one satin-mirror moment on the signed-in home. */}
       <section className="relative isolate overflow-hidden">
         <LiquidGlass className="absolute inset-0 -z-10" />
-        <div aria-hidden className="absolute inset-0 -z-10 bg-[linear-gradient(180deg,rgba(244,245,246,.25),rgba(244,245,246,0)_40%,rgba(244,245,246,.7))]" />
+        <div aria-hidden className="absolute inset-0 -z-10 bg-[linear-gradient(180deg,rgb(var(--page-rgb)/.25),rgb(var(--page-rgb)/0)_40%,rgb(var(--page-rgb)/.7))]" />
         <PageShell className="pb-12 pt-16 sm:pb-14 sm:pt-24">
-          <p className={eyebrow}>{greeting}</p>
+          <div className="flex flex-wrap items-center gap-3">
+            <p className={eyebrow}>{greeting}</p>
+            <AmbientTime />
+          </div>
           <h1 className="mt-3 font-display text-[48px] font-normal leading-[0.98] tracking-[-1.6px] text-[#121821] sm:text-[72px]">
             {name ? (
               <>

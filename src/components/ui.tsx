@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { AmbientTime } from "@/components/TimeOfDay";
 import { ArrowLeftIcon } from "@/components/Icons";
 
 /** Shared button looks: one dark primary action per screen, quiet secondary actions around it. */
@@ -43,6 +44,7 @@ export function PageHeader({
       )}
       <div className="flex flex-col gap-5 sm:flex-row sm:items-end sm:justify-between">
         <div className="max-w-2xl">
+          <AmbientTime className="mb-3" />
           {label && <p className={`${eyebrow} mb-2`}>{label}</p>}
           <h1 className="font-display text-[44px] font-normal leading-[1] tracking-[-1.4px] text-[#121821] sm:text-[60px]">
             {title}

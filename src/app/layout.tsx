@@ -4,6 +4,8 @@ import { MobileTabBar, Nav } from "@/components/Nav";
 import { DemoModeBanner } from "@/components/DemoModeBanner";
 import { ToastProvider } from "@/components/Toast";
 import { AuthProvider } from "@/components/AuthProvider";
+import { TimeOfDaySync } from "@/components/TimeOfDay";
+import { PERIOD_BOOT_SCRIPT } from "@/lib/timeOfDay";
 import "./globals.css";
 
 const fontSans = DM_Sans({
@@ -25,8 +27,13 @@ export const metadata: Metadata = {
 
 export default function RootLayout({ children }: LayoutProps<"/">) {
   return (
-    <html lang="en" className={`${fontSans.variable} ${fontSerif.variable} h-full antialiased`}>
-      <body className="min-h-full flex flex-col bg-[#eef4f7]">
+    <html lang="en" className={`${fontSans.variable} ${fontSerif.variable} h-full antialiased`} suppressHydrationWarning>
+      <head>
+        {/* Picks morning / midday / afternoon / night from the local time before the first paint. */}
+        <script dangerouslySetInnerHTML={{ __html: PERIOD_BOOT_SCRIPT }} />
+      </head>
+      <body className="min-h-full flex flex-col">
+        <TimeOfDaySync />
         <ToastProvider>
           <AuthProvider>
             <Nav />

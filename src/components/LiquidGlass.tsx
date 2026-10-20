@@ -1,12 +1,13 @@
 "use client";
 
 import { useEffect, useRef } from "react";
+import { GLASS_PALETTE, type Period } from "@/lib/timeOfDay";
 
 /**
  * Virm's signature "satin mirror": a matte, light-blue glass surface whose soft light drifts slowly.
  * A tiny WebGL program drawn at reduced resolution, at most ~30 fps, paused when off-screen or when the tab
  * is hidden, and frozen into a still frame for people who prefer reduced motion. Without WebGL it falls back
- * to a static gradient. Use sparingly — the Home hero and the loading screen.
+ * to a static gradient. Its colors follow the time of day. Use sparingly — the Home hero and the loading screen.
  */
 
 const VERTEX = "attribute vec2 a;void main(){gl_Position=vec4(a,0.,1.);}";
@@ -14,10 +15,8 @@ const VERTEX = "attribute vec2 a;void main(){gl_Position=vec4(a,0.,1.);}";
 const FRAGMENT = `
 precision mediump float;
 uniform vec2 r; uniform float t;
-const vec3 SHADOW = vec3(0.36, 0.48, 0.61);
-const vec3 LIGHT = vec3(0.79, 0.85, 0.91);
-const vec3 SHEEN = vec3(0.97, 0.98, 1.00);
-const vec3 LILAC = vec3(0.60, 0.60, 0.76);
+// The palette follows the time of day (see lib/timeOfDay): morning peach, midday blue, afternoon gold, night violet.
+uniform vec3 SHADOW; uniform vec3 LIGHT; uniform vec3 SHEEN; uniform vec3 LILAC;
 float h(vec2 p){ return fract(sin(dot(p, vec2(127.1, 311.7))) * 43758.5453); }
 float n(vec2 p){ vec2 i=floor(p), f=fract(p); f=f*f*(3.-2.*f);
   return mix(mix(h(i),h(i+vec2(1,0)),f.x), mix(h(i+vec2(0,1)),h(i+vec2(1,1)),f.x), f.y); }
@@ -40,7 +39,7 @@ void main(){
   gl_FragColor = vec4(col, 1.);
 }`;
 
-const FALLBACK = "radial-gradient(120% 90% at 30% 25%, #e3ebf2 0%, #c7d4e0 45%, #8fa3b8 100%)";
+const currentPeriod = (): Period => (document.documentElement.dataset.period as Period) || "midday";
 
 export function LiquidGlass({ className = "" }: { className?: string }) {
   const ref = useRef<HTMLCanvasElement | null>(null);
@@ -50,7 +49,7 @@ export function LiquidGlass({ className = "" }: { className?: string }) {
     if (!canvas) return;
     const gl = canvas.getContext("webgl", { antialias: false, alpha: false, preserveDrawingBuffer: false });
     if (!gl) {
-      canvas.style.background = FALLBACK;
+      canvas.style.background = GLASS_PALETTE[currentPeriod()].fallback;
       return;
     }
     const compile = (type: number, src: string) => {
@@ -64,7 +63,7 @@ export function LiquidGlass({ className = "" }: { className?: string }) {
     gl.attachShader(prog, compile(gl.FRAGMENT_SHADER, FRAGMENT));
     gl.linkProgram(prog);
     if (!gl.getProgramParameter(prog, gl.LINK_STATUS)) {
-      canvas.style.background = FALLBACK;
+      canvas.style.background = GLASS_PALETTE[currentPeriod()].fallback;
       return;
     }
     gl.useProgram(prog);
@@ -75,6 +74,14 @@ export function LiquidGlass({ className = "" }: { className?: string }) {
     gl.vertexAttribPointer(loc, 2, gl.FLOAT, false, 0, 0);
     const uRes = gl.getUniformLocation(prog, "r");
     const uTime = gl.getUniformLocation(prog, "t");
+    const applyPalette = () => {
+      const c = GLASS_PALETTE[currentPeriod()];
+      gl.uniform3fv(gl.getUniformLocation(prog, "SHADOW"), c.shadow);
+      gl.uniform3fv(gl.getUniformLocation(prog, "LIGHT"), c.light);
+      gl.uniform3fv(gl.getUniformLocation(prog, "SHEEN"), c.sheen);
+      gl.uniform3fv(gl.getUniformLocation(prog, "LILAC"), c.accent);
+    };
+    applyPalette();
 
     const reduceMotion = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
     let visible = true;
@@ -98,6 +105,12 @@ export function LiquidGlass({ className = "" }: { className?: string }) {
     resizeObserver.observe(canvas);
     const visibility = new IntersectionObserver(([entry]) => (visible = entry.isIntersecting));
     visibility.observe(canvas);
+    // Repaint in the new colors when the time of day changes.
+    const periodWatch = new MutationObserver(() => {
+      applyPalette();
+      draw(last);
+    });
+    periodWatch.observe(document.documentElement, { attributes: true, attributeFilter: ["data-period"] });
     resize();
     draw(0);
 
@@ -115,6 +128,7 @@ export function LiquidGlass({ className = "" }: { className?: string }) {
       cancelAnimationFrame(frame);
       resizeObserver.disconnect();
       visibility.disconnect();
+      periodWatch.disconnect();
       gl.getExtension("WEBGL_lose_context")?.loseContext();
     };
   }, []);

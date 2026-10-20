@@ -62,7 +62,7 @@ export function Nav() {
   if (pathname === "/login") return null;
 
   return (
-    <header className="sticky top-0 z-30 border-b border-black/[0.06] bg-[#f4f5f6]/80 backdrop-blur-xl">
+    <header className="site-nav sticky top-0 z-30 border-b border-black/[0.06] backdrop-blur-xl">
       <div className="mx-auto flex h-[68px] w-full max-w-[1440px] items-center gap-6 px-5 sm:px-8 md:h-[76px]">
         <Wordmark />
 
@@ -134,9 +134,9 @@ export function MobileTabBar() {
       <div aria-hidden className="h-[calc(64px+env(safe-area-inset-bottom))] md:hidden" />
       <nav
         aria-label="Main"
-        className="fixed inset-x-0 bottom-0 z-30 border-t border-black/[0.06] bg-[#f4f5f6]/85 pb-[env(safe-area-inset-bottom)] backdrop-blur-xl md:hidden"
+        className="site-tabbar fixed inset-x-0 bottom-0 z-30 border-t border-black/[0.06] pb-[env(safe-area-inset-bottom)] backdrop-blur-xl md:hidden"
       >
-        <ul className="grid grid-cols-6">
+        <ul className="grid grid-cols-5">
           {LINKS.map(({ section, href, short, Icon }) => {
             const active = current === section;
             return (
