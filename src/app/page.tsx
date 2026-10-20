@@ -23,7 +23,8 @@ import { Tips, type Tip } from "@/components/Tips";
 
 const HOME_TIPS: Tip[] = [
   { target: "#mirror", text: "Your latest try-on shows here." },
-  { target: '[aria-labelledby="stylist-title"]', text: "Open the Studio to put an outfit together." },
+  { target: '.site-nav a[href="/closet"], .site-tabbar a[href="/closet"]', text: "Your clothes live in My Closet." },
+  { target: '.site-nav a[href="/studio"], .site-tabbar a[href="/studio"]', text: "Put outfits together in the Studio." },
 ];
 
 

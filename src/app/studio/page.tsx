@@ -18,6 +18,7 @@ const STUDIO_TIPS: Tip[] = [
   { target: '[data-tip="studio-theme"]', text: "Type a theme for outfit ideas, or pick clothes yourself." },
   { target: '[data-tip="studio-closet"]', text: "Tap to add. Tap again to take it off." },
   { target: '[data-tip="studio-tryon"]', text: "Try it on. The bookmark saves the look." },
+  { target: '.site-nav a[href="/closet"], .site-tabbar a[href="/closet"]', text: "Add more clothes any time in My Closet." },
 ];
 
 /** The closet tabs, in the order people dress. */

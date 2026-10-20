@@ -38,6 +38,19 @@ export function resetTips() {
 }
 
 const BUBBLE_W = 260;
+
+/** The first matching element that's actually shown (menu links exist in both the top bar and the phone tab bar). */
+function findTarget(selector: string): Element | null {
+  return (
+    Array.from(document.querySelectorAll(selector)).find((el) => {
+      const r = el.getBoundingClientRect();
+      return r.width > 0 && r.height > 0;
+    }) ?? null
+  );
+}
+
+/** Menu bars stay put while the page scrolls, so there's nothing to scroll to. */
+const inFixedBar = (el: Element) => Boolean(el.closest(".site-nav, .site-tabbar"));
 const GAP = 12;
 
 export function Tips({ id, tips, delay = 900 }: { id: string; tips: Tip[]; delay?: number }) {
@@ -48,9 +61,15 @@ export function Tips({ id, tips, delay = 900 }: { id: string; tips: Tip[]; delay
   // After the page settles, keep only the tips whose targets exist, then start (once per device).
   useEffect(() => {
     if (seen(id)) return;
-    const timer = setTimeout(() => {
-      const present = tips.filter((t) => document.querySelector(t.target));
-      if (present.length) setSteps(present);
+    // Wait for the page's content (it may still be loading), up to a few seconds, then start with what's there.
+    const started = Date.now();
+    let timer = setTimeout(function check() {
+      const present = tips.filter((t) => findTarget(t.target));
+      if (present.length === tips.length || Date.now() - started > delay + 6000) {
+        if (present.length) setSteps(present);
+        return;
+      }
+      timer = setTimeout(check, 300);
     }, delay);
     return () => clearTimeout(timer);
   }, [id, tips, delay]);
@@ -59,14 +78,14 @@ export function Tips({ id, tips, delay = 900 }: { id: string; tips: Tip[]; delay
 
   const measure = useCallback(() => {
     if (!step) return;
-    const el = document.querySelector(step.target);
+    const el = findTarget(step.target);
     setRect(el ? el.getBoundingClientRect() : null);
   }, [step]);
 
   useEffect(() => {
     if (!step) return;
-    const el = document.querySelector(step.target);
-    if (el) {
+    const el = findTarget(step.target);
+    if (el && !inFixedBar(el)) {
       const r = el.getBoundingClientRect();
       const fits = r.height < window.innerHeight - 260;
       window.scrollTo({ top: window.scrollY + r.top - (fits ? (window.innerHeight - r.height) / 2 : 100), behavior: "smooth" });

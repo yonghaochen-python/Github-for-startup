@@ -16,6 +16,7 @@ import { Tips, type Tip } from "@/components/Tips";
 const CLOSET_TIPS: Tip[] = [
   { target: '[data-tip="closet-add"]', text: "Add a photo of one piece, or a few laid out together." },
   { target: '[data-tip="closet-filter"]', text: "Filter by type, color or season." },
+  { target: '.site-nav a[href="/studio"], .site-tabbar a[href="/studio"]', text: "Ready? Style an outfit in the Studio." },
 ];
 
 type ClothingItem = {
