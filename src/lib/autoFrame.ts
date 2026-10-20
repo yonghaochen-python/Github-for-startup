@@ -24,8 +24,10 @@ const PAD_TOP = 0.06;
 const PAD_BOTTOM = 0.035;
 const MIN_VISIBLE = 0.5;
 
-// Pose landmark numbers (MediaPipe's 33-point body model).
+// Pose landmark numbers (MediaPipe's 33-point body model): [left, right].
 const NOSE = 0;
+const HEELS = [29, 30];
+const TOES = [31, 32];
 
 let landmarkerPromise: Promise<PoseLandmarker> | null = null;
 
@@ -91,17 +93,22 @@ export async function frameToBody(photo: Blob): Promise<FrameResult> {
     result.segmentationMasks?.forEach((m) => m.close());
     if (!pose || !box || (pose[NOSE]?.visibility ?? 1) < MIN_VISIBLE) return { framed: false, reason: "no-person" };
 
-    // Feet count as "in the photo" when a heel or toe on each side is clearly seen and the body doesn't run off the bottom edge.
-    const seen = (i: number) => (pose[i]?.visibility ?? 0) >= MIN_VISIBLE && pose[i].y <= 0.985;
-    const feetIn = (seen(29) || seen(31)) && (seen(30) || seen(32)) && box.bottom < 0.985;
+    // Feet count as "in the photo" when a heel or toe on each side is clearly seen inside the frame. (The body
+    // outline isn't used for this: it often takes in the floor or a shadow under the shoes and reaches the edge.)
+    const seen = (i: number) => (pose[i]?.visibility ?? 0) >= MIN_VISIBLE && pose[i].y <= 0.995;
+    const feetIn = (seen(HEELS[0]) || seen(TOES[0])) && (seen(HEELS[1]) || seen(TOES[1]));
     if (!feetIn) return { framed: false, reason: "no-feet" };
 
-    const personH = box.bottom - box.top;
+    // Top of the head from the outline; bottom of the feet from the lowest visible heel or toe.
+    const personTop = box.top;
+    const personBottom = Math.max(...[...HEELS, ...TOES].filter(seen).map((i) => pose[i].y));
+    const personH = personBottom - personTop;
+    if (personH <= 0) return { framed: false, reason: "no-person" };
     if (personH >= FILLS_SHARE) return { framed: false, reason: "already-fills" };
 
     // Head-to-toe crop with a little room, in a 3:4 portrait shape when the photo allows, centered on the person.
-    const top = Math.max(0, box.top - personH * PAD_TOP) * H;
-    const bottom = Math.min(1, box.bottom + personH * PAD_BOTTOM) * H;
+    const top = Math.max(0, personTop - personH * PAD_TOP) * H;
+    const bottom = Math.min(1, personBottom + personH * PAD_BOTTOM) * H;
     const cropH = bottom - top;
     const personW = (box.right - box.left) * W;
     const cropW = Math.min(W, Math.max(cropH * 0.75, personW * 1.12));
@@ -127,3 +134,4 @@ export async function frameToBody(photo: Blob): Promise<FrameResult> {
 export function preloadAutoFrame() {
   loadLandmarker().catch(() => {});
 }
+
