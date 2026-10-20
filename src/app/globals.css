@@ -92,7 +92,7 @@ html[data-period="night"] main :is(a, button):is([class^="bg-[#121821]"], [class
   color: #121821;
 }
 
-/* Night sky: small stars behind the page that slowly fade in and out (night only). */
+/* Night sky: small stars behind the page that blink at random (night only). */
 .night-sky {
   display: none;
 }
@@ -100,17 +100,20 @@ html[data-period="night"] .night-sky {
   display: block;
 }
 .night-star {
-  opacity: 0.25;
+  opacity: var(--glow, 0.5);
   box-shadow: 0 0 4px rgb(200 210 255 / 0.6);
-  animation: star-twinkle 5s ease-in-out infinite;
+  animation: star-blink 9s linear infinite;
 }
-@keyframes star-twinkle {
+/* Steady most of the time; a quick blink once per cycle. Each star has its own length and start, so they never sync. */
+@keyframes star-blink {
   0%,
+  44%,
+  56%,
   100% {
-    opacity: 0.15;
+    opacity: var(--glow, 0.5);
   }
   50% {
-    opacity: 0.85;
+    opacity: 0.04;
   }
 }
 @media (prefers-reduced-motion: reduce) {

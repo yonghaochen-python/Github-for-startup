@@ -44,8 +44,12 @@ void main(){
     if (rnd > .988) {
       vec2 at = vec2(h(cell + 1.3), h(cell + 7.1)) - .5;
       float d = length(fract(sp) - .5 - at * .5);
-      float twinkle = .3 + .7 * (.5 + .5 * sin(t * 28. + rnd * 90.));
-      col += vec3(.86, .9, 1.) * smoothstep(.42, 0., d) * twinkle * STARS * .85;
+      // Each star keeps its own schedule: steady most of the time, then a short blink every ~5-14 seconds.
+      float speed = mix(1.08, 3.03, h(cell + 3.7));
+      float phase = fract(t * speed + h(cell + 5.3));
+      float blink = smoothstep(0., .04, phase) * smoothstep(.1, .05, phase);
+      float glow = mix(.45, 1., h(cell + 9.1)) * (1. - .92 * blink);
+      col += vec3(.86, .9, 1.) * smoothstep(.42, 0., d) * glow * STARS * .85;
     }
   }
   gl_FragColor = vec4(col, 1.);

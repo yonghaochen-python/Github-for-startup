@@ -1,5 +1,5 @@
 /**
- * Small stars on the night background that slowly fade in and out. Fixed behind the page and shown only when
+ * Small stars on the night background, each blinking now and then on its own random schedule. Fixed behind the page and shown only when
  * <html data-period="night">; still for people who prefer reduced motion. Positions are fixed (not random per
  * render), so the server and browser draw the same sky.
  */
@@ -12,8 +12,9 @@ const STARS = Array.from({ length: 70 }, (_, i) => {
     left: r(1) * 100,
     top: r(2) * 100,
     size: r(3) > 0.85 ? 2.5 : r(3) > 0.5 ? 1.8 : 1.2,
-    duration: 3.5 + r(4) * 5,
-    delay: -r(5) * 8,
+    glow: 0.35 + r(6) * 0.5,
+    duration: 5 + r(4) * 9,
+    delay: -r(5) * 14,
   };
 });
 
@@ -29,6 +30,7 @@ export function NightSky() {
             top: `${star.top}%`,
             width: star.size,
             height: star.size,
+            ["--glow" as string]: star.glow,
             animationDuration: `${star.duration}s`,
             animationDelay: `${star.delay}s`,
           }}
