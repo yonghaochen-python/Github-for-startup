@@ -45,7 +45,7 @@ export async function GET(request: Request) {
 }
 
 /**
- * Shares 2–4 of the person's tried-on looks. Their try-on pictures are copied for the link (so trying a look on
+ * Shares 1–4 of the person's tried-on looks. Their try-on pictures are copied for the link (so trying a look on
  * again later doesn't change what friends see), plus the side-by-side card the app made for link previews.
  */
 export async function POST(request: Request) {
@@ -60,7 +60,7 @@ export async function POST(request: Request) {
   const ids = (formData?.getAll("outfit") ?? []).map((v) => (typeof v === "string" ? v : ""));
   const card = formData?.get("card");
   if (ids.length < MIN_LOOKS || ids.length > MAX_LOOKS || ids.some((id) => !id) || new Set(ids).size !== ids.length) {
-    return NextResponse.json({ error: `Choose ${MIN_LOOKS} to ${MAX_LOOKS} different looks.` }, { status: 400, headers: noStore });
+    return NextResponse.json({ error: `Choose up to ${MAX_LOOKS} different looks.` }, { status: 400, headers: noStore });
   }
   if (!(card instanceof File) || card.type !== "image/jpeg" || card.size > MAX_CARD_BYTES) {
     return NextResponse.json({ error: "Couldn't make the picture to share. Please try again." }, { status: 400, headers: noStore });

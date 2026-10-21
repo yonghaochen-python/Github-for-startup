@@ -7,14 +7,15 @@ import { useToast } from "@/components/Toast";
 import { btnPrimary, btnText, surface } from "@/components/ui";
 
 /**
- * "Share looks": share 2–4 tried-on looks in one link, and friends vote for one without an account. The link
- * lands them on the vote, then on Try for fun. Links end after 48 hours and their pictures are deleted.
+ * "Share looks": share 1–4 tried-on looks in one link. With one look, friends can tap Love it; with more, they vote
+ * for one. No account needed either way, and the page invites them to Try for fun. Links end after 48 hours and
+ * their pictures are deleted.
  *
  * Looks are chosen two ways: the share arrow on a look in Studio adds it to a "to share" list (open another
  * outfit and tap its arrow to add that too), or Share looks on Saved lets you pick several at once.
  */
 
-export const MIN_LOOKS = 2;
+export const MIN_LOOKS = 1;
 export const MAX_LOOKS = 4;
 export const LETTERS = "ABCD";
 
@@ -22,7 +23,9 @@ export const LETTERS = "ABCD";
 export type ShareLook = { id: string; v: string; label: string };
 export type OpenPick = { code: string; labels: string[]; counts: number[]; expiresAt: string };
 
-const SHARE_TEXT = "Which one tonight? Tap to vote";
+/** The message that goes with the link: a vote for several looks, a quick opinion for one. */
+export const shareText = (looks: number) => (looks > 1 ? "Which one tonight? Tap to vote" : "How does this look?");
+export const shareTitle = (looks: number) => (looks > 1 ? "Which one tonight?" : "How does this look?");
 
 export const pickUrl = (code: string) => `${window.location.origin}/pick/${code}`;
 const pictureUrl = (look: ShareLook) => `/api/outfits/${look.id}/try-on/image?v=${look.v}`;
@@ -97,15 +100,15 @@ export function useCopyLink() {
  */
 export function useSharePick() {
   const copyLink = useCopyLink();
-  return async function sharePick(code: string, card?: Blob | null): Promise<boolean> {
+  return async function sharePick(code: string, looks: number, card?: Blob | null): Promise<boolean> {
     const url = pickUrl(code);
     if (navigator.share) {
       const file = card ? new File([card], "which-one.jpg", { type: "image/jpeg" }) : null;
       try {
         if (file && navigator.canShare?.({ files: [file] })) {
-          await navigator.share({ files: [file], text: `${SHARE_TEXT}\n${url}` });
+          await navigator.share({ files: [file], text: `${shareText(looks)}\n${url}` });
         } else {
-          await navigator.share({ title: "Which one tonight?", text: SHARE_TEXT, url });
+          await navigator.share({ title: shareTitle(looks), text: shareText(looks), url });
         }
         return true;
       } catch (err) {
@@ -117,7 +120,7 @@ export function useSharePick() {
 }
 
 /** The ways to send a share link: the device's share sheet, Messages, WhatsApp, or copying the link. */
-export function ShareOptions({ code, card }: { code: string; card?: Blob | null }) {
+export function ShareOptions({ code, looks, card }: { code: string; looks: number; card?: Blob | null }) {
   const sharePick = useSharePick();
   const copyLink = useCopyLink();
   // Shown when the browser won't copy for us (browser pop-ups can be blocked too, so it's on the page).
@@ -136,11 +139,11 @@ export function ShareOptions({ code, card }: { code: string; card?: Blob | null 
     };
   }, [code, card]);
 
-  const message = encodeURIComponent(`${SHARE_TEXT} ${typeof window === "undefined" ? "" : pickUrl(code)}`);
+  const message = encodeURIComponent(`${shareText(looks)} ${typeof window === "undefined" ? "" : pickUrl(code)}`);
   const quick = "inline-flex min-h-[44px] flex-1 items-center justify-center gap-1.5 rounded-full bg-[#f0f2f3] px-3 text-[12.5px] font-medium text-[#121821] hover:bg-[#e4e8ea]";
   return (
     <div className="flex flex-col gap-2.5">
-      <button onClick={async () => setShowLink(!(await sharePick(code, picture)))} className={`${btnPrimary} w-full`}>
+      <button onClick={async () => setShowLink(!(await sharePick(code, looks, picture)))} className={`${btnPrimary} w-full`}>
         <ShareIcon className="h-4 w-4" /> Share
       </button>
       <div className="flex gap-2">
@@ -242,6 +245,7 @@ async function makeCard(urls: string[]): Promise<Blob> {
     const w = img.naturalWidth * scale;
     const h = img.naturalHeight * scale;
     ctx.drawImage(img, boxX + (boxW - w) / 2, (H - h) / 2, w, h);
+    if (images.length === 1) return;
     ctx.fillStyle = "#121821";
     ctx.beginPath();
     ctx.arc(boxX + 40, 40, 26, 0, Math.PI * 2);
@@ -335,7 +339,11 @@ function SharePopup({
           <div>
             <h2 className="font-display text-[28px] leading-tight text-[#121821]">{code ? "Ready to send" : "Share looks"}</h2>
             <p className="mt-1 text-[13.5px] text-[#445159]">
-              {code ? "Friends tap the one they like. No account needed." : `Choose ${MIN_LOOKS} to ${MAX_LOOKS} looks. Friends vote for one.`}
+              {code
+                ? chosen.length > 1
+                  ? "Friends tap the one they like. No account needed."
+                  : "Friends can tap Love it. No account needed."
+                : `Choose up to ${MAX_LOOKS}. Two or more makes it a vote.`}
             </p>
           </div>
           <button onClick={onClose} aria-label="Close" className="-mr-2 -mt-1 h-10 w-10 shrink-0 rounded-full text-[22px] text-[#5d6874] hover:bg-[#f0f2f3]">
@@ -347,18 +355,18 @@ function SharePopup({
 
         {code ? (
           <>
-            <div className={`mb-5 grid gap-2 ${chosen.length === 3 ? "grid-cols-3" : "grid-cols-2"}`}>
+            <div className={`mx-auto mb-5 grid gap-2 ${chosen.length === 1 ? "max-w-[240px] grid-cols-1" : chosen.length === 3 ? "grid-cols-3" : "grid-cols-2"}`}>
               {chosen.map((id, i) => (
                 <div key={id} className="relative aspect-[3/4] overflow-hidden rounded-[14px] bg-[#f4f5f6]">
                   {/* eslint-disable-next-line @next/next/no-img-element -- private, owner-only image */}
                   <img src={pictureUrl(byId(id))} alt="" className="absolute inset-0 h-full w-full object-contain" />
-                  <Letter i={i} className="left-2 top-2" />
+                  {chosen.length > 1 && <Letter i={i} className="left-2 top-2" />}
                 </div>
               ))}
             </div>
-            <ShareOptions code={code} card={card} />
+            <ShareOptions code={code} looks={chosen.length} card={card} />
             <Link href={`/pick/${code}`} className={`${btnText} mt-2 w-full justify-center`}>
-              See votes
+              {chosen.length > 1 ? "See votes" : "See loves"}
             </Link>
           </>
         ) : (
@@ -381,9 +389,9 @@ function SharePopup({
                 );
               })}
             </div>
-            <p className="mb-4 text-[12.5px] text-[#445159]">Anyone with the link can see these pictures for 48 hours. Then they&apos;re deleted.</p>
+            <p className="mb-4 text-[12.5px] text-[#445159]">Anyone with the link can see {chosen.length === 1 ? "this picture" : "these pictures"} for 48 hours. Then they&apos;re deleted.</p>
             <button onClick={start} disabled={busy || need > 0} className={`${btnPrimary} w-full`}>
-              {busy ? "Making your link…" : need > 0 ? `Choose ${need} more` : `Make my link (${chosen.length} looks)`}
+              {busy ? "Making your link…" : need > 0 ? "Choose a look" : `Make my link (${chosen.length} ${chosen.length === 1 ? "look" : "looks"})`}
             </button>
           </>
         )}
@@ -398,7 +406,7 @@ export const shareLookFrom = (outfit: Outfit): ShareLook => ({
   label: outfit.occasion?.trim() || `${outfit.layers.flatMap((l) => l.items).length}-piece look`,
 });
 
-/** Saved: "Share looks", shown once there are two saved, tried-on looks to choose from. */
+/** Saved: "Share looks", shown once there's a saved, tried-on look to share. */
 export function ShareLooksButton({ looks, onShared }: { looks: Outfit[]; onShared: () => void }) {
   const [open, setOpen] = useState(false);
   const tried = looks.filter((l) => l.tryOn).map(shareLookFrom);
@@ -472,9 +480,9 @@ export function ShareTray({ onShared }: { onShared?: () => void }) {
               </li>
             ))}
           </ul>
-          {/* On phones the letters say it; the count only shows where there's room. */}
-          <p className={`min-w-0 flex-1 text-[12.5px] leading-snug text-[#445159] ${ready ? "invisible sm:visible" : ""}`}>
-            {ready ? `${tray.looks.length} looks to share` : "Open another outfit and tap its arrow to add it."}
+          {/* On phones the letters say it; the hint only shows where there's room once it's a vote. */}
+          <p className={`min-w-0 flex-1 text-[12.5px] leading-snug text-[#445159] ${tray.looks.length > 1 ? "invisible sm:visible" : ""}`}>
+            {tray.looks.length > 1 ? `${tray.looks.length} looks to share` : "Share it, or add another outfit for a vote."}
           </p>
           <button onClick={() => setOpen(true)} disabled={!ready} className={`${btnPrimary} min-h-[40px] shrink-0 px-4`}>
             <ShareIcon className="h-4 w-4" /> Share
@@ -531,15 +539,21 @@ export function OpenPicks({ refreshKey }: { refreshKey: number }) {
             <Link href={`/pick/${pick.code}`} className="block">
               <div className="mb-2 flex items-baseline justify-between gap-3 text-[13px] text-[#29343a]">
                 <span className="min-w-0 truncate">
-                  {pick.counts.map((n, i) => (
-                    <span key={i} className="mr-2.5">
-                      <b>{LETTERS[i]}</b> {n}
-                    </span>
-                  ))}
+                  {pick.counts.length === 1 ? (
+                    <>
+                      <b>♥</b> {pick.counts[0]} {pick.counts[0] === 1 ? "love" : "loves"}
+                    </>
+                  ) : (
+                    pick.counts.map((n, i) => (
+                      <span key={i} className="mr-2.5">
+                        <b>{LETTERS[i]}</b> {n}
+                      </span>
+                    ))
+                  )}
                 </span>
                 <span className="shrink-0 text-[12px] text-[#5d6874]">{hoursLeft(pick.expiresAt)}</span>
               </div>
-              <VoteBar counts={pick.counts} />
+              {pick.counts.length > 1 && <VoteBar counts={pick.counts} />}
             </Link>
             <div className="mt-2 flex flex-wrap gap-x-4">
               <Link href={`/pick/${pick.code}`} className={btnText}>

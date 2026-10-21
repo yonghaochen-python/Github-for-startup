@@ -103,6 +103,61 @@ export function PickView({ code }: { code: string }) {
   const percent = (i: number) => (total ? Math.round((pick.counts[i] / total) * 100) : 0);
   const n = pick.labels.length;
 
+  // One look: no vote, just "How does this look?" with a Love it button, and the invitation to try Virm right away.
+  if (n === 1) {
+    const loves = pick.counts[0] ?? 0;
+    const loved = myVote === 0;
+    return (
+      <main className="flex-1 pb-16">
+        <PageShell className="pt-8">
+          <div className="mb-6 text-center">
+            <p className="text-[13px] text-[#5d6874]">{isOwner ? "Your shared look" : `${who} tried this on with Virm.`}</p>
+            <h1 className="font-display text-[34px] leading-tight text-[#121821] sm:text-[42px]">How does this look?</h1>
+          </div>
+          <div className={`${surface} mx-auto max-w-sm overflow-hidden`}>
+            <div className="relative aspect-[3/4] bg-[#f4f5f6]">
+              {/* eslint-disable-next-line @next/next/no-img-element -- shared by link, short-lived */}
+              <img src={`/api/picks/${code}/image/0`} alt={pick.labels[0]} className="absolute inset-0 h-full w-full object-contain" />
+            </div>
+            <p className="truncate px-4 py-3 text-[13px] text-[#29343a]">{pick.labels[0]}</p>
+          </div>
+
+          <div className="mx-auto mt-5 max-w-sm text-center">
+            {isOwner ? (
+              <p className="text-[13.5px] text-[#445159]">
+                ♥ {loves} {loves === 1 ? "love" : "loves"} · {hoursLeft(pick.expiresAt)}
+              </p>
+            ) : (
+              <button onClick={() => vote(0)} disabled={loved || voting} className={`${btnPrimary} w-full`} aria-pressed={loved}>
+                {loved ? `♥ You love it${loves > 1 ? ` (and ${loves - 1} more)` : ""}` : "♥ Love it"}
+              </button>
+            )}
+          </div>
+
+          {isOwner ? (
+            <div className="mx-auto mt-6 max-w-sm">
+              <ShareOptions code={code} looks={1} />
+              <div className="mt-3 flex flex-wrap items-center justify-center gap-x-5">
+                <Link href="/outfits/saved" className={btnText}>
+                  Back to Saved
+                </Link>
+                <StopSharing code={code} onStopped={() => setEnded(true)} />
+              </div>
+            </div>
+          ) : user ? (
+            <div className="mt-8 text-center">
+              <Link href="/outfits/saved" className={btnSecondary}>
+                Share your own looks
+              </Link>
+            </div>
+          ) : (
+            tryVirm
+          )}
+        </PageShell>
+      </main>
+    );
+  }
+
   return (
     <main className="flex-1 pb-16">
       <PageShell className="pt-8">
@@ -157,7 +212,7 @@ export function PickView({ code }: { code: string }) {
 
         {isOwner ? (
           <div className="mx-auto mt-6 max-w-sm">
-            <ShareOptions code={code} />
+            <ShareOptions code={code} looks={n} />
             <div className="mt-3 flex flex-wrap items-center justify-center gap-x-5">
               <Link href="/outfits/saved" className={btnText}>
                 Back to Saved

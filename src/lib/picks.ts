@@ -4,7 +4,7 @@ import { prisma } from "@/lib/prisma";
 import type { ImageBytes } from "@/lib/tryOn/types";
 
 /**
- * "Share looks": 2–4 try-on pictures shared by link so friends can vote for one, no account needed.
+ * "Share looks": 1–4 try-on pictures shared by link. Friends can love one look or vote among several, no account needed.
  * The pictures are copied to private/picks/<pickId>/ (the link opens them, nothing else does) and deleted when
  * the pick ends: 48 hours after it's made, or earlier if the owner ends it.
  */
@@ -13,7 +13,7 @@ export const PICK_HOURS = 48;
 /** How many open picks one person can have at once. */
 export const MAX_OPEN_PICKS = 10;
 /** How many looks one share can hold. */
-export const MIN_LOOKS = 2;
+export const MIN_LOOKS = 1;
 export const MAX_LOOKS = 4;
 /** Each look's picture is stored as "0".."3"; "card" is the side-by-side picture for link previews. */
 export const PICK_IMAGES = ["0", "1", "2", "3", "card"] as const;
