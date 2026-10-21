@@ -99,6 +99,7 @@ export default function StudioPage() {
   const [error, setError] = useState<string | null>(null);
   // Arriving from a "Try On" button (?start=1) starts the try-on right away; a refresh or Back does not.
   const autoStart = useRef(searchParams.get("start") === "1");
+  const mirrorRef = useRef<HTMLDivElement | null>(null);
 
   const pieceIds = useMemo(() => new Set(pieces.map((p) => p.id)), [pieces]);
   const changed = look.outfitId === null || pieces.length !== look.savedIds.length || look.savedIds.some((id) => !pieceIds.has(id));
@@ -171,11 +172,22 @@ export default function StudioPage() {
     return saved.id;
   }
 
+  /** Brings the picture into view (on phones it sits above the Try On button), so the change is seen as it happens. */
+  function showMirror() {
+    const el = mirrorRef.current;
+    if (!el) return;
+    const r = el.getBoundingClientRect();
+    const navBottom = 84;
+    if (r.top >= navBottom && r.bottom <= window.innerHeight) return;
+    window.scrollTo({ top: Math.max(0, window.scrollY + r.top - navBottom), behavior: "smooth" });
+  }
+
   async function tryOn() {
     if (pieces.length === 0 || !hasPhoto || trying) return;
     setError(null);
     setStatusIndex(0);
     setTrying(true);
+    showMirror();
     try {
       const outfitId = await saveOutfit();
       setStatusIndex(1);
@@ -316,7 +328,7 @@ export default function StudioPage() {
                 <SavedPhotoSetup onSaved={() => setChangingPhoto(false)} onCancel={hasPhoto ? () => setChangingPhoto(false) : undefined} />
               </div>
             ) : (
-              <div className="relative mx-auto aspect-[3/4] max-h-[640px] w-full bg-[#f4f5f6] lg:aspect-auto lg:h-[min(620px,calc(100vh-430px))] lg:min-h-[360px]">
+              <div ref={mirrorRef} className="relative mx-auto aspect-[3/4] max-h-[640px] w-full bg-[#f4f5f6] lg:aspect-auto lg:h-[min(620px,calc(100vh-430px))] lg:min-h-[360px]">
                 {picture ? (
                   // eslint-disable-next-line @next/next/no-img-element -- private, owner-only image
                   <img src={picture} alt="You wearing this look" className="absolute inset-0 h-full w-full object-contain" />
