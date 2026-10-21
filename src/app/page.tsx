@@ -348,7 +348,6 @@ function Dashboard({ closet, outfits }: { closet: ClothingItem[]; outfits: Outfi
               Icon={BookmarkIcon}
               id="saved-title"
               title="Saved Looks"
-              body={saved.length > 0 ? "Your favorites, ready to try on." : "Save looks you like to find them here."}
             />
             {saved.length > 0 ? (
               <div className="grid grid-cols-2 gap-4 px-6 sm:grid-cols-3 sm:px-8">

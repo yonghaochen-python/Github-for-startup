@@ -50,7 +50,6 @@ export default function SavedLooksPage() {
       <PageShell>
         <PageHeader
                     title="Saved Looks"
-          description="Your favorites, ready to try on."
           actions={
             saved.length > 0 ? (
               <>
