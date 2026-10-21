@@ -426,16 +426,32 @@ export default function StudioPage() {
                 >
                   Change photo
                 </button>
-                {/* Share arrow: adds this tried-on look to the "to share" list (open another outfit to add that one too). */}
-                {picture && !trying && look.outfitId && (
-                  <ShareArrowButton
-                    className="absolute right-4 top-4"
-                    look={{
-                      id: look.outfitId,
-                      v: look.tryOn ?? String(result?.imageDataUrl?.length ?? 1),
-                      label: look.occasion?.trim() || `${pieces.length}-piece look`,
-                    }}
-                  />
+                {/* Top right: the share arrow (adds this tried-on look to the "to share" list), and Undo below it. */}
+                {!trying && ((picture && look.outfitId) || history.length > 0) && (
+                  <div className="absolute right-4 top-4 flex flex-col gap-2">
+                    {picture && look.outfitId && (
+                      <ShareArrowButton
+                        look={{
+                          id: look.outfitId,
+                          v: look.tryOn ?? String(result?.imageDataUrl?.length ?? 1),
+                          label: look.occasion?.trim() || `${pieces.length}-piece look`,
+                        }}
+                      />
+                    )}
+                    {history.length > 0 && (
+                      <button
+                        onClick={undo}
+                        aria-label="Undo: back to the previous outfit"
+                        title="Back to the previous outfit"
+                        className="flex h-11 w-11 items-center justify-center rounded-full bg-white/90 text-[#121821] shadow-sm hover:bg-white"
+                      >
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" className="h-5 w-5" aria-hidden>
+                          <path d="M9 14 4 9l5-5" />
+                          <path d="M4 9h10.5a5.5 5.5 0 0 1 0 11H11" />
+                        </svg>
+                      </button>
+                    )}
+                  </div>
                 )}
               </div>
             )}
@@ -468,16 +484,6 @@ export default function StudioPage() {
                       );
                     })}
                   </div>
-                )}
-                {history.length > 0 && (
-                  <button
-                    onClick={undo}
-                    disabled={trying}
-                    title="Back to the previous outfit"
-                    className="text-[12px] font-semibold text-[#5d6874] underline-offset-4 hover:text-[#121821] hover:underline"
-                  >
-                    Undo
-                  </button>
                 )}
                 {pieces.length > 0 && (
                   <button onClick={startOver} className="text-[12px] font-semibold text-[#5d6874] underline-offset-4 hover:text-[#121821] hover:underline">
