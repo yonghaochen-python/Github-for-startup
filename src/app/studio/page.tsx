@@ -7,7 +7,7 @@ import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { useAuth } from "@/components/AuthProvider";
 import type { ClothingItem, Outfit } from "@/components/OutfitCard";
 import { SavedPhotoImage, SavedPhotoSetup, uploadSavedPhoto } from "@/components/SavedPhoto";
-import { ShareArrowButton, ShareTray, useShareTray } from "@/components/ShareLooks";
+import { ShareArrowButton, ShareTray } from "@/components/ShareLooks";
 import { SaveToggle } from "@/components/SaveToggle";
 import { useToast } from "@/components/Toast";
 import { MirrorIcon, PlusIcon, SearchIcon } from "@/components/Icons";
@@ -38,6 +38,9 @@ const MAX_ACCESSORIES = 3;
 const STATUS_STEPS = ["Getting your outfit ready…", "Creating your try-on…", "Usually takes 10–20 seconds…", "Almost done…"];
 
 /** The outfit the pieces belong to on the server, once there is one. */
+/** A finished look as it was on screen, for Undo. */
+type Shown = { pieces: ClothingItem[]; look: Look; result: TryOnResult | null };
+
 type Look = { outfitId: string | null; occasion: string | null; isFavorite: boolean; tryOn: string | null; savedIds: string[] };
 
 const EMPTY_LOOK: Look = { outfitId: null, occasion: null, isFavorite: false, tryOn: null, savedIds: [] };
@@ -103,12 +106,35 @@ export default function StudioPage() {
   // Arriving from a "Try On" button (?start=1) starts the try-on right away; a refresh or Back does not.
   const autoStart = useRef(searchParams.get("start") === "1");
   const mirrorRef = useRef<HTMLDivElement | null>(null);
-  const shareTray = useShareTray();
-
   const pieceIds = useMemo(() => new Set(pieces.map((p) => p.id)), [pieces]);
   const changed = look.outfitId === null || pieces.length !== look.savedIds.length || look.savedIds.some((id) => !pieceIds.has(id));
 
+  // Undo: the finished looks shown before this one (pieces, outfit and picture), newest last.
+  const [history, setHistory] = useState<Shown[]>([]);
+  const shownRef = useRef<Shown | null>(null);
+  useEffect(() => {
+    if (!changed && look.outfitId) shownRef.current = { pieces, look, result };
+  }, [changed, look, pieces, result]);
+
+  /** Remembers the look on screen before moving to another one (unless it's the same outfit). */
+  function rememberShown(nextOutfitId: string | null) {
+    const shown = shownRef.current;
+    if (shown?.look.outfitId && shown.look.outfitId !== nextOutfitId) setHistory((list) => [...list.slice(-19), shown]);
+  }
+
+  /** Back to the previous look, with its picture (already made, so free). */
+  function undo() {
+    const previous = history[history.length - 1];
+    if (!previous) return;
+    setHistory((list) => list.slice(0, -1));
+    shownRef.current = previous;
+    setPieces(previous.pieces);
+    setLook(previous.look);
+    setResult(previous.result);
+  }
+
   function showOutfit(outfit: Outfit) {
+    rememberShown(outfit.id);
     setPieces(outfit.layers.flatMap((l) => l.items));
     setLook(lookFrom(outfit));
     setResult(null);
@@ -157,19 +183,13 @@ export default function StudioPage() {
   async function saveOutfit(): Promise<string> {
     if (!changed && look.outfitId) return look.outfitId;
     const itemIds = pieces.map((p) => p.id);
-    // A look waiting to be shared keeps its pieces and try-on; the changed pieces become a new outfit (its B, C…).
-    const keepForSharing = Boolean(look.outfitId && shareTray.looks.some((l) => l.id === look.outfitId));
-    const res = look.outfitId && !keepForSharing
-      ? await fetch(`/api/outfits/${look.outfitId}`, {
-          method: "PATCH",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ itemIds }),
-        })
-      : await fetch("/api/outfits", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ itemIds, occasion: look.occasion ?? undefined }),
-        });
+    // A new combination is always a new outfit: the one before keeps its pieces and try-on, so Undo (and sharing
+    // both as A and B) can go back to it. A saved look is never changed from here.
+    const res = await fetch("/api/outfits", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ itemIds, occasion: look.occasion ?? undefined }),
+    });
     const data = (await res.json().catch(() => ({}))) as { outfit?: Outfit; error?: string };
     if (!res.ok || !data.outfit) throw new Error(data.error ?? "Couldn't save this outfit right now.");
     const saved = data.outfit;
@@ -212,9 +232,11 @@ export default function StudioPage() {
         setChangingPhoto(false);
       }
       requestAnimationFrame(showMirror);
+      const before = shownRef.current;
       const outfitId = await saveOutfit();
       setStatusIndex(1);
       setResult(await requestTryOn(outfitId, pieces, liveProvider, fresh));
+      if (before?.look.outfitId && before.look.outfitId !== outfitId) setHistory((list) => [...list.slice(-19), before]);
       // The new picture is now this look's try-on and the person's current look across the app.
       refreshUser();
     } catch (err) {
@@ -279,6 +301,7 @@ export default function StudioPage() {
   }
 
   function startOver() {
+    rememberShown(null);
     setPieces([]);
     setLook(EMPTY_LOOK);
     setResult(null);
@@ -445,6 +468,16 @@ export default function StudioPage() {
                       );
                     })}
                   </div>
+                )}
+                {history.length > 0 && (
+                  <button
+                    onClick={undo}
+                    disabled={trying}
+                    title="Back to the previous outfit"
+                    className="text-[12px] font-semibold text-[#5d6874] underline-offset-4 hover:text-[#121821] hover:underline"
+                  >
+                    Undo
+                  </button>
                 )}
                 {pieces.length > 0 && (
                   <button onClick={startOver} className="text-[12px] font-semibold text-[#5d6874] underline-offset-4 hover:text-[#121821] hover:underline">
