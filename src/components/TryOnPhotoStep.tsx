@@ -193,7 +193,9 @@ export function TryOnPhotoStep({
 
   /** Prepares a chosen or captured photo: crops it head to toe when the feet are in it, otherwise keeps it as is. */
   async function preparePhoto(raw: Blob) {
-    const [original, frame] = await Promise.all([photoToJpeg(raw), frameToBody(raw)]);
+    const [original, firstTry] = await Promise.all([photoToJpeg(raw), frameToBody(raw)]);
+    // Some photos (like iPhone HEIC) can't be read directly for framing; the converted copy always can.
+    const frame = firstTry.framed === false && firstTry.reason === "unavailable" ? await frameToBody(original) : firstTry;
     if (frame.framed) {
       const cropped = await photoToJpeg(frame.blob);
       setFraming({ cropped, original, useCropped: true });
