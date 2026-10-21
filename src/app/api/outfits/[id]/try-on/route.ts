@@ -99,7 +99,7 @@ export async function POST(request: Request, ctx: RouteContext<"/api/outfits/[id
     // The same saved photo and pieces were tried on before: show that picture again, free (unless a fresh one is asked for).
     const cacheKey =
       !(sent instanceof File) && isSavedPhotoKey(user.selfieUrl)
-        ? tryOnCacheKey(user.id, user.selfieUrl, outfit.items.map(({ item }) => ({ id: item.id, description: item.description, color: item.color })))
+        ? tryOnCacheKey(user.id, user.selfieUrl, outfit.items.map(({ item }) => item))
         : null;
     const remembered = cacheKey && formData.get("fresh") !== "1" ? await getCachedTryOn(cacheKey).catch(() => null) : null;
     let result: TryOnResult;
