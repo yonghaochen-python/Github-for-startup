@@ -40,6 +40,7 @@ const STATUS_STEPS = ["Getting your outfit ready…", "Creating your try-on…",
 /** The outfit the pieces belong to on the server, once there is one. */
 /** A finished look as it was on screen, for Undo. */
 type Shown = { pieces: ClothingItem[]; look: Look; result: TryOnResult | null };
+const UNDO_KEY = "virm-studio-undo";
 
 type Look = { outfitId: string | null; occasion: string | null; isFavorite: boolean; tryOn: string | null; savedIds: string[] };
 
@@ -110,23 +111,56 @@ export default function StudioPage() {
   const changed = look.outfitId === null || pieces.length !== look.savedIds.length || look.savedIds.some((id) => !pieceIds.has(id));
 
   // Undo: the finished looks shown before this one (pieces, outfit and picture), newest last.
-  const [history, setHistory] = useState<Shown[]>([]);
+  // Kept for this browser tab, so a reload or a trip to another page doesn't lose it. Pictures aren't kept here:
+  // each outfit's try-on is stored with the outfit, so a look comes back with its picture from there.
+  const [history, setHistoryState] = useState<Shown[]>([]);
+  useEffect(() => {
+    try {
+      const kept = JSON.parse(sessionStorage.getItem(UNDO_KEY) ?? "[]") as Shown[];
+      // eslint-disable-next-line react-hooks/set-state-in-effect -- browser-only storage, read after the first render
+      if (Array.isArray(kept)) setHistoryState(kept);
+    } catch {}
+  }, []);
+  function setHistory(update: (list: Shown[]) => Shown[]) {
+    setHistoryState((list) => {
+      const next = update(list);
+      try {
+        sessionStorage.setItem(UNDO_KEY, JSON.stringify(next));
+      } catch {}
+      return next;
+    });
+  }
   const shownRef = useRef<Shown | null>(null);
   useEffect(() => {
     if (!changed && look.outfitId) shownRef.current = { pieces, look, result };
   }, [changed, look, pieces, result]);
 
+  /** A look for the Undo list: its picture is the outfit's stored try-on, so the large in-page picture isn't kept. */
+  const slim = (shown: Shown): Shown => ({
+    pieces: shown.pieces,
+    look: { ...shown.look, tryOn: shown.look.tryOn ?? (shown.result?.imageDataUrl ? `r${shown.result.imageDataUrl.length}` : null) },
+    result: null,
+  });
+
+  /** Adds a look to the Undo list (not twice in a row), keeping the last 20. */
+  function pushShown(shown: Shown) {
+    setHistory((list) => (list[list.length - 1]?.look.outfitId === shown.look.outfitId ? list : [...list.slice(-19), slim(shown)]));
+  }
+
   /** Remembers the look on screen before moving to another one (unless it's the same outfit). */
   function rememberShown(nextOutfitId: string | null) {
     const shown = shownRef.current;
-    if (shown?.look.outfitId && shown.look.outfitId !== nextOutfitId) setHistory((list) => [...list.slice(-19), shown]);
+    if (shown?.look.outfitId && shown.look.outfitId !== nextOutfitId) pushShown(shown);
   }
+
+  // Steps that would show the look already on screen are skipped (e.g. after a reload opened that same look).
+  const undoSteps = history.filter((h) => h.look.outfitId !== look.outfitId || changed);
 
   /** Back to the previous look, with its picture (already made, so free). */
   function undo() {
-    const previous = history[history.length - 1];
+    const previous = undoSteps[undoSteps.length - 1];
     if (!previous) return;
-    setHistory((list) => list.slice(0, -1));
+    setHistory((list) => list.slice(0, list.lastIndexOf(previous)));
     shownRef.current = previous;
     setPieces(previous.pieces);
     setLook(previous.look);
@@ -236,7 +270,7 @@ export default function StudioPage() {
       const outfitId = await saveOutfit();
       setStatusIndex(1);
       setResult(await requestTryOn(outfitId, pieces, liveProvider, fresh));
-      if (before?.look.outfitId && before.look.outfitId !== outfitId) setHistory((list) => [...list.slice(-19), before]);
+      if (before?.look.outfitId && before.look.outfitId !== outfitId) pushShown(before);
       // The new picture is now this look's try-on and the person's current look across the app.
       refreshUser();
     } catch (err) {
@@ -427,7 +461,7 @@ export default function StudioPage() {
                   Change photo
                 </button>
                 {/* Top right: the share arrow (adds this tried-on look to the "to share" list), and Undo below it. */}
-                {!trying && ((picture && look.outfitId) || history.length > 0) && (
+                {!trying && (
                   <div className="absolute right-4 top-4 flex flex-col gap-2">
                     {picture && look.outfitId && (
                       <ShareArrowButton
@@ -438,19 +472,18 @@ export default function StudioPage() {
                         }}
                       />
                     )}
-                    {history.length > 0 && (
-                      <button
-                        onClick={undo}
-                        aria-label="Undo: back to the previous outfit"
-                        title="Back to the previous outfit"
-                        className="flex h-11 w-11 items-center justify-center rounded-full bg-white/90 text-[#121821] shadow-sm hover:bg-white"
-                      >
-                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" className="h-5 w-5" aria-hidden>
-                          <path d="M9 14 4 9l5-5" />
-                          <path d="M4 9h10.5a5.5 5.5 0 0 1 0 11H11" />
-                        </svg>
-                      </button>
-                    )}
+                    <button
+                      onClick={undo}
+                      disabled={undoSteps.length === 0}
+                      aria-label="Undo: back to the previous outfit"
+                      title={undoSteps.length ? "Back to the previous outfit" : "Nothing to undo yet"}
+                      className="flex h-11 w-11 items-center justify-center rounded-full bg-white/90 text-[#121821] shadow-sm hover:bg-white disabled:opacity-40 disabled:hover:bg-white/90"
+                    >
+                      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" className="h-5 w-5" aria-hidden>
+                        <path d="M9 14 4 9l5-5" />
+                        <path d="M4 9h10.5a5.5 5.5 0 0 1 0 11H11" />
+                      </svg>
+                    </button>
                   </div>
                 )}
               </div>
