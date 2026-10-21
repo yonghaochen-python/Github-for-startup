@@ -173,6 +173,13 @@ export async function computeAdminStats(from: Date, to: Date) {
       tryOn: outcome("tryon"),
       clothesDetection: outcome("clothes_detect"),
     },
+    // "Help me pick": picks shared → friends who opened a link → votes → people who signed up after arriving from one.
+    picks: {
+      created: named("pick_created").length,
+      opened: named("pick_opened").length,
+      votes: named("pick_vote").length,
+      signups: named("signup_from_pick").length,
+    },
     retention: {
       eligible: matured.length,
       returned: returned.length,

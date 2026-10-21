@@ -4,6 +4,7 @@ import { prisma } from "@/lib/prisma";
 import { hashPassword, createSession, sessionCookieHeader, devSignedOutCookieHeader } from "@/lib/auth";
 import { SAMPLE_CLOSET } from "@/lib/sampleCloset";
 import { cleanDisplayName } from "@/lib/displayName";
+import { FROM_PICK_COOKIE, readCookie } from "@/lib/picks";
 
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
@@ -33,9 +34,13 @@ export async function POST(request: Request) {
   });
   const { cookie, expiresAt } = await createSession(user.id);
   await track(user.id, "signup");
+  // Arrived from a friend's "Help me pick" link: counts toward how many people that loop brings in.
+  const fromPick = readCookie(request, FROM_PICK_COOKIE) !== null;
+  if (fromPick) await track(user.id, "signup_from_pick");
 
   const response = NextResponse.json({ user: { email: user.email } }, { status: 201 });
   response.headers.append("set-cookie", sessionCookieHeader(cookie, expiresAt));
+  if (fromPick) response.headers.append("set-cookie", `${FROM_PICK_COOKIE}=; HttpOnly; Secure; SameSite=Lax; Path=/; Max-Age=0`);
   const devCookie = devSignedOutCookieHeader(false);
   if (devCookie) response.headers.append("set-cookie", devCookie);
   return response;

@@ -13,6 +13,10 @@ export type EventName =
   | "clothes_detect"
   | "clothes_added"
   | "look_saved"
+  | "pick_created"
+  | "pick_opened"
+  | "pick_vote"
+  | "signup_from_pick"
   | `visit_${"home" | "closet" | "studio" | "stylist" | "tryon" | "saved" | "profile"}`;
 
 export async function track(

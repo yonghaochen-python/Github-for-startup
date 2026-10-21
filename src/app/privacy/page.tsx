@@ -53,6 +53,11 @@ export default function PrivacyPage() {
       <h2>Your photos</h2>
       <ul>
         <li>Your full-body photo and try-on pictures are private: only you can see them, after logging in.</li>
+        <li>
+          If you use Help me pick, the two try-on pictures you choose can be seen by anyone with that link, for 48
+          hours. Then the pick ends and those copies are deleted. You can end a pick sooner. Friends who vote don&apos;t
+          need an account, and we don&apos;t record who they are.
+        </li>
         <li>Clothing photos are stored at long, random web addresses that aren&apos;t listed anywhere or shown to other users.</li>
         <li>We don&apos;t use your photos to train AI models.</li>
       </ul>

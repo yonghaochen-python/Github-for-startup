@@ -117,7 +117,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     if (u) setUser(u);
   }, []);
 
-  const isPublicPath = PUBLIC_PATHS.includes(pathname ?? "/");
+  // A shared "Help me pick" link opens for anyone who has it.
+  const isPublicPath = PUBLIC_PATHS.includes(pathname ?? "/") || (pathname ?? "").startsWith("/pick/");
 
   // Signed-out visits to a protected URL go to login; an explicit logout goes to the public intro instead.
   useEffect(() => {

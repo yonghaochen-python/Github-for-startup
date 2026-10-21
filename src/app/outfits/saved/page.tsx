@@ -8,6 +8,7 @@ import { InlineLoading } from "@/components/InlineLoading";
 import { SparkleIcon } from "@/components/Icons";
 import { EmptyState, ErrorNote, PageHeader, PageShell, btnPrimary, btnSecondary } from "@/components/ui";
 import { Tips, type Tip } from "@/components/Tips";
+import { HelpMePickButton, OpenPicks } from "@/components/HelpMePick";
 
 const SAVED_TIPS: Tip[] = [{ target: '[aria-label="Saved. Tap to unsave"]', text: "Tap the red bookmark to unsave a look." }];
 
@@ -17,6 +18,8 @@ export default function SavedLooksPage() {
   const [loadError, setLoadError] = useState(false);
   // Unsaving keeps the card here (switched off) until the page is next opened, so it can be switched back on.
   const [shownIds, setShownIds] = useState<Set<string> | null>(null);
+  /** Bumped when a new pick starts, so the list of picks reloads. */
+  const [picksVersion, setPicksVersion] = useState(0);
 
   async function loadOutfits() {
     try {
@@ -50,12 +53,17 @@ export default function SavedLooksPage() {
           description="Your favorites, ready to try on."
           actions={
             saved.length > 0 ? (
-              <Link href="/studio" className={btnSecondary}>
-                <SparkleIcon className="h-4 w-4" /> Open Studio
-              </Link>
+              <>
+                <HelpMePickButton looks={outfits} onStarted={() => setPicksVersion((v) => v + 1)} />
+                <Link href="/studio" className={btnSecondary}>
+                  <SparkleIcon className="h-4 w-4" /> Open Studio
+                </Link>
+              </>
             ) : undefined
           }
         />
+
+        <OpenPicks refreshKey={picksVersion} />
 
         {loading ? (
           <InlineLoading label="Loading your saved looks…" />

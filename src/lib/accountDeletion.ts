@@ -1,11 +1,12 @@
 import { env } from "cloudflare:workers";
 import { prisma } from "@/lib/prisma";
 import { clearCurrentLook, deleteAllOutfitTryOns, deletePersonalPhoto, isSavedPhotoKey } from "@/lib/personalPhoto";
+import { deleteAllPicks } from "@/lib/picks";
 
 /**
  * Permanently deletes an account and everything in it: the saved photo, the current look, every outfit's try-on
- * picture, the person's own clothing photos, and (through the database's cascades) their closet, outfits,
- * sessions, reset links and usage events. Starter-closet pictures are shared files and stay.
+ * picture, shared picks and their pictures, the person's own clothing photos, and (through the database's
+ * cascades) their closet, outfits, sessions, reset links and usage events. Starter-closet pictures are shared files and stay.
  */
 export async function deleteAccount(userId: string): Promise<void> {
   const user = await prisma.user.findUnique({
@@ -23,6 +24,7 @@ export async function deleteAccount(userId: string): Promise<void> {
   if (isSavedPhotoKey(user.selfieUrl)) await deletePersonalPhoto(user.selfieUrl);
   await clearCurrentLook(userId);
   await deleteAllOutfitTryOns(userId);
+  await deleteAllPicks(userId);
 
   await prisma.user.delete({ where: { id: userId } });
 }
