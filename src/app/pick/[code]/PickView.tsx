@@ -3,7 +3,7 @@
 import { useEffect, useState } from "react";
 import Link from "next/link";
 import { useAuth } from "@/components/AuthProvider";
-import { hoursLeft, LETTERS, useSharePick } from "@/components/ShareLooks";
+import { hoursLeft, LETTERS, ShareOptions, StopSharing } from "@/components/ShareLooks";
 import { useToast } from "@/components/Toast";
 import { PageShell, btnPrimary, btnSecondary, btnText, surface } from "@/components/ui";
 
@@ -16,7 +16,6 @@ type PickData = {
 export function PickView({ code }: { code: string }) {
   const { user } = useAuth();
   const { showToast } = useToast();
-  const sharePick = useSharePick();
   const [data, setData] = useState<PickData | null>(null);
   const [ended, setEnded] = useState(false);
   const [voting, setVoting] = useState(false);
@@ -157,13 +156,14 @@ export function PickView({ code }: { code: string }) {
         )}
 
         {isOwner ? (
-          <div className="mt-6 flex flex-wrap justify-center gap-3">
-            <button onClick={() => sharePick(code)} className={btnPrimary}>
-              Share
-            </button>
-            <Link href="/outfits/saved" className={btnText}>
-              Back to Saved
-            </Link>
+          <div className="mx-auto mt-6 max-w-sm">
+            <ShareOptions code={code} />
+            <div className="mt-3 flex flex-wrap items-center justify-center gap-x-5">
+              <Link href="/outfits/saved" className={btnText}>
+                Back to Saved
+              </Link>
+              <StopSharing code={code} onStopped={() => setEnded(true)} />
+            </div>
           </div>
         ) : user ? (
           <div className="mt-8 text-center">

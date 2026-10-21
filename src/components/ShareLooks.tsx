@@ -4,7 +4,7 @@ import { useCallback, useEffect, useRef, useState, useSyncExternalStore } from "
 import Link from "next/link";
 import type { Outfit } from "@/components/OutfitCard";
 import { useToast } from "@/components/Toast";
-import { btnPrimary, btnSecondary, btnText, surface } from "@/components/ui";
+import { btnPrimary, btnText, surface } from "@/components/ui";
 
 /**
  * "Share looks": share 2–4 tried-on looks in one link, and friends vote for one without an account. The link
@@ -77,26 +77,136 @@ export function useShareTray() {
   };
 }
 
-/** Opens the phone's share sheet with the link, or copies it where sharing isn't available. */
-export function useSharePick() {
+/** Copies the link. Returns false where copying isn't allowed, so the link can be shown to copy by hand. */
+export function useCopyLink() {
   const { showToast } = useToast();
-  return async function sharePick(code: string) {
-    const url = pickUrl(code);
-    if (navigator.share) {
-      try {
-        await navigator.share({ title: "Which one tonight?", text: SHARE_TEXT, url });
-        return;
-      } catch (err) {
-        if (err instanceof DOMException && err.name === "AbortError") return; // They closed the share sheet.
-      }
-    }
+  return async function copyLink(code: string): Promise<boolean> {
     try {
-      await navigator.clipboard.writeText(url);
+      await navigator.clipboard.writeText(pickUrl(code));
       showToast("Link copied");
+      return true;
     } catch {
-      window.prompt("Copy this link:", url);
+      return false;
     }
   };
+}
+
+/**
+ * Opens the device's own share sheet (Messages, Instagram, WhatsApp, Mail…). The preview picture goes along with
+ * the link, so apps that only take pictures still get the looks. Without a share sheet, the link is copied.
+ * Returns false only when nothing worked (no share sheet and copying blocked).
+ */
+export function useSharePick() {
+  const copyLink = useCopyLink();
+  return async function sharePick(code: string, card?: Blob | null): Promise<boolean> {
+    const url = pickUrl(code);
+    if (navigator.share) {
+      const file = card ? new File([card], "which-one.jpg", { type: "image/jpeg" }) : null;
+      try {
+        if (file && navigator.canShare?.({ files: [file] })) {
+          await navigator.share({ files: [file], text: `${SHARE_TEXT}\n${url}` });
+        } else {
+          await navigator.share({ title: "Which one tonight?", text: SHARE_TEXT, url });
+        }
+        return true;
+      } catch (err) {
+        if (err instanceof DOMException && err.name === "AbortError") return true; // They closed the share sheet.
+      }
+    }
+    return copyLink(code);
+  };
+}
+
+/** The ways to send a share link: the device's share sheet, Messages, WhatsApp, or copying the link. */
+export function ShareOptions({ code, card }: { code: string; card?: Blob | null }) {
+  const sharePick = useSharePick();
+  const copyLink = useCopyLink();
+  // Shown when the browser won't copy for us (browser pop-ups can be blocked too, so it's on the page).
+  const [showLink, setShowLink] = useState(false);
+  // The preview picture is fetched ahead of time: share sheets only open straight from a tap.
+  const [picture, setPicture] = useState<Blob | null>(card ?? null);
+  useEffect(() => {
+    if (card) return;
+    let stop = false;
+    fetch(`/api/picks/${code}/image/card`)
+      .then((res) => (res.ok ? res.blob() : null))
+      .then((blob) => !stop && setPicture(blob))
+      .catch(() => {});
+    return () => {
+      stop = true;
+    };
+  }, [code, card]);
+
+  const message = encodeURIComponent(`${SHARE_TEXT} ${typeof window === "undefined" ? "" : pickUrl(code)}`);
+  const quick = "inline-flex min-h-[44px] flex-1 items-center justify-center gap-1.5 rounded-full bg-[#f0f2f3] px-3 text-[12.5px] font-medium text-[#121821] hover:bg-[#e4e8ea]";
+  return (
+    <div className="flex flex-col gap-2.5">
+      <button onClick={async () => setShowLink(!(await sharePick(code, picture)))} className={`${btnPrimary} w-full`}>
+        <ShareIcon className="h-4 w-4" /> Share
+      </button>
+      <div className="flex gap-2">
+        <a href={`sms:?&body=${message}`} className={quick}>
+          Messages
+        </a>
+        <a href={`https://wa.me/?text=${message}`} target="_blank" rel="noopener noreferrer" className={quick}>
+          WhatsApp
+        </a>
+        <button onClick={async () => setShowLink(!(await copyLink(code)))} className={quick}>
+          Copy link
+        </button>
+      </div>
+      {showLink && (
+        <input
+          readOnly
+          autoFocus
+          value={pickUrl(code)}
+          onFocus={(e) => e.currentTarget.select()}
+          aria-label="Link to copy"
+          className="w-full rounded-[12px] bg-[#f0f2f3] px-3 py-2.5 text-[12.5px] text-[#121821]"
+        />
+      )}
+    </div>
+  );
+}
+
+/** "Stop sharing" with a confirmation on the page itself (browser pop-ups can be blocked, which made it do nothing). */
+export function StopSharing({ code, onStopped, className = btnText }: { code: string; onStopped: () => void; className?: string }) {
+  const { showToast } = useToast();
+  const [asking, setAsking] = useState(false);
+  const [busy, setBusy] = useState(false);
+
+  async function stop() {
+    setBusy(true);
+    const res = await fetch(`/api/picks/${code}`, { method: "DELETE" }).catch(() => null);
+    setBusy(false);
+    if (!res?.ok) {
+      showToast("Couldn't stop sharing. Please try again.");
+      return;
+    }
+    showToast("Stopped sharing");
+    onStopped();
+  }
+
+  if (!asking) {
+    return (
+      <button onClick={() => setAsking(true)} className={className}>
+        Stop sharing
+      </button>
+    );
+  }
+  return (
+    <span className="block basis-full pt-1 text-[13px] text-[#445159]">
+      Delete the link and pictures?
+      <span className="flex gap-5">
+        <button onClick={stop} disabled={busy} className="min-h-[44px] font-semibold text-[#c23a2c] underline-offset-4 hover:underline">
+          {busy ? "Stopping…" : "Yes, stop"}
+        </button>
+        <button onClick={() => setAsking(false)} disabled={busy} className="min-h-[44px] font-medium text-[#121821] underline-offset-4 hover:underline">
+          Keep
+        </button>
+      </span>
+    </span>
+  );
 }
 
 export function hoursLeft(expiresAt: string): string {
@@ -171,7 +281,7 @@ function SharePopup({
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [code, setCode] = useState<string | null>(null);
-  const sharePick = useSharePick();
+  const [card, setCard] = useState<Blob | null>(null);
   const overlayRef = useRef<HTMLDivElement | null>(null);
   const byId = (id: string) => shown.find((l) => l.id === id)!;
 
@@ -197,6 +307,7 @@ function SharePopup({
       const res = await fetch("/api/picks", { method: "POST", body: formData });
       const data = (await res.json().catch(() => ({}))) as { code?: string; error?: string };
       if (!res.ok || !data.code) throw new Error(data.error ?? "Couldn't make the link right now. Please try again.");
+      setCard(card);
       setCode(data.code);
       onShared?.();
       overlayRef.current?.scrollTo({ top: 0 });
@@ -243,14 +354,10 @@ function SharePopup({
                 </div>
               ))}
             </div>
-            <div className="flex flex-wrap gap-3">
-              <button onClick={() => sharePick(code)} className={`${btnPrimary} flex-1`}>
-                Share
-              </button>
-              <Link href={`/pick/${code}`} className={btnSecondary}>
-                See votes
-              </Link>
-            </div>
+            <ShareOptions code={code} card={card} />
+            <Link href={`/pick/${code}`} className={`${btnText} mt-2 w-full justify-center`}>
+              See votes
+            </Link>
           </>
         ) : (
           <>
@@ -400,8 +507,6 @@ export function VoteBar({ counts }: { counts: number[] }) {
 /** Saved: the person's open shares with the votes so far. Refreshes every so often while the page is open. */
 export function OpenPicks({ refreshKey }: { refreshKey: number }) {
   const [picks, setPicks] = useState<OpenPick[]>([]);
-  const sharePick = useSharePick();
-  const { showToast } = useToast();
 
   const load = useCallback(async () => {
     const res = await fetch("/api/picks").catch(() => null);
@@ -416,17 +521,6 @@ export function OpenPicks({ refreshKey }: { refreshKey: number }) {
     const timer = setInterval(load, 20000);
     return () => clearInterval(timer);
   }, [load, refreshKey]);
-
-  async function end(code: string) {
-    if (!window.confirm("Stop sharing? The link stops working and the pictures are deleted.")) return;
-    const res = await fetch(`/api/picks/${code}`, { method: "DELETE" });
-    if (!res.ok) {
-      showToast("Couldn't stop sharing. Please try again.");
-      return;
-    }
-    setPicks((list) => list.filter((p) => p.code !== code));
-    showToast("Stopped sharing");
-  }
 
   if (picks.length === 0) return null;
   return (
@@ -448,13 +542,11 @@ export function OpenPicks({ refreshKey }: { refreshKey: number }) {
               </div>
               <VoteBar counts={pick.counts} />
             </Link>
-            <div className="mt-2 flex gap-4">
-              <button onClick={() => sharePick(pick.code)} className={btnText}>
+            <div className="mt-2 flex flex-wrap gap-x-4">
+              <Link href={`/pick/${pick.code}`} className={btnText}>
                 Share again
-              </button>
-              <button onClick={() => end(pick.code)} className={btnText}>
-                Stop sharing
-              </button>
+              </Link>
+              <StopSharing code={pick.code} onStopped={() => setPicks((list) => list.filter((p) => p.code !== pick.code))} />
             </div>
           </div>
         ))}
