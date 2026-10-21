@@ -283,7 +283,6 @@ function Dashboard({ closet, outfits }: { closet: ClothingItem[]; outfits: Outfi
               Icon={ClosetIcon}
               id="closet-title"
               title="My Closet"
-              body={closet.length > 0 ? "Browse, sort and add clothes." : "Add photos of clothes you own."}
             />
             {closet.length > 0 ? (
               <div className="grid grid-cols-3 gap-2 px-6 sm:grid-cols-4 sm:px-8">
@@ -402,14 +401,14 @@ function Dashboard({ closet, outfits }: { closet: ClothingItem[]; outfits: Outfi
   );
 }
 
-function FeatureHead({ Icon, id, title, body }: { Icon: typeof ClosetIcon; id: string; title: string; body: string }) {
+function FeatureHead({ Icon, id, title, body }: { Icon: typeof ClosetIcon; id: string; title: string; body?: string }) {
   return (
     <div className="px-6 pb-5 pt-6 sm:px-8 sm:pt-8">
-      <p className={`${eyebrow} mb-3 flex items-center gap-2`}>
+      <p className={`${eyebrow} flex items-center gap-2 ${body ? "mb-3" : ""}`}>
         <Icon className="h-4 w-4" /> {title}
       </p>
       <h2 id={id} className="sr-only">{title}</h2>
-      <p className="max-w-md text-[13.5px] leading-relaxed text-[#4f5b66]">{body}</p>
+      {body && <p className="max-w-md text-[13.5px] leading-relaxed text-[#4f5b66]">{body}</p>}
     </div>
   );
 }
