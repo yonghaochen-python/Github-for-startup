@@ -218,7 +218,6 @@ export default function ClosetPage() {
       <PageShell>
         <PageHeader
                     title="My Closet"
-          description="Everything you own, in one place."
           actions={
             <>
               <button onClick={() => setShowAddClothes(true)} data-tip="closet-add" className={btnPrimary}>
