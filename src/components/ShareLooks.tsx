@@ -73,7 +73,6 @@ export function useShareTray() {
     toggle: (look: ShareLook) =>
       writeTray(looks.some((l) => l.id === look.id) ? looks.filter((l) => l.id !== look.id) : [...looks, look].slice(-MAX_LOOKS)),
     remove: (id: string) => writeTray(looks.filter((l) => l.id !== id)),
-    clear: () => writeTray([]),
   };
 }
 
@@ -184,6 +183,7 @@ export function StopSharing({ code, onStopped, className = btnText }: { code: st
       return;
     }
     showToast("Stopped sharing");
+    writeTray([]);
     onStopped();
   }
 
@@ -309,6 +309,8 @@ function SharePopup({
       if (!res.ok || !data.code) throw new Error(data.error ?? "Couldn't make the link right now. Please try again.");
       setCard(card);
       setCode(data.code);
+      // These looks are shared now, so they leave the "to share" list (whether this was made from Studio or Saved).
+      writeTray(readTray().filter((l) => !chosen.includes(l.id)));
       onShared?.();
       overlayRef.current?.scrollTo({ top: 0 });
     } catch (err) {
@@ -484,10 +486,7 @@ export function ShareTray({ onShared }: { onShared?: () => void }) {
           looks={tray.looks}
           initial={tray.looks.map((l) => l.id)}
           onClose={() => setOpen(false)}
-          onShared={() => {
-            tray.clear();
-            onShared?.();
-          }}
+          onShared={onShared}
         />
       )}
     </>
