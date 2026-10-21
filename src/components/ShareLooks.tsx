@@ -2,7 +2,6 @@
 
 import { useCallback, useEffect, useRef, useState, useSyncExternalStore } from "react";
 import Link from "next/link";
-import { useRouter } from "next/navigation";
 import type { Outfit } from "@/components/OutfitCard";
 import { useToast } from "@/components/Toast";
 import { btnPrimary, btnText, surface } from "@/components/ui";
@@ -351,11 +350,14 @@ function Letter({ i, className = "" }: { i: number; className?: string }) {
 function SharePopup({
   looks,
   initial = [],
+  makeNow = false,
   onClose,
   onShared,
 }: {
   looks: ShareLook[];
   initial?: string[];
+  /** Make the link as soon as it opens (the looks are already chosen), so it opens on Ready to send. */
+  makeNow?: boolean;
   onClose: () => void;
   onShared?: () => void;
 }) {
@@ -396,6 +398,15 @@ function SharePopup({
     }
   }
 
+  // Make the link once when opened from Studio's Share (the guard stops a second link if this runs twice).
+  const madeOnOpen = useRef(false);
+  useEffect(() => {
+    if (!makeNow || madeOnOpen.current) return;
+    madeOnOpen.current = true;
+    start();
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- runs once when the popup opens
+  }, []);
+
   const need = MIN_LOOKS - chosen.length;
   return (
     <div
@@ -409,7 +420,7 @@ function SharePopup({
       <div className="my-auto w-full max-w-xl shrink-0 rounded-[24px] bg-white p-6 sm:p-8">
         <div className="mb-4 flex items-start justify-between gap-4">
           <div>
-            <h2 className="font-display text-[28px] leading-tight text-[#121821]">{code ? "Ready to send" : "Share looks"}</h2>
+            <h2 className="font-display text-[28px] leading-tight text-[#121821]">{code || makeNow ? "Ready to send" : "Share looks"}</h2>
             <p className="mt-1 text-[13.5px] text-[#445159]">
               {code
                 ? chosen.length > 1
@@ -425,7 +436,17 @@ function SharePopup({
 
         {error && <p className="mb-4 rounded-[14px] bg-red-50 px-4 py-3 text-sm text-red-700">{error}</p>}
 
-        {code ? (
+        {makeNow && !code ? (
+          <div className="flex flex-col items-center gap-3 py-10">
+            {busy && <span className="h-8 w-8 animate-spin rounded-full border-2 border-black/[0.07] border-t-[#29343a]" aria-hidden />}
+            <p className="text-[13.5px] text-[#445159]">{busy ? "Making your link…" : "Couldn't make the link."}</p>
+            {!busy && (
+              <button onClick={start} className={btnText}>
+                Try again
+              </button>
+            )}
+          </div>
+        ) : code ? (
           <>
             <div className={`mx-auto mb-5 grid gap-2 ${chosen.length === 1 ? "max-w-[240px] grid-cols-1" : chosen.length === 3 ? "grid-cols-3" : "grid-cols-2"}`}>
               {chosen.map((id, i) => (
@@ -437,6 +458,9 @@ function SharePopup({
               ))}
             </div>
             <ShareOptions code={code} looks={chosen.length} card={card} />
+            <p className="mt-2 text-center text-[11.5px] text-[#5d6874]">
+              Anyone with the link can see {chosen.length === 1 ? "this" : "these"} for 48 hours.
+            </p>
             <Link href={`/pick/${code}`} className={`${btnText} mt-2 w-full justify-center`}>
               {chosen.length > 1 ? "See votes" : "See loves"}
             </Link>
@@ -527,53 +551,42 @@ export function ShareArrowButton({ look, className = "" }: { look: ShareLook; cl
   );
 }
 
-/**
- * Studio: the looks waiting to be shared. Share makes the link and goes straight to its page, where every way to
- * send it is; a mis-tap is undone there with Back (nobody has the link yet) or Stop sharing.
- */
+/** Studio: the looks waiting to be shared. Share opens the small popup straight on Ready to send (close it to back out). */
 export function ShareTray() {
   const tray = useShareTray();
-  const router = useRouter();
-  const { showToast } = useToast();
-  const [busy, setBusy] = useState(false);
-  if (tray.looks.length === 0) return null;
-
-  async function share() {
-    setBusy(true);
-    try {
-      const { code } = await createShare(tray.looks);
-      router.push(`/pick/${code}`);
-    } catch (err) {
-      showToast(err instanceof Error ? err.message : "Couldn't make the link right now. Please try again.");
-      setBusy(false);
-    }
-  }
-
+  // The looks being shared, kept while the popup is open (sharing takes them off the list).
+  const [sharing, setSharing] = useState<ShareLook[] | null>(null);
+  if (tray.looks.length === 0 && !sharing) return null;
   return (
-    <div className="mb-4 flex items-center gap-3 rounded-[16px] bg-[#f4f5f6] p-2.5" aria-label="Looks to share">
-      <ul className="flex shrink-0 gap-1.5">
-        {tray.looks.map((look, i) => (
-          <li key={look.id} className="relative h-14 w-11 overflow-hidden rounded-[8px] bg-white">
-            {/* eslint-disable-next-line @next/next/no-img-element -- private, owner-only image */}
-            <img src={pictureUrl(look)} alt={look.label} className="absolute inset-0 h-full w-full object-cover" />
-            <button
-              onClick={() => tray.remove(look.id)}
-              aria-label={`Take look ${LETTERS[i]} out`}
-              className="absolute left-0.5 top-0.5 flex h-5 w-5 items-center justify-center rounded-full bg-[#121821] text-[10px] font-semibold text-white"
-            >
-              {LETTERS[i]}
-            </button>
-          </li>
-        ))}
-      </ul>
-      {/* On phones the letters say it; the hint only shows where there's room once it's a vote. */}
-      <p className={`min-w-0 flex-1 text-[12.5px] leading-snug text-[#445159] ${tray.looks.length > 1 ? "invisible sm:visible" : ""}`}>
-        {tray.looks.length > 1 ? `${tray.looks.length} looks to share` : "Share it, or add another outfit for a vote."}
-      </p>
-      <button onClick={share} disabled={busy} className={`${btnPrimary} min-h-[40px] shrink-0 px-4`}>
-        <ShareIcon className="h-4 w-4" /> {busy ? "Sharing…" : "Share"}
-      </button>
-    </div>
+    <>
+      {tray.looks.length > 0 && (
+        <div className="mb-4 flex items-center gap-3 rounded-[16px] bg-[#f4f5f6] p-2.5" aria-label="Looks to share">
+          <ul className="flex shrink-0 gap-1.5">
+            {tray.looks.map((look, i) => (
+              <li key={look.id} className="relative h-14 w-11 overflow-hidden rounded-[8px] bg-white">
+                {/* eslint-disable-next-line @next/next/no-img-element -- private, owner-only image */}
+                <img src={pictureUrl(look)} alt={look.label} className="absolute inset-0 h-full w-full object-cover" />
+                <button
+                  onClick={() => tray.remove(look.id)}
+                  aria-label={`Take look ${LETTERS[i]} out`}
+                  className="absolute left-0.5 top-0.5 flex h-5 w-5 items-center justify-center rounded-full bg-[#121821] text-[10px] font-semibold text-white"
+                >
+                  {LETTERS[i]}
+                </button>
+              </li>
+            ))}
+          </ul>
+          {/* On phones the letters say it; the hint only shows where there's room once it's a vote. */}
+          <p className={`min-w-0 flex-1 text-[12.5px] leading-snug text-[#445159] ${tray.looks.length > 1 ? "invisible sm:visible" : ""}`}>
+            {tray.looks.length > 1 ? `${tray.looks.length} looks to share` : "Share it, or add another outfit for a vote."}
+          </p>
+          <button onClick={() => setSharing(tray.looks)} className={`${btnPrimary} min-h-[40px] shrink-0 px-4`}>
+            <ShareIcon className="h-4 w-4" /> Share
+          </button>
+        </div>
+      )}
+      {sharing && <SharePopup looks={sharing} initial={sharing.map((l) => l.id)} makeNow onClose={() => setSharing(null)} />}
+    </>
   );
 }
 
