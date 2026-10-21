@@ -289,7 +289,7 @@ export const shareLookFrom = (outfit: Outfit): ShareLook => ({
   label: outfit.occasion?.trim() || `${outfit.layers.flatMap((l) => l.items).length}-piece look`,
 });
 
-/** Saved: "Share looks", shown once there are two tried-on looks to choose from. */
+/** Saved: "Share looks", shown once there are two saved, tried-on looks to choose from. */
 export function ShareLooksButton({ looks, onShared }: { looks: Outfit[]; onShared: () => void }) {
   const [open, setOpen] = useState(false);
   const tried = looks.filter((l) => l.tryOn).map(shareLookFrom);

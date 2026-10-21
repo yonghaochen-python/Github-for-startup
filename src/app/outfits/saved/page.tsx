@@ -54,7 +54,7 @@ export default function SavedLooksPage() {
           actions={
             saved.length > 0 ? (
               <>
-                <ShareLooksButton looks={outfits} onShared={() => setPicksVersion((v) => v + 1)} />
+                <ShareLooksButton looks={saved.filter((o) => o.isFavorite)} onShared={() => setPicksVersion((v) => v + 1)} />
                 <Link href="/studio" className={btnSecondary}>
                   <SparkleIcon className="h-4 w-4" /> Open Studio
                 </Link>
