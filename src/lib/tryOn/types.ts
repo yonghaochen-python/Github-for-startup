@@ -41,6 +41,8 @@ export type TryOnResult = {
   layers: TryOnLayer[];
   /** Pieces in the outfit that this provider did not render (e.g. shoes), so the UI can say so honestly. */
   notShown?: TryOnNote[];
+  /** True when this is a remembered picture of the same photo and pieces (no new try-on, no cost). */
+  reused?: boolean;
 };
 
 export type TryOnErrorCode = "not_configured" | "quota_exhausted" | "rate_limited" | "provider_error";

@@ -1,12 +1,13 @@
 import { NextResponse } from "next/server";
-import { trackTimed } from "@/lib/analytics";
+import { track, trackTimed } from "@/lib/analytics";
 import { prisma } from "@/lib/prisma";
 import { requireUser } from "@/lib/auth";
 import { withRetry } from "@/lib/dbRetry";
 import { loadSavedImage } from "@/lib/images";
 import { orderedLayerEntries, type LayeringRole } from "@/lib/layering";
 import { runTryOn, TryOnError, type TryOnInputLayer } from "@/lib/tryOn";
-import type { ImageBytes } from "@/lib/tryOn/types";
+import { toPlainLayers, type ImageBytes, type TryOnResult } from "@/lib/tryOn/types";
+import { cacheTryOn, getCachedTryOn, tryOnCacheKey } from "@/lib/tryOnCache";
 import { isSavedPhotoKey, loadPersonalPhoto, saveCurrentLook, saveOutfitTryOn } from "@/lib/personalPhoto";
 
 const MAX_PHOTO_BYTES = 12 * 1024 * 1024;
@@ -95,7 +96,20 @@ export async function POST(request: Request, ctx: RouteContext<"/api/outfits/[id
         ? { bytes: new Uint8Array(await sheet.arrayBuffer()), mediaType: sheet.type }
         : undefined;
 
-    const result = await trackTimed(user.id, "tryon", () => runTryOn({ person, layers, garmentSheet }, user.id));
+    // The same saved photo and pieces were tried on before: show that picture again, free (unless a fresh one is asked for).
+    const cacheKey =
+      !(sent instanceof File) && isSavedPhotoKey(user.selfieUrl)
+        ? tryOnCacheKey(user.id, user.selfieUrl, outfit.items.map(({ item }) => ({ id: item.id, description: item.description, color: item.color })))
+        : null;
+    const remembered = cacheKey && formData.get("fresh") !== "1" ? await getCachedTryOn(cacheKey).catch(() => null) : null;
+    let result: TryOnResult;
+    if (remembered) {
+      result = { isMock: false, provider: "saved", imageDataUrl: remembered, layers: toPlainLayers(layers), reused: true };
+      await track(user.id, "tryon_reused");
+    } else {
+      result = await trackTimed(user.id, "tryon", () => runTryOn({ person: person!, layers, garmentSheet }, user.id));
+      if (cacheKey && !result.isMock && result.imageDataUrl) await cacheTryOn(cacheKey, result.imageDataUrl).catch(() => {});
+    }
 
     // A real result made from the saved photo becomes the person's current look until they change it, and
     // stays with this outfit so its saved look shows it on them.

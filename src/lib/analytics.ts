@@ -10,6 +10,7 @@ export type EventName =
   | "login"
   | "outfit_generate"
   | "tryon"
+  | "tryon_reused"
   | "clothes_detect"
   | "clothes_added"
   | "look_saved"

@@ -196,7 +196,8 @@ export default function StudioPage() {
     setLook((l) => ({ ...l, tryOn: null }));
   }
 
-  async function tryOn() {
+  /** Runs the try-on. A picture already made of this photo and these pieces comes back free unless fresh is asked for. */
+  async function tryOn(fresh = false) {
     if (pieces.length === 0 || (!hasPhoto && !chosenPhoto) || trying) return;
     setError(null);
     setStatusIndex(0);
@@ -213,7 +214,7 @@ export default function StudioPage() {
       requestAnimationFrame(showMirror);
       const outfitId = await saveOutfit();
       setStatusIndex(1);
-      setResult(await requestTryOn(outfitId, pieces, liveProvider));
+      setResult(await requestTryOn(outfitId, pieces, liveProvider, fresh));
       // The new picture is now this look's try-on and the person's current look across the app.
       refreshUser();
     } catch (err) {
@@ -379,6 +380,18 @@ export default function StudioPage() {
                     Press Try On to see it on you
                   </span>
                 )}
+                {!changed && result?.reused && !trying && (
+                  <span className="absolute left-4 top-4 flex items-center gap-2 rounded-full bg-white/90 py-1 pl-3 pr-1 text-[11px] font-semibold text-[#4f5b66] shadow-sm">
+                    Saved try-on
+                    <button
+                      onClick={() => tryOn(true)}
+                      className="rounded-full bg-[#121821] px-2.5 py-1 text-[11px] font-semibold text-white hover:bg-[#2a3542]"
+                      title="Make a new picture of this look (uses a try-on)"
+                    >
+                      Redo
+                    </button>
+                  </span>
+                )}
                 {!changed && result?.isMock && (
                   <span className="absolute left-4 top-4 rounded-full bg-[#121821]/90 px-3 py-1 text-[10px] font-bold tracking-[1.4px] text-white">
                     PREVIEW (AI NOT CONNECTED)
@@ -469,7 +482,7 @@ export default function StudioPage() {
 
               <div data-tip="studio-tryon" className="mt-4 flex items-center gap-3">
                 <SaveToggle saved={!changed && look.isFavorite} busy={saving || pieces.length === 0} onToggle={toggleSaved} />
-                <button onClick={tryOn} disabled={trying || pieces.length === 0 || (!hasPhoto && !chosenPhoto)} className={`${btnPrimary} min-h-[48px] flex-1`}>
+                <button onClick={() => tryOn()} disabled={trying || pieces.length === 0 || (!hasPhoto && !chosenPhoto)} className={`${btnPrimary} min-h-[48px] flex-1`}>
                   <MirrorIcon className="h-4 w-4" />
                   {trying ? "Trying on…" : "Try On"}
                 </button>

@@ -3,14 +3,16 @@ import { garmentSheetJpeg, photoToJpeg } from "@/lib/clientImage";
 
 type Piece = { id: string; imageUrl: string };
 type NotShown = { role: LayeringRole; description: string; reason: string };
-export type TryOnResult = { isMock: boolean; provider: string; imageDataUrl: string | null; notShown?: NotShown[] };
+export type TryOnResult = { isMock: boolean; provider: string; imageDataUrl: string | null; notShown?: NotShown[]; reused?: boolean };
 
 /**
  * Runs a try-on of a saved outfit on the person's saved photo (the server reads the photo; nothing is re-uploaded).
  * With a live provider, each garment's photo is shrunk here first so phones upload small files.
  */
-export async function requestTryOn(outfitId: string, pieces: Piece[], liveProvider: boolean): Promise<TryOnResult> {
+export async function requestTryOn(outfitId: string, pieces: Piece[], liveProvider: boolean, fresh = false): Promise<TryOnResult> {
   const formData = new FormData();
+  // By default a picture already made of this photo and these pieces is shown again for free; fresh asks for a new one.
+  if (fresh) formData.append("fresh", "1");
   if (liveProvider) {
     const photos = await Promise.allSettled(
       pieces.map(async (piece) => {

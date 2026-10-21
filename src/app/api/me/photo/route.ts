@@ -12,6 +12,7 @@ import {
   photoVersion,
   savePersonalPhoto,
 } from "@/lib/personalPhoto";
+import { clearTryOnCache } from "@/lib/tryOnCache";
 
 const noStore = { "cache-control": "private, no-store" };
 
@@ -59,6 +60,7 @@ export async function PUT(request: Request) {
     // Remove the photo this one replaces, once the new one is safely recorded. The old look was made from it.
     if (isSavedPhotoKey(user.selfieUrl)) await deletePersonalPhoto(user.selfieUrl).catch(() => {});
     await clearCurrentLook(user.id).catch(() => {});
+    await clearTryOnCache(user.id).catch(() => {}); // Remembered try-ons were made from the old photo.
     return NextResponse.json({ photoVersion: photoVersion(key) }, { headers: noStore });
   } catch (err) {
     console.error("Failed to save try-on photo:", err);
@@ -78,6 +80,7 @@ export async function DELETE(request: Request) {
     await prisma.user.update({ where: { id: user.id }, data: { selfieUrl: null } });
     if (isSavedPhotoKey(user.selfieUrl)) await deletePersonalPhoto(user.selfieUrl);
     await clearCurrentLook(user.id).catch(() => {});
+    await clearTryOnCache(user.id).catch(() => {}); // Remembered try-ons were made from the old photo.
     // Pictures of the person wearing saved looks go with the photo they were made from.
     await deleteAllOutfitTryOns(user.id).catch(() => {});
     return NextResponse.json({ ok: true }, { headers: noStore });
