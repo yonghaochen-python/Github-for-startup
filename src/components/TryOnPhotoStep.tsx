@@ -56,10 +56,13 @@ export function TryOnPhotoStep({
   onConfirm,
   saving = false,
   onCancel,
+  onPendingChange,
 }: {
   onConfirm: (photo: Blob) => void;
   saving?: boolean;
   onCancel?: () => void;
+  /** Told about the chosen photo before it's saved (and null when it's dropped), so a parent can save it itself. */
+  onPendingChange?: (photo: Blob | null) => void;
 }) {
   const [mode, setMode] = useState<Mode>("choose");
   const [source, setSource] = useState<Source>("upload");
@@ -84,6 +87,7 @@ export function TryOnPhotoStep({
   }
 
   function setPendingPhoto(blob: Blob | null) {
+    onPendingChange?.(blob);
     if (pendingUrlRef.current) URL.revokeObjectURL(pendingUrlRef.current);
     if (!blob) {
       pendingUrlRef.current = null;

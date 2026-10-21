@@ -62,11 +62,28 @@ export function CurrentLookBar({ dark = false }: { dark?: boolean }) {
   );
 }
 
+/** Saves a photo as the person's try-on photo (replacing any earlier one). Throws with a message the person can read. */
+export async function uploadSavedPhoto(photo: Blob): Promise<void> {
+  const formData = new FormData();
+  formData.append("photo", photo, "photo.jpg");
+  const res = await fetch("/api/me/photo", { method: "PUT", body: formData });
+  const data = (await res.json().catch(() => ({}))) as { error?: string };
+  if (!res.ok) throw new Error(data.error ?? "Couldn't save your photo right now. Please try again.");
+}
+
 /**
  * Choose/take a photo, preview it, and save it to the account only when the person presses "Save My Photo".
  * Replaces any previously saved photo.
  */
-export function SavedPhotoSetup({ onSaved, onCancel }: { onSaved?: () => void; onCancel?: () => void }) {
+export function SavedPhotoSetup({
+  onSaved,
+  onCancel,
+  onPendingChange,
+}: {
+  onSaved?: () => void;
+  onCancel?: () => void;
+  onPendingChange?: (photo: Blob | null) => void;
+}) {
   const { refreshUser } = useAuth();
   const { showToast } = useToast();
   const [saving, setSaving] = useState(false);
@@ -76,11 +93,7 @@ export function SavedPhotoSetup({ onSaved, onCancel }: { onSaved?: () => void; o
     setSaving(true);
     setError(null);
     try {
-      const formData = new FormData();
-      formData.append("photo", photo, "photo.jpg");
-      const res = await fetch("/api/me/photo", { method: "PUT", body: formData });
-      const data = (await res.json().catch(() => ({}))) as { error?: string };
-      if (!res.ok) throw new Error(data.error ?? "Couldn't save your photo right now. Please try again.");
+      await uploadSavedPhoto(photo);
       await refreshUser();
       showToast("Photo saved");
       onSaved?.();
@@ -98,7 +111,7 @@ export function SavedPhotoSetup({ onSaved, onCancel }: { onSaved?: () => void; o
           {error}
         </p>
       )}
-      <TryOnPhotoStep onConfirm={save} saving={saving} onCancel={onCancel} />
+      <TryOnPhotoStep onConfirm={save} saving={saving} onCancel={onCancel} onPendingChange={onPendingChange} />
     </div>
   );
 }

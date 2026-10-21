@@ -6,7 +6,7 @@ import Link from "next/link";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { useAuth } from "@/components/AuthProvider";
 import type { ClothingItem, Outfit } from "@/components/OutfitCard";
-import { SavedPhotoImage, SavedPhotoSetup } from "@/components/SavedPhoto";
+import { SavedPhotoImage, SavedPhotoSetup, uploadSavedPhoto } from "@/components/SavedPhoto";
 import { SaveToggle } from "@/components/SaveToggle";
 import { useToast } from "@/components/Toast";
 import { MirrorIcon, PlusIcon, SearchIcon } from "@/components/Icons";
@@ -96,6 +96,8 @@ export default function StudioPage() {
   const [result, setResult] = useState<TryOnResult | null>(null);
   const [saving, setSaving] = useState(false);
   const [changingPhoto, setChangingPhoto] = useState(searchParams.get("change") === "1");
+  /** A photo chosen in the photo step but not saved yet; Try On saves it first. */
+  const [chosenPhoto, setChosenPhoto] = useState<Blob | null>(null);
   const [error, setError] = useState<string | null>(null);
   // Arriving from a "Try On" button (?start=1) starts the try-on right away; a refresh or Back does not.
   const autoStart = useRef(searchParams.get("start") === "1");
@@ -182,13 +184,29 @@ export default function StudioPage() {
     window.scrollTo({ top: Math.max(0, window.scrollY + r.top - navBottom), behavior: "smooth" });
   }
 
+  /** After a new photo is saved, the old try-ons (made from the old photo) stop showing until the next Try On. */
+  function photoSaved() {
+    setChangingPhoto(false);
+    setChosenPhoto(null);
+    setResult(null);
+    setLook((l) => ({ ...l, tryOn: null }));
+  }
+
   async function tryOn() {
-    if (pieces.length === 0 || !hasPhoto || trying) return;
+    if (pieces.length === 0 || (!hasPhoto && !chosenPhoto) || trying) return;
     setError(null);
     setStatusIndex(0);
     setTrying(true);
-    showMirror();
     try {
+      // A photo picked but not saved yet is the one they mean: save it, then dress it.
+      if (chosenPhoto && (changingPhoto || !hasPhoto)) {
+        await uploadSavedPhoto(chosenPhoto);
+        await refreshUser();
+        photoSaved();
+      } else if (changingPhoto) {
+        setChangingPhoto(false);
+      }
+      requestAnimationFrame(showMirror);
       const outfitId = await saveOutfit();
       setStatusIndex(1);
       setResult(await requestTryOn(outfitId, pieces, liveProvider));
@@ -325,7 +343,18 @@ export default function StudioPage() {
           <section aria-label="Your look" className="min-w-0 overflow-hidden rounded-[22px] bg-white shadow-[0_1px_0_rgba(18,24,33,0.03),0_14px_36px_rgba(18,30,45,0.06)]">
             {changingPhoto || !hasPhoto ? (
               <div className="p-4 sm:p-6">
-                <SavedPhotoSetup onSaved={() => setChangingPhoto(false)} onCancel={hasPhoto ? () => setChangingPhoto(false) : undefined} />
+                <SavedPhotoSetup
+                  onSaved={photoSaved}
+                  onCancel={
+                    hasPhoto
+                      ? () => {
+                          setChangingPhoto(false);
+                          setChosenPhoto(null);
+                        }
+                      : undefined
+                  }
+                  onPendingChange={setChosenPhoto}
+                />
               </div>
             ) : (
               <div ref={mirrorRef} className="relative mx-auto aspect-[3/4] max-h-[640px] w-full bg-[#f4f5f6] lg:aspect-auto lg:h-[min(620px,calc(100vh-430px))] lg:min-h-[360px]">
@@ -424,7 +453,7 @@ export default function StudioPage() {
 
               <div data-tip="studio-tryon" className="mt-4 flex items-center gap-3">
                 <SaveToggle saved={!changed && look.isFavorite} busy={saving || pieces.length === 0} onToggle={toggleSaved} />
-                <button onClick={tryOn} disabled={trying || pieces.length === 0 || !hasPhoto} className={`${btnPrimary} min-h-[48px] flex-1`}>
+                <button onClick={tryOn} disabled={trying || pieces.length === 0 || (!hasPhoto && !chosenPhoto)} className={`${btnPrimary} min-h-[48px] flex-1`}>
                   <MirrorIcon className="h-4 w-4" />
                   {trying ? "Trying on…" : "Try On"}
                 </button>
