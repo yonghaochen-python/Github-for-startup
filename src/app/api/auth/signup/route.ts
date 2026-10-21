@@ -34,7 +34,7 @@ export async function POST(request: Request) {
   });
   const { cookie, expiresAt } = await createSession(user.id);
   await track(user.id, "signup");
-  // Arrived from a friend's "Help me pick" link: counts toward how many people that loop brings in.
+  // Arrived from a friend's "Share looks" link: counts toward how many people that loop brings in.
   const fromPick = readCookie(request, FROM_PICK_COOKIE) !== null;
   if (fromPick) await track(user.id, "signup_from_pick");
 

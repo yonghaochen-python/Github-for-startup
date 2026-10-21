@@ -315,13 +315,13 @@ export default function AdminPage() {
           </div>
         </Section>
 
-        <Section title="Help me pick" description="Shared picks, the friends who opened them, their votes, and how many then signed up.">
+        <Section title="Share looks" description="Shared links, the friends who opened them, their votes, and how many then signed up.">
           <div className="grid grid-cols-2 gap-3 md:grid-cols-4">
-            <Stat label="Picks shared" value={s.picks.created} />
+            <Stat label="Links shared" value={s.picks.created} />
             <Stat label="Friends opened" value={s.picks.opened} />
             <Stat label="Votes" value={s.picks.votes} />
             <Stat
-              label="Signed up from a pick"
+              label="Signed up from a link"
               value={s.picks.signups}
               hint={s.picks.opened ? `${pct(s.picks.signups / s.picks.opened)} of friends who opened one` : undefined}
             />

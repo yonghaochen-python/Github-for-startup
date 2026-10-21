@@ -14,7 +14,7 @@ export async function GET(request: Request, ctx: RouteContext<"/api/picks/[code]
   const { code } = await ctx.params;
   await deleteEndedPicks();
   const pick = await findOpenPick(code);
-  if (!pick) return NextResponse.json({ error: "This pick has ended." }, { status: 404, headers: noStore });
+  if (!pick) return NextResponse.json({ error: "These looks aren't shared anymore." }, { status: 404, headers: noStore });
 
   const viewer = await getCurrentUser(request).catch(() => null);
   const isOwner = viewer?.id === pick.userId;

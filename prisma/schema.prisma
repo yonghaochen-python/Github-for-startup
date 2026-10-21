@@ -112,7 +112,7 @@ model PasswordReset {
   @@index([userId])
 }
 
-/// "Help me pick": two try-on pictures shared by link so friends can vote A or B. The pictures live in storage
+/// "Share looks": two try-on pictures shared by link so friends can vote A or B. The pictures live in storage
 /// under private/picks/<id>/ and are deleted when the pick ends (48 hours, or earlier if the owner ends it).
 model Pick {
   id        String    @id @default(cuid())

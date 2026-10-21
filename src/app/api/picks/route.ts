@@ -51,7 +51,7 @@ export async function POST(request: Request) {
   await deleteEndedPicks();
   const open = await prisma.pick.count({ where: { userId: user.id, expiresAt: { gt: new Date() } } });
   if (open >= MAX_OPEN_PICKS) {
-    return NextResponse.json({ error: "You have lots of picks going. End one first." }, { status: 429, headers: noStore });
+    return NextResponse.json({ error: "You're sharing lots of looks already. Stop one first." }, { status: 429, headers: noStore });
   }
 
   const outfits = await prisma.outfit.findMany({ where: { id: { in: ids }, userId: user.id }, select: { id: true, occasion: true } });
@@ -83,7 +83,7 @@ export async function POST(request: Request) {
   } catch (err) {
     console.error("Couldn't store the pick's pictures:", err);
     await deletePicks([pick.id]).catch(() => {});
-    return NextResponse.json({ error: "Couldn't start the pick right now. Please try again." }, { status: 500, headers: noStore });
+    return NextResponse.json({ error: "Couldn't make the link right now. Please try again." }, { status: 500, headers: noStore });
   }
 
   await track(user.id, "pick_created");

@@ -4,7 +4,7 @@ import { prisma } from "@/lib/prisma";
 import type { ImageBytes } from "@/lib/tryOn/types";
 
 /**
- * "Help me pick": two try-on pictures shared by link so friends can vote A or B, no account needed.
+ * "Share looks": two try-on pictures shared by link so friends can vote A or B, no account needed.
  * The pictures are copied to private/picks/<pickId>/ (the link opens them, nothing else does) and deleted when
  * the pick ends: 48 hours after it's made, or earlier if the owner ends it.
  */

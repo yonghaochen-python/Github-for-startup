@@ -7,13 +7,13 @@ import { useToast } from "@/components/Toast";
 import { btnPrimary, btnSecondary, btnText, surface } from "@/components/ui";
 
 /**
- * "Help me pick": choose two tried-on looks, share one link, and friends vote A or B without an account. The
+ * "Share looks": choose two tried-on looks, share one link, and friends vote A or B without an account. The
  * link lands them on the vote, then on Try for fun. Picks end after 48 hours and their pictures are deleted.
  */
 
 export type OpenPick = { code: string; labelA: string; labelB: string; votesA: number; votesB: number; expiresAt: string };
 
-const SHARE_TEXT = "Which one tonight? Help me pick";
+const SHARE_TEXT = "Which one tonight? Tap to vote";
 
 export const pickUrl = (code: string) => `${window.location.origin}/pick/${code}`;
 
@@ -120,12 +120,12 @@ function PickPopup({ looks, onClose, onStarted }: { looks: Outfit[]; onClose: ()
       formData.append("card", card, "pick.jpg");
       const res = await fetch("/api/picks", { method: "POST", body: formData });
       const data = (await res.json().catch(() => ({}))) as { code?: string; error?: string };
-      if (!res.ok || !data.code) throw new Error(data.error ?? "Couldn't start the pick right now. Please try again.");
+      if (!res.ok || !data.code) throw new Error(data.error ?? "Couldn't make the link right now. Please try again.");
       setCode(data.code);
       onStarted();
       overlayRef.current?.scrollTo({ top: 0 });
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Couldn't start the pick right now. Please try again.");
+      setError(err instanceof Error ? err.message : "Couldn't make the link right now. Please try again.");
     } finally {
       setBusy(false);
     }
@@ -136,14 +136,14 @@ function PickPopup({ looks, onClose, onStarted }: { looks: Outfit[]; onClose: ()
       ref={overlayRef}
       role="dialog"
       aria-modal="true"
-      aria-label="Help me pick"
+      aria-label="Share looks"
       className="fixed inset-0 z-50 flex items-start justify-center overflow-y-auto bg-[#172027]/85 px-4 py-8"
       onClick={(e) => e.target === e.currentTarget && onClose()}
     >
       <div className="my-auto w-full max-w-xl shrink-0 rounded-[24px] bg-white p-6 sm:p-8">
         <div className="mb-4 flex items-start justify-between gap-4">
           <div>
-            <h2 className="font-display text-[28px] leading-tight text-[#121821]">{code ? "Ready to send" : "Help me pick"}</h2>
+            <h2 className="font-display text-[28px] leading-tight text-[#121821]">{code ? "Ready to send" : "Share looks"}</h2>
             <p className="mt-1 text-[13.5px] text-[#445159]">
               {code ? "Send it to friends. They vote A or B, no account needed." : "Choose two looks. Friends vote on which one."}
             </p>
@@ -212,7 +212,7 @@ function PickPopup({ looks, onClose, onStarted }: { looks: Outfit[]; onClose: ()
   );
 }
 
-/** The "Help me pick" button. Shown once there are two tried-on looks to choose from. */
+/** The "Share looks" button. Shown once there are two tried-on looks to choose from. */
 export function HelpMePickButton({ looks, onStarted }: { looks: Outfit[]; onStarted: () => void }) {
   const [open, setOpen] = useState(false);
   const tried = looks.filter((l) => l.tryOn);
@@ -220,7 +220,7 @@ export function HelpMePickButton({ looks, onStarted }: { looks: Outfit[]; onStar
   return (
     <>
       <button onClick={() => setOpen(true)} className={btnPrimary} data-tip="help-me-pick">
-        Help me pick
+        Share looks
       </button>
       {open && <PickPopup looks={tried} onClose={() => setOpen(false)} onStarted={onStarted} />}
     </>
@@ -258,20 +258,20 @@ export function OpenPicks({ refreshKey }: { refreshKey: number }) {
   }, [load, refreshKey]);
 
   async function end(code: string) {
-    if (!window.confirm("End this pick? Its link stops working and the pictures are deleted.")) return;
+    if (!window.confirm("Stop sharing? The link stops working and the pictures are deleted.")) return;
     const res = await fetch(`/api/picks/${code}`, { method: "DELETE" });
     if (!res.ok) {
-      showToast("Couldn't end the pick. Please try again.");
+      showToast("Couldn't stop sharing. Please try again.");
       return;
     }
     setPicks((list) => list.filter((p) => p.code !== code));
-    showToast("Pick ended");
+    showToast("Stopped sharing");
   }
 
   if (picks.length === 0) return null;
   return (
-    <section aria-label="Your picks" className="mb-8">
-      <h2 className="mb-3 text-[13px] font-semibold text-[#29343a]">Your picks</h2>
+    <section aria-label="Shared looks" className="mb-8">
+      <h2 className="mb-3 text-[13px] font-semibold text-[#29343a]">Shared looks</h2>
       <div className="grid gap-3 sm:grid-cols-2">
         {picks.map((pick) => (
           <div key={pick.code} className={`${surface} p-4`}>
@@ -289,7 +289,7 @@ export function OpenPicks({ refreshKey }: { refreshKey: number }) {
                 Share again
               </button>
               <button onClick={() => end(pick.code)} className={btnText}>
-                End
+                Stop sharing
               </button>
             </div>
           </div>

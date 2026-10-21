@@ -54,8 +54,8 @@ export default function PrivacyPage() {
       <ul>
         <li>Your full-body photo and try-on pictures are private: only you can see them, after logging in.</li>
         <li>
-          If you use Help me pick, the two try-on pictures you choose can be seen by anyone with that link, for 48
-          hours. Then the pick ends and those copies are deleted. You can end a pick sooner. Friends who vote don&apos;t
+          If you use Share looks, the two try-on pictures you choose can be seen by anyone with that link, for 48
+          hours. Then the link ends and those copies are deleted. You can stop sharing sooner. Friends who vote don&apos;t
           need an account, and we don&apos;t record who they are.
         </li>
         <li>Clothing photos are stored at long, random web addresses that aren&apos;t listed anywhere or shown to other users.</li>

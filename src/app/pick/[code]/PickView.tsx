@@ -80,8 +80,8 @@ export function PickView({ code }: { code: string }) {
       <main className="flex-1 pb-16">
         <PageShell className="pt-10">
           <div className={`${surface} mx-auto max-w-md p-8 text-center`}>
-            <h1 className="font-display text-[30px] leading-tight text-[#121821]">This pick has ended</h1>
-            <p className="mt-2 text-[13.5px] text-[#445159]">Picks close after 48 hours, and the pictures are deleted.</p>
+            <h1 className="font-display text-[30px] leading-tight text-[#121821]">These looks aren&apos;t shared anymore</h1>
+            <p className="mt-2 text-[13.5px] text-[#445159]">Shared links close after 48 hours, and the pictures are deleted.</p>
           </div>
           {!user && tryVirm}
         </PageShell>
@@ -109,7 +109,7 @@ export function PickView({ code }: { code: string }) {
     <main className="flex-1 pb-16">
       <PageShell className="pt-8">
         <div className="mb-6 text-center">
-          <p className="text-[13px] text-[#5d6874]">{isOwner ? "Your pick" : `${who} can't decide.`}</p>
+          <p className="text-[13px] text-[#5d6874]">{isOwner ? "Your shared looks" : `${who} can't decide.`}</p>
           <h1 className="font-display text-[34px] leading-tight text-[#121821] sm:text-[42px]">Which one tonight?</h1>
           {!isOwner && !myVote && <p className="mt-1 text-[13.5px] text-[#445159]">Tap the one you like.</p>}
         </div>

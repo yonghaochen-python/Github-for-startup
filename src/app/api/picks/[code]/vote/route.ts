@@ -10,7 +10,7 @@ const noStore = { "cache-control": "private, no-store" };
 export async function POST(request: Request, ctx: RouteContext<"/api/picks/[code]/vote">) {
   const { code } = await ctx.params;
   const pick = await findOpenPick(code);
-  if (!pick) return NextResponse.json({ error: "This pick has ended." }, { status: 404, headers: noStore });
+  if (!pick) return NextResponse.json({ error: "These looks aren't shared anymore." }, { status: 404, headers: noStore });
 
   const body = (await request.json().catch(() => ({}))) as { choice?: unknown };
   const choice = body.choice === "a" || body.choice === "b" ? body.choice : null;
@@ -18,7 +18,7 @@ export async function POST(request: Request, ctx: RouteContext<"/api/picks/[code
 
   const viewer = await getCurrentUser(request).catch(() => null);
   if (viewer?.id === pick.userId) {
-    return NextResponse.json({ error: "This is your pick. Share it so friends can vote." }, { status: 403, headers: noStore });
+    return NextResponse.json({ error: "These are your looks. Share the link so friends can vote." }, { status: 403, headers: noStore });
   }
   const voterId = readCookie(request, VOTER_COOKIE);
   if (!voterId) return NextResponse.json({ error: "Reload the page and try again." }, { status: 400, headers: noStore });
