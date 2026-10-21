@@ -7,6 +7,7 @@ import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { useAuth } from "@/components/AuthProvider";
 import type { ClothingItem, Outfit } from "@/components/OutfitCard";
 import { SavedPhotoImage, SavedPhotoSetup, uploadSavedPhoto } from "@/components/SavedPhoto";
+import { ShareArrowButton, ShareTray } from "@/components/ShareLooks";
 import { SaveToggle } from "@/components/SaveToggle";
 import { useToast } from "@/components/Toast";
 import { MirrorIcon, PlusIcon, SearchIcon } from "@/components/Icons";
@@ -386,10 +387,22 @@ export default function StudioPage() {
                 >
                   Change photo
                 </button>
+                {/* Share arrow: adds this tried-on look to the "to share" list (open another outfit to add that one too). */}
+                {picture && !trying && look.outfitId && (
+                  <ShareArrowButton
+                    className="absolute right-4 top-4"
+                    look={{
+                      id: look.outfitId,
+                      v: look.tryOn ?? String(result?.imageDataUrl?.length ?? 1),
+                      label: look.occasion?.trim() || `${pieces.length}-piece look`,
+                    }}
+                  />
+                )}
               </div>
             )}
 
             <div className="border-t border-black/[0.06] p-4 sm:p-5">
+              <ShareTray />
               <div className="mb-3 flex items-center justify-between gap-3">
                 <p className="text-[13px] font-semibold text-[#121821]">
                   {look.occasion ? <span className="capitalize">{look.occasion}</span> : "Your look"}

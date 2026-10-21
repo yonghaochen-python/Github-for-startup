@@ -8,7 +8,7 @@ import { InlineLoading } from "@/components/InlineLoading";
 import { SparkleIcon } from "@/components/Icons";
 import { EmptyState, ErrorNote, PageHeader, PageShell, btnPrimary, btnSecondary } from "@/components/ui";
 import { Tips, type Tip } from "@/components/Tips";
-import { HelpMePickButton, OpenPicks } from "@/components/HelpMePick";
+import { OpenPicks, ShareLooksButton } from "@/components/ShareLooks";
 
 const SAVED_TIPS: Tip[] = [{ target: '[aria-label="Saved. Tap to unsave"]', text: "Tap the red bookmark to unsave a look." }];
 
@@ -54,7 +54,7 @@ export default function SavedLooksPage() {
           actions={
             saved.length > 0 ? (
               <>
-                <HelpMePickButton looks={outfits} onStarted={() => setPicksVersion((v) => v + 1)} />
+                <ShareLooksButton looks={outfits} onShared={() => setPicksVersion((v) => v + 1)} />
                 <Link href="/studio" className={btnSecondary}>
                   <SparkleIcon className="h-4 w-4" /> Open Studio
                 </Link>

@@ -1,14 +1,11 @@
--- "Help me pick": shared A/B votes on two try-on pictures. Additive only: no existing table changes.
+-- "Share looks": shared votes on 2-4 try-on pictures. Additive only: no existing table changes.
 
 -- CreateTable
 CREATE TABLE "Pick" (
     "id" TEXT NOT NULL PRIMARY KEY,
     "code" TEXT NOT NULL,
     "userId" TEXT NOT NULL,
-    "labelA" TEXT NOT NULL,
-    "labelB" TEXT NOT NULL,
-    "votesA" INTEGER NOT NULL DEFAULT 0,
-    "votesB" INTEGER NOT NULL DEFAULT 0,
+    "labels" TEXT NOT NULL,
     "expiresAt" DATETIME NOT NULL,
     "createdAt" DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
     CONSTRAINT "Pick_userId_fkey" FOREIGN KEY ("userId") REFERENCES "User" ("id") ON DELETE CASCADE ON UPDATE CASCADE
@@ -18,7 +15,7 @@ CREATE TABLE "Pick" (
 CREATE TABLE "PickVote" (
     "pickId" TEXT NOT NULL,
     "voterId" TEXT NOT NULL,
-    "choice" TEXT NOT NULL,
+    "choice" INTEGER NOT NULL,
     "createdAt" DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
 
     PRIMARY KEY ("pickId", "voterId"),
@@ -33,3 +30,6 @@ CREATE INDEX "Pick_userId_idx" ON "Pick"("userId");
 
 -- CreateIndex
 CREATE INDEX "Pick_expiresAt_idx" ON "Pick"("expiresAt");
+
+-- CreateIndex
+CREATE INDEX "PickVote_pickId_choice_idx" ON "PickVote"("pickId", "choice");

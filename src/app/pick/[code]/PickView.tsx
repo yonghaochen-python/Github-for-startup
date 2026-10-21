@@ -3,17 +3,15 @@
 import { useEffect, useState } from "react";
 import Link from "next/link";
 import { useAuth } from "@/components/AuthProvider";
-import { hoursLeft, useSharePick } from "@/components/HelpMePick";
+import { hoursLeft, LETTERS, useSharePick } from "@/components/ShareLooks";
 import { useToast } from "@/components/Toast";
 import { PageShell, btnPrimary, btnSecondary, btnText, surface } from "@/components/ui";
 
 type PickData = {
-  pick: { labelA: string; labelB: string; votesA: number; votesB: number; expiresAt: string; ownerName: string | null };
+  pick: { labels: string[]; counts: number[]; expiresAt: string; ownerName: string | null };
   isOwner: boolean;
-  myVote: "a" | "b" | null;
+  myVote: number | null;
 };
-
-const SIDES = ["a", "b"] as const;
 
 export function PickView({ code }: { code: string }) {
   const { user } = useAuth();
@@ -40,8 +38,8 @@ export function PickView({ code }: { code: string }) {
     };
   }, [code]);
 
-  async function vote(choice: "a" | "b") {
-    if (!data || data.isOwner || data.myVote || voting) return;
+  async function vote(choice: number) {
+    if (!data || data.isOwner || data.myVote !== null || voting) return;
     setVoting(true);
     try {
       const res = await fetch(`/api/picks/${code}/vote`, {
@@ -49,10 +47,10 @@ export function PickView({ code }: { code: string }) {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ choice }),
       });
-      const result = (await res.json().catch(() => ({}))) as { votesA?: number; votesB?: number; myVote?: "a" | "b"; error?: string };
+      const result = (await res.json().catch(() => ({}))) as { counts?: number[]; myVote?: number; error?: string };
       if (res.status === 404) return setEnded(true);
       if (!res.ok) throw new Error(result.error);
-      setData({ ...data, pick: { ...data.pick, votesA: result.votesA ?? 0, votesB: result.votesB ?? 0 }, myVote: result.myVote ?? choice });
+      setData({ ...data, pick: { ...data.pick, counts: result.counts ?? data.pick.counts }, myVote: result.myVote ?? choice });
     } catch (err) {
       showToast(err instanceof Error && err.message ? err.message : "Couldn't send your vote. Please try again.");
     } finally {
@@ -100,10 +98,11 @@ export function PickView({ code }: { code: string }) {
   }
 
   const { pick, isOwner, myVote } = data;
-  const total = pick.votesA + pick.votesB;
-  const showResults = isOwner || Boolean(myVote);
+  const total = pick.counts.reduce((a, b) => a + b, 0);
+  const showResults = isOwner || myVote !== null;
   const who = pick.ownerName ?? "Your friend";
-  const percent = (side: "a" | "b") => (total ? Math.round(((side === "a" ? pick.votesA : pick.votesB) / total) * 100) : 0);
+  const percent = (i: number) => (total ? Math.round((pick.counts[i] / total) * 100) : 0);
+  const n = pick.labels.length;
 
   return (
     <main className="flex-1 pb-16">
@@ -111,37 +110,37 @@ export function PickView({ code }: { code: string }) {
         <div className="mb-6 text-center">
           <p className="text-[13px] text-[#5d6874]">{isOwner ? "Your shared looks" : `${who} can't decide.`}</p>
           <h1 className="font-display text-[34px] leading-tight text-[#121821] sm:text-[42px]">Which one tonight?</h1>
-          {!isOwner && !myVote && <p className="mt-1 text-[13.5px] text-[#445159]">Tap the one you like.</p>}
+          {!isOwner && myVote === null && <p className="mt-1 text-[13.5px] text-[#445159]">Tap the one you like.</p>}
         </div>
 
-        <div className="mx-auto grid max-w-3xl grid-cols-2 gap-3 sm:gap-5">
-          {SIDES.map((side) => {
-            const mine = myVote === side;
+        <div className={`mx-auto grid gap-3 sm:gap-5 ${n === 3 ? "max-w-4xl grid-cols-2 sm:grid-cols-3" : n === 4 ? "max-w-5xl grid-cols-2 lg:grid-cols-4" : "max-w-3xl grid-cols-2"}`}>
+          {pick.labels.map((label, i) => {
+            const mine = myVote === i;
             return (
               <button
-                key={side}
-                onClick={() => vote(side)}
-                disabled={isOwner || Boolean(myVote) || voting}
-                aria-label={`Vote ${side.toUpperCase()}: ${side === "a" ? pick.labelA : pick.labelB}`}
+                key={i}
+                onClick={() => vote(i)}
+                disabled={isOwner || myVote !== null || voting}
+                aria-label={`Vote ${LETTERS[i]}: ${label}`}
                 className={`${surface} group relative block overflow-hidden text-left transition disabled:cursor-default ${
                   mine ? "ring-[3px] ring-[#121821]" : !showResults ? "hover:-translate-y-0.5" : ""
                 }`}
               >
                 <div className="relative aspect-[3/4] bg-[#f4f5f6]">
                   {/* eslint-disable-next-line @next/next/no-img-element -- shared by link, short-lived */}
-                  <img src={`/api/picks/${code}/image/${side}`} alt={`Look ${side.toUpperCase()}`} className="absolute inset-0 h-full w-full object-contain" />
+                  <img src={`/api/picks/${code}/image/${i}`} alt={`Look ${LETTERS[i]}`} className="absolute inset-0 h-full w-full object-contain" />
                   <span className="absolute left-2 top-2 flex h-8 w-8 items-center justify-center rounded-full bg-[#121821] text-[14px] font-semibold text-white">
-                    {side.toUpperCase()}
+                    {LETTERS[i]}
                   </span>
                   {showResults && (
                     <span className="absolute bottom-2 right-2 rounded-full bg-white/95 px-3 py-1 text-[15px] font-semibold text-[#121821] shadow-sm">
-                      {percent(side)}%
+                      {percent(i)}%
                     </span>
                   )}
                 </div>
                 <p className="truncate px-3 py-2.5 text-[13px] text-[#29343a]">
                   {mine && <b>Your vote · </b>}
-                  {side === "a" ? pick.labelA : pick.labelB}
+                  {label}
                 </p>
               </button>
             );
@@ -169,11 +168,11 @@ export function PickView({ code }: { code: string }) {
         ) : user ? (
           <div className="mt-8 text-center">
             <Link href="/outfits/saved" className={btnSecondary}>
-              Make your own pick
+              Share your own looks
             </Link>
           </div>
         ) : (
-          myVote && tryVirm
+          myVote !== null && tryVirm
         )}
       </PageShell>
     </main>

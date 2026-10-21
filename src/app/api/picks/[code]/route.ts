@@ -2,7 +2,7 @@ import { NextResponse } from "next/server";
 import { track } from "@/lib/analytics";
 import { getCurrentUser } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
-import { deleteEndedPicks, deletePicks, findOpenPick, FROM_PICK_COOKIE, readCookie, VOTER_COOKIE } from "@/lib/picks";
+import { deleteEndedPicks, deletePicks, findOpenPick, FROM_PICK_COOKIE, pickCounts, pickLabels, readCookie, VOTER_COOKIE } from "@/lib/picks";
 
 const noStore = { "cache-control": "private, no-store" };
 
@@ -25,16 +25,10 @@ export async function GET(request: Request, ctx: RouteContext<"/api/picks/[code]
     ? null
     : ((await prisma.pickVote.findUnique({ where: { pickId_voterId: { pickId: pick.id, voterId } }, select: { choice: true } }))?.choice ?? null);
 
+  const labels = pickLabels(pick);
   const response = NextResponse.json(
     {
-      pick: {
-        labelA: pick.labelA,
-        labelB: pick.labelB,
-        votesA: pick.votesA,
-        votesB: pick.votesB,
-        expiresAt: pick.expiresAt,
-        ownerName: pick.user.displayName,
-      },
+      pick: { labels, counts: await pickCounts(pick.id, labels.length), expiresAt: pick.expiresAt, ownerName: pick.user.displayName },
       isOwner,
       myVote,
     },
