@@ -136,7 +136,9 @@ export function PickView({ code }: { code: string }) {
 
           {isOwner ? (
             <div className="mx-auto mt-6 max-w-sm">
+              <div className={`${surface} p-4`}>
               <ShareOptions code={code} looks={1} />
+            </div>
               <div className="mt-3 flex flex-wrap items-center justify-center gap-x-5">
                 <Link href="/outfits/saved" className={btnText}>
                   Back to Saved
@@ -212,7 +214,9 @@ export function PickView({ code }: { code: string }) {
 
         {isOwner ? (
           <div className="mx-auto mt-6 max-w-sm">
-            <ShareOptions code={code} looks={n} />
+            <div className={`${surface} p-4`}>
+              <ShareOptions code={code} looks={n} />
+            </div>
             <div className="mt-3 flex flex-wrap items-center justify-center gap-x-5">
               <Link href="/outfits/saved" className={btnText}>
                 Back to Saved

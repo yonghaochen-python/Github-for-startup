@@ -119,10 +119,40 @@ export function useSharePick() {
   };
 }
 
-/** The ways to send a share link: the device's share sheet, Messages, WhatsApp, or copying the link. */
+/** The picture as a PNG file, for saving (and posting to Instagram by hand). */
+async function toPng(image: Blob): Promise<Blob> {
+  const bitmap = await createImageBitmap(image);
+  const canvas = document.createElement("canvas");
+  canvas.width = bitmap.width;
+  canvas.height = bitmap.height;
+  canvas.getContext("2d")!.drawImage(bitmap, 0, 0);
+  bitmap.close();
+  return new Promise((resolve, reject) => canvas.toBlob((b) => (b ? resolve(b) : reject(new Error("png"))), "image/png"));
+}
+
+const shareIcon = (d: string) => (
+  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round" className="h-5 w-5" aria-hidden>
+    <path d={d} />
+  </svg>
+);
+const SEND_ICONS = {
+  message: shareIcon("M4 5h16v11H8l-4 4z"),
+  whatsapp: shareIcon("M5 19l1.3-3.8A7.5 7.5 0 1 1 9 18z"),
+  x: shareIcon("M5 5l14 14M19 5 5 19"),
+  pinterest: shareIcon("M12 21l2-8m-3.5 1A4.5 4.5 0 1 1 16.5 10c0 3-2 5-4 4"),
+  email: shareIcon("M4 6h16v12H4zM4 7l8 6 8-6"),
+  link: shareIcon("M10 14a4 4 0 0 0 5.7 0l3-3a4 4 0 0 0-5.7-5.7l-1 1M14 10a4 4 0 0 0-5.7 0l-3 3a4 4 0 0 0 5.7 5.7l1-1"),
+  save: shareIcon("M12 4v11m-4.5-4.5L12 15l4.5-4.5M5 20h14"),
+};
+
+/**
+ * The ways to send a share link: the device's share sheet (with the picture), then iMessage, WhatsApp, X, Pinterest,
+ * Email, Copy link and Save image (for Instagram, which only takes pictures).
+ */
 export function ShareOptions({ code, looks, card }: { code: string; looks: number; card?: Blob | null }) {
   const sharePick = useSharePick();
   const copyLink = useCopyLink();
+  const { showToast } = useToast();
   // Shown when the browser won't copy for us (browser pop-ups can be blocked too, so it's on the page).
   const [showLink, setShowLink] = useState(false);
   // The preview picture is fetched ahead of time: share sheets only open straight from a tap.
@@ -139,29 +169,64 @@ export function ShareOptions({ code, looks, card }: { code: string; looks: numbe
     };
   }, [code, card]);
 
-  const message = encodeURIComponent(`${shareText(looks)} ${typeof window === "undefined" ? "" : pickUrl(code)}`);
-  const quick = "inline-flex min-h-[44px] flex-1 items-center justify-center gap-1.5 rounded-full bg-[#f0f2f3] px-3 text-[12.5px] font-medium text-[#121821] hover:bg-[#e4e8ea]";
+  const link = typeof window === "undefined" ? "" : pickUrl(code);
+  const text = encodeURIComponent(shareText(looks));
+  const both = encodeURIComponent(`${shareText(looks)} ${link}`);
+  const url = encodeURIComponent(link);
+  const media = encodeURIComponent(`${typeof window === "undefined" ? "" : window.location.origin}/api/picks/${code}/image/card`);
+  const sends: { label: string; href: string; icon: React.ReactNode }[] = [
+    { label: "iMessage", href: `sms:?&body=${both}`, icon: SEND_ICONS.message },
+    { label: "WhatsApp", href: `https://wa.me/?text=${both}`, icon: SEND_ICONS.whatsapp },
+    { label: "X", href: `https://twitter.com/intent/tweet?text=${text}&url=${url}`, icon: SEND_ICONS.x },
+    { label: "Pinterest", href: `https://pinterest.com/pin/create/button/?url=${url}&media=${media}&description=${text}`, icon: SEND_ICONS.pinterest },
+    { label: "Email", href: `mailto:?subject=${encodeURIComponent(shareTitle(looks))}&body=${both}`, icon: SEND_ICONS.email },
+  ];
+
+  /** One look saves its own picture; several save the side-by-side picture. */
+  async function saveImage() {
+    try {
+      const res = await fetch(`/api/picks/${code}/image/${looks === 1 ? "0" : "card"}`);
+      if (!res.ok) throw new Error();
+      const png = await toPng(await res.blob());
+      const a = document.createElement("a");
+      a.href = URL.createObjectURL(png);
+      a.download = looks === 1 ? "virm-look.png" : "virm-which-one.png";
+      a.click();
+      setTimeout(() => URL.revokeObjectURL(a.href), 10000);
+    } catch {
+      showToast("Couldn't save the picture. Please try again.");
+    }
+  }
+
+  const tile = "flex flex-col items-center gap-1.5 rounded-[14px] px-1 py-2.5 text-[11.5px] font-medium text-[#29343a] hover:bg-[#f0f2f3]";
+  const circle = "flex h-11 w-11 items-center justify-center rounded-full bg-[#f0f2f3] text-[#121821]";
   return (
     <div className="flex flex-col gap-2.5">
       <button onClick={async () => setShowLink(!(await sharePick(code, looks, picture)))} className={`${btnPrimary} w-full`}>
         <ShareIcon className="h-4 w-4" /> Share
       </button>
-      <div className="flex gap-2">
-        <a href={`sms:?&body=${message}`} className={quick}>
-          Messages
-        </a>
-        <a href={`https://wa.me/?text=${message}`} target="_blank" rel="noopener noreferrer" className={quick}>
-          WhatsApp
-        </a>
-        <button onClick={async () => setShowLink(!(await copyLink(code)))} className={quick}>
+      <div className="grid grid-cols-4 gap-1">
+        {sends.map((s) => (
+          <a key={s.label} href={s.href} target={s.href.startsWith("http") ? "_blank" : undefined} rel="noopener noreferrer" className={tile}>
+            <span className={circle}>{s.icon}</span>
+            {s.label}
+          </a>
+        ))}
+        <button onClick={async () => setShowLink(!(await copyLink(code)))} className={tile}>
+          <span className={circle}>{SEND_ICONS.link}</span>
           Copy link
         </button>
+        <button onClick={saveImage} className={tile}>
+          <span className={circle}>{SEND_ICONS.save}</span>
+          Save image
+        </button>
       </div>
+      <p className="text-center text-[11.5px] text-[#5d6874]">Save the image to post it to Instagram or your Story</p>
       {showLink && (
         <input
           readOnly
           autoFocus
-          value={pickUrl(code)}
+          value={link}
           onFocus={(e) => e.currentTarget.select()}
           aria-label="Link to copy"
           className="w-full rounded-[12px] bg-[#f0f2f3] px-3 py-2.5 text-[12.5px] text-[#121821]"
