@@ -171,6 +171,11 @@ export function AddClothesModal({ onClose, onAdded }: { onClose: () => void; onA
   const [confirming, setConfirming] = useState(false);
   const [checking, setChecking] = useState(false);
   const [leftOut, setLeftOut] = useState(0);
+  /** The piece whose picture is being picked on the photo, if any. */
+  const [editingId, setEditingId] = useState<string | null>(null);
+  const photoRef = useRef<HTMLDivElement | null>(null);
+  const dragRef = useRef<{ x: number; y: number; moved: boolean } | null>(null);
+  const [dragBox, setDragBox] = useState<BoundingBox | null>(null);
   const imgElRef = useRef<HTMLImageElement | null>(null);
   const overlayRef = useRef<HTMLDivElement | null>(null);
 
@@ -193,6 +198,7 @@ export function AddClothesModal({ onClose, onAdded }: { onClose: () => void; onA
     setStep("analyzing");
     setChecking(false);
     setLeftOut(0);
+    setEditingId(null);
     try {
       const prepared = await preparePhoto(file);
       const formData = new FormData();
@@ -255,7 +261,78 @@ export function AddClothesModal({ onClose, onAdded }: { onClose: () => void; onA
     setItems((prev) => prev.map((it) => (it.localId === localId ? { ...it, ...patch } : it)));
   }
 
+  /** Where a pointer is on the photo, as fractions of it. */
+  function photoPoint(e: React.PointerEvent) {
+    const r = photoRef.current!.getBoundingClientRect();
+    return { x: clamp((e.clientX - r.left) / r.width, 0, 1), y: clamp((e.clientY - r.top) / r.height, 0, 1) };
+  }
+
+  /** Gives a piece a new box on the photo and remakes its picture from it. */
+  async function setItemBox(localId: string, box: BoundingBox) {
+    const img = imgElRef.current;
+    if (!img) return;
+    let previewUrl = "";
+    try {
+      previewUrl = URL.createObjectURL(await cropToBlob(img, box));
+    } catch {
+      return;
+    }
+    setItems((prev) =>
+      prev.map((it) => {
+        if (it.localId !== localId) return it;
+        if (it.previewUrl.startsWith("blob:")) URL.revokeObjectURL(it.previewUrl);
+        return { ...it, boundingBox: box, previewUrl };
+      })
+    );
+  }
+
+  function handlePhotoDown(e: React.PointerEvent) {
+    if (!editingId) return;
+    e.currentTarget.setPointerCapture(e.pointerId);
+    dragRef.current = { ...photoPoint(e), moved: false };
+  }
+
+  function handlePhotoMove(e: React.PointerEvent) {
+    const start = dragRef.current;
+    if (!start) return;
+    const p = photoPoint(e);
+    if (!start.moved && Math.hypot(p.x - start.x, p.y - start.y) < 0.03) return;
+    start.moved = true;
+    setDragBox({ x: Math.min(p.x, start.x), y: Math.min(p.y, start.y), width: Math.abs(p.x - start.x), height: Math.abs(p.y - start.y) });
+  }
+
+  function handlePhotoUp(e: React.PointerEvent) {
+    const start = dragRef.current;
+    dragRef.current = null;
+    setDragBox(null);
+    const item = items.find((it) => it.localId === editingId);
+    if (!start || !item) return;
+    const p = photoPoint(e);
+    if (start.moved) {
+      // Dragged: the box is what they drew.
+      const box = { x: Math.min(p.x, start.x), y: Math.min(p.y, start.y), width: Math.abs(p.x - start.x), height: Math.abs(p.y - start.y) };
+      if (box.width > 0.02 && box.height > 0.02) setItemBox(item.localId, box);
+      return;
+    }
+    // Tapped: a box of the same size (or a medium one, for a whole-photo item) centered where they tapped.
+    const whole = item.boundingBox.width >= 0.999 && item.boundingBox.height >= 0.999;
+    const width = whole ? 0.35 : item.boundingBox.width;
+    const height = whole ? 0.3 : item.boundingBox.height;
+    setItemBox(item.localId, {
+      x: clamp(p.x - width / 2, 0, 1 - width),
+      y: clamp(p.y - height / 2, 0, 1 - height),
+      width,
+      height,
+    });
+  }
+
+  function startEditing(localId: string) {
+    setEditingId(localId);
+    overlayRef.current?.scrollTo({ top: 0, behavior: "smooth" });
+  }
+
   function removeItem(localId: string) {
+    if (editingId === localId) setEditingId(null);
     setItems((prev) => prev.filter((it) => it.localId !== localId));
   }
 
@@ -306,7 +383,7 @@ export function AddClothesModal({ onClose, onAdded }: { onClose: () => void; onA
   return (
     <div ref={overlayRef} className="fixed inset-0 z-50 flex items-start justify-center overflow-y-auto bg-[#172027]/85 px-4 py-8">
       <div
-        className="my-auto w-full max-w-2xl shrink-0 rounded-[24px] p-6 sm:p-8"
+        className="my-auto w-full max-w-2xl shrink-0 rounded-[24px] bg-white p-6 sm:p-8"
         style={{
           borderColor: "#c7d4da",
           background: "linear-gradient(145deg, #fff 0%, #edf4f7 72%, #f3e9eb 100%)",
@@ -382,14 +459,42 @@ export function AddClothesModal({ onClose, onAdded }: { onClose: () => void; onA
 
         {(step === "review" || step === "confirming") && imageUrl && (
           <div>
-            <div data-tip="add-photo" className="relative mx-auto mb-5 w-fit max-w-full overflow-hidden rounded-xl bg-[#faf9f7]">
+            {editingId && (
+              <div className="mb-3 flex flex-wrap items-center justify-center gap-x-3 gap-y-2 text-center">
+                <p className="text-[13px] text-[#445159]">
+                  Item {items.findIndex((it) => it.localId === editingId) + 1}: tap the piece, or drag a box around it.
+                </p>
+                <button
+                  onClick={() => setEditingId(null)}
+                  className="rounded-full bg-[#121821] px-4 py-1.5 text-[13px] font-medium text-white hover:bg-[#2a3542]"
+                >
+                  Done
+                </button>
+              </div>
+            )}
+            <div
+              ref={photoRef}
+              data-tip="add-photo"
+              onPointerDown={handlePhotoDown}
+              onPointerMove={handlePhotoMove}
+              onPointerUp={handlePhotoUp}
+              onPointerCancel={() => {
+                dragRef.current = null;
+                setDragBox(null);
+              }}
+              className={`relative mx-auto mb-5 w-fit max-w-full select-none overflow-hidden rounded-xl bg-[#faf9f7] ${
+                editingId ? "cursor-crosshair touch-none ring-2 ring-[#29343a]" : ""
+              }`}
+            >
               {/* eslint-disable-next-line @next/next/no-img-element */}
-              <img src={imageUrl} alt="Uploaded photo" className="block max-h-[55vh] w-auto max-w-full" />
+              <img src={imageUrl} alt="Uploaded photo" draggable={false} className="block max-h-[55vh] w-auto max-w-full" />
               {items.map((item, i) =>
                 item.boundingBox.width >= 0.999 && item.boundingBox.height >= 0.999 ? null : (
                   <div
                     key={item.localId}
-                    className="absolute border-2 border-white shadow-[0_0_0_1px_rgba(41,52,58,0.4)]"
+                    className={`pointer-events-none absolute border-2 border-white shadow-[0_0_0_1px_rgba(41,52,58,0.4)] ${
+                      editingId && editingId !== item.localId ? "opacity-30" : ""
+                    } ${editingId === item.localId && dragBox ? "hidden" : ""}`}
                     style={{
                       left: `${item.boundingBox.x * 100}%`,
                       top: `${item.boundingBox.y * 100}%`,
@@ -402,6 +507,17 @@ export function AddClothesModal({ onClose, onAdded }: { onClose: () => void; onA
                     </span>
                   </div>
                 )
+              )}
+              {dragBox && (
+                <div
+                  className="pointer-events-none absolute border-2 border-dashed border-white shadow-[0_0_0_1px_rgba(41,52,58,0.4)]"
+                  style={{
+                    left: `${dragBox.x * 100}%`,
+                    top: `${dragBox.y * 100}%`,
+                    width: `${dragBox.width * 100}%`,
+                    height: `${dragBox.height * 100}%`,
+                  }}
+                />
               )}
             </div>
 
@@ -444,12 +560,26 @@ export function AddClothesModal({ onClose, onAdded }: { onClose: () => void; onA
                   {items.map((item, i) => (
                     <div key={item.localId} data-tip={i === 0 ? "add-item" : undefined} className="rounded-[18px] bg-[#f4f5f6] p-3">
                       <div className="mb-3 flex gap-3">
-                        <div className="relative h-20 w-20 shrink-0 overflow-hidden rounded-lg bg-[#faf9f7]">
+                        <button
+                          type="button"
+                          onClick={() => startEditing(item.localId)}
+                          aria-label={`Edit picture of item ${i + 1}`}
+                          title="Edit picture"
+                          className={`group relative h-20 w-20 shrink-0 overflow-hidden rounded-lg bg-[#faf9f7] ${
+                            editingId === item.localId ? "ring-2 ring-[#29343a]" : ""
+                          }`}
+                        >
                           {item.previewUrl && (
                             // eslint-disable-next-line @next/next/no-img-element
                             <img src={item.previewUrl} alt="" className="h-full w-full object-cover" />
                           )}
-                        </div>
+                          <span className="absolute bottom-1 right-1 flex h-6 w-6 items-center justify-center rounded-full bg-white/90 text-[#29343a] shadow group-hover:bg-white">
+                            <svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden>
+                              <path d="M12 20h9" />
+                              <path d="M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4Z" />
+                            </svg>
+                          </span>
+                        </button>
                         <div className="flex-1">
                           <p className="mb-1 text-xs font-medium uppercase tracking-wide text-[#5d6874]">
                             Item {i + 1}
