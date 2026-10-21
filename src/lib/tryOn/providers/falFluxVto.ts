@@ -1,5 +1,6 @@
 import type { LayeringRole } from "@/lib/layering";
 import {
+  garmentName,
   TryOnError,
   toPlainLayers,
   type ImageBytes,
@@ -150,7 +151,7 @@ export function falFluxVtoProvider(apiKey: string): TryOnProvider {
       for (const { role, item } of steps) {
         const garment = await item.getImage();
         current = await callFal(baseUrl, apiKey, {
-          prompt: promptFor(role, item.description),
+          prompt: promptFor(role, garmentName(item)),
           human_image_url: current,
           garment_image_url: toDataUri(garment),
           sync_mode: true,

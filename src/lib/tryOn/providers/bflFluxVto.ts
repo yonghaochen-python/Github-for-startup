@@ -1,5 +1,5 @@
 import type { LayeringRole } from "@/lib/layering";
-import { TryOnError, toPlainLayers, type ImageBytes, type TryOnInputItem, type TryOnProvider } from "../types";
+import { garmentName, TryOnError, toPlainLayers, type ImageBytes, type TryOnInputItem, type TryOnProvider } from "../types";
 
 /**
  * Black Forest Labs' FLUX virtual try-on, called directly on the BFL API (model "vto-v2").
@@ -166,7 +166,7 @@ export function bflFluxVtoProvider(apiKey: string): TryOnProvider {
       if (garmentSheet || steps.length === 1) {
         // One call for the whole look: every piece is on the sheet (or there is only one piece).
         const garment = garmentSheet ?? (await steps[0].item.getImage());
-        const prompt = `${PREFIX} ${joinPhrases(steps.map((s) => phraseFor(s.role, s.item.description)))} of image 2.`;
+        const prompt = `${PREFIX} ${joinPhrases(steps.map((s) => phraseFor(s.role, garmentName(s.item))))} of image 2.`;
         sampleUrl = await runJob(baseUrl, apiKey, {
           prompt,
           person: toBase64(person),
@@ -180,7 +180,7 @@ export function bflFluxVtoProvider(apiKey: string): TryOnProvider {
         for (const { role, item } of steps) {
           const garment = await item.getImage();
           sampleUrl = await runJob(baseUrl, apiKey, {
-            prompt: `${PREFIX} ${phraseFor(role, item.description)} of image 2, keeping everything else they have on.`,
+            prompt: `${PREFIX} ${phraseFor(role, garmentName(item))} of image 2, keeping everything else they have on.`,
             person: current,
             garment: toBase64(garment),
             output_format: "jpeg",

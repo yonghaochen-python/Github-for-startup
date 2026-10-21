@@ -7,7 +7,7 @@ import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { useAuth } from "@/components/AuthProvider";
 import type { ClothingItem, Outfit } from "@/components/OutfitCard";
 import { SavedPhotoImage, SavedPhotoSetup, uploadSavedPhoto } from "@/components/SavedPhoto";
-import { ShareArrowButton, ShareTray } from "@/components/ShareLooks";
+import { ShareArrowButton, ShareTray, useShareTray } from "@/components/ShareLooks";
 import { SaveToggle } from "@/components/SaveToggle";
 import { useToast } from "@/components/Toast";
 import { MirrorIcon, PlusIcon, SearchIcon } from "@/components/Icons";
@@ -103,6 +103,7 @@ export default function StudioPage() {
   // Arriving from a "Try On" button (?start=1) starts the try-on right away; a refresh or Back does not.
   const autoStart = useRef(searchParams.get("start") === "1");
   const mirrorRef = useRef<HTMLDivElement | null>(null);
+  const shareTray = useShareTray();
 
   const pieceIds = useMemo(() => new Set(pieces.map((p) => p.id)), [pieces]);
   const changed = look.outfitId === null || pieces.length !== look.savedIds.length || look.savedIds.some((id) => !pieceIds.has(id));
@@ -156,7 +157,9 @@ export default function StudioPage() {
   async function saveOutfit(): Promise<string> {
     if (!changed && look.outfitId) return look.outfitId;
     const itemIds = pieces.map((p) => p.id);
-    const res = look.outfitId
+    // A look waiting to be shared keeps its pieces and try-on; the changed pieces become a new outfit (its B, C…).
+    const keepForSharing = Boolean(look.outfitId && shareTray.looks.some((l) => l.id === look.outfitId));
+    const res = look.outfitId && !keepForSharing
       ? await fetch(`/api/outfits/${look.outfitId}`, {
           method: "PATCH",
           headers: { "Content-Type": "application/json" },

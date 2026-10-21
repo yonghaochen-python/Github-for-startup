@@ -1,6 +1,17 @@
 import type { LayeringRole } from "@/lib/layering";
 
-export type TryOnItemInfo = { id: string; imageUrl: string; description: string; layeringRole: LayeringRole };
+export type TryOnItemInfo = { id: string; imageUrl: string; description: string; layeringRole: LayeringRole; color?: string };
+
+/**
+ * How a piece is named to the try-on AI: its description with its color in front when the description doesn't
+ * already say it. Photos can make colors look off (a pale teal top in shade reads as white), so the words help.
+ */
+export function garmentName(item: { description: string; color?: string }): string {
+  const description = item.description.trim() || "garment";
+  const color = item.color?.trim().toLowerCase();
+  if (!color || color === "unknown" || description.toLowerCase().includes(color)) return description;
+  return `${color} ${description}`;
+}
 export type TryOnLayer = { role: LayeringRole; items: TryOnItemInfo[] };
 
 export type ImageBytes = { bytes: Uint8Array; mediaType: string };
