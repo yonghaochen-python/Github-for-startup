@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { useAuth } from "@/components/AuthProvider";
 import { hoursLeft, LETTERS, ShareOptions, StopSharing } from "@/components/ShareLooks";
 import { useToast } from "@/components/Toast";
@@ -16,6 +17,9 @@ type PickData = {
 export function PickView({ code }: { code: string }) {
   const { user } = useAuth();
   const { showToast } = useToast();
+  const router = useRouter();
+  // Back to wherever they came from (Studio or Saved); Saved when the page was opened on its own.
+  const goBack = () => (window.history.length > 1 ? router.back() : router.push("/outfits/saved"));
   const [data, setData] = useState<PickData | null>(null);
   const [ended, setEnded] = useState(false);
   const [voting, setVoting] = useState(false);
@@ -138,11 +142,12 @@ export function PickView({ code }: { code: string }) {
             <div className="mx-auto mt-6 max-w-sm">
               <div className={`${surface} p-4`}>
               <ShareOptions code={code} looks={1} />
+              <p className="mt-2 text-center text-[11.5px] text-[#5d6874]">Anyone with the link can see this for 48 hours.</p>
             </div>
               <div className="mt-3 flex flex-wrap items-center justify-center gap-x-5">
-                <Link href="/outfits/saved" className={btnText}>
-                  Back to Saved
-                </Link>
+                <button onClick={goBack} className={btnText}>
+                  Back
+                </button>
                 <StopSharing code={code} onStopped={() => setEnded(true)} />
               </div>
             </div>
@@ -216,11 +221,12 @@ export function PickView({ code }: { code: string }) {
           <div className="mx-auto mt-6 max-w-sm">
             <div className={`${surface} p-4`}>
               <ShareOptions code={code} looks={n} />
+              <p className="mt-2 text-center text-[11.5px] text-[#5d6874]">Anyone with the link can see these for 48 hours.</p>
             </div>
             <div className="mt-3 flex flex-wrap items-center justify-center gap-x-5">
-              <Link href="/outfits/saved" className={btnText}>
-                Back to Saved
-              </Link>
+              <button onClick={goBack} className={btnText}>
+                Back
+              </button>
               <StopSharing code={code} onStopped={() => setEnded(true)} />
             </div>
           </div>

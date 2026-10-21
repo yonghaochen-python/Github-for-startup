@@ -2,6 +2,7 @@
 
 import { useCallback, useEffect, useRef, useState, useSyncExternalStore } from "react";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import type { Outfit } from "@/components/OutfitCard";
 import { useToast } from "@/components/Toast";
 import { btnPrimary, btnText, surface } from "@/components/ui";
@@ -324,6 +325,20 @@ async function makeCard(urls: string[]): Promise<Blob> {
   return new Promise((resolve, reject) => canvas.toBlob((blob) => (blob ? resolve(blob) : reject(new Error("card"))), "image/jpeg", 0.86));
 }
 
+/** Makes a share link for these looks (with its preview picture) and takes them off the "to share" list. */
+async function createShare(looks: ShareLook[]): Promise<{ code: string; card: Blob }> {
+  const card = await makeCard(looks.map(pictureUrl));
+  const formData = new FormData();
+  looks.forEach((l) => formData.append("outfit", l.id));
+  formData.append("card", card, "looks.jpg");
+  const res = await fetch("/api/picks", { method: "POST", body: formData });
+  const data = (await res.json().catch(() => ({}))) as { code?: string; error?: string };
+  if (!res.ok || !data.code) throw new Error(data.error ?? "Couldn't make the link right now. Please try again.");
+  // These looks are shared now, so they leave the "to share" list (whether this was made from Studio or Saved).
+  writeTray(readTray().filter((l) => !looks.some((x) => x.id === l.id)));
+  return { code: data.code, card };
+}
+
 function Letter({ i, className = "" }: { i: number; className?: string }) {
   return (
     <span className={`absolute flex h-7 w-7 items-center justify-center rounded-full bg-[#121821] text-[13px] font-semibold text-white ${className}`}>
@@ -369,17 +384,9 @@ function SharePopup({
     setBusy(true);
     setError(null);
     try {
-      const card = await makeCard(chosen.map((id) => pictureUrl(byId(id))));
-      const formData = new FormData();
-      chosen.forEach((id) => formData.append("outfit", id));
-      formData.append("card", card, "looks.jpg");
-      const res = await fetch("/api/picks", { method: "POST", body: formData });
-      const data = (await res.json().catch(() => ({}))) as { code?: string; error?: string };
-      if (!res.ok || !data.code) throw new Error(data.error ?? "Couldn't make the link right now. Please try again.");
-      setCard(card);
-      setCode(data.code);
-      // These looks are shared now, so they leave the "to share" list (whether this was made from Studio or Saved).
-      writeTray(readTray().filter((l) => !chosen.includes(l.id)));
+      const made = await createShare(chosen.map(byId));
+      setCard(made.card);
+      setCode(made.code);
       onShared?.();
       overlayRef.current?.scrollTo({ top: 0 });
     } catch (err) {
@@ -520,49 +527,53 @@ export function ShareArrowButton({ look, className = "" }: { look: ShareLook; cl
   );
 }
 
-/** Studio: the looks waiting to be shared, and the button that shares them. */
-export function ShareTray({ onShared }: { onShared?: () => void }) {
+/**
+ * Studio: the looks waiting to be shared. Share makes the link and goes straight to its page, where every way to
+ * send it is; a mis-tap is undone there with Back (nobody has the link yet) or Stop sharing.
+ */
+export function ShareTray() {
   const tray = useShareTray();
-  const [open, setOpen] = useState(false);
-  if (tray.looks.length === 0 && !open) return null;
-  const ready = tray.looks.length >= MIN_LOOKS;
+  const router = useRouter();
+  const { showToast } = useToast();
+  const [busy, setBusy] = useState(false);
+  if (tray.looks.length === 0) return null;
+
+  async function share() {
+    setBusy(true);
+    try {
+      const { code } = await createShare(tray.looks);
+      router.push(`/pick/${code}`);
+    } catch (err) {
+      showToast(err instanceof Error ? err.message : "Couldn't make the link right now. Please try again.");
+      setBusy(false);
+    }
+  }
+
   return (
-    <>
-      {tray.looks.length > 0 && (
-        <div className="mb-4 flex items-center gap-3 rounded-[16px] bg-[#f4f5f6] p-2.5" aria-label="Looks to share">
-          <ul className="flex shrink-0 gap-1.5">
-            {tray.looks.map((look, i) => (
-              <li key={look.id} className="relative h-14 w-11 overflow-hidden rounded-[8px] bg-white">
-                {/* eslint-disable-next-line @next/next/no-img-element -- private, owner-only image */}
-                <img src={pictureUrl(look)} alt={look.label} className="absolute inset-0 h-full w-full object-cover" />
-                <button
-                  onClick={() => tray.remove(look.id)}
-                  aria-label={`Take look ${LETTERS[i]} out`}
-                  className="absolute left-0.5 top-0.5 flex h-5 w-5 items-center justify-center rounded-full bg-[#121821] text-[10px] font-semibold text-white"
-                >
-                  {LETTERS[i]}
-                </button>
-              </li>
-            ))}
-          </ul>
-          {/* On phones the letters say it; the hint only shows where there's room once it's a vote. */}
-          <p className={`min-w-0 flex-1 text-[12.5px] leading-snug text-[#445159] ${tray.looks.length > 1 ? "invisible sm:visible" : ""}`}>
-            {tray.looks.length > 1 ? `${tray.looks.length} looks to share` : "Share it, or add another outfit for a vote."}
-          </p>
-          <button onClick={() => setOpen(true)} disabled={!ready} className={`${btnPrimary} min-h-[40px] shrink-0 px-4`}>
-            <ShareIcon className="h-4 w-4" /> Share
-          </button>
-        </div>
-      )}
-      {open && (
-        <SharePopup
-          looks={tray.looks}
-          initial={tray.looks.map((l) => l.id)}
-          onClose={() => setOpen(false)}
-          onShared={onShared}
-        />
-      )}
-    </>
+    <div className="mb-4 flex items-center gap-3 rounded-[16px] bg-[#f4f5f6] p-2.5" aria-label="Looks to share">
+      <ul className="flex shrink-0 gap-1.5">
+        {tray.looks.map((look, i) => (
+          <li key={look.id} className="relative h-14 w-11 overflow-hidden rounded-[8px] bg-white">
+            {/* eslint-disable-next-line @next/next/no-img-element -- private, owner-only image */}
+            <img src={pictureUrl(look)} alt={look.label} className="absolute inset-0 h-full w-full object-cover" />
+            <button
+              onClick={() => tray.remove(look.id)}
+              aria-label={`Take look ${LETTERS[i]} out`}
+              className="absolute left-0.5 top-0.5 flex h-5 w-5 items-center justify-center rounded-full bg-[#121821] text-[10px] font-semibold text-white"
+            >
+              {LETTERS[i]}
+            </button>
+          </li>
+        ))}
+      </ul>
+      {/* On phones the letters say it; the hint only shows where there's room once it's a vote. */}
+      <p className={`min-w-0 flex-1 text-[12.5px] leading-snug text-[#445159] ${tray.looks.length > 1 ? "invisible sm:visible" : ""}`}>
+        {tray.looks.length > 1 ? `${tray.looks.length} looks to share` : "Share it, or add another outfit for a vote."}
+      </p>
+      <button onClick={share} disabled={busy} className={`${btnPrimary} min-h-[40px] shrink-0 px-4`}>
+        <ShareIcon className="h-4 w-4" /> {busy ? "Sharing…" : "Share"}
+      </button>
+    </div>
   );
 }
 
