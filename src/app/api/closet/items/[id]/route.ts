@@ -3,6 +3,7 @@ import { prisma } from "@/lib/prisma";
 import { requireUser } from "@/lib/auth";
 import { deleteOutfitTryOns } from "@/lib/personalPhoto";
 import { CATEGORIES, FORMALITIES, SEASONS, LAYERING_ROLES, WARMTH_LEVELS } from "@/lib/classify";
+import { cleanBrand } from "@/lib/clothingTaxonomy";
 
 const EDITABLE_STRING_FIELDS = ["color", "pattern", "material", "description"] as const;
 
@@ -20,7 +21,7 @@ export async function PATCH(request: Request, ctx: RouteContext<"/api/closet/ite
     return NextResponse.json({ error: "Invalid request body." }, { status: 400 });
   }
 
-  const data: Record<string, string> = {};
+  const data: Record<string, string | null> = {};
   const b = body as Record<string, unknown>;
 
   if ("category" in b) {
@@ -61,6 +62,9 @@ export async function PATCH(request: Request, ctx: RouteContext<"/api/closet/ite
       data[field] = b[field].trim();
     }
   }
+
+  // The brand is optional: an empty value clears it.
+  if ("brand" in b) data.brand = cleanBrand(b.brand);
 
   if (Object.keys(data).length === 0) {
     return NextResponse.json({ error: "No fields to update." }, { status: 400 });

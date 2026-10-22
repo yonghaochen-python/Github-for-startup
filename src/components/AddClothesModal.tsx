@@ -157,6 +157,7 @@ function newManualItem(): ReviewItem {
     formality: "casual",
     season: "all-season",
     description: "",
+    brand: "",
     boundingBox: { x: 0, y: 0, width: 1, height: 1 },
     previewUrl: "",
   };
@@ -350,7 +351,7 @@ export function AddClothesModal({ onClose, onAdded }: { onClose: () => void; onA
         const blob = await cropToBlob(imgElRef.current, item.boundingBox);
         formData.append("images", blob, `${item.localId}.png`);
       }
-      const metadata = items.map(({ category, layeringRole, warmth, color, pattern, material, formality, season, description }) => ({
+      const metadata = items.map(({ category, layeringRole, warmth, color, pattern, material, formality, season, description, brand }) => ({
         category,
         layeringRole,
         warmth,
@@ -360,6 +361,7 @@ export function AddClothesModal({ onClose, onAdded }: { onClose: () => void; onA
         formality,
         season,
         description: description.trim() || "Clothing item",
+        brand: brand?.trim() || null,
       }));
       formData.append("items", JSON.stringify(metadata));
 
@@ -590,6 +592,15 @@ export function AddClothesModal({ onClose, onAdded }: { onClose: () => void; onA
                             onChange={(e) => updateItem(item.localId, { description: e.target.value })}
                             placeholder="Item name / description"
                             className="w-full rounded-[10px] bg-white shadow-[inset_0_0_0_1px_rgba(18,24,33,0.12)] px-2 py-1.5 text-sm text-[#29343a]"
+                          />
+                          <input
+                            type="text"
+                            value={item.brand ?? ""}
+                            onChange={(e) => updateItem(item.localId, { brand: e.target.value })}
+                            placeholder="Brand (optional)"
+                            aria-label="Brand"
+                            maxLength={60}
+                            className="mt-1.5 w-full rounded-[10px] bg-white shadow-[inset_0_0_0_1px_rgba(18,24,33,0.12)] px-2 py-1.5 text-xs text-[#29343a]"
                           />
                         </div>
                       </div>

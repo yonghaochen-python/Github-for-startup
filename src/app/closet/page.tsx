@@ -30,12 +30,13 @@ type ClothingItem = {
   formality: string;
   season: string;
   description: string;
+  brand?: string | null;
 };
 
 type EditForm = Pick<
   ClothingItem,
   "category" | "layeringRole" | "color" | "pattern" | "material" | "formality" | "season" | "description"
->;
+> & { brand: string };
 
 const CATEGORY_TABS: { value: string; label: string }[] = [
   { value: "all", label: "All Items" },
@@ -59,7 +60,7 @@ const layerLabel = (role: string) => LAYER_LABELS[role as keyof typeof LAYER_LAB
 
 function toEditForm(item: ClothingItem): EditForm {
   const { category, layeringRole, color, pattern, material, formality, season, description } = item;
-  return { category, layeringRole, color, pattern, material, formality, season, description };
+  return { category, layeringRole, color, pattern, material, formality, season, description, brand: item.brand ?? "" };
 }
 
 const selectClass =
@@ -119,7 +120,7 @@ export default function ClosetPage() {
       if (formalityFilter && item.formality !== formalityFilter) return false;
       if (layerFilter && item.layeringRole !== layerFilter) return false;
       if (!q) return true;
-      return [item.description, item.category, item.color, item.material, item.pattern].some((v) => v.toLowerCase().includes(q));
+      return [item.description, item.category, item.color, item.material, item.pattern, item.brand ?? ""].some((v) => v.toLowerCase().includes(q));
     });
   }, [items, category, colorFilter, seasonFilter, formalityFilter, layerFilter, search]);
 
@@ -375,8 +376,11 @@ export default function ClosetPage() {
                         />
                       </div>
                       <p className="mt-2.5 truncate text-[13px] font-semibold text-[#121821]">{item.description}</p>
-                      <p className="text-[11.5px] capitalize text-[#5d6874]">
-                        {item.color} · {layerLabel(item.layeringRole)}
+                      <p className="truncate text-[11.5px] text-[#5d6874]">
+                        {item.brand && <span>{item.brand} · </span>}
+                        <span className="capitalize">
+                          {item.color} · {layerLabel(item.layeringRole)}
+                        </span>
                       </p>
                     </button>
                   </li>
@@ -473,6 +477,7 @@ function ItemDetail({
   }
 
   const details: [string, string][] = [
+    ...(item.brand ? ([["Brand", item.brand]] as [string, string][]) : []),
     ["Category", item.category],
     ["Layer", layerLabel(item.layeringRole)],
     ["Color", item.color],
@@ -509,6 +514,16 @@ function ItemDetail({
               <label className="text-[11px] font-semibold text-[#4f5b66]">
                 Name
                 <input value={form.description} onChange={(e) => setForm({ ...form, description: e.target.value })} className={`${fieldClass} mt-1`} />
+              </label>
+              <label className="text-[11px] font-semibold text-[#4f5b66]">
+                Brand
+                <input
+                  value={form.brand}
+                  onChange={(e) => setForm({ ...form, brand: e.target.value })}
+                  placeholder="Optional"
+                  maxLength={60}
+                  className={`${fieldClass} mt-1`}
+                />
               </label>
               <div className="grid grid-cols-2 gap-3">
                 <label className="text-[11px] font-semibold text-[#4f5b66]">
@@ -563,7 +578,7 @@ function ItemDetail({
                 {details.map(([label, value]) => (
                   <div key={label}>
                     <dt className="text-[10px] font-bold uppercase tracking-[1.8px] text-[#5d6874]">{label}</dt>
-                    <dd className="mt-0.5 text-[13px] capitalize text-[#121821]">{value}</dd>
+                    <dd className={`mt-0.5 text-[13px] text-[#121821] ${label === "Brand" ? "" : "capitalize"}`}>{value}</dd>
                   </div>
                 ))}
               </dl>
