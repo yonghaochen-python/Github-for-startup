@@ -165,8 +165,15 @@ export function LiveTryOn() {
       if (!tokenRes.ok || !token.apiKey || !token.model) throw new Error(token.error ?? "Couldn't start live try-on right now.");
       const [{ createDecartClient, models }, image] = await Promise.all([import("@decartai/sdk"), referenceFor(outfit)]);
       const client = createDecartClient({ apiKey: token.apiKey, telemetry: false });
+      // Send the camera at the model's own size (1280×720, 30 fps) so Decart doesn't have to shrink or re-crop it.
+      const model = models.realtime(token.model as "lucy-vton-latest");
+      const fps = typeof model.fps === "number" ? model.fps : model.fps.ideal;
+      await stream
+        .getVideoTracks()[0]
+        ?.applyConstraints({ width: { ideal: model.width }, height: { ideal: model.height }, frameRate: { ideal: fps } })
+        .catch(() => {});
       const rt = await client.realtime.connect(stream, {
-        model: models.realtime(token.model as "lucy-vton-latest"),
+        model,
         // Decart gets the camera as it is (so logos and text on clothes stay the right way round); the page shows
         // its picture flipped, like the plain camera, so it looks like a mirror.
         mirror: false,
@@ -276,7 +283,11 @@ export function LiveTryOn() {
           style={{ background: "linear-gradient(180deg, rgba(255,255,255,0.07), rgba(255,255,255,0) 60%)" }}
         />
 
-        <div className="relative mx-auto aspect-[3/4] max-h-[72vh] overflow-hidden rounded-[22px] bg-black/30 ring-1 ring-white/10">
+        <div
+          className={`relative mx-auto max-h-[72vh] overflow-hidden rounded-[22px] bg-black/30 ring-1 ring-white/10 transition-[aspect-ratio] duration-500 ${
+            aiStream ? "aspect-video" : "aspect-[3/4]"
+          }`}
+        >
           {source === "camera" && (
             <video ref={videoRef} autoPlay playsInline muted className="absolute inset-0 h-full w-full -scale-x-100 object-cover" aria-label="Your camera" />
           )}
