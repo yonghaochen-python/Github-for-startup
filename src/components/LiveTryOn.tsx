@@ -167,7 +167,9 @@ export function LiveTryOn() {
       const client = createDecartClient({ apiKey: token.apiKey, telemetry: false });
       const rt = await client.realtime.connect(stream, {
         model: models.realtime(token.model as "lucy-vton-latest"),
-        mirror: "auto",
+        // Decart gets the camera as it is (so logos and text on clothes stay the right way round); the page shows
+        // its picture flipped, like the plain camera, so it looks like a mirror.
+        mirror: false,
         onRemoteStream: (edited) => setAiStream(edited),
         initialState: { image, prompt: { text: promptFor(outfit), enhance: true } },
       });
@@ -279,7 +281,7 @@ export function LiveTryOn() {
             <video ref={videoRef} autoPlay playsInline muted className="absolute inset-0 h-full w-full -scale-x-100 object-cover" aria-label="Your camera" />
           )}
           {source === "camera" && aiStream && (
-            <video ref={aiVideoRef} autoPlay playsInline muted className="absolute inset-0 h-full w-full object-cover" aria-label="AI try-on, live" />
+            <video ref={aiVideoRef} autoPlay playsInline muted className="absolute inset-0 h-full w-full -scale-x-100 object-cover" aria-label="AI try-on, live" />
           )}
           {source === "photo" && hasPhoto && (
             // eslint-disable-next-line @next/next/no-img-element -- private, owner-only image
