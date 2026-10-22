@@ -94,7 +94,6 @@ export function LiveTryOn() {
   // Real-time AI preview (Decart), only where it's connected.
   const [liveAvailable, setLiveAvailable] = useState(false);
   const [ai, setAi] = useState<Ai>("off");
-  const [aiError, setAiError] = useState<string | null>(null);
   const [secondsLeft, setSecondsLeft] = useState(0);
   const [aiStream, setAiStream] = useState<MediaStream | null>(null);
   const rtRef = useRef<RealTimeClient | null>(null);
@@ -131,21 +130,34 @@ export function LiveTryOn() {
     setAi((state) => (state === "confirm" ? state : "off"));
   }, []);
 
+  /**
+   * When an AI session ends (time's up, Stop, an error or the tab hidden), back to the start screen: the camera is
+   * let go with the session, which would otherwise leave a black frame. A message, if any, shows there.
+   */
+  const endAi = useCallback(
+    (message?: string) => {
+      stopAi();
+      stopCamera();
+      setSource("none");
+      setCameraError(message ?? null);
+    },
+    [stopAi, stopCamera]
+  );
+
   // The camera and any AI session stop when leaving the page; the AI also stops when the tab is hidden.
   useEffect(() => {
-    const onHide = () => document.visibilityState === "hidden" && stopAi();
+    const onHide = () => document.visibilityState === "hidden" && rtRef.current && endAi();
     document.addEventListener("visibilitychange", onHide);
     return () => {
       document.removeEventListener("visibilitychange", onHide);
       stopAi();
       stopCamera();
     };
-  }, [stopAi, stopCamera]);
+  }, [stopAi, stopCamera, endAi]);
 
   async function startAi() {
     const stream = streamRef.current;
     if (!stream || outfit.length === 0) return;
-    setAiError(null);
     setAi("connecting");
     try {
       const tokenRes = await fetch("/api/live/token", { method: "POST" });
@@ -160,23 +172,19 @@ export function LiveTryOn() {
         initialState: { image, prompt: { text: promptFor(outfit), enhance: true } },
       });
       rtRef.current = rt;
-      rt.on("sessionEnded", () => stopAi());
-      rt.on("error", (err) => {
-        setAiError(err.message || "Live try-on stopped.");
-        stopAi();
-      });
+      rt.on("sessionEnded", () => endAi());
+      rt.on("error", (err) => endAi(err.message || "Live try-on stopped."));
       // Our own stop at the limit (Decart ends it too).
       let left = token.maxSeconds ?? 20;
       setSecondsLeft(left);
       timerRef.current = setInterval(() => {
         left -= 1;
         setSecondsLeft(left);
-        if (left <= 0) stopAi();
+        if (left <= 0) endAi();
       }, 1000);
       setAi("on");
     } catch (err) {
-      stopAi();
-      setAiError(err instanceof Error ? err.message : "Couldn't start live try-on right now.");
+      endAi(err instanceof Error ? err.message : "Couldn't start live try-on right now.");
     }
   }
 
@@ -401,12 +409,11 @@ export function LiveTryOn() {
                 <span className="min-w-0 flex-1">
                   Showing your outfit. Change pieces in your closet to update it live.
                 </span>
-                <button onClick={stopAi} className="rounded-full border border-white/25 px-4 py-2 text-[12.5px] font-semibold text-white hover:bg-[rgba(255,255,255,0.1)]">
+                <button onClick={() => endAi()} className="rounded-full border border-white/25 px-4 py-2 text-[12.5px] font-semibold text-white hover:bg-[rgba(255,255,255,0.1)]">
                   Stop
                 </button>
               </>
             )}
-            {aiError && <p className="basis-full text-[12px] text-[#ffd2cb]">{aiError}</p>}
           </div>
         )}
 
