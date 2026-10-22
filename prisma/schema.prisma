@@ -68,6 +68,8 @@ model ClothingItem {
   formality    String
   season       String
   description  String
+  /// The brand, when a logo, label or printed name shows it (or the person typed it). Empty = unknown.
+  brand        String?
   createdAt    DateTime @default(now())
 
   user        User         @relation(fields: [userId], references: [id], onDelete: Cascade)

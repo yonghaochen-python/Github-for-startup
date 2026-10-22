@@ -6,6 +6,7 @@ import {
   SEASONS,
   LAYERING_ROLES,
   WARMTH_LEVELS,
+  cleanBrand,
   type ClothingAttributes,
 } from "@/lib/clothingTaxonomy";
 
@@ -28,6 +29,11 @@ const CLASSIFY_SCHEMA = {
     formality: { type: "string", enum: FORMALITIES },
     season: { type: "string", enum: SEASONS },
     description: { type: "string", description: "Short shopper-style description, under 10 words" },
+    brand: {
+      type: "string",
+      description:
+        "The brand, ONLY if a logo, label or printed brand name is clearly visible; otherwise an empty string. Never guess from style alone.",
+    },
   },
   required: [
     "category",
@@ -39,6 +45,7 @@ const CLASSIFY_SCHEMA = {
     "formality",
     "season",
     "description",
+    "brand",
   ],
   additionalProperties: false,
 };
@@ -121,12 +128,13 @@ export async function classifyClothingImage(image: SavedImage): Promise<Clothing
           },
           {
             type: "text",
-            text: "This is a single item of clothing from someone's closet. Identify its category, layering role (base/mid/outer layer, bottom, one-piece, shoes, or accessory), warmth level, color, pattern, material, formality, and season, and write a short description.",
+            text: "This is a single item of clothing from someone's closet. Identify its category, layering role (base/mid/outer layer, bottom, one-piece, shoes, or accessory), warmth level, color, pattern, material, formality, and season, and write a short description. Give a brand only if a logo, label or printed brand name is clearly visible.",
           },
         ],
       },
     ],
   });
 
-  return JSON.parse(firstText(message)) as ClothingAttributes;
+  const attributes = JSON.parse(firstText(message)) as ClothingAttributes;
+  return { ...attributes, brand: cleanBrand(attributes.brand) };
 }

@@ -35,4 +35,13 @@ export type ClothingAttributes = {
   formality: (typeof FORMALITIES)[number];
   season: (typeof SEASONS)[number];
   description: string;
+  /** Only when a logo, label or printed name shows it, or the person typed it; null when unknown. */
+  brand?: string | null;
 };
+
+/** A brand as stored: trimmed and short, or null when there isn't one. */
+export function cleanBrand(value: unknown): string | null {
+  if (typeof value !== "string") return null;
+  const brand = value.trim().slice(0, 60);
+  return brand && !/^(unknown|none|n\/a|unbranded)$/i.test(brand) ? brand : null;
+}

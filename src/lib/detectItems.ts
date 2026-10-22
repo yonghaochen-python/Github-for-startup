@@ -7,6 +7,7 @@ import {
   SEASONS,
   LAYERING_ROLES,
   WARMTH_LEVELS,
+  cleanBrand,
   type ClothingAttributes,
 } from "@/lib/clothingTaxonomy";
 
@@ -82,6 +83,11 @@ const DETECT_SCHEMA = {
           formality: { type: "string", enum: FORMALITIES },
           season: { type: "string", enum: SEASONS },
           description: { type: "string", description: "Short shopper-style description, under 10 words" },
+          brand: {
+            type: "string",
+            description:
+              "The brand, ONLY if a logo, label or printed brand name is clearly visible on the item; otherwise an empty string. Never guess from style alone.",
+          },
           box: PIXEL_BOX_SCHEMA,
         },
         required: [
@@ -95,6 +101,7 @@ const DETECT_SCHEMA = {
           "formality",
           "season",
           "description",
+          "brand",
           "box",
         ],
         additionalProperties: false,
@@ -250,6 +257,7 @@ export async function detectClothingItems(image: SavedImage, size?: ImageSize): 
                 ? `The image is ${grid.width} x ${grid.height} pixels; give each box in those pixels, (0,0) at the top-left.`
                 : `Give each box on a ${grid.width} x ${grid.height} grid laid over the image, (0,0) at the top-left.`,
               "Only list items you can actually see; skip anything hidden, cut off, or too small to make out.",
+              "Give a brand only when a logo, label or printed brand name is clearly visible on that item; otherwise leave it empty.",
               "If you can't confidently identify any distinct clothing items, return an empty items array.",
             ].join(" "),
           },
@@ -261,7 +269,7 @@ export async function detectClothingItems(image: SavedImage, size?: ImageSize): 
   const parsed = JSON.parse(firstText(message)) as { items: (Omit<DetectedItem, "boundingBox"> & { box: PixelBox })[] };
   return parsed.items.flatMap(({ box, ...item }) => {
     const boundingBox = toFractions(box, grid);
-    return boundingBox ? [{ ...item, boundingBox }] : [];
+    return boundingBox ? [{ ...item, brand: cleanBrand(item.brand), boundingBox }] : [];
   });
 }
 

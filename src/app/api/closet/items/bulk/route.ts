@@ -3,7 +3,7 @@ import { track } from "@/lib/analytics";
 import { prisma } from "@/lib/prisma";
 import { saveUploadedImage } from "@/lib/images";
 import { requireUser } from "@/lib/auth";
-import { CATEGORIES, FORMALITIES, SEASONS, LAYERING_ROLES, WARMTH_LEVELS, type ClothingAttributes } from "@/lib/clothingTaxonomy";
+import { CATEGORIES, FORMALITIES, SEASONS, LAYERING_ROLES, WARMTH_LEVELS, cleanBrand, type ClothingAttributes } from "@/lib/clothingTaxonomy";
 import { removeBackground } from "@/lib/visualAssets";
 
 function isValidItem(value: unknown): value is ClothingAttributes {
@@ -75,7 +75,7 @@ export async function POST(request: Request) {
       const isolatedUrl = await removeBackground(image.url);
       const attributes = parsedItems[i] as ClothingAttributes;
       return prisma.clothingItem.create({
-        data: { userId: user.id, imageUrl: isolatedUrl, ...attributes },
+        data: { userId: user.id, imageUrl: isolatedUrl, ...attributes, brand: cleanBrand(attributes.brand) },
       });
     })
   );
