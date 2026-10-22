@@ -16,6 +16,9 @@ export default defineConfig({
       ANTHROPIC_API_KEY: bindings.secret(),
       TRYON_PROVIDER: bindings.text("bfl-flux-vto"),
       BFL_API_KEY: bindings.secret(),
+      // Live Try On's real-time preview (Decart). Set only in the local .env for testing; the live site has no
+      // value, so the feature stays off there.
+      DECART_API_KEY: bindings.secret(),
     },
   }),
 });
