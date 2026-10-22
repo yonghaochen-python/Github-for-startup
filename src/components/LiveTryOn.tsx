@@ -7,14 +7,15 @@ import type { ClothingItem } from "@/components/OutfitCard";
 import { LAYER_LABELS } from "@/lib/layering";
 import { withPiece } from "@/lib/outfitPieces";
 import { garmentName } from "@/lib/tryOn/types";
+import { garmentSheetJpeg, photoToJpeg } from "@/lib/clientImage";
 import type { RealTimeClient } from "@decartai/sdk";
 
 /**
  * Live Try On — preview. A live camera mirror (or the saved photo) beside the closet, where pieces can be picked
  * and swapped without restarting anything. On its own nothing is recorded or sent and no clothes are drawn on the
- * person (the page says so). Where a Decart key is set (the local demo only), "AI try-on" can run Decart's
- * real-time try-on on the camera: one piece at a time, after a tap on Start, for at most 20 seconds a session
- * (Decart also ends it then), stopping too when the tab is hidden or the page is left.
+ * person (the page says so). For admin accounts where a Decart key is set, "AI try-on" can run Decart's real-time
+ * try-on on the camera with the whole outfit (all pieces on one reference picture), after a tap on Start, for at
+ * most 20 seconds a session (Decart also ends it then), stopping too when the tab is hidden or the page is left.
  */
 
 const TABS = [
@@ -29,24 +30,38 @@ const TABS = [
 type Source = "none" | "starting" | "camera" | "photo";
 type Ai = "off" | "confirm" | "connecting" | "on";
 
-/** How a piece is asked for: swap the matching part of what the person wears, or add an accessory. */
-function promptFor(piece: ClothingItem & { color?: string }): string {
-  const name = garmentName({ description: piece.description, color: piece.color });
-  const part: Record<string, string> = {
-    base_layer: "top",
-    mid_layer: "top",
-    outer_layer: "jacket",
-    bottom: "trousers or skirt",
-    one_piece: "outfit",
-    shoes: "shoes",
-  };
-  return piece.layeringRole === "accessory" ? `Add ${name}` : `Substitute the current ${part[piece.layeringRole] ?? "top"} with ${name}`;
+const nameOf = (piece: ClothingItem & { color?: string }) => garmentName({ description: piece.description, color: piece.color });
+
+/** What to ask for: one piece swaps the matching part of what the person wears; several replace the outfit. */
+function promptFor(pieces: ClothingItem[]): string {
+  if (pieces.length === 1) {
+    const [piece] = pieces;
+    const part: Record<string, string> = {
+      base_layer: "top",
+      mid_layer: "top",
+      outer_layer: "jacket",
+      bottom: "trousers or skirt",
+      one_piece: "outfit",
+      shoes: "shoes",
+    };
+    return piece.layeringRole === "accessory" ? `Add ${nameOf(piece)}` : `Substitute the current ${part[piece.layeringRole] ?? "top"} with ${nameOf(piece)}`;
+  }
+  const names = pieces.map(nameOf);
+  const list = `${names.slice(0, -1).join(", ")} and ${names[names.length - 1]}`;
+  return `Substitute the current clothes with the full outfit in the reference image: ${list}, worn together`;
 }
 
 async function pictureOf(piece: ClothingItem): Promise<Blob> {
   const res = await fetch(piece.imageUrl);
   if (!res.ok) throw new Error("picture");
   return res.blob();
+}
+
+/** The reference picture: the piece itself, or every piece laid out on one sheet (as the photo try-on does). */
+async function referenceFor(pieces: ClothingItem[]): Promise<Blob> {
+  if (pieces.length === 1) return pictureOf(pieces[0]);
+  const shrunk = await Promise.all(pieces.map(async (p) => photoToJpeg(await pictureOf(p), 0.88, 1024)));
+  return garmentSheetJpeg(shrunk);
 }
 
 // Deep navy glass with faint teal, violet and silver light, kept on the element itself so it reads the same at any hour.
@@ -81,7 +96,6 @@ export function LiveTryOn() {
   const [ai, setAi] = useState<Ai>("off");
   const [aiError, setAiError] = useState<string | null>(null);
   const [secondsLeft, setSecondsLeft] = useState(0);
-  const [aiPieceId, setAiPieceId] = useState<string | null>(null);
   const [aiStream, setAiStream] = useState<MediaStream | null>(null);
   const rtRef = useRef<RealTimeClient | null>(null);
   const timerRef = useRef<ReturnType<typeof setInterval> | null>(null);
@@ -128,25 +142,22 @@ export function LiveTryOn() {
     };
   }, [stopAi, stopCamera]);
 
-  /** The piece the AI shows: the one tapped in the outfit, else the latest one picked. */
-  const aiPiece = outfit.find((p) => p.id === aiPieceId) ?? outfit[outfit.length - 1] ?? null;
-
   async function startAi() {
     const stream = streamRef.current;
-    if (!stream || !aiPiece) return;
+    if (!stream || outfit.length === 0) return;
     setAiError(null);
     setAi("connecting");
     try {
       const tokenRes = await fetch("/api/live/token", { method: "POST" });
       const token = (await tokenRes.json().catch(() => ({}))) as { apiKey?: string; model?: string; maxSeconds?: number; error?: string };
       if (!tokenRes.ok || !token.apiKey || !token.model) throw new Error(token.error ?? "Couldn't start live try-on right now.");
-      const [{ createDecartClient, models }, image] = await Promise.all([import("@decartai/sdk"), pictureOf(aiPiece)]);
+      const [{ createDecartClient, models }, image] = await Promise.all([import("@decartai/sdk"), referenceFor(outfit)]);
       const client = createDecartClient({ apiKey: token.apiKey, telemetry: false });
       const rt = await client.realtime.connect(stream, {
         model: models.realtime(token.model as "lucy-vton-latest"),
         mirror: "auto",
         onRemoteStream: (edited) => setAiStream(edited),
-        initialState: { image, prompt: { text: promptFor(aiPiece), enhance: true } },
+        initialState: { image, prompt: { text: promptFor(outfit), enhance: true } },
       });
       rtRef.current = rt;
       rt.on("sessionEnded", () => stopAi());
@@ -169,22 +180,22 @@ export function LiveTryOn() {
     }
   }
 
-  // Swapping the shown piece during a session updates it live, with no restart.
-  const shownPieceId = aiPiece?.id;
+  // Changing the outfit during a session updates it live, with no restart.
+  const outfitKey = outfit.map((p) => p.id).join(",");
   useEffect(() => {
     const rt = rtRef.current;
-    if (ai !== "on" || !rt || !aiPiece) return;
+    if (ai !== "on" || !rt || outfit.length === 0) return;
     let stop = false;
-    pictureOf(aiPiece)
+    referenceFor(outfit)
       .then((image) => {
-        if (!stop) return rt.set({ image, prompt: promptFor(aiPiece), enhance: true });
+        if (!stop) return rt.set({ image, prompt: promptFor(outfit), enhance: true });
       })
       .catch(() => {});
     return () => {
       stop = true;
     };
-    // eslint-disable-next-line react-hooks/exhaustive-deps -- only when the shown piece changes
-  }, [shownPieceId]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- only when the outfit changes
+  }, [outfitKey]);
 
   useEffect(() => {
     if (aiVideoRef.current) aiVideoRef.current.srcObject = aiStream;
@@ -340,16 +351,9 @@ export function LiveTryOn() {
             <ul className="flex gap-2 overflow-x-auto pb-1">
               {outfit.map((piece) => (
                 <li key={piece.id} className="relative shrink-0 animate-[piece-in_.25s_ease-out] motion-reduce:animate-none">
-                  <button
-                    onClick={() => setAiPieceId(piece.id)}
-                    disabled={!liveAvailable}
-                    aria-label={liveAvailable ? `Show ${piece.description} in AI try-on` : piece.description}
-                    className={`relative block h-[84px] w-[70px] overflow-hidden rounded-[12px] bg-white/90 disabled:cursor-default ${
-                      liveAvailable && aiPiece?.id === piece.id ? "ring-2 ring-[#7fd0d6] ring-offset-2 ring-offset-[#10202c]" : ""
-                    }`}
-                  >
+                  <span className="relative block h-[84px] w-[70px] overflow-hidden rounded-[12px] bg-white/90">
                     <Image src={piece.imageUrl} alt={piece.description} fill unoptimized className="object-cover" />
-                  </button>
+                  </span>
                   <span className="mt-1 block w-[70px] truncate text-center text-[10.5px] text-[#b9c6cf]">{LAYER_LABELS[piece.layeringRole]}</span>
                   <button
                     onClick={() => toggle(piece)}
@@ -369,11 +373,11 @@ export function LiveTryOn() {
             {ai === "off" && (
               <>
                 <span className="min-w-0 flex-1">
-                  {aiPiece ? <>AI try-on shows one piece: <b className="text-white">{aiPiece.description}</b></> : "Pick a piece to try with AI."}
+                  {outfit.length ? `AI try-on shows your whole outfit (${outfit.length} ${outfit.length === 1 ? "piece" : "pieces"}).` : "Pick pieces to try with AI."}
                 </span>
                 <button
                   onClick={() => setAi("confirm")}
-                  disabled={!aiPiece}
+                  disabled={outfit.length === 0}
                   className="rounded-full bg-[#7fd0d6] px-4 py-2 text-[12.5px] font-semibold text-[#0b1520] transition hover:bg-[#9adde2] disabled:opacity-40"
                 >
                   AI try-on
@@ -395,7 +399,7 @@ export function LiveTryOn() {
             {ai === "on" && (
               <>
                 <span className="min-w-0 flex-1">
-                  Showing <b className="text-white">{aiPiece?.description}</b>. Tap another piece above to switch.
+                  Showing your outfit. Change pieces in your closet to update it live.
                 </span>
                 <button onClick={stopAi} className="rounded-full border border-white/25 px-4 py-2 text-[12.5px] font-semibold text-white hover:bg-[rgba(255,255,255,0.1)]">
                   Stop
@@ -408,7 +412,7 @@ export function LiveTryOn() {
 
         <p className="relative mt-3 px-1 text-center text-[11.5px] leading-snug text-[#8fa3ad]">
           {liveAvailable
-            ? "The camera on its own is free. AI try-on is a preview: one piece at a time, up to 20 seconds."
+            ? "The camera on its own is free. AI try-on is a preview of your whole outfit, up to 20 seconds."
             : "A preview of the Live experience. Real-time try-on, with clothes drawn on you as you move, isn't connected yet."}
         </p>
       </section>
