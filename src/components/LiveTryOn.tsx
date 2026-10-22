@@ -95,6 +95,8 @@ export function LiveTryOn() {
   const [liveAvailable, setLiveAvailable] = useState(false);
   const [ai, setAi] = useState<Ai>("off");
   const [secondsLeft, setSecondsLeft] = useState(0);
+  // Decart's fast mode (quicker to react, same picture size, twice the credits). Off again after each session.
+  const [fast, setFast] = useState(false);
   const [aiStream, setAiStream] = useState<MediaStream | null>(null);
   const rtRef = useRef<RealTimeClient | null>(null);
   const timerRef = useRef<ReturnType<typeof setInterval> | null>(null);
@@ -138,6 +140,7 @@ export function LiveTryOn() {
     (message?: string) => {
       stopAi();
       stopCamera();
+      setFast(false);
       setSource("none");
       setCameraError(message ?? null);
     },
@@ -174,6 +177,7 @@ export function LiveTryOn() {
         .catch(() => {});
       const rt = await client.realtime.connect(stream, {
         model,
+        ...(fast ? { speed: "fast" as const } : {}),
         // Decart gets the camera as it is (so logos and text on clothes stay the right way round); the page shows
         // its picture flipped, like the plain camera, so it looks like a mirror.
         mirror: false,
@@ -407,7 +411,13 @@ export function LiveTryOn() {
             )}
             {ai === "confirm" && (
               <>
-                <span className="min-w-0 flex-1">Uses Decart credits, about $0.02 a second. Runs up to 20 seconds, then stops.</span>
+                <span className="min-w-0 flex-1">
+                  Uses Decart credits, about {fast ? "$0.04" : "$0.02"} a second. Runs up to 20 seconds, then stops.
+                  <label className="mt-1.5 flex cursor-pointer items-center gap-2 text-[12px] text-[#c9d6dd]">
+                    <input type="checkbox" checked={fast} onChange={(e) => setFast(e.target.checked)} className="h-4 w-4 accent-[#7fd0d6]" />
+                    Fast mode: reacts quicker, same sharpness, twice the credits
+                  </label>
+                </span>
                 <button onClick={startAi} className="rounded-full bg-[#7fd0d6] px-4 py-2 text-[12.5px] font-semibold text-[#0b1520] hover:bg-[#9adde2]">
                   Start
                 </button>
