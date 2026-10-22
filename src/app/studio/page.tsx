@@ -6,6 +6,7 @@ import Link from "next/link";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { useAuth } from "@/components/AuthProvider";
 import type { ClothingItem, Outfit } from "@/components/OutfitCard";
+import { withPiece } from "@/lib/outfitPieces";
 import { SavedPhotoImage, SavedPhotoSetup, uploadSavedPhoto } from "@/components/SavedPhoto";
 import { ShareArrowButton, ShareTray } from "@/components/ShareLooks";
 import { SaveToggle } from "@/components/SaveToggle";
@@ -33,7 +34,6 @@ const TABS = [
 ];
 
 const MAX_THEME = 120;
-const MAX_ACCESSORIES = 3;
 
 const STATUS_STEPS = ["Getting your outfit ready…", "Creating your try-on…", "Usually takes 10–20 seconds…", "Almost done…"];
 
@@ -54,21 +54,6 @@ const lookFrom = (outfit: Outfit): Look => ({
   savedIds: outfit.layers.flatMap((l) => l.items).map((i) => i.id),
 });
 
-/** Adds a piece to the look: it takes the place of the piece in the same slot (accessories stack, up to three). */
-function withPiece(pieces: ClothingItem[], item: ClothingItem): ClothingItem[] {
-  const role = item.layeringRole;
-  const kept = pieces.filter((p) => {
-    if (role === "accessory") return true;
-    if (p.layeringRole === role) return false;
-    // A one-piece and a bottom don't go together.
-    if (role === "one_piece" && p.layeringRole === "bottom") return false;
-    if (role === "bottom" && p.layeringRole === "one_piece") return false;
-    return true;
-  });
-  const accessories = kept.filter((p) => p.layeringRole === "accessory");
-  const trimmed = role === "accessory" && accessories.length >= MAX_ACCESSORIES ? kept.filter((p) => p.id !== accessories[0].id) : kept;
-  return [...trimmed, item];
-}
 
 /**
  * The Studio: the person's photo (or their try-on) on one side and their closet on the other. Type a theme to have
@@ -377,6 +362,11 @@ export default function StudioPage() {
         <h1 className="sr-only">Studio</h1>
         <Tips id="studio" tips={STUDIO_TIPS} />
 
+        <div className="mb-3 flex justify-end">
+          <Link href="/live" className="text-[12.5px] font-semibold text-[#29343a] underline-offset-4 hover:underline">
+            Live (preview) →
+          </Link>
+        </div>
         <form onSubmit={styleTheme} data-tip="studio-theme" className="mb-5 flex items-center gap-2 rounded-full bg-white p-1.5 pl-5 shadow-[0_1px_0_rgba(18,24,33,0.03),0_14px_36px_rgba(18,30,45,0.06)]">
           <SearchIcon className="h-[18px] w-[18px] shrink-0 text-[#5d6874]" />
           <label htmlFor="studio-theme" className="sr-only">
