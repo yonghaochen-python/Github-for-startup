@@ -15,6 +15,7 @@
   },
   "dependencies": {
     "@anthropic-ai/sdk": "^0.128.0",
+    "@decartai/sdk": "0.2.5",
     "@mediapipe/tasks-vision": "1.0.1",
     "@prisma/adapter-better-sqlite3": "^7.10.0",
     "@prisma/adapter-d1": "^7.10.0",

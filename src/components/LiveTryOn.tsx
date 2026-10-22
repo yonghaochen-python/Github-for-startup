@@ -6,12 +6,15 @@ import { useAuth } from "@/components/AuthProvider";
 import type { ClothingItem } from "@/components/OutfitCard";
 import { LAYER_LABELS } from "@/lib/layering";
 import { withPiece } from "@/lib/outfitPieces";
+import { garmentName } from "@/lib/tryOn/types";
+import type { RealTimeClient } from "@decartai/sdk";
 
 /**
- * Live Try On — UI prototype. A live camera mirror (or the saved photo) beside the closet, where pieces can be
- * picked and swapped without restarting anything. No AI runs here and nothing is recorded or sent: the camera
- * picture stays in the browser. The clothes are NOT drawn on the person; the page says so plainly. A real-time
- * try-on service can later take the camera stream and the chosen pieces from this same screen.
+ * Live Try On — preview. A live camera mirror (or the saved photo) beside the closet, where pieces can be picked
+ * and swapped without restarting anything. On its own nothing is recorded or sent and no clothes are drawn on the
+ * person (the page says so). Where a Decart key is set (the local demo only), "AI try-on" can run Decart's
+ * real-time try-on on the camera: one piece at a time, after a tap on Start, for at most 20 seconds a session
+ * (Decart also ends it then), stopping too when the tab is hidden or the page is left.
  */
 
 const TABS = [
@@ -24,6 +27,27 @@ const TABS = [
 ];
 
 type Source = "none" | "starting" | "camera" | "photo";
+type Ai = "off" | "confirm" | "connecting" | "on";
+
+/** How a piece is asked for: swap the matching part of what the person wears, or add an accessory. */
+function promptFor(piece: ClothingItem & { color?: string }): string {
+  const name = garmentName({ description: piece.description, color: piece.color });
+  const part: Record<string, string> = {
+    base_layer: "top",
+    mid_layer: "top",
+    outer_layer: "jacket",
+    bottom: "trousers or skirt",
+    one_piece: "outfit",
+    shoes: "shoes",
+  };
+  return piece.layeringRole === "accessory" ? `Add ${name}` : `Substitute the current ${part[piece.layeringRole] ?? "top"} with ${name}`;
+}
+
+async function pictureOf(piece: ClothingItem): Promise<Blob> {
+  const res = await fetch(piece.imageUrl);
+  if (!res.ok) throw new Error("picture");
+  return res.blob();
+}
 
 // Deep navy glass with faint teal, violet and silver light, kept on the element itself so it reads the same at any hour.
 // (Translucent whites on it are written as rgba(...) so the night-time rule for light cards doesn't darken their text.)
@@ -52,9 +76,23 @@ export function LiveTryOn() {
   const [closet, setCloset] = useState<ClothingItem[] | null>(null);
   const [tab, setTab] = useState("top");
   const [outfit, setOutfit] = useState<ClothingItem[]>([]);
+  // Real-time AI preview (Decart), only where it's connected.
+  const [liveAvailable, setLiveAvailable] = useState(false);
+  const [ai, setAi] = useState<Ai>("off");
+  const [aiError, setAiError] = useState<string | null>(null);
+  const [secondsLeft, setSecondsLeft] = useState(0);
+  const [aiPieceId, setAiPieceId] = useState<string | null>(null);
+  const [aiStream, setAiStream] = useState<MediaStream | null>(null);
+  const rtRef = useRef<RealTimeClient | null>(null);
+  const timerRef = useRef<ReturnType<typeof setInterval> | null>(null);
+  const aiVideoRef = useRef<HTMLVideoElement | null>(null);
 
   useEffect(() => {
     let ignore = false;
+    fetch("/api/config")
+      .then((res) => res.json() as Promise<{ liveTryOn?: boolean }>)
+      .then((data) => !ignore && setLiveAvailable(Boolean(data.liveTryOn)))
+      .catch(() => {});
     fetch("/api/closet/items")
       .then(async (res) => (res.ok ? (((await res.json()) as { items?: ClothingItem[] }).items ?? []) : []))
       .then((items) => !ignore && setCloset(items))
@@ -69,8 +107,88 @@ export function LiveTryOn() {
     streamRef.current = null;
   }, []);
 
-  // The camera turns off when leaving the page.
-  useEffect(() => stopCamera, [stopCamera]);
+  /** Ends the AI session (nothing more is used once it's stopped). */
+  const stopAi = useCallback(() => {
+    if (timerRef.current) clearInterval(timerRef.current);
+    timerRef.current = null;
+    rtRef.current?.disconnect();
+    rtRef.current = null;
+    setAiStream(null);
+    setAi((state) => (state === "confirm" ? state : "off"));
+  }, []);
+
+  // The camera and any AI session stop when leaving the page; the AI also stops when the tab is hidden.
+  useEffect(() => {
+    const onHide = () => document.visibilityState === "hidden" && stopAi();
+    document.addEventListener("visibilitychange", onHide);
+    return () => {
+      document.removeEventListener("visibilitychange", onHide);
+      stopAi();
+      stopCamera();
+    };
+  }, [stopAi, stopCamera]);
+
+  /** The piece the AI shows: the one tapped in the outfit, else the latest one picked. */
+  const aiPiece = outfit.find((p) => p.id === aiPieceId) ?? outfit[outfit.length - 1] ?? null;
+
+  async function startAi() {
+    const stream = streamRef.current;
+    if (!stream || !aiPiece) return;
+    setAiError(null);
+    setAi("connecting");
+    try {
+      const tokenRes = await fetch("/api/live/token", { method: "POST" });
+      const token = (await tokenRes.json().catch(() => ({}))) as { apiKey?: string; model?: string; maxSeconds?: number; error?: string };
+      if (!tokenRes.ok || !token.apiKey || !token.model) throw new Error(token.error ?? "Couldn't start live try-on right now.");
+      const [{ createDecartClient, models }, image] = await Promise.all([import("@decartai/sdk"), pictureOf(aiPiece)]);
+      const client = createDecartClient({ apiKey: token.apiKey, telemetry: false });
+      const rt = await client.realtime.connect(stream, {
+        model: models.realtime(token.model as "lucy-vton-latest"),
+        mirror: "auto",
+        onRemoteStream: (edited) => setAiStream(edited),
+        initialState: { image, prompt: { text: promptFor(aiPiece), enhance: true } },
+      });
+      rtRef.current = rt;
+      rt.on("sessionEnded", () => stopAi());
+      rt.on("error", (err) => {
+        setAiError(err.message || "Live try-on stopped.");
+        stopAi();
+      });
+      // Our own stop at the limit (Decart ends it too).
+      let left = token.maxSeconds ?? 20;
+      setSecondsLeft(left);
+      timerRef.current = setInterval(() => {
+        left -= 1;
+        setSecondsLeft(left);
+        if (left <= 0) stopAi();
+      }, 1000);
+      setAi("on");
+    } catch (err) {
+      stopAi();
+      setAiError(err instanceof Error ? err.message : "Couldn't start live try-on right now.");
+    }
+  }
+
+  // Swapping the shown piece during a session updates it live, with no restart.
+  const shownPieceId = aiPiece?.id;
+  useEffect(() => {
+    const rt = rtRef.current;
+    if (ai !== "on" || !rt || !aiPiece) return;
+    let stop = false;
+    pictureOf(aiPiece)
+      .then((image) => {
+        if (!stop) return rt.set({ image, prompt: promptFor(aiPiece), enhance: true });
+      })
+      .catch(() => {});
+    return () => {
+      stop = true;
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- only when the shown piece changes
+  }, [shownPieceId]);
+
+  useEffect(() => {
+    if (aiVideoRef.current) aiVideoRef.current.srcObject = aiStream;
+  }, [aiStream]);
 
   async function startCamera() {
     setCameraError(null);
@@ -102,12 +220,14 @@ export function LiveTryOn() {
   }, [source]);
 
   function usePhoto() {
+    stopAi();
     stopCamera();
     setCameraError(null);
     setSource("photo");
   }
 
   function turnOff() {
+    stopAi();
     stopCamera();
     setSource("none");
   }
@@ -138,6 +258,9 @@ export function LiveTryOn() {
         <div className="relative mx-auto aspect-[3/4] max-h-[72vh] overflow-hidden rounded-[22px] bg-black/30 ring-1 ring-white/10">
           {source === "camera" && (
             <video ref={videoRef} autoPlay playsInline muted className="absolute inset-0 h-full w-full -scale-x-100 object-cover" aria-label="Your camera" />
+          )}
+          {source === "camera" && aiStream && (
+            <video ref={aiVideoRef} autoPlay playsInline muted className="absolute inset-0 h-full w-full object-cover" aria-label="AI try-on, live" />
           )}
           {source === "photo" && hasPhoto && (
             // eslint-disable-next-line @next/next/no-img-element -- private, owner-only image
@@ -177,9 +300,9 @@ export function LiveTryOn() {
             </div>
           )}
 
-          {/* Honest label: this is a layout prototype, not an AI try-on. */}
+          {/* Honest label: says whether the AI is drawing the clothes right now. */}
           <span className="absolute left-3 top-3 rounded-full border border-white/15 bg-black/40 px-3 py-1.5 text-[11px] font-medium text-white/90 backdrop-blur-md">
-            Prototype · clothes aren&apos;t drawn on you yet
+            {ai === "on" ? `Live AI try-on · ${secondsLeft}s left` : "Prototype · clothes aren't drawn on you yet"}
           </span>
 
           {(source === "camera" || source === "photo") && (
@@ -217,9 +340,16 @@ export function LiveTryOn() {
             <ul className="flex gap-2 overflow-x-auto pb-1">
               {outfit.map((piece) => (
                 <li key={piece.id} className="relative shrink-0 animate-[piece-in_.25s_ease-out] motion-reduce:animate-none">
-                  <span className="relative block h-[84px] w-[70px] overflow-hidden rounded-[12px] bg-white/90">
+                  <button
+                    onClick={() => setAiPieceId(piece.id)}
+                    disabled={!liveAvailable}
+                    aria-label={liveAvailable ? `Show ${piece.description} in AI try-on` : piece.description}
+                    className={`relative block h-[84px] w-[70px] overflow-hidden rounded-[12px] bg-white/90 disabled:cursor-default ${
+                      liveAvailable && aiPiece?.id === piece.id ? "ring-2 ring-[#7fd0d6] ring-offset-2 ring-offset-[#10202c]" : ""
+                    }`}
+                  >
                     <Image src={piece.imageUrl} alt={piece.description} fill unoptimized className="object-cover" />
-                  </span>
+                  </button>
                   <span className="mt-1 block w-[70px] truncate text-center text-[10.5px] text-[#b9c6cf]">{LAYER_LABELS[piece.layeringRole]}</span>
                   <button
                     onClick={() => toggle(piece)}
@@ -234,8 +364,52 @@ export function LiveTryOn() {
           )}
         </div>
 
+        {liveAvailable && source === "camera" && (
+          <div className="relative mt-3 flex flex-wrap items-center gap-x-3 gap-y-2 rounded-[18px] border border-white/10 bg-[rgba(255,255,255,0.05)] px-4 py-3 text-[12.5px] text-[#c9d6dd] backdrop-blur-md">
+            {ai === "off" && (
+              <>
+                <span className="min-w-0 flex-1">
+                  {aiPiece ? <>AI try-on shows one piece: <b className="text-white">{aiPiece.description}</b></> : "Pick a piece to try with AI."}
+                </span>
+                <button
+                  onClick={() => setAi("confirm")}
+                  disabled={!aiPiece}
+                  className="rounded-full bg-[#7fd0d6] px-4 py-2 text-[12.5px] font-semibold text-[#0b1520] transition hover:bg-[#9adde2] disabled:opacity-40"
+                >
+                  AI try-on
+                </button>
+              </>
+            )}
+            {ai === "confirm" && (
+              <>
+                <span className="min-w-0 flex-1">Uses Decart credits, about $0.02 a second. Runs up to 20 seconds, then stops.</span>
+                <button onClick={startAi} className="rounded-full bg-[#7fd0d6] px-4 py-2 text-[12.5px] font-semibold text-[#0b1520] hover:bg-[#9adde2]">
+                  Start
+                </button>
+                <button onClick={() => setAi("off")} className="text-[12.5px] font-medium text-white underline-offset-4 hover:underline">
+                  Cancel
+                </button>
+              </>
+            )}
+            {ai === "connecting" && <span className="flex-1">Connecting…</span>}
+            {ai === "on" && (
+              <>
+                <span className="min-w-0 flex-1">
+                  Showing <b className="text-white">{aiPiece?.description}</b>. Tap another piece above to switch.
+                </span>
+                <button onClick={stopAi} className="rounded-full border border-white/25 px-4 py-2 text-[12.5px] font-semibold text-white hover:bg-[rgba(255,255,255,0.1)]">
+                  Stop
+                </button>
+              </>
+            )}
+            {aiError && <p className="basis-full text-[12px] text-[#ffd2cb]">{aiError}</p>}
+          </div>
+        )}
+
         <p className="relative mt-3 px-1 text-center text-[11.5px] leading-snug text-[#8fa3ad]">
-          A preview of the Live experience. Real-time try-on, with clothes drawn on you as you move, isn&apos;t connected yet.
+          {liveAvailable
+            ? "The camera on its own is free. AI try-on is a preview: one piece at a time, up to 20 seconds."
+            : "A preview of the Live experience. Real-time try-on, with clothes drawn on you as you move, isn't connected yet."}
         </p>
       </section>
 
