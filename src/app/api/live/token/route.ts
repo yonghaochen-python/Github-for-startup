@@ -1,12 +1,12 @@
 import { NextResponse } from "next/server";
 import { createDecartClient } from "@decartai/sdk";
-import { requireUser } from "@/lib/auth";
+import { requireAdmin } from "@/lib/auth";
 
 /**
  * Live Try On (preview): a short-lived Decart token for one real-time session, so the permanent key never reaches
- * the browser. Off unless DECART_API_KEY is set (only in the local .env; the live site has no key). Each token can
- * only run the try-on model, only from this site, for at most MAX_SESSION_SECONDS (Decart ends the session itself),
- * and each person gets at most SESSIONS_PER_DAY sessions a day, so credits can't drain by accident.
+ * the browser. Only for admin accounts (everyone else gets the camera-only prototype), and off unless
+ * DECART_API_KEY is set. Each token can only run the try-on model, only from this site, for at most
+ * MAX_SESSION_SECONDS (Decart ends the session itself), and each admin gets at most SESSIONS_PER_DAY sessions a day.
  */
 
 const MAX_SESSION_SECONDS = 20;
@@ -20,7 +20,7 @@ const used = new Map<string, { day: string; count: number }>();
 export async function POST(request: Request) {
   let user;
   try {
-    user = await requireUser(request);
+    user = await requireAdmin(request);
   } catch (res) {
     return res as Response;
   }
