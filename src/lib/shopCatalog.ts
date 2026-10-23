@@ -63,3 +63,42 @@ export const PRICE_BANDS = [
 
 /** Shop picks handed to the Live page (kept for this browser tab). */
 export const LIVE_SHOP_KEY = "virm-live-shop";
+
+/**
+ * A piece in the try-on tray: from the sample collection, or found in another store (pasted link or uploaded
+ * photo). Store finds keep their page link so "View in store" can open it; nothing is bought through Virm.
+ */
+export type TrayItem = {
+  key: string;
+  name: string;
+  /** The brand (sample collection) or the store it came from. */
+  label: string;
+  category: ShopProduct["category"];
+  layeringRole: LayeringRole;
+  color: string;
+  imageUrl: string;
+  price: string | null;
+  productUrl: string | null;
+};
+
+export const trayItemFrom = (p: ShopProduct): TrayItem => ({
+  key: p.id,
+  name: p.name,
+  label: p.brand,
+  category: p.category,
+  layeringRole: p.layeringRole,
+  color: p.color,
+  imageUrl: p.imageUrl,
+  price: `$${p.price}`,
+  productUrl: null,
+});
+
+/** What each kind of piece is, for the layering rules. */
+export const ROLE_FOR: Record<ShopProduct["category"], LayeringRole> = {
+  top: "mid_layer",
+  bottom: "bottom",
+  dress: "one_piece",
+  outerwear: "outer_layer",
+  shoes: "shoes",
+  accessory: "accessory",
+};

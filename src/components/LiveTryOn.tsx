@@ -2,13 +2,15 @@
 
 import { useCallback, useEffect, useRef, useState } from "react";
 import Image from "next/image";
+import Link from "next/link";
 import { useAuth } from "@/components/AuthProvider";
 import type { ClothingItem } from "@/components/OutfitCard";
 import { LAYER_LABELS } from "@/lib/layering";
 import { withPiece } from "@/lib/outfitPieces";
 import { garmentName } from "@/lib/tryOn/types";
 import { garmentSheetJpeg, photoToJpeg } from "@/lib/clientImage";
-import { LIVE_SHOP_KEY } from "@/lib/shopCatalog";
+import { LIVE_SHOP_KEY, type ShopProduct } from "@/lib/shopCatalog";
+import { addToWishlist } from "@/lib/shopWishlist";
 import type { RealTimeClient } from "@decartai/sdk";
 
 /**
@@ -29,6 +31,8 @@ const TABS = [
 ];
 
 type Source = "none" | "starting" | "camera" | "photo";
+/** A piece sent from Shopping; store finds keep their page link and store name. */
+type ShopPick = ClothingItem & { color?: string; productUrl?: string | null; retailer?: string };
 type Ai = "off" | "confirm" | "connecting" | "on";
 
 const nameOf = (piece: ClothingItem & { color?: string }) => garmentName({ description: piece.description, color: piece.color });
@@ -92,7 +96,8 @@ export function LiveTryOn() {
   const [closet, setCloset] = useState<ClothingItem[] | null>(null);
   const [tab, setTab] = useState("top");
   // Pieces sent from Shopping's try-on tray: worn to start with, and kept in a "Shop picks" tab to switch between.
-  const [shopPicks, setShopPicks] = useState<ClothingItem[]>([]);
+  const [shopPicks, setShopPicks] = useState<ShopPick[]>([]);
+  const [savedKeys, setSavedKeys] = useState<string[]>([]);
   const [outfit, setOutfit] = useState<ClothingItem[]>([]);
   // Real-time AI preview (Decart), only where it's connected.
   const [liveAvailable, setLiveAvailable] = useState(false);
@@ -105,7 +110,7 @@ export function LiveTryOn() {
 
   useEffect(() => {
     try {
-      const picks = JSON.parse(sessionStorage.getItem(LIVE_SHOP_KEY) ?? "[]") as ClothingItem[];
+      const picks = JSON.parse(sessionStorage.getItem(LIVE_SHOP_KEY) ?? "[]") as ShopPick[];
       if (Array.isArray(picks) && picks.length) {
         /* eslint-disable react-hooks/set-state-in-effect -- browser-only storage, read after the first render */
         setShopPicks(picks);
@@ -407,6 +412,56 @@ export function LiveTryOn() {
             </ul>
           )}
         </div>
+
+        {/* Store finds: open the store page to buy, save for later, or go back to Shopping. */}
+        {shopPicks.length > 0 && (
+          <div className="relative mt-3 rounded-[18px] border border-white/10 bg-[rgba(255,255,255,0.05)] px-4 py-3 text-[12.5px] text-[#c9d6dd] backdrop-blur-md">
+            <ul className="flex flex-col gap-1.5">
+              {shopPicks
+                .filter((pick) => pick.productUrl || pick.id.startsWith("shop-ext-"))
+                .map((pick) => {
+                  const key = pick.id.replace(/^shop-/, "");
+                  const saved = savedKeys.includes(key);
+                  return (
+                    <li key={pick.id} className="flex flex-wrap items-baseline gap-x-3">
+                      <span className="min-w-0 flex-1 truncate">
+                        <b className="text-white">{pick.description}</b>
+                        {pick.retailer && <span className="text-[#9fb6c0]"> · {pick.retailer}</span>}
+                      </span>
+                      {pick.productUrl && (
+                        <a href={pick.productUrl} target="_blank" rel="noopener noreferrer" className="font-semibold text-white underline underline-offset-4">
+                          View in store ↗
+                        </a>
+                      )}
+                      <button
+                        onClick={() => {
+                          const ok = addToWishlist({
+                            key,
+                            name: pick.description,
+                            label: pick.retailer ?? "Store",
+                            category: pick.category as ShopProduct["category"],
+                            layeringRole: pick.layeringRole,
+                            color: pick.color ?? "",
+                            imageUrl: pick.imageUrl,
+                            price: null,
+                            productUrl: pick.productUrl ?? null,
+                          });
+                          if (ok) setSavedKeys((list) => [...list, key]);
+                        }}
+                        disabled={saved}
+                        className="font-medium text-white underline-offset-4 hover:underline disabled:opacity-60"
+                      >
+                        {saved ? "♥ Saved" : "♡ Save"}
+                      </button>
+                    </li>
+                  );
+                })}
+            </ul>
+            <Link href="/shop" className="mt-2 inline-block font-medium text-white underline-offset-4 hover:underline">
+              ← Back to Shopping
+            </Link>
+          </div>
+        )}
 
         {liveAvailable && source === "camera" && (
           <div className="relative mt-3 flex flex-wrap items-center gap-x-3 gap-y-2 rounded-[18px] border border-white/10 bg-[rgba(255,255,255,0.05)] px-4 py-3 text-[12.5px] text-[#c9d6dd] backdrop-blur-md">

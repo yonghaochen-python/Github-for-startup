@@ -5,7 +5,17 @@ import Image from "next/image";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import type { ClothingItem } from "@/components/OutfitCard";
-import { LIVE_SHOP_KEY, PRICE_BANDS, SHOP_BRANDS, SHOP_COLORS, SHOP_PRODUCTS, type ShopProduct } from "@/lib/shopCatalog";
+import {
+  LIVE_SHOP_KEY,
+  PRICE_BANDS,
+  SHOP_BRANDS,
+  SHOP_COLORS,
+  SHOP_PRODUCTS,
+  trayItemFrom,
+  type TrayItem,
+} from "@/lib/shopCatalog";
+import { addToWishlist, readWishlist, removeFromWishlist } from "@/lib/shopWishlist";
+import { StoreFinder } from "@/components/StoreFinder";
 
 /**
  * Shopping: a sample collection to browse and try on. Pieces picked with "Try on virtually" go into the live
@@ -36,14 +46,17 @@ const SLOT_NAMES: Record<string, string> = {
 const LOVED_KEY = "virm-shop-loved";
 const MAX_TRAY = 6;
 
-/** A shop piece in the shape the outfit rules and the Live page use. */
-const asPiece = (p: ShopProduct): ClothingItem & { color: string } => ({
-  id: `shop-${p.id}`,
-  imageUrl: p.imageUrl,
-  category: p.category,
-  description: p.name,
-  layeringRole: p.layeringRole,
-  color: p.color,
+/** A tray piece in the shape the outfit rules and the Live page use (store finds keep their page link). */
+export type LivePick = ClothingItem & { color: string; productUrl: string | null; retailer: string };
+const asPiece = (t: TrayItem): LivePick => ({
+  id: `shop-${t.key}`,
+  imageUrl: t.imageUrl,
+  category: t.category,
+  description: t.name,
+  layeringRole: t.layeringRole,
+  color: t.color,
+  productUrl: t.productUrl,
+  retailer: t.label,
 });
 
 function Spark({ className = "h-4 w-4" }: { className?: string }) {
@@ -79,8 +92,9 @@ export function Shop() {
   const [price, setPrice] = useState("all");
   const [brand, setBrand] = useState("all");
   const [tab, setTab] = useState("all");
-  const [tray, setTray] = useState<ShopProduct[]>([]);
+  const [tray, setTray] = useState<TrayItem[]>([]);
   const [loved, setLoved] = useState<string[]>([]);
+  const [wishlist, setWishlist] = useState<TrayItem[]>([]);
 
   // Hearts are remembered on this device only.
   useEffect(() => {
@@ -89,6 +103,7 @@ export function Shop() {
       // eslint-disable-next-line react-hooks/set-state-in-effect -- browser-only storage, read after the first render
       if (Array.isArray(kept)) setLoved(kept.filter((x) => typeof x === "string"));
     } catch {}
+    setWishlist(readWishlist());
   }, []);
 
   function toggleLoved(id: string) {
@@ -102,18 +117,27 @@ export function Shop() {
   }
 
   /** Adds a piece to the tray, or takes it out (up to MAX_TRAY pieces). */
-  function toggleTray(product: ShopProduct) {
+  function toggleTray(item: TrayItem) {
     setTray((list) =>
-      list.some((p) => p.id === product.id) ? list.filter((p) => p.id !== product.id) : list.length >= MAX_TRAY ? list : [...list, product]
+      list.some((p) => p.key === item.key) ? list.filter((p) => p.key !== item.key) : list.length >= MAX_TRAY ? list : [...list, item]
     );
   }
 
-  function tryOnLive() {
-    if (!tray.length) return;
+  /** Opens Live with the tray (plus one more piece, when trying a store find straight away). */
+  function tryOnLive(extra?: TrayItem) {
+    const pieces = extra && !tray.some((p) => p.key === extra.key) ? [...tray, extra].slice(-MAX_TRAY) : tray;
+    if (!pieces.length) return;
     try {
-      sessionStorage.setItem(LIVE_SHOP_KEY, JSON.stringify(tray.map(asPiece)));
+      sessionStorage.setItem(LIVE_SHOP_KEY, JSON.stringify(pieces.map(asPiece)));
     } catch {}
     router.push("/live");
+  }
+
+  /** Saves a store find to this device's wishlist (with a smaller picture so a dozen fit). */
+  function saveFind(item: TrayItem): boolean {
+    const ok = addToWishlist(item);
+    setWishlist(readWishlist());
+    return ok;
   }
 
   const shown = useMemo(() => {
@@ -129,7 +153,7 @@ export function Shop() {
     );
   }, [query, color, price, brand, tab]);
 
-  const inTray = new Set(tray.map((p) => p.id));
+  const inTray = new Set(tray.map((p) => p.key));
 
   return (
     <>
@@ -142,7 +166,45 @@ export function Shop() {
           </Link>
         </div>
 
-        <div className="mt-6 grid gap-6 border-b border-black/10 pb-5 md:grid-cols-[minmax(0,1fr)_minmax(0,420px)] md:items-end">
+        <div className="mt-6">
+          <StoreFinder onTryNow={(item) => tryOnLive(item)} onAdd={toggleTray} onSave={saveFind} trayFull={tray.length >= MAX_TRAY} />
+        </div>
+
+        {wishlist.length > 0 && (
+          <div className="mt-6">
+            <p className={label}>Your wishlist</p>
+            <ul className="mt-3 flex gap-3 overflow-x-auto pb-1">
+              {wishlist.map((w) => {
+                const added = tray.some((p) => p.key === w.key);
+                return (
+                  <li key={w.key} className="w-[150px] shrink-0 rounded-[6px] bg-white p-2.5 shadow-[0_1px_0_rgba(18,24,33,0.03),0_8px_22px_rgba(18,30,45,0.05)]">
+                    <div className="relative aspect-[3/4] overflow-hidden bg-[#f0eee9]">
+                      {/* eslint-disable-next-line @next/next/no-img-element -- a picture saved on this device */}
+                      <img src={w.imageUrl} alt={w.name} className="absolute inset-0 h-full w-full object-contain p-1.5" />
+                    </div>
+                    <p className="mt-2 truncate text-[9.5px] uppercase tracking-[1.4px] text-[#5d6874]">{w.label}</p>
+                    <p className="truncate text-[12.5px] font-medium text-[#121821]">{w.name}</p>
+                    <div className="mt-1.5 flex flex-wrap gap-x-3 text-[11.5px]">
+                      <button onClick={() => toggleTray(w)} disabled={!added && tray.length >= MAX_TRAY} className="font-semibold text-[#121821] underline-offset-4 hover:underline disabled:opacity-40">
+                        {added ? "In tray" : "Add"}
+                      </button>
+                      {w.productUrl && (
+                        <a href={w.productUrl} target="_blank" rel="noopener noreferrer" className="text-[#121821] underline-offset-4 hover:underline">
+                          Store ↗
+                        </a>
+                      )}
+                      <button onClick={() => setWishlist(removeFromWishlist(w.key))} className="text-[#5d6874] underline-offset-4 hover:underline">
+                        Remove
+                      </button>
+                    </div>
+                  </li>
+                );
+              })}
+            </ul>
+          </div>
+        )}
+
+        <div className="mt-8 grid gap-6 border-b border-black/10 pb-5 md:grid-cols-[minmax(0,1fr)_minmax(0,420px)] md:items-end">
           <label className="flex max-w-md items-center gap-3 border-b border-black/15 pb-1.5">
             <svg viewBox="0 0 24 24" className="h-4 w-4 text-[#5d6874]" fill="none" stroke="currentColor" strokeWidth="1.7" aria-hidden>
               <circle cx="11" cy="11" r="6.5" />
@@ -243,7 +305,7 @@ export function Shop() {
                         <span className="truncate text-[10px] tracking-[0.5px] text-[#5d6874]">{p.sizes.join(" · ")}</span>
                       </div>
                       <button
-                        onClick={() => toggleTray(p)}
+                        onClick={() => toggleTray(trayItemFrom(p))}
                         aria-pressed={selected}
                         disabled={!selected && tray.length >= MAX_TRAY}
                         className={`mt-3 inline-flex min-h-[42px] items-center justify-center gap-2 rounded-[2px] border text-[12px] font-medium transition ${
@@ -290,12 +352,15 @@ export function Shop() {
             ) : (
               <ul className="flex flex-col gap-3">
                 {tray.map((p) => (
-                  <li key={p.id} className="flex items-center gap-3">
+                  <li key={p.key} className="flex items-center gap-3">
                     <span className="relative h-14 w-11 shrink-0 overflow-hidden bg-[#f0eee9]">
                       <Image src={p.imageUrl} alt="" fill unoptimized className="p-1" style={{ objectFit: "contain" }} />
                     </span>
                     <span className="min-w-0 flex-1">
-                      <span className="block text-[9.5px] uppercase tracking-[1.6px] text-[#5d6874]">{SLOT_NAMES[p.category]}</span>
+                      <span className="block truncate text-[9.5px] uppercase tracking-[1.6px] text-[#5d6874]">
+                        {SLOT_NAMES[p.category]}
+                        {p.productUrl || p.key.startsWith("ext-") ? ` · ${p.label}` : ""}
+                      </span>
                       <span className="block truncate text-[12.5px] font-medium text-[#121821]">{p.name}</span>
                     </span>
                     <button onClick={() => toggleTray(p)} aria-label={`Remove ${p.name}`} className="p-1 text-[#5d6874] hover:text-[#c23a2c]">
@@ -310,7 +375,7 @@ export function Shop() {
             <div className="my-4 border-t border-black/[0.07]" />
             <p className="mb-3 text-center text-[10.5px] text-[#5d6874]">Pick two of a kind to compare. On Live, switch between them during one session.</p>
             <button
-              onClick={tryOnLive}
+              onClick={() => tryOnLive()}
               disabled={tray.length === 0}
               className="inline-flex min-h-[46px] w-full items-center justify-center gap-2 rounded-[2px] bg-[#121821] text-[12.5px] font-medium text-white hover:bg-[#2a3542] disabled:bg-[#c9cdd0]"
             >
