@@ -18,7 +18,7 @@ import { Tips, type Tip } from "@/components/Tips";
 const STUDIO_TIPS: Tip[] = [
   { target: '[data-tip="studio-theme"]', text: "Type a theme for outfit ideas, or pick clothes yourself." },
   { target: '[data-tip="studio-closet"]', text: "Tap to add. Tap again to take it off." },
-  { target: '[data-tip="studio-tryon"]', text: "Try it on. The bookmark saves the look." },
+  { target: '[data-tip="studio-tryon"]', text: "Try it on. The bookmark on the picture saves the look." },
   { target: '.site-nav a[href="/closet"], .site-tabbar a[href="/closet"]', text: "Add more clothes any time in My Closet." },
 ];
 
@@ -419,7 +419,7 @@ export default function StudioPage() {
                 />
               </div>
             ) : (
-              <div ref={mirrorRef} className="relative mx-auto aspect-[3/4] max-h-[640px] w-full bg-[#f4f5f6] lg:aspect-auto lg:h-[min(620px,calc(100vh-430px))] lg:min-h-[360px]">
+              <div ref={mirrorRef} className="relative mx-auto aspect-[3/4] max-h-[640px] w-full bg-[#f4f5f6] lg:aspect-auto lg:h-[min(780px,calc(100vh-250px))] lg:min-h-[420px]">
                 {picture ? (
                   // eslint-disable-next-line @next/next/no-img-element -- private, owner-only image
                   <img src={picture} alt="You wearing this look" className="absolute inset-0 h-full w-full object-contain" />
@@ -460,9 +460,17 @@ export default function StudioPage() {
                 >
                   Change photo
                 </button>
-                {/* Top right: the share arrow (adds this tried-on look to the "to share" list), and Undo below it. */}
+                {/* Top right: Save, the share arrow (adds this tried-on look to the "to share" list), and Undo. */}
                 {!trying && (
                   <div className="absolute right-4 top-4 flex flex-col gap-2">
+                    {pieces.length > 0 && (
+                      <SaveToggle
+                        saved={!changed && look.isFavorite}
+                        busy={saving}
+                        onToggle={toggleSaved}
+                        className={`h-11 w-11 ${!changed && look.isFavorite ? "" : "!bg-white/90 !shadow-sm hover:!bg-white"}`}
+                      />
+                    )}
                     {picture && look.outfitId && (
                       <ShareArrowButton
                         look={{
@@ -491,69 +499,7 @@ export default function StudioPage() {
 
             <div className="border-t border-black/[0.06] p-4 sm:p-5">
               <ShareTray />
-              <div className="mb-3 flex items-center justify-between gap-3">
-                <p className="text-[13px] font-semibold text-[#121821]">
-                  {look.occasion ? <span className="capitalize">{look.occasion}</span> : "Your look"}
-                  <span className="ml-2 font-normal text-[#5d6874]">
-                    {pieces.length} {pieces.length === 1 ? "piece" : "pieces"}
-                  </span>
-                </p>
-                {ideas.length > 1 && (
-                  <div className="ml-auto flex items-center gap-1.5" aria-label="Outfit ideas">
-                    {ideas.map((idea, i) => {
-                      const active = idea.id === look.outfitId;
-                      return (
-                        <button
-                          key={idea.id}
-                          onClick={() => showOutfit(idea)}
-                          aria-pressed={active}
-                          aria-label={`Idea ${i + 1}`}
-                          className={`btn-tactile h-8 w-8 rounded-full text-[12px] font-semibold ${
-                            active ? "bg-[#121821] text-white" : "bg-white text-[#4f5b66] shadow-[inset_0_0_0_1px_rgba(18,24,33,0.14)] hover:text-[#121821]"
-                          }`}
-                        >
-                          {i + 1}
-                        </button>
-                      );
-                    })}
-                  </div>
-                )}
-                {pieces.length > 0 && (
-                  <button onClick={startOver} className="text-[12px] font-semibold text-[#5d6874] underline-offset-4 hover:text-[#121821] hover:underline">
-                    Start over
-                  </button>
-                )}
-              </div>
-
-              {loadingLook ? (
-                <div className="h-20 animate-pulse rounded-[14px] bg-[#f4f5f6]" />
-              ) : pieces.length === 0 ? (
-                <p className="rounded-[14px] bg-[#f4f5f6] px-4 py-5 text-[13px] text-[#4f5b66]">Type a theme above, or pick pieces from your closet.</p>
-              ) : (
-                <ul className="flex gap-2 overflow-x-auto pb-1">
-                  {pieces.map((piece) => (
-                    <li key={piece.id} className="relative shrink-0">
-                      <button
-                        onClick={() => setTab(piece.category)}
-                        title={piece.description}
-                        className="relative block h-20 w-20 overflow-hidden rounded-[14px] bg-[#f4f5f6] shadow-[inset_0_0_0_1px_rgba(18,24,33,0.06)]"
-                      >
-                        <Image src={piece.imageUrl} alt={piece.description} fill unoptimized className="object-cover" />
-                      </button>
-                      <button
-                        onClick={() => pick(piece)}
-                        aria-label={`Remove ${piece.description}`}
-                        className="absolute -right-1.5 -top-1.5 flex h-6 w-6 items-center justify-center rounded-full bg-[#121821] text-[13px] leading-none text-white shadow hover:bg-[#d93a2b]"
-                      >
-                        ×
-                      </button>
-                    </li>
-                  ))}
-                </ul>
-              )}
-
-              <div data-tip="studio-tryon" className="mt-4 flex items-center gap-3">
-                <SaveToggle saved={!changed && look.isFavorite} busy={saving || pieces.length === 0} onToggle={toggleSaved} />
+              <div data-tip="studio-tryon" className="flex items-center gap-3">
                 <button onClick={() => tryOn()} disabled={trying || pieces.length === 0 || (!hasPhoto && !chosenPhoto)} className={`${btnPrimary} min-h-[48px] flex-1`}>
                   <MirrorIcon className="h-4 w-4" />
                   {trying ? "Trying on…" : "Try On"}
@@ -562,73 +508,140 @@ export default function StudioPage() {
             </div>
           </section>
 
-          {/* The closet, by category. Tap to add; tap again to remove. */}
-          <section aria-label="Your closet" data-tip="studio-closet" className="min-w-0 self-start overflow-hidden rounded-[22px] bg-white shadow-[0_1px_0_rgba(18,24,33,0.03),0_14px_36px_rgba(18,30,45,0.06)] lg:sticky lg:top-24">
-            <div role="tablist" aria-label="Closet sections" className="flex gap-1 overflow-x-auto border-b border-black/[0.06] px-3 pt-3">
-              {TABS.map((t) => {
-                const active = t.value === tab;
-                const count = countIn(t.value);
-                return (
-                  <button
-                    key={t.value}
-                    role="tab"
-                    aria-selected={active}
-                    onClick={() => setTab(t.value)}
-                    className={`relative shrink-0 px-2.5 pb-3 pt-1 text-[13px] ${
-                      active ? "font-semibold text-[#121821] after:absolute after:inset-x-2.5 after:bottom-0 after:h-[2px] after:rounded-full after:bg-[#121821]" : "text-[#5d6874] hover:text-[#121821]"
-                    }`}
-                  >
-                    {t.label}
-                    {count > 0 && <span className="ml-1 text-[11px] text-[#d93a2b]">•</span>}
-                  </button>
-                );
-              })}
-            </div>
-            <div className="max-h-[calc(100vh-220px)] min-h-[240px] overflow-y-auto p-3 sm:p-4 lg:max-h-[calc(100vh-260px)]">
-              {closet === null ? (
-                <div className="grid grid-cols-3 gap-3">
-                  {[0, 1, 2, 3, 4, 5].map((i) => (
-                    <div key={i} className="aspect-square animate-pulse rounded-[14px] bg-[#f4f5f6]" />
-                  ))}
+          <div className="flex min-w-0 flex-col gap-4 self-start lg:sticky lg:top-24">
+            {/* The pieces in this look, above the closet. */}
+            <section aria-label="Pieces in this look" className="rounded-[22px] bg-white p-4 shadow-[0_1px_0_rgba(18,24,33,0.03),0_14px_36px_rgba(18,30,45,0.06)] sm:p-5">
+                <div className="mb-3 flex items-center justify-between gap-3">
+                  <p className="text-[13px] font-semibold text-[#121821]">
+                    {look.occasion ? <span className="capitalize">{look.occasion}</span> : "Your look"}
+                    <span className="ml-2 font-normal text-[#5d6874]">
+                      {pieces.length} {pieces.length === 1 ? "piece" : "pieces"}
+                    </span>
+                  </p>
+                  {ideas.length > 1 && (
+                    <div className="ml-auto flex items-center gap-1.5" aria-label="Outfit ideas">
+                      {ideas.map((idea, i) => {
+                        const active = idea.id === look.outfitId;
+                        return (
+                          <button
+                            key={idea.id}
+                            onClick={() => showOutfit(idea)}
+                            aria-pressed={active}
+                            aria-label={`Idea ${i + 1}`}
+                            className={`btn-tactile h-8 w-8 rounded-full text-[12px] font-semibold ${
+                              active ? "bg-[#121821] text-white" : "bg-white text-[#4f5b66] shadow-[inset_0_0_0_1px_rgba(18,24,33,0.14)] hover:text-[#121821]"
+                            }`}
+                          >
+                            {i + 1}
+                          </button>
+                        );
+                      })}
+                    </div>
+                  )}
+                  {pieces.length > 0 && (
+                    <button onClick={startOver} className="text-[12px] font-semibold text-[#5d6874] underline-offset-4 hover:text-[#121821] hover:underline">
+                      Start over
+                    </button>
+                  )}
                 </div>
-              ) : tabItems.length === 0 ? (
-                <p className="px-1 py-6 text-[13px] text-[#5d6874]">
-                  Nothing here yet.{" "}
-                  <Link href="/closet?add=1" className="font-semibold text-[#121821] underline-offset-4 hover:underline">
-                    Add clothes
-                  </Link>
-                </p>
-              ) : (
-                <ul className="grid grid-cols-3 gap-3">
-                  {tabItems.map((item) => {
-                    const chosen = pieceIds.has(item.id);
-                    return (
-                      <li key={item.id}>
+
+                {loadingLook ? (
+                  <div className="h-20 animate-pulse rounded-[14px] bg-[#f4f5f6]" />
+                ) : pieces.length === 0 ? (
+                  <p className="rounded-[14px] bg-[#f4f5f6] px-4 py-5 text-[13px] text-[#4f5b66]">Type a theme above, or pick pieces from your closet.</p>
+                ) : (
+                  <ul className="flex gap-2 overflow-x-auto pb-1">
+                    {pieces.map((piece) => (
+                      <li key={piece.id} className="relative shrink-0">
                         <button
-                          onClick={() => pick(item)}
-                          aria-pressed={chosen}
-                          title={item.description}
-                          className={`group relative block aspect-square w-full overflow-hidden rounded-[14px] bg-[#f4f5f6] ${
-                            chosen ? "shadow-[inset_0_0_0_2px_#121821]" : "hover:shadow-[inset_0_0_0_1px_rgba(18,24,33,0.2)]"
-                          }`}
+                          onClick={() => setTab(piece.category)}
+                          title={piece.description}
+                          className="relative block h-20 w-20 overflow-hidden rounded-[14px] bg-[#f4f5f6] shadow-[inset_0_0_0_1px_rgba(18,24,33,0.06)]"
                         >
-                          <Image src={item.imageUrl} alt={item.description} fill unoptimized className="object-cover" />
-                          {chosen && (
-                            <span className="absolute right-1.5 top-1.5 flex h-6 w-6 items-center justify-center rounded-full bg-[#121821] text-white">
-                              <svg viewBox="0 0 16 16" className="h-3.5 w-3.5" fill="none" aria-hidden>
-                                <path d="M3 8.5L6.5 12L13 4.5" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
-                              </svg>
-                            </span>
-                          )}
+                          <Image src={piece.imageUrl} alt={piece.description} fill unoptimized className="object-cover" />
                         </button>
-                        <p className="mt-1 line-clamp-2 text-[11px] leading-snug text-[#4f5b66]">{item.description}</p>
+                        <button
+                          onClick={() => pick(piece)}
+                          aria-label={`Remove ${piece.description}`}
+                          className="absolute -right-1.5 -top-1.5 flex h-6 w-6 items-center justify-center rounded-full bg-[#121821] text-[13px] leading-none text-white shadow hover:bg-[#d93a2b]"
+                        >
+                          ×
+                        </button>
                       </li>
-                    );
-                  })}
-                </ul>
-              )}
-            </div>
-          </section>
+                    ))}
+                  </ul>
+                )}
+
+            </section>
+
+            {/* The closet, by category. Tap to add; tap again to remove. */}
+            <section aria-label="Your closet" data-tip="studio-closet" className="min-w-0 overflow-hidden rounded-[22px] bg-white shadow-[0_1px_0_rgba(18,24,33,0.03),0_14px_36px_rgba(18,30,45,0.06)]">
+              <div role="tablist" aria-label="Closet sections" className="flex gap-1 overflow-x-auto border-b border-black/[0.06] px-3 pt-3">
+                {TABS.map((t) => {
+                  const active = t.value === tab;
+                  const count = countIn(t.value);
+                  return (
+                    <button
+                      key={t.value}
+                      role="tab"
+                      aria-selected={active}
+                      onClick={() => setTab(t.value)}
+                      className={`relative shrink-0 px-2.5 pb-3 pt-1 text-[13px] ${
+                        active ? "font-semibold text-[#121821] after:absolute after:inset-x-2.5 after:bottom-0 after:h-[2px] after:rounded-full after:bg-[#121821]" : "text-[#5d6874] hover:text-[#121821]"
+                      }`}
+                    >
+                      {t.label}
+                      {count > 0 && <span className="ml-1 text-[11px] text-[#d93a2b]">•</span>}
+                    </button>
+                  );
+                })}
+              </div>
+              <div className="max-h-[calc(100vh-220px)] min-h-[240px] overflow-y-auto p-3 sm:p-4 lg:max-h-[calc(100vh-260px)]">
+                {closet === null ? (
+                  <div className="grid grid-cols-3 gap-3">
+                    {[0, 1, 2, 3, 4, 5].map((i) => (
+                      <div key={i} className="aspect-square animate-pulse rounded-[14px] bg-[#f4f5f6]" />
+                    ))}
+                  </div>
+                ) : tabItems.length === 0 ? (
+                  <p className="px-1 py-6 text-[13px] text-[#5d6874]">
+                    Nothing here yet.{" "}
+                    <Link href="/closet?add=1" className="font-semibold text-[#121821] underline-offset-4 hover:underline">
+                      Add clothes
+                    </Link>
+                  </p>
+                ) : (
+                  <ul className="grid grid-cols-3 gap-3">
+                    {tabItems.map((item) => {
+                      const chosen = pieceIds.has(item.id);
+                      return (
+                        <li key={item.id}>
+                          <button
+                            onClick={() => pick(item)}
+                            aria-pressed={chosen}
+                            title={item.description}
+                            className={`group relative block aspect-square w-full overflow-hidden rounded-[14px] bg-[#f4f5f6] ${
+                              chosen ? "shadow-[inset_0_0_0_2px_#121821]" : "hover:shadow-[inset_0_0_0_1px_rgba(18,24,33,0.2)]"
+                            }`}
+                          >
+                            <Image src={item.imageUrl} alt={item.description} fill unoptimized className="object-cover" />
+                            {chosen && (
+                              <span className="absolute right-1.5 top-1.5 flex h-6 w-6 items-center justify-center rounded-full bg-[#121821] text-white">
+                                <svg viewBox="0 0 16 16" className="h-3.5 w-3.5" fill="none" aria-hidden>
+                                  <path d="M3 8.5L6.5 12L13 4.5" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+                                </svg>
+                              </span>
+                            )}
+                          </button>
+                          <p className="mt-1 line-clamp-2 text-[11px] leading-snug text-[#4f5b66]">{item.description}</p>
+                        </li>
+                      );
+                    })}
+                  </ul>
+                )}
+              </div>
+            </section>
+          </div>
         </div>
       </PageShell>
     </main>
