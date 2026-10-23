@@ -133,68 +133,16 @@ export function Shop() {
 
   return (
     <>
-      {/* Banner */}
-      <section className="mx-auto max-w-[1400px] px-4 pt-6 sm:px-6">
-        <div className="grid overflow-hidden rounded-[6px] lg:grid-cols-[minmax(0,0.85fr)_minmax(0,1fr)]">
-          <div className="flex flex-col justify-end bg-[linear-gradient(160deg,#e9eef2_0%,#dfe4e7_55%,#dcdcda_100%)] px-7 pb-10 pt-16 sm:px-12 lg:min-h-[640px]">
-            <p className={label}>Virm Shopping · New arrivals</p>
-            <h1 className="mt-4 text-[44px] leading-[0.98] tracking-[-1.5px] text-[#121821] sm:text-[60px]">
-              See it on you
-              <span className="block font-display italic tracking-[-1px]">before you buy.</span>
-            </h1>
-            <p className="mt-5 max-w-sm text-[14px] leading-relaxed text-[#445159]">
-              Discover your next favorite piece. Try on clothes virtually before they arrive at your door.
-            </p>
-            <div className="mt-7 flex flex-wrap items-center gap-6">
-              <a
-                href="#collection"
-                className="inline-flex min-h-[46px] items-center gap-3 rounded-[2px] bg-[#121821] px-6 text-[12.5px] font-medium text-white hover:bg-[#2a3542]"
-              >
-                Explore the collection <span aria-hidden>→</span>
-              </a>
-              <Link href="/live" className="border-b border-[#121821] pb-0.5 text-[12.5px] font-medium text-[#121821]">
-                Start a live try-on
-              </Link>
-            </div>
-            <dl className="mt-12 grid gap-2 border-t border-black/10 pt-5 text-[10.5px] uppercase tracking-[1.6px] text-[#5d6874]">
-              <div className="flex items-baseline gap-5">
-                <dt className="w-12 font-display text-[18px] normal-case italic tracking-normal text-[#29343a]">{String(SHOP_PRODUCTS.length).padStart(2, "0")}</dt>
-                <dd>Curated sample collection</dd>
-              </div>
-              <div className="flex items-baseline gap-5">
-                <dt className="w-12 font-display text-[18px] normal-case italic tracking-normal text-[#29343a]">20 sec</dt>
-                <dd>Live session preview</dd>
-              </div>
-            </dl>
-          </div>
-          <div className="relative min-h-[460px] bg-[#e8dfd6]">
-            <Image src="/whats-new/full-body.jpg" alt="A model in a structured outfit" fill unoptimized className="object-cover object-top" priority />
-            <span className="absolute right-5 top-5 inline-flex items-center gap-2 bg-white/85 px-3.5 py-2 text-[9.5px] font-medium uppercase tracking-[1.8px] text-[#29343a] backdrop-blur">
-              <Spark className="h-3.5 w-3.5" /> Try-on ready
-            </span>
-            <div className="absolute bottom-7 left-7 text-white [text-shadow:0_1px_12px_rgba(0,0,0,0.25)]">
-              <p className="text-[9.5px] uppercase tracking-[2px] opacity-90">Virm / Edit 01</p>
-              <p className="mt-1 font-display text-[28px] italic">Quiet structure</p>
-            </div>
-          </div>
-        </div>
-      </section>
-
-      {/* The collection */}
-      <section id="collection" className="mx-auto max-w-[1400px] scroll-mt-24 px-4 pb-16 pt-16 sm:px-6">
-        <div className="flex flex-wrap items-end justify-between gap-6">
-          <div>
-            <p className={label}>The collection</p>
-            <h2 className="mt-3 text-[34px] leading-tight tracking-[-1px] text-[#121821] sm:text-[44px]">
-              Considered pieces, <span className="font-display italic">selected by you.</span>
-            </h2>
-          </div>
-          <p className="max-w-[260px] text-[11.5px] leading-snug text-[#5d6874]">
-            Sample products and prices to show how shopping in Virm works. Nothing is for sale.
-          </p>
+      <section id="collection" className="mx-auto max-w-[1400px] scroll-mt-24 px-4 pb-16 pt-8 sm:px-6">
+        <div className="flex flex-wrap items-end justify-between gap-4">
+          <h1 className="font-display text-[44px] leading-none tracking-[-1px] text-[#121821] sm:text-[52px]">Shopping</h1>
+          <Link href="/live" className="flex items-baseline gap-3 text-[10.5px] uppercase tracking-[1.6px] text-[#5d6874] hover:text-[#121821]">
+            <span className="font-display text-[18px] normal-case italic tracking-normal text-[#29343a]">20 sec</span>
+            Live session preview
+          </Link>
         </div>
 
-        <div className="mt-8 grid gap-6 border-b border-black/10 pb-5 md:grid-cols-[minmax(0,1fr)_minmax(0,420px)] md:items-end">
+        <div className="mt-6 grid gap-6 border-b border-black/10 pb-5 md:grid-cols-[minmax(0,1fr)_minmax(0,420px)] md:items-end">
           <label className="flex max-w-md items-center gap-3 border-b border-black/15 pb-1.5">
             <svg viewBox="0 0 24 24" className="h-4 w-4 text-[#5d6874]" fill="none" stroke="currentColor" strokeWidth="1.7" aria-hidden>
               <circle cx="11" cy="11" r="6.5" />
@@ -253,7 +201,6 @@ export function Shop() {
               <span>
                 {shown.length} sample {shown.length === 1 ? "piece" : "pieces"}
               </span>
-              <span className="hidden sm:inline">Try before you buy</span>
             </div>
             {shown.length === 0 ? (
               <p className="rounded-[6px] bg-white px-6 py-10 text-center text-[13px] text-[#5d6874]">Nothing matches. Try another filter.</p>
