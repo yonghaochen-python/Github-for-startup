@@ -31,6 +31,13 @@ export const ClosetIcon = (p: IconProps) => (
   </Svg>
 );
 
+export const BagIcon = (p: IconProps) => (
+  <Svg {...p}>
+    <path d="M6 8h12l-1 12H7z" />
+    <path d="M9 8V6.5a3 3 0 0 1 6 0V8" />
+  </Svg>
+);
+
 export const SparkleIcon = (p: IconProps) => (
   <Svg {...p}>
     <path d="M12 3.5 13.6 9a2 2 0 0 0 1.4 1.4l5.5 1.6-5.5 1.6a2 2 0 0 0-1.4 1.4L12 20.5 10.4 15A2 2 0 0 0 9 13.6L3.5 12 9 10.4A2 2 0 0 0 10.4 9z" />

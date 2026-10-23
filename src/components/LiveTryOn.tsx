@@ -8,6 +8,7 @@ import { LAYER_LABELS } from "@/lib/layering";
 import { withPiece } from "@/lib/outfitPieces";
 import { garmentName } from "@/lib/tryOn/types";
 import { garmentSheetJpeg, photoToJpeg } from "@/lib/clientImage";
+import { LIVE_SHOP_KEY } from "@/lib/shopCatalog";
 import type { RealTimeClient } from "@decartai/sdk";
 
 /**
@@ -90,6 +91,8 @@ export function LiveTryOn() {
   const [cameraError, setCameraError] = useState<string | null>(null);
   const [closet, setCloset] = useState<ClothingItem[] | null>(null);
   const [tab, setTab] = useState("top");
+  // Pieces sent from Shopping's try-on tray: worn to start with, and kept in a "Shop picks" tab to switch between.
+  const [shopPicks, setShopPicks] = useState<ClothingItem[]>([]);
   const [outfit, setOutfit] = useState<ClothingItem[]>([]);
   // Real-time AI preview (Decart), only where it's connected.
   const [liveAvailable, setLiveAvailable] = useState(false);
@@ -99,6 +102,20 @@ export function LiveTryOn() {
   const rtRef = useRef<RealTimeClient | null>(null);
   const timerRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const aiVideoRef = useRef<HTMLVideoElement | null>(null);
+
+  useEffect(() => {
+    try {
+      const picks = JSON.parse(sessionStorage.getItem(LIVE_SHOP_KEY) ?? "[]") as ClothingItem[];
+      if (Array.isArray(picks) && picks.length) {
+        /* eslint-disable react-hooks/set-state-in-effect -- browser-only storage, read after the first render */
+        setShopPicks(picks);
+        // Wear one of each kind to start (the first picked); the others are a tap away in "Shop picks".
+        setOutfit([...picks].reverse().reduce<ClothingItem[]>((worn, piece) => withPiece(worn, piece), []));
+        setTab("shop");
+        /* eslint-enable react-hooks/set-state-in-effect */
+      }
+    } catch {}
+  }, []);
 
   useEffect(() => {
     let ignore = false;
@@ -265,8 +282,10 @@ export function LiveTryOn() {
   }
 
   const hasPhoto = Boolean(user?.photoVersion);
-  const tabItems = (closet ?? []).filter((item) => item.category === tab);
-  const countIn = (value: string) => outfit.filter((p) => p.category === value).length;
+  const tabs = shopPicks.length ? [{ value: "shop", label: "Shop picks" }, ...TABS] : TABS;
+  const tabItems = tab === "shop" ? shopPicks : (closet ?? []).filter((item) => item.category === tab);
+  const countIn = (value: string) =>
+    value === "shop" ? outfit.filter((p) => p.id.startsWith("shop-")).length : outfit.filter((p) => p.category === value).length;
   const chosen = new Set(outfit.map((p) => p.id));
   const iconButton =
     "flex h-11 w-11 items-center justify-center rounded-full border border-white/15 bg-[rgba(255,255,255,0.08)] text-white backdrop-blur-md transition hover:bg-[rgba(255,255,255,0.16)]";
@@ -440,7 +459,7 @@ export function LiveTryOn() {
       {/* The closet. */}
       <section aria-label="Your closet" className="min-w-0 self-start overflow-hidden rounded-[22px] bg-white shadow-[0_1px_0_rgba(18,24,33,0.03),0_14px_36px_rgba(18,30,45,0.06)] lg:sticky lg:top-24">
         <div className="flex gap-1 overflow-x-auto border-b border-black/[0.06] px-3 pt-2">
-          {TABS.map((t) => {
+          {tabs.map((t) => {
             const active = t.value === tab;
             return (
               <button
@@ -460,7 +479,7 @@ export function LiveTryOn() {
           })}
         </div>
         <div className="max-h-[62vh] overflow-y-auto p-3">
-          {closet === null ? (
+          {closet === null && tab !== "shop" ? (
             <div className="grid grid-cols-3 gap-2">
               {Array.from({ length: 6 }, (_, i) => (
                 <div key={i} className="aspect-square animate-pulse rounded-[14px] bg-[#f1f3f4]" />

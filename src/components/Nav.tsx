@@ -4,12 +4,13 @@ import { useEffect } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useAuth } from "@/components/AuthProvider";
-import { BookmarkIcon, ClosetIcon, HomeIcon, SparkleIcon, UserIcon } from "@/components/Icons";
+import { BagIcon, BookmarkIcon, ClosetIcon, HomeIcon, SparkleIcon, UserIcon } from "@/components/Icons";
 
-type Section = "home" | "closet" | "studio" | "saved" | "profile";
+type Section = "home" | "shop" | "closet" | "studio" | "saved" | "profile";
 
 const LINKS: { section: Section; href: string; label: string; short: string; Icon: typeof HomeIcon }[] = [
   { section: "home", href: "/", label: "Home", short: "Home", Icon: HomeIcon },
+  { section: "shop", href: "/shop", label: "Shopping", short: "Shop", Icon: BagIcon },
   { section: "closet", href: "/closet", label: "My Closet", short: "Closet", Icon: ClosetIcon },
   { section: "studio", href: "/studio", label: "Studio", short: "Studio", Icon: SparkleIcon },
   { section: "saved", href: "/outfits/saved", label: "Saved Looks", short: "Saved", Icon: BookmarkIcon },
@@ -20,6 +21,7 @@ const LINKS: { section: Section; href: string; label: string; short: string; Ico
 function sectionFor(pathname: string | null): Section | null {
   const p = pathname ?? "/";
   if (p === "/") return "home";
+  if (p.startsWith("/shop")) return "shop";
   if (p.startsWith("/closet")) return "closet";
   if (p.startsWith("/outfits/saved")) return "saved";
   if (p.startsWith("/studio") || p.startsWith("/outfits") || p === "/try-on") return "studio";
@@ -136,7 +138,7 @@ export function MobileTabBar() {
         aria-label="Main"
         className="site-tabbar fixed inset-x-0 bottom-0 z-30 border-t border-black/[0.06] pb-[env(safe-area-inset-bottom)] backdrop-blur-xl md:hidden"
       >
-        <ul className="grid grid-cols-5">
+        <ul className="grid" style={{ gridTemplateColumns: `repeat(${LINKS.length}, minmax(0, 1fr))` }}>
           {LINKS.map(({ section, href, short, Icon }) => {
             const active = current === section;
             return (
@@ -149,7 +151,7 @@ export function MobileTabBar() {
                   }`}
                 >
                   <span
-                    className={`flex h-7 w-11 items-center justify-center rounded-full ${active ? "bg-[#121821] text-white" : ""}`}
+                    className={`flex h-7 w-10 items-center justify-center rounded-full ${active ? "bg-[#121821] text-white" : ""}`}
                   >
                     <Icon className="h-[18px] w-[18px]" />
                   </span>
