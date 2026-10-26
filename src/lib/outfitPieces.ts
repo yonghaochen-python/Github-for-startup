@@ -7,6 +7,9 @@ export function withPiece(pieces: ClothingItem[], item: ClothingItem): ClothingI
   const role = item.layeringRole;
   const kept = pieces.filter((p) => {
     if (role === "accessory") return true;
+    // A whole outfit (from a store picture) is worn on its own, with accessories; any other piece takes its place.
+    if (item.category === "outfit") return p.layeringRole === "accessory";
+    if (p.category === "outfit") return false;
     if (p.layeringRole === role) return false;
     // A one-piece and a bottom don't go together.
     if (role === "one_piece" && p.layeringRole === "bottom") return false;

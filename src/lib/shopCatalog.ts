@@ -68,12 +68,15 @@ export const LIVE_SHOP_KEY = "virm-live-shop";
  * A piece in the try-on tray: from the sample collection, or found in another store (pasted link or uploaded
  * photo). Store finds keep their page link so "View in store" can open it; nothing is bought through Virm.
  */
+/** What a tray piece is: a collection kind, or a whole outfit from one store picture. */
+export type TrayCategory = ShopProduct["category"] | "outfit";
+
 export type TrayItem = {
   key: string;
   name: string;
   /** The brand (sample collection) or the store it came from. */
   label: string;
-  category: ShopProduct["category"];
+  category: TrayCategory;
   layeringRole: LayeringRole;
   color: string;
   imageUrl: string;
@@ -94,11 +97,12 @@ export const trayItemFrom = (p: ShopProduct): TrayItem => ({
 });
 
 /** What each kind of piece is, for the layering rules. */
-export const ROLE_FOR: Record<ShopProduct["category"], LayeringRole> = {
+export const ROLE_FOR: Record<TrayCategory, LayeringRole> = {
   top: "mid_layer",
   bottom: "bottom",
   dress: "one_piece",
   outerwear: "outer_layer",
   shoes: "shoes",
   accessory: "accessory",
+  outfit: "one_piece",
 };

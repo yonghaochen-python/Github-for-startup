@@ -9,7 +9,7 @@ import { LAYER_LABELS } from "@/lib/layering";
 import { withPiece } from "@/lib/outfitPieces";
 import { garmentName } from "@/lib/tryOn/types";
 import { garmentSheetJpeg, photoToJpeg } from "@/lib/clientImage";
-import { LIVE_SHOP_KEY, type ShopProduct } from "@/lib/shopCatalog";
+import { LIVE_SHOP_KEY, type TrayCategory } from "@/lib/shopCatalog";
 import { addToWishlist } from "@/lib/shopWishlist";
 import type { RealTimeClient } from "@decartai/sdk";
 
@@ -445,7 +445,7 @@ export function LiveTryOn() {
                             key,
                             name: pick.description,
                             label: pick.retailer ?? "Store",
-                            category: pick.category as ShopProduct["category"],
+                            category: pick.category as TrayCategory,
                             layeringRole: pick.layeringRole,
                             color: pick.color ?? "",
                             imageUrl: pick.imageUrl,

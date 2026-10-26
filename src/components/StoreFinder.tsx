@@ -2,7 +2,7 @@
 
 import { useEffect, useRef, useState } from "react";
 import { photoToJpeg } from "@/lib/clientImage";
-import { ROLE_FOR, type ShopProduct, type TrayItem } from "@/lib/shopCatalog";
+import { ROLE_FOR, type TrayCategory, type TrayItem } from "@/lib/shopCatalog";
 
 /**
  * "Try on from any store": paste a product link (Virm reads the page's published picture and details on its
@@ -12,7 +12,8 @@ import { ROLE_FOR, type ShopProduct, type TrayItem } from "@/lib/shopCatalog";
  * invented. Pictures stay in this browser.
  */
 
-const KINDS: { value: ShopProduct["category"]; label: string }[] = [
+const KINDS: { value: TrayCategory; label: string }[] = [
+  { value: "outfit", label: "Whole outfit" },
   { value: "top", label: "Top" },
   { value: "bottom", label: "Bottom" },
   { value: "dress", label: "Dress" },
@@ -104,7 +105,7 @@ function Cropper({ src, onApply, onCancel }: { src: string; onApply: (dataUrl: s
 
   return (
     <div className="mt-4">
-      <p className="text-[12.5px] text-[#445159]">Drag a box around the piece you want.</p>
+      <p className="text-[12.5px] text-[#445159]">Drag a box around just the piece you want, then tap Use this part.</p>
       <div className="mt-3 flex justify-center bg-[#f0eee9] p-2">
         <div
           className="relative inline-block cursor-crosshair touch-none select-none overflow-hidden"
@@ -167,7 +168,7 @@ export function StoreFinder({
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [found, setFound] = useState<Found | null>(null);
-  const [kind, setKind] = useState<ShopProduct["category"]>("top");
+  const [kind, setKind] = useState<TrayCategory>("top");
   const [saved, setSaved] = useState(false);
   const [cropping, setCropping] = useState(false);
   const [small, setSmall] = useState(false);
@@ -319,6 +320,20 @@ export function StoreFinder({
     >
       <h2 className="font-display text-[26px] leading-tight text-[#121821]">Try on from any store</h2>
       <p className="mt-1 text-[13px] text-[#445159]">Found something you love? See how it looks on you before you buy.</p>
+      <ol className="mt-4 grid gap-2 text-[12px] leading-snug text-[#445159] sm:grid-cols-3">
+        {[
+          ["Add a piece", "Paste its link, or upload, paste or drop a picture."],
+          ["Check it", "Crop to just the piece and choose what it is."],
+          ["Try it on", "Right away, or add more pieces to try a whole outfit together."],
+        ].map(([title, text], i) => (
+          <li key={title} className="flex gap-2">
+            <span className="flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-[#121821] text-[10.5px] font-semibold text-white">{i + 1}</span>
+            <span>
+              <b className="font-semibold text-[#121821]">{title}.</b> {text}
+            </span>
+          </li>
+        ))}
+      </ol>
 
       <input
         ref={fileRef}
@@ -418,17 +433,20 @@ export function StoreFinder({
             />
             {found.price && <p className="mt-1 text-[13px] text-[#121821]">{found.price}</p>}
             <p className="mt-3 text-[12.5px] text-[#445159]">Is this the piece you want to try on?</p>
-            <p className="mt-1 text-[11.5px] text-[#5d6874]">Best: just the piece, plain background, whole item in view.</p>
+            <p className="mt-1 text-[11.5px] leading-snug text-[#5d6874]">
+              Only want part of the picture, like the pants from a full outfit? Tap <b className="font-semibold text-[#121821]">Crop</b> and box just that piece. Best results: plain background, whole piece in view.
+            </p>
             {small && <p className="mt-1 text-[11.5px] text-[#9a5b12]">This picture is small, so the try-on may look blurry.</p>}
             <label className="mt-3 block text-[11px] font-semibold text-[#4f5b66]">
               What is it?
-              <select value={kind} onChange={(e) => setKind(e.target.value as ShopProduct["category"])} className={`${field} mt-1`}>
+              <select value={kind} onChange={(e) => setKind(e.target.value as TrayCategory)} className={`${field} mt-1`}>
                 {KINDS.map((k) => (
                   <option key={k.value} value={k.value}>
                     {k.label}
                   </option>
                 ))}
               </select>
+              <span className="mt-1 block font-normal text-[#5d6874]">This tells the try-on what to swap on you.</span>
             </label>
             <div className="mt-4 flex flex-wrap gap-2">
               <button
@@ -445,12 +463,15 @@ export function StoreFinder({
                 disabled={trayFull}
                 className={ghost}
               >
-                Add to tray
+                Add to outfit
               </button>
               <button onClick={() => setSaved(onSave(item()))} disabled={saved} className={ghost}>
                 {saved ? "♥ Saved" : "♡ Save"}
               </button>
             </div>
+            <p className="mt-2 text-[11.5px] leading-snug text-[#5d6874]">
+              <b className="font-semibold text-[#121821]">Add to outfit</b> keeps this piece so you can add more, then try them all on together.
+            </p>
             {found.productUrl && (
               <a href={found.productUrl} target="_blank" rel="noopener noreferrer" className="mt-3 inline-block text-[12px] font-medium text-[#121821] underline underline-offset-4">
                 View in store ↗

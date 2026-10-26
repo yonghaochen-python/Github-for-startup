@@ -41,6 +41,7 @@ const SLOT_NAMES: Record<string, string> = {
   outerwear: "Outerwear",
   shoes: "Shoes",
   accessory: "Accessory",
+  outfit: "Whole outfit",
 };
 
 const LOVED_KEY = "virm-shop-loved";
@@ -186,7 +187,7 @@ export function Shop() {
                     <p className="truncate text-[12.5px] font-medium text-[#121821]">{w.name}</p>
                     <div className="mt-1.5 flex flex-wrap gap-x-3 text-[11.5px]">
                       <button onClick={() => toggleTray(w)} disabled={!added && tray.length >= MAX_TRAY} className="font-semibold text-[#121821] underline-offset-4 hover:underline disabled:opacity-40">
-                        {added ? "In tray" : "Add"}
+                        {added ? "In outfit" : "Add"}
                       </button>
                       {w.productUrl && (
                         <a href={w.productUrl} target="_blank" rel="noopener noreferrer" className="text-[#121821] underline-offset-4 hover:underline">
@@ -326,10 +327,10 @@ export function Shop() {
           </div>
 
           {/* The live try-on tray */}
-          <aside aria-label="Live try-on tray" className="self-start rounded-[6px] bg-white p-5 shadow-[0_1px_0_rgba(18,24,33,0.03),0_14px_36px_rgba(18,30,45,0.06)] lg:sticky lg:top-24">
+          <aside aria-label="Your outfit" className="self-start rounded-[6px] bg-white p-5 shadow-[0_1px_0_rgba(18,24,33,0.03),0_14px_36px_rgba(18,30,45,0.06)] lg:sticky lg:top-24">
             <div className="flex items-baseline justify-between">
               <div>
-                <p className="text-[13px] font-semibold text-[#121821]">Live try-on tray</p>
+                <p className="text-[13px] font-semibold text-[#121821]">Your outfit</p>
                 <p className="text-[11px] text-[#5d6874]">
                   {tray.length} selected{tray.length >= MAX_TRAY ? " (the most)" : ""}
                 </p>
@@ -347,7 +348,7 @@ export function Shop() {
                   <Spark />
                 </span>
                 <p className="mt-3 text-[13px] font-medium text-[#121821]">Build a look to try on</p>
-                <p className="mt-1 text-[11.5px] leading-snug text-[#5d6874]">Pick a top, bottom, jacket or any piece from the collection.</p>
+                <p className="mt-1 text-[11.5px] leading-snug text-[#5d6874]">Add pieces from any store or the collection, then try them on together.</p>
               </div>
             ) : (
               <ul className="flex flex-col gap-3">
