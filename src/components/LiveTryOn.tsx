@@ -292,10 +292,7 @@ export function LiveTryOn({
                 <Icon d={CAMERA} className="h-7 w-7" />
               </span>
               <h2 className="font-display text-[34px] leading-tight text-[#121821]">Your live mirror</h2>
-              <p className="mt-2 max-w-xs text-[13.5px] leading-relaxed text-[#26313a]">
-                See yourself live, then swap pieces from your closet. The camera starts only when you tap, and nothing is
-                recorded or sent anywhere.
-              </p>
+              <p className="mt-2 text-[13.5px] text-[#26313a]">20 second session</p>
               {cameraError && <p className="mt-4 max-w-xs rounded-[12px] bg-[rgba(255,255,255,0.7)] px-3 py-2 text-[12.5px] text-[#a3261b]">{cameraError}</p>}
               <div className="mt-6 flex flex-wrap justify-center gap-3">
                 <button
