@@ -4,6 +4,7 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import type { ClothingItem } from "@/components/OutfitCard";
 import { mirrorFrame } from "@/components/ui";
 import { LiquidGlass } from "@/components/LiquidGlass";
+import { TRY_ON_CAVEAT } from "@/lib/tryOnClient";
 import { garmentName } from "@/lib/tryOn/types";
 import { garmentSheetJpeg, photoToJpeg } from "@/lib/clientImage";
 import type { TrayCategory } from "@/lib/shopCatalog";
@@ -412,9 +413,7 @@ export function LiveTryOn({
         )}
 
         <p className="relative px-1 text-center text-[11.5px] leading-snug text-[#8fa3ad]">
-          {liveAvailable
-            ? "The camera on its own is free. AI try-on is a preview of your whole outfit, up to 20 seconds."
-            : "A preview of the Live experience. Real-time try-on, with clothes drawn on you as you move, isn't connected yet."}
+          {TRY_ON_CAVEAT}
         </p>
         </div>
       </section>

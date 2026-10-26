@@ -1,6 +1,9 @@
 import type { LayeringRole } from "@/lib/layering";
 import { garmentSheetJpeg, photoToJpeg } from "@/lib/clientImage";
 
+/** Shown with every try-on: what an AI preview can't promise. */
+export const TRY_ON_CAVEAT = "Virtual try-ons are AI previews. They can't show exactly how real fabric, fit, size or color will look.";
+
 type Piece = { id: string; imageUrl: string };
 type NotShown = { role: LayeringRole; description: string; reason: string };
 export type TryOnResult = { isMock: boolean; provider: string; imageDataUrl: string | null; notShown?: NotShown[]; reused?: boolean };

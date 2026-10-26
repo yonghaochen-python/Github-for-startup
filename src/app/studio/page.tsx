@@ -13,7 +13,7 @@ import { SaveToggle } from "@/components/SaveToggle";
 import { useToast } from "@/components/Toast";
 import { MirrorIcon, PlusIcon, SearchIcon } from "@/components/Icons";
 import { EmptyState, ErrorNote, PageShell, btnPrimary, mirrorFrame } from "@/components/ui";
-import { requestShopTryOn, requestTryOn, type TryOnResult } from "@/lib/tryOnClient";
+import { TRY_ON_CAVEAT, requestShopTryOn, requestTryOn, type TryOnResult } from "@/lib/tryOnClient";
 import { LiveTryOn, type ShopPick } from "@/components/LiveTryOn";
 import { LIVE_SHOP_KEY, SHOP_OUTFIT_KEY, SHOP_PRODUCTS, shopPiece, trayItemFrom, type TrayItem } from "@/lib/shopCatalog";
 import { Tips, type Tip } from "@/components/Tips";
@@ -600,6 +600,7 @@ export default function StudioPage() {
               {hasShopPieces && (
                 <p className="mt-2 text-center text-[11.5px] text-[#5d6874]">Looks with Shopping pieces aren&apos;t saved: the picture shows here only.</p>
               )}
+              <p className="mt-2 text-center text-[11.5px] leading-snug text-[#5d6874]">{TRY_ON_CAVEAT}</p>
             </div>
           </section>
           )}
