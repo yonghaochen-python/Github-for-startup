@@ -7,6 +7,9 @@
  * loopback, link-local or internal addresses — checked for the link and again for every redirect (followed by hand,
  * at most MAX_REDIRECTS), with the host's addresses looked up first. Short timeouts and size limits throughout.
  * Nothing fetched is stored.
+ *
+ * A link straight to a picture (such as "Copy image address", or an image dragged in from another tab) is read the
+ * same way and returned as the item's picture, with no page details.
  */
 
 const MAX_REDIRECTS = 3;
@@ -27,7 +30,8 @@ export class ImportError extends Error {
 }
 
 export type ImportedProduct = {
-  productUrl: string;
+  /** The product page; null when the link was to a picture rather than a page. */
+  productUrl: string | null;
   retailer: string;
   name: string | null;
   price: string | null;
@@ -149,18 +153,18 @@ async function safeFetch(start: URL, accept: string, max: number): Promise<{ url
         signal: AbortSignal.timeout(PAGE_TIMEOUT_MS),
       });
     } catch {
-      throw new ImportError("unreachable", "That store didn't respond in time.");
+      throw new ImportError("unreachable", "That store didn't respond in time. Upload a photo of the item instead.");
     }
     if (res.status >= 300 && res.status < 400) {
       const location = res.headers.get("location");
-      if (!location) throw new ImportError("unreachable", "That page couldn't be opened.");
+      if (!location) throw new ImportError("unreachable", "That page couldn't be opened. Check the link, or upload a photo of the item instead.");
       url = new URL(location, url);
       continue;
     }
     if (res.status === 401 || res.status === 403 || res.status === 429 || res.status === 451) {
       throw new ImportError("blocked", "This store doesn't let apps read its pages. Upload a photo of the item instead.");
     }
-    if (!res.ok) throw new ImportError("unreachable", "That page couldn't be opened.");
+    if (!res.ok) throw new ImportError("unreachable", "That page couldn't be opened. Check the link, or upload a photo of the item instead.");
     const type = (res.headers.get("content-type") ?? "").split(";")[0].trim().toLowerCase();
     return { url, type, body: await readCapped(res, max) };
   }
@@ -177,8 +181,20 @@ function decode(text: string): string {
     .replace(/&lt;/g, "<")
     .replace(/&gt;/g, ">")
     .replace(/&#(\d+);/g, (_, n) => String.fromCharCode(Number(n)))
+    .replace(/&#x([0-9a-f]+);/gi, (_, n) => String.fromCharCode(parseInt(n, 16)))
     .replace(/\s+/g, " ")
     .trim();
+}
+
+/** A tag's attribute value (any order, either quote style). */
+const attr = (tag: string, name: string): string | null => tag.match(new RegExp(`\\s${name}=["']([^"']*)["']`, "i"))?.[1] ?? null;
+
+/** Other standard places a page names its main picture: <link rel="image_src"> and itemprop="image" elements. */
+function otherImage(html: string): string | null {
+  const link = html.match(/<link[^>]+rel=["']image_src["'][^>]*>/i)?.[0];
+  const item = html.match(/<(?:img|link|meta)[^>]+itemprop=["']image["'][^>]*>/i)?.[0];
+  const ref = (link && attr(link, "href")) ?? (item && (attr(item, "content") ?? attr(item, "src") ?? attr(item, "href")));
+  return ref ? decode(ref) : null;
 }
 
 function metaContent(html: string, keys: string[]): string | null {
@@ -213,8 +229,19 @@ const asText = (v: unknown): string | null => (typeof v === "string" && v.trim()
 
 /** Imports a product from its page link: its details and its main image (as a data URL; nothing is stored). */
 export async function importProduct(rawUrl: string): Promise<ImportedProduct> {
-  const page = await safeFetch(checkUrl(rawUrl), "text/html,application/xhtml+xml", PAGE_MAX_BYTES);
-  if (!page.type.includes("html")) throw new ImportError("no-image", "That link isn't a product page.");
+  const page = await safeFetch(checkUrl(rawUrl), `text/html,application/xhtml+xml,${IMAGE_TYPES.join(",")}`, IMAGE_MAX_BYTES);
+  if (IMAGE_TYPES.includes(page.type)) {
+    return {
+      productUrl: null,
+      retailer: page.url.hostname.replace(/^www\./, ""),
+      name: null,
+      price: null,
+      currency: null,
+      imageDataUrl: `data:${page.type};base64,${Buffer.from(page.body).toString("base64")}`,
+    };
+  }
+  if (!page.type.includes("html")) throw new ImportError("no-image", "That link isn't a product page or a picture.");
+  if (page.body.byteLength > PAGE_MAX_BYTES) throw new ImportError("too-large", "That page is too large to read.");
   const html = new TextDecoder().decode(page.body);
 
   const product = jsonLdProduct(html);
@@ -222,7 +249,8 @@ export async function importProduct(rawUrl: string): Promise<ImportedProduct> {
   const imageRef =
     metaContent(html, ["og:image:secure_url", "og:image", "twitter:image", "twitter:image:src"]) ??
     asText(first(product?.image)) ??
-    asText((first(product?.image) as { url?: unknown } | undefined)?.url);
+    asText((first(product?.image) as { url?: unknown } | undefined)?.url) ??
+    otherImage(html);
   if (!imageRef) throw new ImportError("no-image", "Couldn't find the item's picture on that page. Upload a photo of it instead.");
 
   const image = await safeFetch(new URL(imageRef, page.url), IMAGE_TYPES.join(","), IMAGE_MAX_BYTES).catch((err) => {

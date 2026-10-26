@@ -56,9 +56,11 @@ function promptFor(pieces: ClothingItem[]): string {
   return `Substitute the current clothes with the full outfit in the reference image: ${list}, worn together`;
 }
 
+const BAD_PICTURE = "A piece's picture couldn't be used. Try a clearer photo of just the piece.";
+
 async function pictureOf(piece: ClothingItem): Promise<Blob> {
-  const res = await fetch(piece.imageUrl);
-  if (!res.ok) throw new Error("picture");
+  const res = await fetch(piece.imageUrl).catch(() => null);
+  if (!res?.ok) throw new Error(BAD_PICTURE);
   return res.blob();
 }
 
@@ -104,6 +106,8 @@ export function LiveTryOn() {
   const [ai, setAi] = useState<Ai>("off");
   const [secondsLeft, setSecondsLeft] = useState(0);
   const [aiStream, setAiStream] = useState<MediaStream | null>(null);
+  // Set when a mid-session outfit change is refused (the session keeps the last outfit).
+  const [pieceError, setPieceError] = useState<string | null>(null);
   const rtRef = useRef<RealTimeClient | null>(null);
   const timerRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const aiVideoRef = useRef<HTMLVideoElement | null>(null);
@@ -181,6 +185,7 @@ export function LiveTryOn() {
     const stream = streamRef.current;
     if (!stream || outfit.length === 0) return;
     setAi("connecting");
+    setPieceError(null);
     try {
       const tokenRes = await fetch("/api/live/token", { method: "POST" });
       const token = (await tokenRes.json().catch(() => ({}))) as { apiKey?: string; model?: string; maxSeconds?: number; error?: string };
@@ -229,7 +234,8 @@ export function LiveTryOn() {
       .then((image) => {
         if (!stop) return rt.set({ image, prompt: promptFor(outfit), enhance: true });
       })
-      .catch(() => {});
+      .then(() => !stop && setPieceError(null))
+      .catch(() => !stop && setPieceError(BAD_PICTURE));
     return () => {
       stop = true;
     };
@@ -493,8 +499,8 @@ export function LiveTryOn() {
             {ai === "connecting" && <span className="flex-1">Connecting…</span>}
             {ai === "on" && (
               <>
-                <span className="min-w-0 flex-1">
-                  Showing your outfit. Change pieces in your closet to update it live.
+                <span className={`min-w-0 flex-1 ${pieceError ? "text-[#ffd2cb]" : ""}`}>
+                  {pieceError ?? "Showing your outfit. Change pieces in your closet to update it live."}
                 </span>
                 <button onClick={() => endAi()} className="rounded-full border border-white/25 px-4 py-2 text-[12.5px] font-semibold text-white hover:bg-[rgba(255,255,255,0.1)]">
                   Stop
