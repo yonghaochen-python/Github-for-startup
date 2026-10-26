@@ -6,22 +6,28 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import type { ClothingItem } from "@/components/OutfitCard";
 import {
+  DEMO_LABEL,
+  HAS_PRICES,
   LIVE_SHOP_KEY,
   PRICE_BANDS,
   SHOP_BRANDS,
   SHOP_COLORS,
   SHOP_PRODUCTS,
+  SHOP_STYLES,
+  priceLabel,
   trayItemFrom,
+  type ShopProduct,
   type TrayItem,
 } from "@/lib/shopCatalog";
 import { addToWishlist, readWishlist, removeFromWishlist } from "@/lib/shopWishlist";
 import { StoreFinder } from "@/components/StoreFinder";
+import { ProductDetail } from "@/components/ProductDetail";
 
 /**
- * Shopping: a sample collection to browse and try on. Pieces picked with "Try on virtually" go into the live
- * try-on tray (up to six, several of a kind allowed, e.g. two jackets to compare); "Try on selected items" opens
- * Live wearing one of each and the rest a tap away. Prices, brands and products are samples; nothing is sold and
- * nothing is added to the closet.
+ * Shopping: browse the catalog, open a piece to see it up close and try it on (live, or on your saved photo), or
+ * import one from any store. Pieces added to "Your outfit" (up to six, several of a kind allowed) open on Live
+ * together. The ♡ saves to the wishlist. Nothing is sold here and nothing is added to My Closet. The catalog holds
+ * clearly labelled demo items until real, properly sourced listings are added (see lib/shopCatalog).
  */
 
 const TABS = [
@@ -44,7 +50,8 @@ const SLOT_NAMES: Record<string, string> = {
   outfit: "Whole outfit",
 };
 
-const LOVED_KEY = "virm-shop-loved";
+// Hearts used to be kept apart from the wishlist; they're one list now, so the old key is cleared.
+const OLD_LOVED_KEY = "virm-shop-loved";
 // "Your outfit" is kept on this device too, so it's still there after visiting Live (or leaving Shopping).
 const OUTFIT_KEY = "virm-shop-outfit";
 
@@ -98,20 +105,21 @@ export function Shop() {
   const router = useRouter();
   const [query, setQuery] = useState("");
   const [color, setColor] = useState("all");
+  const [style, setStyle] = useState("all");
   const [price, setPrice] = useState("all");
   const [brand, setBrand] = useState("all");
   const [tab, setTab] = useState("all");
   const [tray, setTray] = useState<TrayItem[]>([]);
-  const [loved, setLoved] = useState<string[]>([]);
   const [wishlist, setWishlist] = useState<TrayItem[]>([]);
+  const [open, setOpen] = useState<ShopProduct | null>(null);
+  const [importing, setImporting] = useState(false);
 
-  // Hearts are remembered on this device only.
+  // The wishlist and "Your outfit" are remembered on this device only.
   useEffect(() => {
     try {
-      const kept = JSON.parse(localStorage.getItem(LOVED_KEY) ?? "[]");
-      // eslint-disable-next-line react-hooks/set-state-in-effect -- browser-only storage, read after the first render
-      if (Array.isArray(kept)) setLoved(kept.filter((x) => typeof x === "string"));
+      localStorage.removeItem(OLD_LOVED_KEY);
     } catch {}
+    // eslint-disable-next-line react-hooks/set-state-in-effect -- browser-only storage, read after the first render
     setWishlist(readWishlist());
     try {
       const outfit = JSON.parse(localStorage.getItem(OUTFIT_KEY) ?? "[]");
@@ -121,14 +129,15 @@ export function Shop() {
     } catch {}
   }, []);
 
-  function toggleLoved(id: string) {
-    setLoved((list) => {
-      const next = list.includes(id) ? list.filter((x) => x !== id) : [...list, id];
-      try {
-        localStorage.setItem(LOVED_KEY, JSON.stringify(next));
-      } catch {}
-      return next;
-    });
+  const isSaved = (key: string) => wishlist.some((w) => w.key === key);
+
+  /** The ♡: saves a catalog piece to the wishlist, or takes it out. */
+  function toggleSaved(p: ShopProduct) {
+    if (isSaved(p.id)) setWishlist(removeFromWishlist(p.id));
+    else {
+      addToWishlist(trayItemFrom(p));
+      setWishlist(readWishlist());
+    }
   }
 
   /** Adds a piece to the tray, or takes it out (up to MAX_TRAY pieces). */
@@ -164,11 +173,21 @@ export function Shop() {
       (p) =>
         (tab === "all" || p.category === tab) &&
         (color === "all" || p.colors.some((c) => c.name === color)) &&
-        (!band || band.test(p.price)) &&
+        (style === "all" || p.style === style) &&
+        (!band || (p.price !== null && band.test(p.price))) &&
         (brand === "all" || p.brand === brand) &&
-        (!q || [p.name, p.brand, p.color, p.category].some((v) => v.toLowerCase().includes(q)))
+        (!q || [p.name, p.brand, p.retailer, p.color, p.category, p.style].some((v) => v?.toLowerCase().includes(q)))
     );
-  }, [query, color, price, brand, tab]);
+  }, [query, color, style, price, brand, tab]);
+
+  // Only filters that have something to choose from (demo items have no brand or price).
+  const filters = [
+    ["Color", color, setColor, SHOP_COLORS.map((c) => [c, c])],
+    ["Style", style, setStyle, SHOP_STYLES.map((c) => [c, c])],
+    ...(SHOP_BRANDS.length ? [["Brand", brand, setBrand, SHOP_BRANDS.map((b) => [b, b])]] : []),
+    ...(HAS_PRICES ? [["Price", price, setPrice, PRICE_BANDS.map((b) => [b.value, b.label])]] : []),
+  ] as [string, string, (v: string) => void, string[][]][];
+  const allDemo = shown.every((p) => p.isDemo);
 
   const inTray = new Set(tray.map((p) => p.key));
 
@@ -176,16 +195,30 @@ export function Shop() {
     <>
       <section id="collection" className="mx-auto max-w-[1400px] scroll-mt-24 px-4 pb-16 pt-8 sm:px-6">
         <div className="flex flex-wrap items-end justify-between gap-4">
-          <h1 className="font-display text-[44px] leading-none tracking-[-1px] text-[#121821] sm:text-[52px]">Shopping</h1>
-          <Link href="/live" className="flex items-baseline gap-3 text-[10.5px] uppercase tracking-[1.6px] text-[#5d6874] hover:text-[#121821]">
-            <span className="font-display text-[18px] normal-case italic tracking-normal text-[#29343a]">20 sec</span>
-            Live session preview
-          </Link>
+          <div>
+            <h1 className="font-display text-[44px] leading-none tracking-[-1px] text-[#121821] sm:text-[52px]">Shopping</h1>
+            <p className="mt-2 text-[14px] text-[#4f5b66]">Browse, then see it on you before you buy.</p>
+          </div>
+          <div className="flex items-center gap-5">
+            <Link href="/live" className="flex items-baseline gap-3 text-[10.5px] uppercase tracking-[1.6px] text-[#5d6874] hover:text-[#121821]">
+              <span className="font-display text-[18px] normal-case italic tracking-normal text-[#29343a]">20 sec</span>
+              Live session preview
+            </Link>
+            <button
+              onClick={() => setImporting((v) => !v)}
+              aria-expanded={importing}
+              className="inline-flex min-h-[42px] items-center gap-2 rounded-full bg-white px-4 text-[12.5px] font-medium text-[#121821] shadow-[inset_0_0_0_1px_rgba(18,24,33,0.14)] hover:shadow-[inset_0_0_0_1px_rgba(18,24,33,0.3)]"
+            >
+              {importing ? "× Close import" : "+ Import an item"}
+            </button>
+          </div>
         </div>
 
-        <div className="mt-6">
-          <StoreFinder onTryNow={(item) => tryOnLive(item)} onAdd={toggleTray} onSave={saveFind} trayFull={tray.length >= MAX_TRAY} />
-        </div>
+        {importing && (
+          <div className="mt-6">
+            <StoreFinder onTryNow={(item) => tryOnLive(item)} onAdd={toggleTray} onSave={saveFind} trayFull={tray.length >= MAX_TRAY} />
+          </div>
+        )}
 
         {wishlist.length > 0 && (
           <div className="mt-6">
@@ -195,10 +228,15 @@ export function Shop() {
                 const added = tray.some((p) => p.key === w.key);
                 return (
                   <li key={w.key} className="w-[150px] shrink-0 rounded-[6px] bg-white p-2.5 shadow-[0_1px_0_rgba(18,24,33,0.03),0_8px_22px_rgba(18,30,45,0.05)]">
-                    <div className="relative aspect-[3/4] overflow-hidden bg-[#f0eee9]">
+                    <button
+                      onClick={() => setOpen(SHOP_PRODUCTS.find((p) => p.id === w.key) ?? null)}
+                      disabled={!SHOP_PRODUCTS.some((p) => p.id === w.key)}
+                      aria-label={`Open ${w.name}`}
+                      className="relative block aspect-[3/4] w-full overflow-hidden bg-[#f0eee9] disabled:cursor-default"
+                    >
                       {/* eslint-disable-next-line @next/next/no-img-element -- a picture saved on this device */}
                       <img src={w.imageUrl} alt={w.name} className="absolute inset-0 h-full w-full object-contain p-1.5" />
-                    </div>
+                    </button>
                     <p className="mt-2 truncate text-[9.5px] uppercase tracking-[1.4px] text-[#5d6874]">{w.label || "Store find"}</p>
                     <p className="truncate text-[12.5px] font-medium text-[#121821]">{w.name}</p>
                     <div className="mt-1.5 flex flex-wrap gap-x-3 text-[11.5px]">
@@ -235,14 +273,8 @@ export function Shop() {
               className="w-full bg-transparent text-[13px] text-[#121821] outline-none placeholder:text-[#7d8790]"
             />
           </label>
-          <div className="grid grid-cols-3 gap-4">
-            {(
-              [
-                ["Color", color, setColor, SHOP_COLORS.map((c) => [c, c])],
-                ["Price", price, setPrice, PRICE_BANDS.map((b) => [b.value, b.label])],
-                ["Brand", brand, setBrand, SHOP_BRANDS.map((b) => [b, b])],
-              ] as [string, string, (v: string) => void, string[][]][]
-            ).map(([name, value, set, options]) => (
+          <div className="grid gap-4" style={{ gridTemplateColumns: `repeat(${filters.length}, minmax(0, 1fr))` }}>
+            {filters.map(([name, value, set, options]) => (
               <label key={name} className="relative block">
                 <span className={`${label} text-[9.5px]`}>{name}</span>
                 <select value={value} onChange={(e) => set(e.target.value)} className={underlineSelect}>
@@ -278,63 +310,79 @@ export function Shop() {
           <div>
             <div className="mb-3 flex justify-between text-[10px] uppercase tracking-[1.8px] text-[#5d6874]">
               <span>
-                {shown.length} sample {shown.length === 1 ? "piece" : "pieces"}
+                {shown.length} {allDemo ? "demo " : ""}
+                {shown.length === 1 ? "piece" : "pieces"}
               </span>
             </div>
+            {allDemo && shown.length > 0 && (
+              <p className="mb-5 text-[12px] text-[#5d6874]">Demo items photographed by Virm, not store listings. Real products will appear here as they&apos;re added.</p>
+            )}
             {shown.length === 0 ? (
               <p className="rounded-[6px] bg-white px-6 py-10 text-center text-[13px] text-[#5d6874]">Nothing matches. Try another filter.</p>
             ) : (
               <ul className="grid grid-cols-2 gap-x-4 gap-y-8 md:grid-cols-3">
                 {shown.map((p) => {
                   const selected = inTray.has(p.id);
-                  const isLoved = loved.includes(p.id);
+                  const saved = isSaved(p.id);
+                  const price = priceLabel(p.price, p.currency);
                   return (
                     <li key={p.id} className="flex flex-col">
                       <div className="relative aspect-[3/4] overflow-hidden bg-[#f0eee9]">
-                        <Image src={p.imageUrl} alt={p.name} fill unoptimized className="p-5 transition duration-500 hover:scale-[1.03]" style={{ objectFit: "contain" }} />
+                        <button onClick={() => setOpen(p)} aria-label={`Open ${p.name}`} className="absolute inset-0">
+                          <Image src={p.imageUrl} alt={p.name} fill unoptimized className="p-5 transition duration-500 hover:scale-[1.03]" style={{ objectFit: "contain" }} />
+                        </button>
                         <button
-                          onClick={() => toggleLoved(p.id)}
-                          aria-pressed={isLoved}
-                          aria-label={isLoved ? `Remove ${p.name} from favorites` : `Add ${p.name} to favorites`}
-                          className={`absolute right-3 top-3 flex h-9 w-9 items-center justify-center rounded-full bg-white/90 shadow-sm ${isLoved ? "text-[#c23a2c]" : "text-[#29343a]"}`}
+                          onClick={() => toggleSaved(p)}
+                          aria-pressed={saved}
+                          aria-label={saved ? `Remove ${p.name} from wishlist` : `Save ${p.name} to wishlist`}
+                          className={`absolute right-3 top-3 flex h-9 w-9 items-center justify-center rounded-full bg-white/90 shadow-sm ${saved ? "text-[#c23a2c]" : "text-[#29343a]"}`}
                         >
-                          <Heart filled={isLoved} />
+                          <Heart filled={saved} />
                         </button>
                         {selected && (
-                          <span className="absolute bottom-3 left-3 inline-flex items-center gap-1.5 bg-[#121821]/85 px-2.5 py-1.5 text-[9.5px] font-medium uppercase tracking-[1.5px] text-white">
-                            ✓ Selected
+                          <span className="pointer-events-none absolute bottom-3 left-3 inline-flex items-center gap-1.5 bg-[#121821]/85 px-2.5 py-1.5 text-[9.5px] font-medium uppercase tracking-[1.5px] text-white">
+                            ✓ In outfit
                           </span>
                         )}
                       </div>
                       <div className="mt-3 flex items-start justify-between gap-3">
-                        <div className="min-w-0">
-                          <p className="text-[9.5px] uppercase tracking-[1.6px] text-[#5d6874]">{p.brand}</p>
-                          <p className="mt-0.5 truncate text-[13.5px] font-medium text-[#121821]">{p.name}</p>
-                        </div>
-                        <p className="text-[13px] font-medium text-[#121821]">${p.price}</p>
+                        <button onClick={() => setOpen(p)} className="min-w-0 text-left">
+                          <p className="text-[9.5px] uppercase tracking-[1.6px] text-[#5d6874]">{p.brand ?? (p.isDemo ? DEMO_LABEL : p.retailer)}</p>
+                          <p className="mt-0.5 truncate text-[13.5px] font-medium text-[#121821] hover:underline">{p.name}</p>
+                        </button>
+                        {price && <p className="text-[13px] font-medium text-[#121821]">{price}</p>}
                       </div>
-                      <div className="mt-2 flex items-center justify-between gap-2">
-                        <span className="flex gap-1.5" aria-label={`Colors: ${p.colors.map((c) => c.name).join(", ")}`}>
-                          {p.colors.map((c) => (
-                            <span key={c.name} title={c.name} className="h-3 w-3 rounded-full ring-1 ring-black/15" style={{ background: c.hex }} />
-                          ))}
-                        </span>
-                        <span className="truncate text-[10px] tracking-[0.5px] text-[#5d6874]">{p.sizes.join(" · ")}</span>
-                      </div>
-                      <button
-                        onClick={() => toggleTray(trayItemFrom(p))}
-                        aria-pressed={selected}
-                        disabled={!selected && tray.length >= MAX_TRAY}
-                        className={`mt-3 inline-flex min-h-[42px] items-center justify-center gap-2 rounded-[2px] border text-[12px] font-medium transition ${
-                          selected ? "border-[#121821] bg-[#121821] text-white" : "border-black/15 bg-white text-[#121821] hover:border-[#121821] disabled:opacity-40"
-                        }`}
-                      >
-                        {selected ? "✓ Selected for try-on" : (
+                      <p className="mt-1 text-[11px] text-[#5d6874]">
+                        {SLOT_NAMES[p.category]} · {p.style}
+                        {p.productUrl && (
                           <>
-                            <Spark className="h-3.5 w-3.5" /> Try on virtually
+                            {" · "}
+                            <a href={p.productUrl} target="_blank" rel="noopener noreferrer" className="text-[#121821] underline underline-offset-2">
+                              Store ↗
+                            </a>
                           </>
                         )}
-                      </button>
+                      </p>
+                      <div className="mt-3 flex gap-2">
+                        <button
+                          onClick={() => setOpen(p)}
+                          className="inline-flex min-h-[42px] flex-1 items-center justify-center gap-2 rounded-[2px] bg-[#121821] text-[12px] font-medium text-white hover:bg-[#2a3542]"
+                        >
+                          <Spark className="h-3.5 w-3.5" /> Try On
+                        </button>
+                        <button
+                          onClick={() => toggleTray(trayItemFrom(p))}
+                          aria-pressed={selected}
+                          aria-label={selected ? `Take ${p.name} out of your outfit` : `Add ${p.name} to your outfit`}
+                          title={selected ? "In your outfit" : "Add to outfit"}
+                          disabled={!selected && tray.length >= MAX_TRAY}
+                          className={`inline-flex min-h-[42px] w-[42px] items-center justify-center rounded-[2px] border text-[15px] transition ${
+                            selected ? "border-[#121821] bg-[#eef1f2] text-[#121821]" : "border-black/15 bg-white text-[#121821] hover:border-[#121821] disabled:opacity-40"
+                          }`}
+                        >
+                          {selected ? "✓" : "+"}
+                        </button>
+                      </div>
                     </li>
                   );
                 })}
@@ -404,6 +452,19 @@ export function Shop() {
           </aside>
         </div>
       </section>
+
+      {open && (
+        <ProductDetail
+          product={open}
+          onClose={() => setOpen(null)}
+          onTryLive={() => tryOnLive(trayItemFrom(open))}
+          inOutfit={inTray.has(open.id)}
+          outfitFull={tray.length >= MAX_TRAY}
+          onToggleOutfit={() => toggleTray(trayItemFrom(open))}
+          saved={isSaved(open.id)}
+          onToggleSaved={() => toggleSaved(open)}
+        />
+      )}
     </>
   );
 }

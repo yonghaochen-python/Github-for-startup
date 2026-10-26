@@ -1,65 +1,106 @@
 import type { LayeringRole } from "@/lib/layering";
 
 /**
- * The sample shop: a fixed set of pieces to show the Shopping page and try on live. Names, brands and prices are
- * samples for the concept, not real products or partners. Photos are Virm's own clean product shots (plain
- * backgrounds, which the try-on reads best).
+ * The Shopping catalog. Every field a real listing can have is here, so demo items can be swapped for properly
+ * sourced products later (from a store's feed or partner programme) without changing the page.
+ *
+ * For now it holds only demo items: Virm's own product photos, clearly labelled, with no brand, store, price or
+ * sizes (none are invented). Unknown fields are null and simply aren't shown.
  */
 
 export type ShopColor = { name: string; hex: string };
 
 export type ShopProduct = {
   id: string;
+  /** A plain description of the piece (demo items) or the store's own product name (real listings). */
   name: string;
-  brand: string;
-  price: number;
+  /** The brand, when known. */
+  brand: string | null;
   category: "top" | "bottom" | "dress" | "outerwear" | "shoes" | "accessory";
   layeringRole: LayeringRole;
-  /** The main color word, used for filtering and to describe the piece to the try-on AI. */
+  /** The main color word, used for search and to describe the piece to the try-on AI. */
   color: string;
   colors: ShopColor[];
-  sizes: string[];
+  style: string;
+  /** Our own image (in /public) or one we have permission to show. */
   imageUrl: string;
+  price: number | null;
+  currency: string | null;
+  retailer: string | null;
+  /** The store's product page, when there is one. */
+  productUrl: string | null;
+  availability: string | null;
+  /** When the listing was last checked (ISO date), when known. */
+  updatedAt: string | null;
+  /** Whether the picture works for try-on (a clear photo of one garment). */
+  tryOnEligible: boolean;
+  /** Demonstration data, not a real store listing. */
+  isDemo: boolean;
 };
 
-export const SHOP_BRANDS = ["Virm Edit · Sample", "Independent Sample"] as const;
-const EDIT = SHOP_BRANDS[0];
-const INDIE = SHOP_BRANDS[1];
-
-const LETTERS = ["XS", "S", "M", "L"];
-const WAIST = ["24", "26", "28", "30", "32"];
-const SHOE = ["36", "37", "38", "39", "40", "41"];
+/** How demo items are labelled wherever a brand would show. */
+export const DEMO_LABEL = "Virm demo";
 
 const WHITE = { name: "White", hex: "#f4f2ec" };
 const BLACK = { name: "Black", hex: "#1c1d20" };
-const SAND = { name: "Sand", hex: "#d8c7ab" };
-const IVORY = { name: "Ivory", hex: "#efe6d4" };
+const CAMEL = { name: "Camel", hex: "#c19a6b" };
+const CREAM = { name: "Cream", hex: "#efe6d4" };
 const BLUE = { name: "Blue", hex: "#8fa9c7" };
 const BROWN = { name: "Brown", hex: "#8a5f3c" };
 const GREY = { name: "Grey", hex: "#a5a8ab" };
+const BEIGE = { name: "Beige", hex: "#d8c7ab" };
+
+const demo = (p: Pick<ShopProduct, "id" | "name" | "category" | "layeringRole" | "color" | "colors" | "style" | "imageUrl">): ShopProduct => ({
+  ...p,
+  brand: null,
+  price: null,
+  currency: null,
+  retailer: null,
+  productUrl: null,
+  availability: null,
+  updatedAt: null,
+  tryOnEligible: true,
+  isDemo: true,
+});
 
 export const SHOP_PRODUCTS: ShopProduct[] = [
-  { id: "airline-linen-shirt", name: "Airline Linen Shirt", brand: EDIT, price: 118, category: "top", layeringRole: "mid_layer", color: "light blue", colors: [BLUE, WHITE], sizes: LETTERS, imageUrl: "/sample/linen-shirt.jpg" },
-  { id: "soft-structure-coat", name: "Soft Structure Coat", brand: EDIT, price: 248, category: "outerwear", layeringRole: "outer_layer", color: "camel", colors: [SAND, BROWN], sizes: LETTERS, imageUrl: "/sample/camel-coat.jpg" },
-  { id: "relaxed-pale-jean", name: "Relaxed Pale Jean", brand: INDIE, price: 146, category: "bottom", layeringRole: "bottom", color: "light blue denim", colors: [BLUE], sizes: WAIST, imageUrl: "/sample/light-jeans.jpg" },
-  { id: "garden-slip-dress", name: "Garden Slip Dress", brand: EDIT, price: 198, category: "dress", layeringRole: "one_piece", color: "cream floral", colors: [IVORY], sizes: LETTERS, imageUrl: "/sample/floral-sundress.jpg" },
-  { id: "low-form-sneaker", name: "Low Form Sneaker", brand: INDIE, price: 132, category: "shoes", layeringRole: "shoes", color: "white", colors: [WHITE, BLACK], sizes: SHOE, imageUrl: "/sample/white-sneakers.jpg" },
-  { id: "arc-chelsea-boot", name: "Arc Chelsea Boot", brand: EDIT, price: 220, category: "shoes", layeringRole: "shoes", color: "brown leather", colors: [BROWN, BLACK], sizes: SHOE, imageUrl: "/sample/chelsea-boots.jpg" },
-  { id: "rib-turtleneck", name: "Rib Turtleneck", brand: INDIE, price: 94, category: "top", layeringRole: "mid_layer", color: "black", colors: [BLACK, IVORY], sizes: LETTERS, imageUrl: "/sample/turtleneck.jpg" },
-  { id: "quilted-city-puffer", name: "Quilted City Puffer", brand: INDIE, price: 184, category: "outerwear", layeringRole: "outer_layer", color: "black", colors: [BLACK], sizes: ["S", "M", "L", "XL"], imageUrl: "/sample/puffer-jacket.jpg" },
-  { id: "pleated-check-skirt", name: "Pleated Check Skirt", brand: EDIT, price: 128, category: "bottom", layeringRole: "bottom", color: "grey plaid", colors: [GREY], sizes: LETTERS, imageUrl: "/sample/plaid-skirt.jpg" },
-  { id: "cable-crew-sweater", name: "Cable Crew Sweater", brand: EDIT, price: 156, category: "top", layeringRole: "mid_layer", color: "cream", colors: [IVORY, SAND], sizes: LETTERS, imageUrl: "/sample/cable-sweater.jpg" },
-  { id: "wrap-belted-coat", name: "Wrap Belted Coat", brand: INDIE, price: 276, category: "outerwear", layeringRole: "outer_layer", color: "beige", colors: [SAND], sizes: LETTERS, imageUrl: "/sample/wrap-coat.jpg" },
-  { id: "riviera-straw-hat", name: "Riviera Straw Hat", brand: EDIT, price: 68, category: "accessory", layeringRole: "accessory", color: "natural straw", colors: [SAND], sizes: ["One size"], imageUrl: "/sample/straw-hat.jpg" },
+  demo({ id: "demo-linen-shirt", name: "Linen shirt", category: "top", layeringRole: "mid_layer", color: "light blue", colors: [BLUE], style: "Casual", imageUrl: "/sample/linen-shirt.jpg" }),
+  demo({ id: "demo-camel-coat", name: "Camel coat", category: "outerwear", layeringRole: "outer_layer", color: "camel", colors: [CAMEL], style: "Classic", imageUrl: "/sample/camel-coat.jpg" }),
+  demo({ id: "demo-light-jeans", name: "Light-wash jeans", category: "bottom", layeringRole: "bottom", color: "light blue denim", colors: [BLUE], style: "Casual", imageUrl: "/sample/light-jeans.jpg" }),
+  demo({ id: "demo-floral-sundress", name: "Floral sundress", category: "dress", layeringRole: "one_piece", color: "cream floral", colors: [CREAM], style: "Summer", imageUrl: "/sample/floral-sundress.jpg" }),
+  demo({ id: "demo-white-sneakers", name: "White sneakers", category: "shoes", layeringRole: "shoes", color: "white", colors: [WHITE], style: "Casual", imageUrl: "/sample/white-sneakers.jpg" }),
+  demo({ id: "demo-chelsea-boots", name: "Chelsea boots", category: "shoes", layeringRole: "shoes", color: "brown leather", colors: [BROWN], style: "Classic", imageUrl: "/sample/chelsea-boots.jpg" }),
+  demo({ id: "demo-turtleneck", name: "Rib turtleneck", category: "top", layeringRole: "mid_layer", color: "black", colors: [BLACK], style: "Classic", imageUrl: "/sample/turtleneck.jpg" }),
+  demo({ id: "demo-puffer", name: "Quilted puffer jacket", category: "outerwear", layeringRole: "outer_layer", color: "black", colors: [BLACK], style: "Cozy", imageUrl: "/sample/puffer-jacket.jpg" }),
+  demo({ id: "demo-plaid-skirt", name: "Pleated plaid skirt", category: "bottom", layeringRole: "bottom", color: "grey plaid", colors: [GREY], style: "Classic", imageUrl: "/sample/plaid-skirt.jpg" }),
+  demo({ id: "demo-cable-sweater", name: "Cable-knit sweater", category: "top", layeringRole: "mid_layer", color: "cream", colors: [CREAM], style: "Cozy", imageUrl: "/sample/cable-sweater.jpg" }),
+  demo({ id: "demo-wrap-coat", name: "Belted wrap coat", category: "outerwear", layeringRole: "outer_layer", color: "beige", colors: [BEIGE], style: "Classic", imageUrl: "/sample/wrap-coat.jpg" }),
+  demo({ id: "demo-straw-hat", name: "Straw hat", category: "accessory", layeringRole: "accessory", color: "natural straw", colors: [BEIGE], style: "Summer", imageUrl: "/sample/straw-hat.jpg" }),
 ];
 
-export const SHOP_COLORS = ["White", "Black", "Sand", "Ivory", "Blue", "Brown", "Grey"] as const;
+const unique = (values: (string | null)[]) => [...new Set(values.filter((v): v is string => Boolean(v)))].sort();
+
+/** Filter choices, taken from the catalog itself (a filter with nothing to choose isn't shown). */
+export const SHOP_COLORS = unique(SHOP_PRODUCTS.flatMap((p) => p.colors.map((c) => c.name)));
+export const SHOP_STYLES = unique(SHOP_PRODUCTS.map((p) => p.style));
+export const SHOP_BRANDS = unique(SHOP_PRODUCTS.map((p) => p.brand));
+export const HAS_PRICES = SHOP_PRODUCTS.some((p) => p.price !== null);
 
 export const PRICE_BANDS = [
-  { value: "under-150", label: "Under $150", test: (p: number) => p < 150 },
-  { value: "150-200", label: "$150–$200", test: (p: number) => p >= 150 && p <= 200 },
-  { value: "over-200", label: "$200+", test: (p: number) => p > 200 },
+  { value: "under-50", label: "Under $50", test: (p: number) => p < 50 },
+  { value: "50-150", label: "$50–$150", test: (p: number) => p >= 50 && p <= 150 },
+  { value: "over-150", label: "$150+", test: (p: number) => p > 150 },
 ] as const;
+
+/** A price in its own currency, or null when it isn't known. */
+export function priceLabel(price: number | null, currency: string | null): string | null {
+  if (price === null) return null;
+  try {
+    return new Intl.NumberFormat(undefined, { style: "currency", currency: currency ?? "USD" }).format(price);
+  } catch {
+    return `${price}${currency ? ` ${currency}` : ""}`;
+  }
+}
 
 /** Shop picks handed to the Live page (kept for this browser tab). */
 export const LIVE_SHOP_KEY = "virm-live-shop";
@@ -87,13 +128,13 @@ export type TrayItem = {
 export const trayItemFrom = (p: ShopProduct): TrayItem => ({
   key: p.id,
   name: p.name,
-  label: p.brand,
+  label: p.brand ?? (p.isDemo ? DEMO_LABEL : (p.retailer ?? "")),
   category: p.category,
   layeringRole: p.layeringRole,
   color: p.color,
   imageUrl: p.imageUrl,
-  price: `$${p.price}`,
-  productUrl: null,
+  price: priceLabel(p.price, p.currency),
+  productUrl: p.productUrl,
 });
 
 /** What each kind of piece is, for the layering rules. */

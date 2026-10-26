@@ -348,7 +348,7 @@ export function StoreFinder({
 
   return (
     <section
-      aria-label="Try on from any store"
+      aria-label="Import an item"
       className="rounded-[6px] bg-white p-5 shadow-[0_1px_0_rgba(18,24,33,0.03),0_14px_36px_rgba(18,30,45,0.06)] sm:p-6"
       onDragOver={(e) => {
         if (found) return;
@@ -365,7 +365,7 @@ export function StoreFinder({
         drop(e.dataTransfer);
       }}
     >
-      <h2 className="font-display text-[26px] leading-tight text-[#121821]">Try on from any store</h2>
+      <h2 className="font-display text-[26px] leading-tight text-[#121821]">Import an item</h2>
       <p className="mt-1 text-[13px] text-[#445159]">Found something you love? See how it looks on you before you buy.</p>
       <ol className="mt-4 grid gap-2 text-[12px] leading-snug text-[#445159] sm:grid-cols-3">
         {[
