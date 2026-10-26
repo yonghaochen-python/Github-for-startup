@@ -427,14 +427,21 @@ export default function StudioPage() {
         <Tips id="studio" tips={STUDIO_TIPS} />
 
         <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
-          <div role="tablist" aria-label="How to try it on" className="inline-flex rounded-full bg-white p-1 shadow-[0_1px_0_rgba(18,24,33,0.03),0_8px_22px_rgba(18,30,45,0.06)]">
+          <div role="tablist" aria-label="How to try it on" className="relative grid grid-cols-2 rounded-full bg-white p-1 shadow-[0_1px_0_rgba(18,24,33,0.03),0_8px_22px_rgba(18,30,45,0.06)]">
+            {/* The dark pill slides to the chosen side. */}
+            <span
+              aria-hidden
+              className={`absolute inset-y-1 left-1 w-[calc(50%-4px)] rounded-full bg-[#121821] transition-transform duration-300 ease-[cubic-bezier(.3,.7,.2,1)] motion-reduce:transition-none ${
+                mode === "live" ? "translate-x-full" : "translate-x-0"
+              }`}
+            />
             {(["photo", "live"] as const).map((m) => (
               <button
                 key={m}
                 role="tab"
                 aria-selected={mode === m}
                 onClick={() => setMode(m)}
-                className={`rounded-full px-5 py-2 text-[13px] font-semibold transition ${mode === m ? "bg-[#121821] text-white" : "text-[#4f5b66] hover:text-[#121821]"}`}
+                className={`relative rounded-full px-5 py-2 text-[13px] font-semibold transition-colors duration-300 ${mode === m ? "text-white" : "text-[#4f5b66] hover:text-[#121821]"}`}
               >
                 {m === "photo" ? "Photo" : "Live"}
               </button>
