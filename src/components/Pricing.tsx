@@ -1,6 +1,7 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
+import { createPortal } from "react-dom";
 import Link from "next/link";
 import { useAuth } from "@/components/AuthProvider";
 import { btnPrimary, btnSecondary, eyebrow, surface } from "@/components/ui";
@@ -97,7 +98,7 @@ export function Pricing() {
         {PLANS.map((plan) => (
           <article
             key={plan.name}
-            className={`${surface} relative flex flex-col p-6 sm:p-7 ${plan.suggested ? "ring-[1.5px] ring-[#121821]" : ""}`}
+            className={`${surface} relative flex flex-col p-6 sm:p-7 ${plan.suggested ? "order-first ring-[1.5px] ring-[#121821] md:order-none" : ""}`}
           >
             {plan.suggested && (
               <span className="absolute -top-3 left-6 rounded-full bg-[#121821] px-3 py-1 text-[10.5px] font-semibold uppercase tracking-[1.6px] text-white">
@@ -179,5 +180,43 @@ export function Pricing() {
         </div>
       </section>
     </>
+  );
+}
+
+/**
+ * The plans in a sheet over the current page (opened from "Upgrade" in the top bar), so people see pricing without
+ * leaving what they're doing. Same content as the Pricing page; nothing can be bought yet.
+ */
+export function PricingSheet({ onClose }: { onClose: () => void }) {
+  useEffect(() => {
+    const onKey = (e: KeyboardEvent) => e.key === "Escape" && onClose();
+    document.addEventListener("keydown", onKey);
+    const overflow = document.body.style.overflow;
+    document.body.style.overflow = "hidden";
+    return () => {
+      document.removeEventListener("keydown", onKey);
+      document.body.style.overflow = overflow;
+    };
+  }, [onClose]);
+
+  // Drawn on the page itself (the top bar's blur would otherwise hold it inside the bar).
+  return createPortal(
+    <div className="fixed inset-0 z-50 flex items-end justify-center bg-[rgba(10,16,24,0.55)] sm:items-center sm:p-6" onClick={onClose}>
+      <div
+        role="dialog"
+        aria-modal="true"
+        aria-label="Plans"
+        onClick={(e) => e.stopPropagation()}
+        className="relative max-h-[92vh] w-full max-w-[1080px] overflow-y-auto rounded-t-[22px] bg-[#f4f2ee] px-5 pb-8 pt-7 shadow-[0_24px_60px_rgba(10,16,24,0.3)] sm:rounded-[22px] sm:px-8"
+      >
+        <button onClick={onClose} aria-label="Close" className="absolute right-4 top-4 flex h-9 w-9 items-center justify-center rounded-full bg-white text-[18px] text-[#29343a] shadow-sm hover:text-[#121821]">
+          ×
+        </button>
+        <p className={eyebrow}>Plans</p>
+        <h2 className="mb-5 mt-2 font-display text-[36px] leading-none tracking-[-0.8px] text-[#121821] sm:text-[44px]">Choose your mirror</h2>
+        <Pricing />
+      </div>
+    </div>,
+    document.body
   );
 }

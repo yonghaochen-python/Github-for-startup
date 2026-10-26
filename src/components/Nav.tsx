@@ -1,10 +1,11 @@
 "use client";
 
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useAuth } from "@/components/AuthProvider";
 import { BagIcon, BookmarkIcon, ClosetIcon, HomeIcon, SparkleIcon, UserIcon } from "@/components/Icons";
+import { PricingSheet } from "@/components/Pricing";
 
 type Section = "home" | "shop" | "closet" | "studio" | "saved" | "profile";
 
@@ -60,6 +61,7 @@ export function Nav() {
   const { user, logout } = useAuth();
   const current = sectionFor(pathname);
   useSectionVisit(current, Boolean(user));
+  const [plansOpen, setPlansOpen] = useState(false);
 
   if (pathname === "/login") return null;
 
@@ -89,7 +91,16 @@ export function Nav() {
           </nav>
         )}
 
-        <div className="ml-auto flex shrink-0 items-center gap-3">
+        <div className="ml-auto flex shrink-0 items-center gap-2 sm:gap-3">
+          {/* Plans, one tap away on every page; they open over the page instead of leaving it. */}
+          {user && (
+            <button
+              onClick={() => setPlansOpen(true)}
+              className="nav-upgrade rounded-full bg-[#121821] px-4 py-2 text-[12px] font-semibold text-white hover:bg-[#2a3542]"
+            >
+              Upgrade
+            </button>
+          )}
           {user?.isAdmin && (
             <Link
               href="/admin"
@@ -120,6 +131,7 @@ export function Nav() {
           )}
         </div>
       </div>
+      {plansOpen && <PricingSheet onClose={() => setPlansOpen(false)} />}
     </header>
   );
 }

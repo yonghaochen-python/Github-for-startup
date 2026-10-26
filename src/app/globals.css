@@ -104,6 +104,12 @@ html[data-period="night"] main :is(a, button):is([class^="bg-[#121821]"], [class
   color: #121821;
 }
 
+/* The top bar's Upgrade button turns light at night so it still stands out on the dark bar. */
+html[data-period="night"] .site-nav .nav-upgrade {
+  background-color: #eef2f6;
+  color: #121821;
+}
+
 /* Live's start screen sits on the moving glass inside a white card. At night the glass is dark, so its words and
    button turn light (the white-card rule above would otherwise keep them dark). */
 html[data-period="night"] .glass-text :is(h2, p:not(.glass-keep)) {
