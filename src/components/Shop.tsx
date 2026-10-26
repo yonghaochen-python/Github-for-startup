@@ -45,6 +45,14 @@ const SLOT_NAMES: Record<string, string> = {
 };
 
 const LOVED_KEY = "virm-shop-loved";
+// "Your outfit" is kept on this device too, so it's still there after visiting Live (or leaving Shopping).
+const OUTFIT_KEY = "virm-shop-outfit";
+
+function keepOutfit(list: TrayItem[]) {
+  try {
+    localStorage.setItem(OUTFIT_KEY, JSON.stringify(list));
+  } catch {}
+}
 const MAX_TRAY = 6;
 
 /** A tray piece in the shape the outfit rules and the Live page use (store finds keep their page link). */
@@ -105,6 +113,12 @@ export function Shop() {
       if (Array.isArray(kept)) setLoved(kept.filter((x) => typeof x === "string"));
     } catch {}
     setWishlist(readWishlist());
+    try {
+      const outfit = JSON.parse(localStorage.getItem(OUTFIT_KEY) ?? "[]");
+      if (Array.isArray(outfit)) {
+        setTray(outfit.filter((x) => x && typeof x.key === "string" && typeof x.imageUrl === "string").slice(0, MAX_TRAY));
+      }
+    } catch {}
   }, []);
 
   function toggleLoved(id: string) {
@@ -119,9 +133,11 @@ export function Shop() {
 
   /** Adds a piece to the tray, or takes it out (up to MAX_TRAY pieces). */
   function toggleTray(item: TrayItem) {
-    setTray((list) =>
-      list.some((p) => p.key === item.key) ? list.filter((p) => p.key !== item.key) : list.length >= MAX_TRAY ? list : [...list, item]
-    );
+    setTray((list) => {
+      const next = list.some((p) => p.key === item.key) ? list.filter((p) => p.key !== item.key) : list.length >= MAX_TRAY ? list : [...list, item];
+      keepOutfit(next);
+      return next;
+    });
   }
 
   /** Opens Live with the tray (plus one more piece, when trying a store find straight away). */
@@ -336,7 +352,10 @@ export function Shop() {
                 </p>
               </div>
               {tray.length > 0 && (
-                <button onClick={() => setTray([])} className="text-[11px] text-[#5d6874] underline-offset-4 hover:text-[#121821] hover:underline">
+                <button onClick={() => {
+                    setTray([]);
+                    keepOutfit([]);
+                  }} className="text-[11px] text-[#5d6874] underline-offset-4 hover:text-[#121821] hover:underline">
                   Clear
                 </button>
               )}
