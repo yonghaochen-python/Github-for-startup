@@ -41,7 +41,7 @@ export function useAuth(): AuthContextValue {
   return ctx;
 }
 
-const PUBLIC_PATHS = ["/", "/login", "/reset-password", "/about", "/how-it-works", "/privacy", "/terms", "/contact", "/try"];
+const PUBLIC_PATHS = ["/", "/login", "/reset-password", "/about", "/how-it-works", "/pricing", "/privacy", "/terms", "/contact", "/try"];
 
 async function fetchCurrentUser(): Promise<CurrentUser | null> {
   try {
