@@ -261,16 +261,9 @@ export function LiveTryOn({
     "flex h-11 w-11 items-center justify-center rounded-full border border-white/15 bg-[rgba(255,255,255,0.08)] text-white backdrop-blur-md transition hover:bg-[rgba(255,255,255,0.16)]";
 
   return (
-      <section aria-label="Live mirror" className="relative min-w-0 overflow-hidden rounded-[22px] shadow-[0_1px_0_rgba(18,24,33,0.03),0_14px_36px_rgba(18,30,45,0.06)]" style={STAGE_BG}>
-        {/* A thin silver edge and a soft reflection across the glass. */}
-        <span aria-hidden className="pointer-events-none absolute inset-0 rounded-[22px] ring-1 ring-inset ring-white/10" />
-        <span
-          aria-hidden
-          className="pointer-events-none absolute -left-1/4 -top-1/3 h-2/3 w-[150%] rotate-[-14deg] opacity-60"
-          style={{ background: "linear-gradient(180deg, rgba(255,255,255,0.07), rgba(255,255,255,0) 60%)" }}
-        />
-
-        <div className={`${mirrorFrame} overflow-hidden bg-black/30`}>
+      // The same white card as the Photo mirror; only the picture area is the dark camera glass.
+      <section aria-label="Live mirror" className="relative min-w-0 self-start overflow-hidden rounded-[22px] bg-white shadow-[0_1px_0_rgba(18,24,33,0.03),0_14px_36px_rgba(18,30,45,0.06)]">
+        <div className={`${mirrorFrame} overflow-hidden`} style={STAGE_BG}>
           {source === "camera" && (
             <video
               ref={videoRef}
@@ -288,13 +281,13 @@ export function LiveTryOn({
           {/* Before the camera is on: Virm's slowly moving satin glass, as on Home (its colors follow the time of day). */}
           {(source === "none" || source === "starting") && <LiquidGlass className="absolute inset-0" />}
           {(source === "none" || source === "starting") && (
-            <div className="glass-legible absolute inset-0 flex flex-col items-center justify-center px-8 text-center">
-              <span className="mb-5 flex h-16 w-16 items-center justify-center rounded-full border border-[rgba(18,24,33,0.12)] bg-[rgba(255,255,255,0.35)] text-[#26313a] backdrop-blur-md">
+            <div className="glass-legible glass-text absolute inset-0 flex flex-col items-center justify-center px-8 text-center">
+              <span className="glass-icon mb-5 flex h-16 w-16 items-center justify-center rounded-full border border-[rgba(18,24,33,0.12)] bg-[rgba(255,255,255,0.35)] text-[#26313a] backdrop-blur-md">
                 <Icon d={CAMERA} className="h-7 w-7" />
               </span>
               <h2 className="font-display text-[34px] leading-tight text-[#121821]">Your live mirror</h2>
               <p className="mt-2 text-[13.5px] text-[#26313a]">20 second session</p>
-              {cameraError && <p className="mt-4 max-w-xs rounded-[12px] bg-[rgba(255,255,255,0.7)] px-3 py-2 text-[12.5px] text-[#a3261b]">{cameraError}</p>}
+              {cameraError && <p className="glass-keep mt-4 max-w-xs rounded-[12px] bg-[rgba(255,255,255,0.7)] px-3 py-2 text-[12.5px] text-[#a3261b]">{cameraError}</p>}
               <div className="mt-6 flex flex-wrap justify-center gap-3">
                 <button
                   onClick={startCamera}
@@ -323,10 +316,10 @@ export function LiveTryOn({
         </div>
 
         {/* Below the mirror, like Photo's Try On bar: store links, the AI controls, and what Live does. */}
-        <div className="relative flex flex-col gap-3 border-t border-white/10 p-4 sm:p-5">
+        <div className="flex flex-col gap-3 border-t border-black/[0.06] p-4 sm:p-5">
         {/* Store finds: open the store page to buy, or save for later. */}
         {shopPicks.some((pick) => pick.productUrl || pick.id.startsWith("shop-ext-")) && (
-          <div className="relative rounded-[18px] border border-white/10 bg-[rgba(255,255,255,0.05)] px-4 py-3 text-[12.5px] text-[#c9d6dd] backdrop-blur-md">
+          <div className="rounded-[14px] bg-[#f4f5f6] px-4 py-3 text-[12.5px] text-[#4f5b66]">
             <ul className="flex flex-col gap-1.5">
               {shopPicks
                 .filter((pick) => pick.productUrl || pick.id.startsWith("shop-ext-"))
@@ -336,11 +329,11 @@ export function LiveTryOn({
                   return (
                     <li key={pick.id} className="flex flex-wrap items-baseline gap-x-3">
                       <span className="min-w-0 flex-1 truncate">
-                        <b className="text-white">{pick.description}</b>
-                        {pick.retailer && <span className="text-[#9fb6c0]"> · {pick.retailer}</span>}
+                        <b className="text-[#121821]">{pick.description}</b>
+                        {pick.retailer && <span className="text-[#5d6874]"> · {pick.retailer}</span>}
                       </span>
                       {pick.productUrl && (
-                        <a href={pick.productUrl} target="_blank" rel="noopener noreferrer" className="font-semibold text-white underline underline-offset-4">
+                        <a href={pick.productUrl} target="_blank" rel="noopener noreferrer" className="font-semibold text-[#121821] underline underline-offset-4">
                           View in store ↗
                         </a>
                       )}
@@ -360,7 +353,7 @@ export function LiveTryOn({
                           if (ok) setSavedKeys((list) => [...list, key]);
                         }}
                         disabled={saved}
-                        className="font-medium text-white underline-offset-4 hover:underline disabled:opacity-60"
+                        className="font-medium text-[#121821] underline-offset-4 hover:underline disabled:opacity-60"
                       >
                         {saved ? "♥ Saved" : "♡ Save"}
                       </button>
@@ -372,7 +365,7 @@ export function LiveTryOn({
         )}
 
         {liveAvailable && source === "camera" && (
-          <div className="relative flex flex-wrap items-center gap-x-3 gap-y-2 rounded-[18px] border border-white/10 bg-[rgba(255,255,255,0.05)] px-4 py-3 text-[12.5px] text-[#c9d6dd] backdrop-blur-md">
+          <div className="flex flex-wrap items-center gap-x-3 gap-y-2 rounded-[14px] bg-[#f4f5f6] px-4 py-3 text-[12.5px] text-[#4f5b66]">
             {ai === "off" && (
               <>
                 <span className="min-w-0 flex-1">
@@ -381,7 +374,7 @@ export function LiveTryOn({
                 <button
                   onClick={() => setAi("confirm")}
                   disabled={outfit.length === 0}
-                  className="rounded-full bg-[#7fd0d6] px-4 py-2 text-[12.5px] font-semibold text-[#0b1520] transition hover:bg-[#9adde2] disabled:opacity-40"
+                  className="rounded-full bg-[#121821] px-4 py-2 text-[12.5px] font-semibold text-white transition hover:bg-[#2a3542] disabled:opacity-40"
                 >
                   AI try-on
                 </button>
@@ -390,10 +383,10 @@ export function LiveTryOn({
             {ai === "confirm" && (
               <>
                 <span className="min-w-0 flex-1">Uses Decart credits, about $0.02 a second. Runs up to 20 seconds, then stops.</span>
-                <button onClick={startAi} className="rounded-full bg-[#7fd0d6] px-4 py-2 text-[12.5px] font-semibold text-[#0b1520] hover:bg-[#9adde2]">
+                <button onClick={startAi} className="rounded-full bg-[#121821] px-4 py-2 text-[12.5px] font-semibold text-white hover:bg-[#2a3542]">
                   Start
                 </button>
-                <button onClick={() => setAi("off")} className="text-[12.5px] font-medium text-white underline-offset-4 hover:underline">
+                <button onClick={() => setAi("off")} className="text-[12.5px] font-medium text-[#121821] underline-offset-4 hover:underline">
                   Cancel
                 </button>
               </>
@@ -401,10 +394,10 @@ export function LiveTryOn({
             {ai === "connecting" && <span className="flex-1">Connecting…</span>}
             {ai === "on" && (
               <>
-                <span className={`min-w-0 flex-1 ${pieceError ? "text-[#ffd2cb]" : ""}`}>
+                <span className={`min-w-0 flex-1 ${pieceError ? "text-[#a3261b]" : ""}`}>
                   {pieceError ?? "Showing your outfit. Change pieces in your closet to update it live."}
                 </span>
-                <button onClick={() => endAi()} className="rounded-full border border-white/25 px-4 py-2 text-[12.5px] font-semibold text-white hover:bg-[rgba(255,255,255,0.1)]">
+                <button onClick={() => endAi()} className="rounded-full px-4 py-2 text-[12.5px] font-semibold text-[#121821] shadow-[inset_0_0_0_1px_rgba(18,24,33,0.14)] hover:shadow-[inset_0_0_0_1px_rgba(18,24,33,0.3)]">
                   Stop
                 </button>
               </>
@@ -412,7 +405,7 @@ export function LiveTryOn({
           </div>
         )}
 
-        <p className="relative px-1 text-center text-[11.5px] leading-snug text-[#8fa3ad]">
+        <p className="text-center text-[11.5px] leading-snug text-[#5d6874]">
           {TRY_ON_CAVEAT}
         </p>
         </div>

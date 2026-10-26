@@ -104,6 +104,21 @@ html[data-period="night"] main :is(a, button):is([class^="bg-[#121821]"], [class
   color: #121821;
 }
 
+/* Live's start screen sits on the moving glass inside a white card. At night the glass is dark, so its words and
+   button turn light (the white-card rule above would otherwise keep them dark). */
+html[data-period="night"] .glass-text :is(h2, p:not(.glass-keep)) {
+  color: #eef2f6;
+}
+html[data-period="night"] .glass-text .glass-icon {
+  color: #eef2f6;
+  background-color: rgb(255 255 255 / 0.12);
+  border-color: rgb(255 255 255 / 0.2);
+}
+html[data-period="night"] .glass-text button {
+  background-color: #eef2f6;
+  color: #121821;
+}
+
 /* Text on the glass banners: a soft glow behind it keeps it readable on any time-of-day color. */
 .glass-legible {
   text-shadow: 0 1px 14px color-mix(in srgb, var(--page) 75%, transparent);

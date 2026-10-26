@@ -494,7 +494,7 @@ export default function StudioPage() {
           {mode === "live" ? (
             <LiveTryOn outfit={pieces} picks={pieces.filter((p) => p.id.startsWith("shop-")) as ShopPick[]} />
           ) : (
-          <section aria-label="Your look" className="min-w-0 overflow-hidden rounded-[22px] bg-white shadow-[0_1px_0_rgba(18,24,33,0.03),0_14px_36px_rgba(18,30,45,0.06)]">
+          <section aria-label="Your look" className="min-w-0 self-start overflow-hidden rounded-[22px] bg-white shadow-[0_1px_0_rgba(18,24,33,0.03),0_14px_36px_rgba(18,30,45,0.06)]">
             {changingPhoto || !hasPhoto ? (
               <div className="p-4 sm:p-6">
                 <SavedPhotoSetup
@@ -647,7 +647,7 @@ export default function StudioPage() {
                 ) : pieces.length === 0 ? (
                   <p className="rounded-[14px] bg-[#f4f5f6] px-4 py-5 text-[13px] text-[#4f5b66]">Type a theme above, or pick pieces from your closet.</p>
                 ) : (
-                  <ul className="flex gap-2 overflow-x-auto pb-1">
+                  <ul className="flex gap-2 overflow-x-auto pb-1 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
                     {pieces.map((piece) => (
                       <li key={piece.id} className="relative shrink-0">
                         <button
@@ -699,7 +699,7 @@ export default function StudioPage() {
                   </Link>
                 )}
               </div>
-              <div role="tablist" aria-label={source === "shop" ? "Shop sections" : "Closet sections"} className="flex gap-1 overflow-x-auto border-b border-black/[0.06] px-3 pt-3">
+              <div role="tablist" aria-label={source === "shop" ? "Shop sections" : "Closet sections"} className="flex flex-wrap border-b border-black/[0.06] px-2.5 pt-3">
                 {tabs.map((t) => {
                   const active = t.value === activeTab;
                   const count = countIn(t.value);
@@ -709,8 +709,8 @@ export default function StudioPage() {
                       role="tab"
                       aria-selected={active}
                       onClick={() => setTab(t.value)}
-                      className={`relative shrink-0 px-2.5 pb-3 pt-1 text-[13px] ${
-                        active ? "font-semibold text-[#121821] after:absolute after:inset-x-2.5 after:bottom-0 after:h-[2px] after:rounded-full after:bg-[#121821]" : "text-[#5d6874] hover:text-[#121821]"
+                      className={`relative shrink-0 px-2 pb-3 pt-1 text-[13px] ${
+                        active ? "font-semibold text-[#121821] after:absolute after:inset-x-2 after:bottom-0 after:h-[2px] after:rounded-full after:bg-[#121821]" : "text-[#5d6874] hover:text-[#121821]"
                       }`}
                     >
                       {t.label}
