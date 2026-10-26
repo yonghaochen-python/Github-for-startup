@@ -310,7 +310,7 @@ export function LiveTryOn({
         />
 
         <div
-          className={`relative mx-auto max-h-[72vh] overflow-hidden rounded-[22px] bg-black/30 ring-1 ring-white/10 transition-[aspect-ratio] duration-500 ${
+          className={`relative mx-auto max-h-[min(880px,calc(100vh-170px))] overflow-hidden rounded-[22px] bg-black/30 ring-1 ring-white/10 transition-[aspect-ratio] duration-500 ${
             aiStream ? "aspect-video" : "aspect-[3/4]"
           }`}
         >
@@ -355,39 +355,6 @@ export function LiveTryOn({
                 <Icon d={OFF} />
               </button>
             </div>
-          )}
-        </div>
-
-        {/* The outfit being put together. */}
-        <div className="relative mt-3 rounded-[18px] border border-white/10 bg-[rgba(255,255,255,0.05)] p-3 backdrop-blur-md sm:mt-4">
-          <div className="mb-2 flex items-center justify-between gap-3 px-1">
-            <p className="text-[11px] font-semibold uppercase tracking-[2px] text-[#9fb6c0]">Your outfit</p>
-            {outfit.length > 0 && (
-              <button onClick={() => setOutfit([])} className="text-[12px] font-medium text-[#c9d6dd] underline-offset-4 hover:text-white hover:underline">
-                Clear
-              </button>
-            )}
-          </div>
-          {outfit.length === 0 ? (
-            <p className="px-1 pb-1 text-[13px] text-[#b9c6cf]">Tap pieces in your closet to build an outfit. Tap another to swap.</p>
-          ) : (
-            <ul className="flex gap-2 overflow-x-auto pb-1">
-              {outfit.map((piece) => (
-                <li key={piece.id} className="relative shrink-0 animate-[piece-in_.25s_ease-out] motion-reduce:animate-none">
-                  <span className="relative block h-[84px] w-[70px] overflow-hidden rounded-[12px] bg-white/90">
-                    <Image src={piece.imageUrl} alt={piece.description} fill unoptimized className="object-cover" />
-                  </span>
-                  <span className="mt-1 block w-[70px] truncate text-center text-[10.5px] text-[#b9c6cf]">{LAYER_LABELS[piece.layeringRole]}</span>
-                  <button
-                    onClick={() => toggle(piece)}
-                    aria-label={`Take off ${piece.description}`}
-                    className="absolute -right-1.5 -top-1.5 flex h-6 w-6 items-center justify-center rounded-full border border-white/20 bg-[#0b1520] text-[13px] leading-none text-white"
-                  >
-                    ×
-                  </button>
-                </li>
-              ))}
-            </ul>
           )}
         </div>
 
@@ -489,8 +456,47 @@ export function LiveTryOn({
         </p>
       </section>
 
+      <div className="flex min-w-0 flex-col gap-4 self-start lg:sticky lg:top-24">
+      {/* The outfit being put together, above the closet (so the mirror can be bigger). */}
+      <section aria-label="Your outfit" className="rounded-[22px] bg-white p-4 shadow-[0_1px_0_rgba(18,24,33,0.03),0_14px_36px_rgba(18,30,45,0.06)] sm:p-5">
+        <div className="mb-3 flex items-center justify-between gap-3">
+          <p className="text-[13px] font-semibold text-[#121821]">
+            Your outfit
+            <span className="ml-2 font-normal text-[#5d6874]">
+              {outfit.length} {outfit.length === 1 ? "piece" : "pieces"}
+            </span>
+          </p>
+          {outfit.length > 0 && (
+            <button onClick={() => setOutfit([])} className="text-[12px] font-semibold text-[#5d6874] underline-offset-4 hover:text-[#121821] hover:underline">
+              Clear
+            </button>
+          )}
+        </div>
+        {outfit.length === 0 ? (
+          <p className="rounded-[14px] bg-[#f4f5f6] px-4 py-5 text-[13px] text-[#4f5b66]">Tap pieces in your closet to build an outfit. Tap another to swap.</p>
+        ) : (
+          <ul className="flex gap-2 overflow-x-auto pb-1 pt-1.5">
+            {outfit.map((piece) => (
+              <li key={piece.id} className="relative shrink-0 animate-[piece-in_.25s_ease-out] motion-reduce:animate-none">
+                <span className="relative block h-20 w-20 overflow-hidden rounded-[14px] bg-[#f4f5f6] shadow-[inset_0_0_0_1px_rgba(18,24,33,0.06)]">
+                  <Image src={piece.imageUrl} alt={piece.description} fill unoptimized className="object-cover" />
+                </span>
+                <span className="mt-1 block w-20 truncate text-center text-[10.5px] text-[#5d6874]">{LAYER_LABELS[piece.layeringRole]}</span>
+                <button
+                  onClick={() => toggle(piece)}
+                  aria-label={`Take off ${piece.description}`}
+                  className="absolute -right-1.5 -top-1.5 flex h-6 w-6 items-center justify-center rounded-full bg-[#121821] text-[13px] leading-none text-white shadow hover:bg-[#d93a2b]"
+                >
+                  ×
+                </button>
+              </li>
+            ))}
+          </ul>
+        )}
+      </section>
+
       {/* The closet. */}
-      <section aria-label="Your closet" className="min-w-0 self-start overflow-hidden rounded-[22px] bg-white shadow-[0_1px_0_rgba(18,24,33,0.03),0_14px_36px_rgba(18,30,45,0.06)] lg:sticky lg:top-24">
+      <section aria-label="Your closet" className="min-w-0 overflow-hidden rounded-[22px] bg-white shadow-[0_1px_0_rgba(18,24,33,0.03),0_14px_36px_rgba(18,30,45,0.06)]">
         <div className="flex gap-1 overflow-x-auto border-b border-black/[0.06] px-3 pt-2">
           {tabs.map((t) => {
             const active = t.value === tab;
@@ -548,6 +554,7 @@ export function LiveTryOn({
           )}
         </div>
       </section>
+      </div>
     </div>
   );
 }

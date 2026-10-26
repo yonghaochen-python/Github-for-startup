@@ -434,7 +434,8 @@ export default function StudioPage() {
         </div>
 
         {mode === "live" ? (
-          picksRead && <LiveTryOn picks={shopPicks} startWith={pieces} onOutfitChange={setPieces} />
+          // Live starts wearing the current look, so it waits until that look (or the Shopping picks) has loaded.
+          picksRead && !loadingLook && <LiveTryOn picks={shopPicks} startWith={pieces} onOutfitChange={setPieces} />
         ) : (
         <>
         <form onSubmit={styleTheme} data-tip="studio-theme" className="mb-5 flex items-center gap-2 rounded-full bg-white p-1.5 pl-5 shadow-[0_1px_0_rgba(18,24,33,0.03),0_14px_36px_rgba(18,30,45,0.06)]">
