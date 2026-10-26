@@ -3,6 +3,7 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import type { ClothingItem } from "@/components/OutfitCard";
 import { mirrorFrame } from "@/components/ui";
+import { LiquidGlass } from "@/components/LiquidGlass";
 import { garmentName } from "@/lib/tryOn/types";
 import { garmentSheetJpeg, photoToJpeg } from "@/lib/clientImage";
 import type { TrayCategory } from "@/lib/shopCatalog";
@@ -283,22 +284,24 @@ export function LiveTryOn({
           {source === "camera" && aiStream && (
             <video ref={aiVideoRef} autoPlay playsInline muted className="absolute inset-0 h-full w-full -scale-x-100 object-contain" aria-label="AI try-on, live" />
           )}
+          {/* Before the camera is on: Virm's slowly moving satin glass, as on Home (its colors follow the time of day). */}
+          {(source === "none" || source === "starting") && <LiquidGlass className="absolute inset-0" />}
           {(source === "none" || source === "starting") && (
-            <div className="absolute inset-0 flex flex-col items-center justify-center px-8 text-center">
-              <span className="mb-5 flex h-16 w-16 items-center justify-center rounded-full border border-white/15 bg-[rgba(255,255,255,0.07)] text-[#cfe3e6] backdrop-blur-md">
+            <div className="glass-legible absolute inset-0 flex flex-col items-center justify-center px-8 text-center">
+              <span className="mb-5 flex h-16 w-16 items-center justify-center rounded-full border border-[rgba(18,24,33,0.12)] bg-[rgba(255,255,255,0.35)] text-[#26313a] backdrop-blur-md">
                 <Icon d={CAMERA} className="h-7 w-7" />
               </span>
-              <h2 className="font-display text-[34px] leading-tight text-white">Your live mirror</h2>
-              <p className="mt-2 max-w-xs text-[13.5px] leading-relaxed text-[#b9c6cf]">
+              <h2 className="font-display text-[34px] leading-tight text-[#121821]">Your live mirror</h2>
+              <p className="mt-2 max-w-xs text-[13.5px] leading-relaxed text-[#26313a]">
                 See yourself live, then swap pieces from your closet. The camera starts only when you tap, and nothing is
                 recorded or sent anywhere.
               </p>
-              {cameraError && <p className="mt-4 max-w-xs rounded-[12px] bg-[rgba(255,255,255,0.08)] px-3 py-2 text-[12.5px] text-[#ffd2cb]">{cameraError}</p>}
+              {cameraError && <p className="mt-4 max-w-xs rounded-[12px] bg-[rgba(255,255,255,0.7)] px-3 py-2 text-[12.5px] text-[#a3261b]">{cameraError}</p>}
               <div className="mt-6 flex flex-wrap justify-center gap-3">
                 <button
                   onClick={startCamera}
                   disabled={source === "starting"}
-                  className="inline-flex min-h-[46px] items-center gap-2 rounded-full bg-white px-6 text-[13.5px] font-semibold text-[#0b1520] shadow-[0_8px_30px_rgba(120,200,210,0.25)] transition hover:bg-[#eef5f6] disabled:opacity-70"
+                  className="inline-flex min-h-[46px] items-center gap-2 rounded-full bg-[#121821] px-6 text-[13.5px] font-semibold text-white shadow-[0_8px_30px_rgba(18,24,33,0.18)] transition hover:bg-[#2a3542] disabled:opacity-70"
                 >
                   <Icon d={CAMERA} className="h-4 w-4" />
                   {source === "starting" ? "Waiting for permission…" : "Turn on camera"}
