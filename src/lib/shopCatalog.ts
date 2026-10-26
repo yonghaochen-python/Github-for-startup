@@ -137,6 +137,32 @@ export const trayItemFrom = (p: ShopProduct): TrayItem => ({
   productUrl: p.productUrl,
 });
 
+/**
+ * A Shopping piece in the shape the Studio's look uses (like a closet item, but its id starts with "shop-", so it's
+ * never mistaken for something owned). Store finds keep their page link and store name.
+ */
+export type ShopPiece = {
+  id: string;
+  imageUrl: string;
+  category: string;
+  description: string;
+  layeringRole: LayeringRole;
+  color: string;
+  productUrl: string | null;
+  retailer: string;
+};
+
+export const shopPiece = (t: TrayItem): ShopPiece => ({
+  id: `shop-${t.key}`,
+  imageUrl: t.imageUrl,
+  category: t.category,
+  description: t.name,
+  layeringRole: t.layeringRole,
+  color: t.color,
+  productUrl: t.productUrl,
+  retailer: t.label,
+});
+
 /** What each kind of piece is, for the layering rules. */
 export const ROLE_FOR: Record<TrayCategory, LayeringRole> = {
   top: "mid_layer",

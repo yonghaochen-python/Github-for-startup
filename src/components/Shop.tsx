@@ -4,7 +4,6 @@ import { useEffect, useMemo, useState } from "react";
 import Image from "next/image";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import type { ClothingItem } from "@/components/OutfitCard";
 import {
   DEMO_LABEL,
   HAS_PRICES,
@@ -15,6 +14,7 @@ import {
   SHOP_PRODUCTS,
   SHOP_STYLES,
   priceLabel,
+  shopPiece,
   trayItemFrom,
   type ShopProduct,
   type TrayItem,
@@ -62,18 +62,6 @@ function keepOutfit(list: TrayItem[]) {
 }
 const MAX_TRAY = 6;
 
-/** A tray piece in the shape the outfit rules and the Live page use (store finds keep their page link). */
-export type LivePick = ClothingItem & { color: string; productUrl: string | null; retailer: string };
-const asPiece = (t: TrayItem): LivePick => ({
-  id: `shop-${t.key}`,
-  imageUrl: t.imageUrl,
-  category: t.category,
-  description: t.name,
-  layeringRole: t.layeringRole,
-  color: t.color,
-  productUrl: t.productUrl,
-  retailer: t.label,
-});
 
 function Spark({ className = "h-4 w-4" }: { className?: string }) {
   return (
@@ -154,7 +142,7 @@ export function Shop() {
     const pieces = extra && !tray.some((p) => p.key === extra.key) ? [...tray, extra].slice(-MAX_TRAY) : tray;
     if (!pieces.length) return;
     try {
-      sessionStorage.setItem(LIVE_SHOP_KEY, JSON.stringify(pieces.map(asPiece)));
+      sessionStorage.setItem(LIVE_SHOP_KEY, JSON.stringify(pieces.map(shopPiece)));
     } catch {}
     router.push(`/studio?shop=1${mode === "live" ? "&mode=live" : ""}`);
   }

@@ -15,7 +15,7 @@ import { MirrorIcon, PlusIcon, SearchIcon } from "@/components/Icons";
 import { EmptyState, ErrorNote, PageShell, btnPrimary, mirrorFrame } from "@/components/ui";
 import { requestShopTryOn, requestTryOn, type TryOnResult } from "@/lib/tryOnClient";
 import { LiveTryOn, type ShopPick } from "@/components/LiveTryOn";
-import { LIVE_SHOP_KEY } from "@/lib/shopCatalog";
+import { LIVE_SHOP_KEY, SHOP_PRODUCTS, shopPiece, trayItemFrom } from "@/lib/shopCatalog";
 import { Tips, type Tip } from "@/components/Tips";
 
 const STUDIO_TIPS: Tip[] = [
@@ -34,6 +34,9 @@ const TABS = [
   { value: "shoes", label: "Shoes" },
   { value: "accessory", label: "Accessories" },
 ];
+
+/** The Shopping catalog as Studio pieces (only pieces whose picture works for try-on). */
+const CATALOG = SHOP_PRODUCTS.filter((p) => p.tryOnEligible).map((p) => shopPiece(trayItemFrom(p)));
 
 const MAX_THEME = 120;
 
@@ -73,6 +76,8 @@ export default function StudioPage() {
   // Photo (try-on on the saved photo) or Live (the camera mirror); either way it's the same look.
   const [mode, setModeState] = useState<"photo" | "live">(searchParams.get("mode") === "live" ? "live" : "photo");
   const [shopPicks, setShopPicks] = useState<ShopPick[]>([]);
+  // The panel beside the mirror: your own closet, or the Shopping catalog (plus picks brought from Shopping).
+  const [source, setSource] = useState<"closet" | "shop">(fromShop ? "shop" : "closet");
   // A photo try-on of a look with Shopping pieces: not a saved outfit, so it's kept here only, for those pieces.
   const [shopTry, setShopTry] = useState<{ key: string; result: TryOnResult } | null>(null);
 
@@ -204,7 +209,7 @@ export default function StudioPage() {
         setShopPicks(picks);
         // Wear one of each kind to start (the first picked); the others are a tap away in "Shop picks".
         setPieces([...picks].reverse().reduce<ClothingItem[]>((worn, piece) => withPiece(worn, piece), []));
-        setTab("shop");
+        setTab("picks");
       }
     } catch {}
     /* eslint-enable react-hooks/set-state-in-effect */
@@ -371,10 +376,21 @@ export default function StudioPage() {
     setIdeas([]);
   }
 
-  const tabs = shopPicks.length ? [{ value: "shop", label: "Shop picks" }, ...TABS] : TABS;
-  const tabItems = tab === "shop" ? shopPicks : (closet ?? []).filter((item) => item.category === tab);
+  const tabs = source === "shop" && shopPicks.length ? [{ value: "picks", label: "Your picks" }, ...TABS] : TABS;
+  const activeTab = tabs.some((t) => t.value === tab) ? tab : tabs[0].value;
+  const isShopPiece = (p: ClothingItem) => p.id.startsWith("shop-");
+  const tabItems: ClothingItem[] =
+    source === "shop"
+      ? activeTab === "picks"
+        ? shopPicks
+        : CATALOG.filter((item) => item.category === activeTab)
+      : (closet ?? []).filter((item) => item.category === activeTab);
   const countIn = (value: string) =>
-    value === "shop" ? pieces.filter((p) => p.id.startsWith("shop-")).length : pieces.filter((p) => p.category === value && !p.id.startsWith("shop-")).length;
+    source === "shop"
+      ? value === "picks"
+        ? pieces.filter((p) => shopPicks.some((s) => s.id === p.id)).length
+        : pieces.filter((p) => isShopPiece(p) && p.category === value).length
+      : pieces.filter((p) => !isShopPiece(p) && p.category === value).length;
   const shopShown = hasShopPieces && shopTry?.key === piecesKey ? shopTry.result : null;
 
   // What the big picture shows: a fresh try-on, this look's saved try-on, or the person's own photo.
@@ -457,7 +473,7 @@ export default function StudioPage() {
         <div className="grid gap-6 lg:grid-cols-[minmax(0,1fr)_minmax(0,460px)]">
           {/* The mirror: Live (the camera) or Photo (the saved photo or its try-on), in the same frame. */}
           {mode === "live" ? (
-            <LiveTryOn outfit={pieces} picks={shopPicks} />
+            <LiveTryOn outfit={pieces} picks={pieces.filter((p) => p.id.startsWith("shop-")) as ShopPick[]} />
           ) : (
           <section aria-label="Your look" className="min-w-0 overflow-hidden rounded-[22px] bg-white shadow-[0_1px_0_rgba(18,24,33,0.03),0_14px_36px_rgba(18,30,45,0.06)]">
             {changingPhoto || !hasPhoto ? (
@@ -615,7 +631,10 @@ export default function StudioPage() {
                     {pieces.map((piece) => (
                       <li key={piece.id} className="relative shrink-0">
                         <button
-                          onClick={() => setTab(piece.id.startsWith("shop-") ? "shop" : piece.category)}
+                          onClick={() => {
+                            setSource(isShopPiece(piece) ? "shop" : "closet");
+                            setTab(piece.category);
+                          }}
                           title={piece.description}
                           className="relative block h-20 w-20 overflow-hidden rounded-[14px] bg-[#f4f5f6] shadow-[inset_0_0_0_1px_rgba(18,24,33,0.06)]"
                         >
@@ -637,9 +656,28 @@ export default function StudioPage() {
 
             {/* The closet, by category. Tap to add; tap again to remove. */}
             <section aria-label="Your closet" data-tip="studio-closet" className="min-w-0 overflow-hidden rounded-[22px] bg-white shadow-[0_1px_0_rgba(18,24,33,0.03),0_14px_36px_rgba(18,30,45,0.06)]">
-              <div role="tablist" aria-label="Closet sections" className="flex gap-1 overflow-x-auto border-b border-black/[0.06] px-3 pt-3">
+              <div className="flex items-center justify-between gap-3 px-4 pt-4">
+                <div className="inline-flex rounded-full bg-[#f1f3f4] p-1">
+                  {(["closet", "shop"] as const).map((s) => (
+                    <button
+                      key={s}
+                      onClick={() => setSource(s)}
+                      aria-pressed={source === s}
+                      className={`rounded-full px-4 py-1.5 text-[12.5px] font-semibold transition ${source === s ? "bg-white text-[#121821] shadow-sm" : "text-[#5d6874] hover:text-[#121821]"}`}
+                    >
+                      {s === "closet" ? "My closet" : "Shop"}
+                    </button>
+                  ))}
+                </div>
+                {source === "shop" && (
+                  <Link href="/shop" className="text-[12px] font-semibold text-[#4f5b66] underline-offset-4 hover:text-[#121821] hover:underline">
+                    Browse Shopping →
+                  </Link>
+                )}
+              </div>
+              <div role="tablist" aria-label={source === "shop" ? "Shop sections" : "Closet sections"} className="flex gap-1 overflow-x-auto border-b border-black/[0.06] px-3 pt-3">
                 {tabs.map((t) => {
-                  const active = t.value === tab;
+                  const active = t.value === activeTab;
                   const count = countIn(t.value);
                   return (
                     <button
@@ -658,7 +696,7 @@ export default function StudioPage() {
                 })}
               </div>
               <div className="max-h-[calc(100vh-220px)] min-h-[240px] overflow-y-auto p-3 sm:p-4 lg:max-h-[calc(100vh-260px)]">
-                {closet === null && tab !== "shop" ? (
+                {closet === null && source === "closet" ? (
                   <div className="grid grid-cols-3 gap-3">
                     {[0, 1, 2, 3, 4, 5].map((i) => (
                       <div key={i} className="aspect-square animate-pulse rounded-[14px] bg-[#f4f5f6]" />
@@ -667,9 +705,15 @@ export default function StudioPage() {
                 ) : tabItems.length === 0 ? (
                   <p className="px-1 py-6 text-[13px] text-[#5d6874]">
                     Nothing here yet.{" "}
-                    <Link href="/closet?add=1" className="font-semibold text-[#121821] underline-offset-4 hover:underline">
-                      Add clothes
-                    </Link>
+                    {source === "shop" ? (
+                      <Link href="/shop" className="font-semibold text-[#121821] underline-offset-4 hover:underline">
+                        Find pieces in Shopping
+                      </Link>
+                    ) : (
+                      <Link href="/closet?add=1" className="font-semibold text-[#121821] underline-offset-4 hover:underline">
+                        Add clothes
+                      </Link>
+                    )}
                   </p>
                 ) : (
                   <ul className="grid grid-cols-3 gap-3">
