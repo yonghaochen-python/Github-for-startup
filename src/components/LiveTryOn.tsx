@@ -1,11 +1,8 @@
 "use client";
 
 import { useCallback, useEffect, useRef, useState } from "react";
-import Image from "next/image";
-import Link from "next/link";
 import type { ClothingItem } from "@/components/OutfitCard";
-import { LAYER_LABELS } from "@/lib/layering";
-import { withPiece } from "@/lib/outfitPieces";
+import { mirrorFrame } from "@/components/ui";
 import { garmentName } from "@/lib/tryOn/types";
 import { garmentSheetJpeg, photoToJpeg } from "@/lib/clientImage";
 import type { TrayCategory } from "@/lib/shopCatalog";
@@ -19,18 +16,9 @@ import type { RealTimeClient } from "@decartai/sdk";
  * try-on on the camera with the whole outfit (all pieces on one reference picture), after a tap on Start, for at
  * most 20 seconds a session (Decart also ends it then), stopping too when the tab is hidden or the page is left.
  *
- * It lives in the Studio (its Live view): it starts wearing the Studio's look, reports outfit changes back so Photo
- * picks up where Live left off, and shows pieces brought from Shopping in a "Shop picks" tab.
+ * It's the Studio's Live mirror: the Studio owns the look and the closet (the same ones as Photo), and this shows
+ * the camera in the same frame as the Photo mirror, with the AI controls and any Shopping store links below it.
  */
-
-const TABS = [
-  { value: "top", label: "Tops" },
-  { value: "bottom", label: "Bottoms" },
-  { value: "dress", label: "Dresses" },
-  { value: "outerwear", label: "Outerwear" },
-  { value: "shoes", label: "Shoes" },
-  { value: "accessory", label: "Accessories" },
-];
 
 type Source = "none" | "starting" | "camera";
 /** A piece sent from Shopping; store finds keep their page link and store name. */
@@ -91,25 +79,20 @@ const CAMERA = "M4 8h3l2-2.5h6L17 8h3v11H4zM12 16.5a3.5 3.5 0 1 0 0-7 3.5 3.5 0 
 const OFF = "M5 5l14 14M8 6h7l2 2h3v9M20 19H4V8h3";
 
 export function LiveTryOn({
+  outfit,
   picks = [],
-  startWith = [],
-  onOutfitChange,
 }: {
-  /** Pieces brought from Shopping. */
+  /** The Studio's current look. */
+  outfit: ClothingItem[];
+  /** Pieces brought from Shopping (their store links show below the mirror). */
   picks?: ShopPick[];
-  /** The look to start wearing. */
-  startWith?: ClothingItem[];
-  onOutfitChange?: (pieces: ClothingItem[]) => void;
 }) {
   const videoRef = useRef<HTMLVideoElement | null>(null);
   const streamRef = useRef<MediaStream | null>(null);
   const [source, setSource] = useState<Source>("none");
   const [cameraError, setCameraError] = useState<string | null>(null);
-  const [closet, setCloset] = useState<ClothingItem[] | null>(null);
   const shopPicks = picks;
-  const [tab, setTab] = useState(picks.length ? "shop" : "top");
   const [savedKeys, setSavedKeys] = useState<string[]>([]);
-  const [outfit, setOutfit] = useState<ClothingItem[]>(startWith);
   // Real-time AI preview (Decart), only where it's connected.
   const [liveAvailable, setLiveAvailable] = useState(false);
   const [ai, setAi] = useState<Ai>("off");
@@ -121,25 +104,12 @@ export function LiveTryOn({
   const timerRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const aiVideoRef = useRef<HTMLVideoElement | null>(null);
 
-  // Tell the Studio about outfit changes, so switching to Photo keeps this look.
-  const reportRef = useRef(onOutfitChange);
-  useEffect(() => {
-    reportRef.current = onOutfitChange;
-  });
-  useEffect(() => {
-    reportRef.current?.(outfit);
-  }, [outfit]);
-
   useEffect(() => {
     let ignore = false;
     fetch("/api/config")
       .then((res) => res.json() as Promise<{ liveTryOn?: boolean }>)
       .then((data) => !ignore && setLiveAvailable(Boolean(data.liveTryOn)))
       .catch(() => {});
-    fetch("/api/closet/items")
-      .then(async (res) => (res.ok ? (((await res.json()) as { items?: ClothingItem[] }).items ?? []) : []))
-      .then((items) => !ignore && setCloset(items))
-      .catch(() => !ignore && setCloset([]));
     return () => {
       ignore = true;
     };
@@ -285,40 +255,33 @@ export function LiveTryOn({
     setSource("none");
   }
 
-  function toggle(item: ClothingItem) {
-    setOutfit((current) => (current.some((p) => p.id === item.id) ? current.filter((p) => p.id !== item.id) : withPiece(current, item)));
-  }
-
-  const tabs = shopPicks.length ? [{ value: "shop", label: "Shop picks" }, ...TABS] : TABS;
-  const tabItems = tab === "shop" ? shopPicks : (closet ?? []).filter((item) => item.category === tab);
-  const countIn = (value: string) =>
-    value === "shop" ? outfit.filter((p) => p.id.startsWith("shop-")).length : outfit.filter((p) => p.category === value).length;
-  const chosen = new Set(outfit.map((p) => p.id));
   const iconButton =
     "flex h-11 w-11 items-center justify-center rounded-full border border-white/15 bg-[rgba(255,255,255,0.08)] text-white backdrop-blur-md transition hover:bg-[rgba(255,255,255,0.16)]";
 
   return (
-    <div className="grid gap-6 lg:grid-cols-[minmax(0,1fr)_minmax(0,440px)]">
-      {/* The mirror. */}
-      <section aria-label="Live mirror" className="relative min-w-0 overflow-hidden rounded-[28px] p-3 sm:p-4" style={STAGE_BG}>
+      <section aria-label="Live mirror" className="relative min-w-0 overflow-hidden rounded-[22px] shadow-[0_1px_0_rgba(18,24,33,0.03),0_14px_36px_rgba(18,30,45,0.06)]" style={STAGE_BG}>
         {/* A thin silver edge and a soft reflection across the glass. */}
-        <span aria-hidden className="pointer-events-none absolute inset-0 rounded-[28px] ring-1 ring-inset ring-white/10" />
+        <span aria-hidden className="pointer-events-none absolute inset-0 rounded-[22px] ring-1 ring-inset ring-white/10" />
         <span
           aria-hidden
           className="pointer-events-none absolute -left-1/4 -top-1/3 h-2/3 w-[150%] rotate-[-14deg] opacity-60"
           style={{ background: "linear-gradient(180deg, rgba(255,255,255,0.07), rgba(255,255,255,0) 60%)" }}
         />
 
-        <div
-          className={`relative mx-auto max-h-[min(880px,calc(100vh-170px))] overflow-hidden rounded-[22px] bg-black/30 ring-1 ring-white/10 transition-[aspect-ratio] duration-500 ${
-            aiStream ? "aspect-video" : "aspect-[3/4]"
-          }`}
-        >
+        <div className={`${mirrorFrame} overflow-hidden bg-black/30`}>
           {source === "camera" && (
-            <video ref={videoRef} autoPlay playsInline muted className="absolute inset-0 h-full w-full -scale-x-100 object-cover" aria-label="Your camera" />
+            <video
+              ref={videoRef}
+              autoPlay
+              playsInline
+              muted
+              className={`absolute inset-0 h-full w-full -scale-x-100 object-cover ${aiStream ? "invisible" : ""}`}
+              aria-label="Your camera"
+            />
           )}
+          {/* The AI picture is wide (16:9): shown whole, centred in the frame. */}
           {source === "camera" && aiStream && (
-            <video ref={aiVideoRef} autoPlay playsInline muted className="absolute inset-0 h-full w-full -scale-x-100 object-cover" aria-label="AI try-on, live" />
+            <video ref={aiVideoRef} autoPlay playsInline muted className="absolute inset-0 h-full w-full -scale-x-100 object-contain" aria-label="AI try-on, live" />
           )}
           {(source === "none" || source === "starting") && (
             <div className="absolute inset-0 flex flex-col items-center justify-center px-8 text-center">
@@ -358,9 +321,11 @@ export function LiveTryOn({
           )}
         </div>
 
-        {/* Store finds: open the store page to buy, save for later, or go back to Shopping. */}
-        {shopPicks.length > 0 && (
-          <div className="relative mt-3 rounded-[18px] border border-white/10 bg-[rgba(255,255,255,0.05)] px-4 py-3 text-[12.5px] text-[#c9d6dd] backdrop-blur-md">
+        {/* Below the mirror, like Photo's Try On bar: store links, the AI controls, and what Live does. */}
+        <div className="relative flex flex-col gap-3 border-t border-white/10 p-4 sm:p-5">
+        {/* Store finds: open the store page to buy, or save for later. */}
+        {shopPicks.some((pick) => pick.productUrl || pick.id.startsWith("shop-ext-")) && (
+          <div className="relative rounded-[18px] border border-white/10 bg-[rgba(255,255,255,0.05)] px-4 py-3 text-[12.5px] text-[#c9d6dd] backdrop-blur-md">
             <ul className="flex flex-col gap-1.5">
               {shopPicks
                 .filter((pick) => pick.productUrl || pick.id.startsWith("shop-ext-"))
@@ -402,14 +367,11 @@ export function LiveTryOn({
                   );
                 })}
             </ul>
-            <Link href="/shop" className="mt-2 inline-block font-medium text-white underline-offset-4 hover:underline">
-              ← Back to Shopping
-            </Link>
           </div>
         )}
 
         {liveAvailable && source === "camera" && (
-          <div className="relative mt-3 flex flex-wrap items-center gap-x-3 gap-y-2 rounded-[18px] border border-white/10 bg-[rgba(255,255,255,0.05)] px-4 py-3 text-[12.5px] text-[#c9d6dd] backdrop-blur-md">
+          <div className="relative flex flex-wrap items-center gap-x-3 gap-y-2 rounded-[18px] border border-white/10 bg-[rgba(255,255,255,0.05)] px-4 py-3 text-[12.5px] text-[#c9d6dd] backdrop-blur-md">
             {ai === "off" && (
               <>
                 <span className="min-w-0 flex-1">
@@ -449,112 +411,12 @@ export function LiveTryOn({
           </div>
         )}
 
-        <p className="relative mt-3 px-1 text-center text-[11.5px] leading-snug text-[#8fa3ad]">
+        <p className="relative px-1 text-center text-[11.5px] leading-snug text-[#8fa3ad]">
           {liveAvailable
             ? "The camera on its own is free. AI try-on is a preview of your whole outfit, up to 20 seconds."
             : "A preview of the Live experience. Real-time try-on, with clothes drawn on you as you move, isn't connected yet."}
         </p>
-      </section>
-
-      <div className="flex min-w-0 flex-col gap-4 self-start lg:sticky lg:top-24">
-      {/* The outfit being put together, above the closet (so the mirror can be bigger). */}
-      <section aria-label="Your outfit" className="rounded-[22px] bg-white p-4 shadow-[0_1px_0_rgba(18,24,33,0.03),0_14px_36px_rgba(18,30,45,0.06)] sm:p-5">
-        <div className="mb-3 flex items-center justify-between gap-3">
-          <p className="text-[13px] font-semibold text-[#121821]">
-            Your outfit
-            <span className="ml-2 font-normal text-[#5d6874]">
-              {outfit.length} {outfit.length === 1 ? "piece" : "pieces"}
-            </span>
-          </p>
-          {outfit.length > 0 && (
-            <button onClick={() => setOutfit([])} className="text-[12px] font-semibold text-[#5d6874] underline-offset-4 hover:text-[#121821] hover:underline">
-              Clear
-            </button>
-          )}
-        </div>
-        {outfit.length === 0 ? (
-          <p className="rounded-[14px] bg-[#f4f5f6] px-4 py-5 text-[13px] text-[#4f5b66]">Tap pieces in your closet to build an outfit. Tap another to swap.</p>
-        ) : (
-          <ul className="flex gap-2 overflow-x-auto pb-1 pt-1.5">
-            {outfit.map((piece) => (
-              <li key={piece.id} className="relative shrink-0 animate-[piece-in_.25s_ease-out] motion-reduce:animate-none">
-                <span className="relative block h-20 w-20 overflow-hidden rounded-[14px] bg-[#f4f5f6] shadow-[inset_0_0_0_1px_rgba(18,24,33,0.06)]">
-                  <Image src={piece.imageUrl} alt={piece.description} fill unoptimized className="object-cover" />
-                </span>
-                <span className="mt-1 block w-20 truncate text-center text-[10.5px] text-[#5d6874]">{LAYER_LABELS[piece.layeringRole]}</span>
-                <button
-                  onClick={() => toggle(piece)}
-                  aria-label={`Take off ${piece.description}`}
-                  className="absolute -right-1.5 -top-1.5 flex h-6 w-6 items-center justify-center rounded-full bg-[#121821] text-[13px] leading-none text-white shadow hover:bg-[#d93a2b]"
-                >
-                  ×
-                </button>
-              </li>
-            ))}
-          </ul>
-        )}
-      </section>
-
-      {/* The closet. */}
-      <section aria-label="Your closet" className="min-w-0 overflow-hidden rounded-[22px] bg-white shadow-[0_1px_0_rgba(18,24,33,0.03),0_14px_36px_rgba(18,30,45,0.06)]">
-        <div className="flex gap-1 overflow-x-auto border-b border-black/[0.06] px-3 pt-2">
-          {tabs.map((t) => {
-            const active = t.value === tab;
-            return (
-              <button
-                key={t.value}
-                onClick={() => setTab(t.value)}
-                aria-pressed={active}
-                className={`relative shrink-0 px-2.5 pb-3 pt-2 text-[13px] ${
-                  active
-                    ? "font-semibold text-[#121821] after:absolute after:inset-x-2.5 after:bottom-0 after:h-[2px] after:rounded-full after:bg-[#121821]"
-                    : "text-[#5d6874] hover:text-[#121821]"
-                }`}
-              >
-                {t.label}
-                {countIn(t.value) > 0 && <span className="ml-1 text-[#2f8f97]">•</span>}
-              </button>
-            );
-          })}
-        </div>
-        <div className="max-h-[62vh] overflow-y-auto p-3">
-          {closet === null && tab !== "shop" ? (
-            <div className="grid grid-cols-3 gap-2">
-              {Array.from({ length: 6 }, (_, i) => (
-                <div key={i} className="aspect-square animate-pulse rounded-[14px] bg-[#f1f3f4]" />
-              ))}
-            </div>
-          ) : tabItems.length === 0 ? (
-            <p className="px-2 py-6 text-center text-[13px] text-[#5d6874]">Nothing here yet. Add clothes in My Closet.</p>
-          ) : (
-            <ul className="grid grid-cols-3 gap-2">
-              {tabItems.map((item) => {
-                const on = chosen.has(item.id);
-                return (
-                  <li key={item.id}>
-                    <button
-                      onClick={() => toggle(item)}
-                      aria-pressed={on}
-                      title={item.description}
-                      className={`group relative block aspect-square w-full overflow-hidden rounded-[14px] bg-[#f4f5f6] transition ${
-                        on ? "ring-2 ring-[#2f8f97] ring-offset-2" : "hover:-translate-y-0.5"
-                      }`}
-                    >
-                      <Image src={item.imageUrl} alt={item.description} fill unoptimized className="object-cover transition duration-300 group-hover:scale-[1.03]" />
-                      {on && (
-                        <span className="absolute right-1.5 top-1.5 flex h-6 w-6 items-center justify-center rounded-full bg-[#2f8f97] text-white">
-                          <Icon d="M5 12.5l4.5 4.5L19 7.5" className="h-3.5 w-3.5" />
-                        </span>
-                      )}
-                    </button>
-                  </li>
-                );
-              })}
-            </ul>
-          )}
         </div>
       </section>
-      </div>
-    </div>
   );
 }

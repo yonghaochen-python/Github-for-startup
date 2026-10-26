@@ -12,7 +12,7 @@ import { ShareArrowButton, ShareTray } from "@/components/ShareLooks";
 import { SaveToggle } from "@/components/SaveToggle";
 import { useToast } from "@/components/Toast";
 import { MirrorIcon, PlusIcon, SearchIcon } from "@/components/Icons";
-import { EmptyState, ErrorNote, PageShell, btnPrimary } from "@/components/ui";
+import { EmptyState, ErrorNote, PageShell, btnPrimary, mirrorFrame } from "@/components/ui";
 import { requestShopTryOn, requestTryOn, type TryOnResult } from "@/lib/tryOnClient";
 import { LiveTryOn, type ShopPick } from "@/components/LiveTryOn";
 import { LIVE_SHOP_KEY } from "@/lib/shopCatalog";
@@ -73,7 +73,6 @@ export default function StudioPage() {
   // Photo (try-on on the saved photo) or Live (the camera mirror); either way it's the same look.
   const [mode, setModeState] = useState<"photo" | "live">(searchParams.get("mode") === "live" ? "live" : "photo");
   const [shopPicks, setShopPicks] = useState<ShopPick[]>([]);
-  const [picksRead, setPicksRead] = useState(!fromShop);
   // A photo try-on of a look with Shopping pieces: not a saved outfit, so it's kept here only, for those pieces.
   const [shopTry, setShopTry] = useState<{ key: string; result: TryOnResult } | null>(null);
 
@@ -208,7 +207,6 @@ export default function StudioPage() {
         setTab("shop");
       }
     } catch {}
-    setPicksRead(true);
     /* eslint-enable react-hooks/set-state-in-effect */
     // eslint-disable-next-line react-hooks/exhaustive-deps -- once per visit
   }, []);
@@ -426,18 +424,13 @@ export default function StudioPage() {
               </button>
             ))}
           </div>
-          {fromShop && mode === "photo" && (
+          {fromShop && (
             <Link href="/shop" className="text-[12.5px] font-semibold text-[#29343a] underline-offset-4 hover:underline">
               ← Back to Shopping
             </Link>
           )}
         </div>
 
-        {mode === "live" ? (
-          // Live starts wearing the current look, so it waits until that look (or the Shopping picks) has loaded.
-          picksRead && !loadingLook && <LiveTryOn picks={shopPicks} startWith={pieces} onOutfitChange={setPieces} />
-        ) : (
-        <>
         <form onSubmit={styleTheme} data-tip="studio-theme" className="mb-5 flex items-center gap-2 rounded-full bg-white p-1.5 pl-5 shadow-[0_1px_0_rgba(18,24,33,0.03),0_14px_36px_rgba(18,30,45,0.06)]">
           <SearchIcon className="h-[18px] w-[18px] shrink-0 text-[#5d6874]" />
           <label htmlFor="studio-theme" className="sr-only">
@@ -462,7 +455,10 @@ export default function StudioPage() {
         )}
 
         <div className="grid gap-6 lg:grid-cols-[minmax(0,1fr)_minmax(0,460px)]">
-          {/* The mirror: photo or try-on, the look's pieces, and what to do with them. */}
+          {/* The mirror: Live (the camera) or Photo (the saved photo or its try-on), in the same frame. */}
+          {mode === "live" ? (
+            <LiveTryOn outfit={pieces} picks={shopPicks} />
+          ) : (
           <section aria-label="Your look" className="min-w-0 overflow-hidden rounded-[22px] bg-white shadow-[0_1px_0_rgba(18,24,33,0.03),0_14px_36px_rgba(18,30,45,0.06)]">
             {changingPhoto || !hasPhoto ? (
               <div className="p-4 sm:p-6">
@@ -480,7 +476,7 @@ export default function StudioPage() {
                 />
               </div>
             ) : (
-              <div ref={mirrorRef} className="relative mx-auto aspect-[3/4] max-h-[640px] w-full bg-[#f4f5f6] lg:aspect-auto lg:h-[min(780px,calc(100vh-250px))] lg:min-h-[420px]">
+              <div ref={mirrorRef} className={`${mirrorFrame} bg-[#f4f5f6]`}>
                 {picture ? (
                   // eslint-disable-next-line @next/next/no-img-element -- private, owner-only image
                   <img src={picture} alt="You wearing this look" className="absolute inset-0 h-full w-full object-contain" />
@@ -571,6 +567,7 @@ export default function StudioPage() {
               )}
             </div>
           </section>
+          )}
 
           <div className="flex min-w-0 flex-col gap-4 self-start lg:sticky lg:top-24">
             {/* The pieces in this look, above the closet. */}
@@ -707,8 +704,6 @@ export default function StudioPage() {
             </section>
           </div>
         </div>
-        </>
-        )}
       </PageShell>
     </main>
   );

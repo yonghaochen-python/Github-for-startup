@@ -14,6 +14,10 @@ export const eyebrow = "text-[11px] font-medium uppercase tracking-[2.2px] text-
 /** The standard surface: white, softly lifted, rounded — instead of bordered boxes. */
 export const surface = "rounded-[22px] bg-white shadow-[0_1px_0_rgba(18,24,33,0.03),0_14px_36px_rgba(18,30,45,0.06)]";
 
+/** The Studio mirror's frame (Photo and Live use the same one): tall on phones, filling the screen height on desktop. */
+export const mirrorFrame =
+  "relative mx-auto aspect-[3/4] max-h-[640px] w-full lg:aspect-auto lg:h-[min(820px,calc(100vh-230px))] lg:min-h-[420px]";
+
 /** Page width + side padding used by every page. */
 export function PageShell({ children, className = "" }: { children: React.ReactNode; className?: string }) {
   return <div className={`mx-auto w-full max-w-[1280px] px-5 sm:px-8 ${className}`}>{children}</div>;
