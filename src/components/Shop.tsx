@@ -149,14 +149,14 @@ export function Shop() {
     });
   }
 
-  /** Opens Live with the tray (plus one more piece, when trying a store find straight away). */
-  function tryOnLive(extra?: TrayItem) {
+  /** Opens the Studio with the outfit (plus one more piece, when trying one straight away), in Photo or Live. */
+  function tryInStudio(extra?: TrayItem, mode: "photo" | "live" = "photo") {
     const pieces = extra && !tray.some((p) => p.key === extra.key) ? [...tray, extra].slice(-MAX_TRAY) : tray;
     if (!pieces.length) return;
     try {
       sessionStorage.setItem(LIVE_SHOP_KEY, JSON.stringify(pieces.map(asPiece)));
     } catch {}
-    router.push("/live");
+    router.push(`/studio?shop=1${mode === "live" ? "&mode=live" : ""}`);
   }
 
   /** Saves a store find to this device's wishlist (with a smaller picture so a dozen fit). */
@@ -200,7 +200,7 @@ export function Shop() {
             <p className="mt-2 text-[14px] text-[#4f5b66]">Browse, then see it on you before you buy.</p>
           </div>
           <div className="flex items-center gap-5">
-            <Link href="/live" className="flex items-baseline gap-3 text-[10.5px] uppercase tracking-[1.6px] text-[#5d6874] hover:text-[#121821]">
+            <Link href="/studio?mode=live" className="flex items-baseline gap-3 text-[10.5px] uppercase tracking-[1.6px] text-[#5d6874] hover:text-[#121821]">
               <span className="font-display text-[18px] normal-case italic tracking-normal text-[#29343a]">20 sec</span>
               Live session preview
             </Link>
@@ -216,7 +216,7 @@ export function Shop() {
 
         {importing && (
           <div className="mt-6">
-            <StoreFinder onTryNow={(item) => tryOnLive(item)} onAdd={toggleTray} onSave={saveFind} trayFull={tray.length >= MAX_TRAY} />
+            <StoreFinder onTryNow={(item) => tryInStudio(item)} onAdd={toggleTray} onSave={saveFind} trayFull={tray.length >= MAX_TRAY} />
           </div>
         )}
 
@@ -441,13 +441,13 @@ export function Shop() {
               </ul>
             )}
             <div className="my-4 border-t border-black/[0.07]" />
-            <p className="mb-3 text-center text-[10.5px] text-[#5d6874]">Pick two of a kind to compare. On Live, switch between them during one session.</p>
+            <p className="mb-3 text-center text-[10.5px] text-[#5d6874]">In Studio, choose Photo or Live. Pick two of a kind to compare.</p>
             <button
-              onClick={() => tryOnLive()}
+              onClick={() => tryInStudio()}
               disabled={tray.length === 0}
               className="inline-flex min-h-[46px] w-full items-center justify-center gap-2 rounded-[2px] bg-[#121821] text-[12.5px] font-medium text-white hover:bg-[#2a3542] disabled:bg-[#c9cdd0]"
             >
-              <Spark className="h-3.5 w-3.5" /> Try on selected items
+              <Spark className="h-3.5 w-3.5" /> Try on in Studio
             </button>
           </aside>
         </div>
@@ -457,7 +457,7 @@ export function Shop() {
         <ProductDetail
           product={open}
           onClose={() => setOpen(null)}
-          onTryLive={() => tryOnLive(trayItemFrom(open))}
+          onTryLive={() => tryInStudio(trayItemFrom(open), "live")}
           inOutfit={inTray.has(open.id)}
           outfitFull={tray.length >= MAX_TRAY}
           onToggleOutfit={() => toggleTray(trayItemFrom(open))}

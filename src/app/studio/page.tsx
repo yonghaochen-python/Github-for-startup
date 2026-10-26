@@ -13,7 +13,9 @@ import { SaveToggle } from "@/components/SaveToggle";
 import { useToast } from "@/components/Toast";
 import { MirrorIcon, PlusIcon, SearchIcon } from "@/components/Icons";
 import { EmptyState, ErrorNote, PageShell, btnPrimary } from "@/components/ui";
-import { requestTryOn, type TryOnResult } from "@/lib/tryOnClient";
+import { requestShopTryOn, requestTryOn, type TryOnResult } from "@/lib/tryOnClient";
+import { LiveTryOn, type ShopPick } from "@/components/LiveTryOn";
+import { LIVE_SHOP_KEY } from "@/lib/shopCatalog";
 import { Tips, type Tip } from "@/components/Tips";
 
 const STUDIO_TIPS: Tip[] = [
@@ -66,12 +68,20 @@ export default function StudioPage() {
   const pathname = usePathname();
   const searchParams = useSearchParams();
   const hasPhoto = Boolean(user?.photoVersion);
+  // Arriving from Shopping (?shop=1): its picks are worn to start with and kept in a "Shop picks" tab.
+  const fromShop = searchParams.get("shop") === "1";
+  // Photo (try-on on the saved photo) or Live (the camera mirror); either way it's the same look.
+  const [mode, setModeState] = useState<"photo" | "live">(searchParams.get("mode") === "live" ? "live" : "photo");
+  const [shopPicks, setShopPicks] = useState<ShopPick[]>([]);
+  const [picksRead, setPicksRead] = useState(!fromShop);
+  // A photo try-on of a look with Shopping pieces: not a saved outfit, so it's kept here only, for those pieces.
+  const [shopTry, setShopTry] = useState<{ key: string; result: TryOnResult } | null>(null);
 
   const [closet, setCloset] = useState<ClothingItem[] | null>(null);
   const [pieces, setPieces] = useState<ClothingItem[]>([]);
   const [look, setLook] = useState<Look>(EMPTY_LOOK);
   // Which look to start from: the one asked for, else the latest try-on.
-  const [startId] = useState(() => searchParams.get("outfit") || user?.look?.outfitId || null);
+  const [startId] = useState(() => (fromShop ? null : searchParams.get("outfit") || user?.look?.outfitId || null));
   const [loadingLook, setLoadingLook] = useState(Boolean(startId));
   const [tab, setTab] = useState(TABS[0].value);
 
@@ -186,6 +196,34 @@ export default function StudioPage() {
     // eslint-disable-next-line react-hooks/exhaustive-deps -- load once per visit
   }, []);
 
+  useEffect(() => {
+    if (!fromShop) return;
+    try {
+      const picks = JSON.parse(sessionStorage.getItem(LIVE_SHOP_KEY) ?? "[]") as ShopPick[];
+      if (Array.isArray(picks) && picks.length) {
+        /* eslint-disable react-hooks/set-state-in-effect -- browser-only storage, read after the first render */
+        setShopPicks(picks);
+        // Wear one of each kind to start (the first picked); the others are a tap away in "Shop picks".
+        setPieces([...picks].reverse().reduce<ClothingItem[]>((worn, piece) => withPiece(worn, piece), []));
+        setTab("shop");
+      }
+    } catch {}
+    setPicksRead(true);
+    /* eslint-enable react-hooks/set-state-in-effect */
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- once per visit
+  }, []);
+
+  function setMode(next: "photo" | "live") {
+    setModeState(next);
+    const params = new URLSearchParams(searchParams.toString());
+    if (next === "live") params.set("mode", "live");
+    else params.delete("mode");
+    router.replace(`${pathname}${params.size ? `?${params}` : ""}`, { scroll: false });
+  }
+
+  const hasShopPieces = pieces.some((p) => p.id.startsWith("shop-"));
+  const piecesKey = pieces.map((p) => p.id).join(",");
+
   // Step through friendly status messages while the image is being generated.
   useEffect(() => {
     if (!trying) return;
@@ -251,6 +289,14 @@ export default function StudioPage() {
         setChangingPhoto(false);
       }
       requestAnimationFrame(showMirror);
+      if (hasShopPieces) {
+        setStatusIndex(1);
+        const result = await requestShopTryOn(
+          pieces.map((p) => ({ imageUrl: p.imageUrl, description: p.description, color: (p as ShopPick).color, layeringRole: p.layeringRole }))
+        );
+        setShopTry({ key: piecesKey, result });
+        return;
+      }
       const before = shownRef.current;
       const outfitId = await saveOutfit();
       setStatusIndex(1);
@@ -327,18 +373,22 @@ export default function StudioPage() {
     setIdeas([]);
   }
 
-  const tabItems = (closet ?? []).filter((item) => item.category === tab);
-  const countIn = (value: string) => pieces.filter((p) => p.category === value).length;
+  const tabs = shopPicks.length ? [{ value: "shop", label: "Shop picks" }, ...TABS] : TABS;
+  const tabItems = tab === "shop" ? shopPicks : (closet ?? []).filter((item) => item.category === tab);
+  const countIn = (value: string) =>
+    value === "shop" ? pieces.filter((p) => p.id.startsWith("shop-")).length : pieces.filter((p) => p.category === value && !p.id.startsWith("shop-")).length;
+  const shopShown = hasShopPieces && shopTry?.key === piecesKey ? shopTry.result : null;
 
   // What the big picture shows: a fresh try-on, this look's saved try-on, or the person's own photo.
-  const picture =
-    !changed && result?.imageDataUrl
+  const picture = hasShopPieces
+    ? (shopShown?.imageDataUrl ?? null)
+    : !changed && result?.imageDataUrl
       ? result.imageDataUrl
       : !changed && look.tryOn && look.outfitId
         ? `/api/outfits/${look.outfitId}/try-on/image?v=${look.tryOn}`
         : null;
 
-  if (closet && closet.length === 0) {
+  if (closet && closet.length === 0 && shopPicks.length === 0) {
     return (
       <main className="flex-1 pb-16">
         <PageShell className="pt-10">
@@ -362,11 +412,31 @@ export default function StudioPage() {
         <h1 className="sr-only">Studio</h1>
         <Tips id="studio" tips={STUDIO_TIPS} />
 
-        <div className="mb-3 flex justify-end">
-          <Link href="/live" className="text-[12.5px] font-semibold text-[#29343a] underline-offset-4 hover:underline">
-            Live (preview) →
-          </Link>
+        <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
+          <div role="tablist" aria-label="How to try it on" className="inline-flex rounded-full bg-white p-1 shadow-[0_1px_0_rgba(18,24,33,0.03),0_8px_22px_rgba(18,30,45,0.06)]">
+            {(["photo", "live"] as const).map((m) => (
+              <button
+                key={m}
+                role="tab"
+                aria-selected={mode === m}
+                onClick={() => setMode(m)}
+                className={`rounded-full px-5 py-2 text-[13px] font-semibold transition ${mode === m ? "bg-[#121821] text-white" : "text-[#4f5b66] hover:text-[#121821]"}`}
+              >
+                {m === "photo" ? "Photo" : "Live"}
+              </button>
+            ))}
+          </div>
+          {fromShop && mode === "photo" && (
+            <Link href="/shop" className="text-[12.5px] font-semibold text-[#29343a] underline-offset-4 hover:underline">
+              ← Back to Shopping
+            </Link>
+          )}
         </div>
+
+        {mode === "live" ? (
+          picksRead && <LiveTryOn picks={shopPicks} startWith={pieces} onOutfitChange={setPieces} />
+        ) : (
+        <>
         <form onSubmit={styleTheme} data-tip="studio-theme" className="mb-5 flex items-center gap-2 rounded-full bg-white p-1.5 pl-5 shadow-[0_1px_0_rgba(18,24,33,0.03),0_14px_36px_rgba(18,30,45,0.06)]">
           <SearchIcon className="h-[18px] w-[18px] shrink-0 text-[#5d6874]" />
           <label htmlFor="studio-theme" className="sr-only">
@@ -439,7 +509,7 @@ export default function StudioPage() {
                     </button>
                   </span>
                 )}
-                {!changed && result?.isMock && (
+                {((!changed && result?.isMock) || shopShown?.isMock) && (
                   <span className="absolute left-4 top-4 rounded-full bg-[#121821]/90 px-3 py-1 text-[10px] font-bold tracking-[1.4px] text-white">
                     PREVIEW (AI NOT CONNECTED)
                   </span>
@@ -453,7 +523,7 @@ export default function StudioPage() {
                 {/* Top right: Save, the share arrow (adds this tried-on look to the "to share" list), and Undo. */}
                 {!trying && (
                   <div className="absolute right-4 top-4 flex flex-col gap-2">
-                    {pieces.length > 0 && (
+                    {pieces.length > 0 && !hasShopPieces && (
                       <SaveToggle
                         saved={!changed && look.isFavorite}
                         busy={saving}
@@ -495,6 +565,9 @@ export default function StudioPage() {
                   {trying ? "Trying on…" : "Try On"}
                 </button>
               </div>
+              {hasShopPieces && (
+                <p className="mt-2 text-center text-[11.5px] text-[#5d6874]">Looks with Shopping pieces aren&apos;t saved: the picture shows here only.</p>
+              )}
             </div>
           </section>
 
@@ -544,7 +617,7 @@ export default function StudioPage() {
                     {pieces.map((piece) => (
                       <li key={piece.id} className="relative shrink-0">
                         <button
-                          onClick={() => setTab(piece.category)}
+                          onClick={() => setTab(piece.id.startsWith("shop-") ? "shop" : piece.category)}
                           title={piece.description}
                           className="relative block h-20 w-20 overflow-hidden rounded-[14px] bg-[#f4f5f6] shadow-[inset_0_0_0_1px_rgba(18,24,33,0.06)]"
                         >
@@ -567,7 +640,7 @@ export default function StudioPage() {
             {/* The closet, by category. Tap to add; tap again to remove. */}
             <section aria-label="Your closet" data-tip="studio-closet" className="min-w-0 overflow-hidden rounded-[22px] bg-white shadow-[0_1px_0_rgba(18,24,33,0.03),0_14px_36px_rgba(18,30,45,0.06)]">
               <div role="tablist" aria-label="Closet sections" className="flex gap-1 overflow-x-auto border-b border-black/[0.06] px-3 pt-3">
-                {TABS.map((t) => {
+                {tabs.map((t) => {
                   const active = t.value === tab;
                   const count = countIn(t.value);
                   return (
@@ -587,7 +660,7 @@ export default function StudioPage() {
                 })}
               </div>
               <div className="max-h-[calc(100vh-220px)] min-h-[240px] overflow-y-auto p-3 sm:p-4 lg:max-h-[calc(100vh-260px)]">
-                {closet === null ? (
+                {closet === null && tab !== "shop" ? (
                   <div className="grid grid-cols-3 gap-3">
                     {[0, 1, 2, 3, 4, 5].map((i) => (
                       <div key={i} className="aspect-square animate-pulse rounded-[14px] bg-[#f4f5f6]" />
@@ -633,6 +706,8 @@ export default function StudioPage() {
             </section>
           </div>
         </div>
+        </>
+        )}
       </PageShell>
     </main>
   );

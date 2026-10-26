@@ -9,7 +9,7 @@ import { LAYER_LABELS } from "@/lib/layering";
 import { withPiece } from "@/lib/outfitPieces";
 import { garmentName } from "@/lib/tryOn/types";
 import { garmentSheetJpeg, photoToJpeg } from "@/lib/clientImage";
-import { LIVE_SHOP_KEY, type TrayCategory } from "@/lib/shopCatalog";
+import type { TrayCategory } from "@/lib/shopCatalog";
 import { addToWishlist } from "@/lib/shopWishlist";
 import type { RealTimeClient } from "@decartai/sdk";
 
@@ -19,6 +19,9 @@ import type { RealTimeClient } from "@decartai/sdk";
  * person (the page says so). For admin accounts where a Decart key is set, "AI try-on" can run Decart's real-time
  * try-on on the camera with the whole outfit (all pieces on one reference picture), after a tap on Start, for at
  * most 20 seconds a session (Decart also ends it then), stopping too when the tab is hidden or the page is left.
+ *
+ * It lives in the Studio (its Live view): it starts wearing the Studio's look, reports outfit changes back so Photo
+ * picks up where Live left off, and shows pieces brought from Shopping in a "Shop picks" tab.
  */
 
 const TABS = [
@@ -32,7 +35,7 @@ const TABS = [
 
 type Source = "none" | "starting" | "camera" | "photo";
 /** A piece sent from Shopping; store finds keep their page link and store name. */
-type ShopPick = ClothingItem & { color?: string; productUrl?: string | null; retailer?: string };
+export type ShopPick = ClothingItem & { color?: string; productUrl?: string | null; retailer?: string };
 type Ai = "off" | "confirm" | "connecting" | "on";
 
 const nameOf = (piece: ClothingItem & { color?: string }) => garmentName({ description: piece.description, color: piece.color });
@@ -89,18 +92,27 @@ const CAMERA = "M4 8h3l2-2.5h6L17 8h3v11H4zM12 16.5a3.5 3.5 0 1 0 0-7 3.5 3.5 0 
 const PHOTO = "M4 5h16v14H4zM4 15l4.5-4.5 4 4L15 12l5 5M15.5 9.5h.01";
 const OFF = "M5 5l14 14M8 6h7l2 2h3v9M20 19H4V8h3";
 
-export function LiveTryOn() {
+export function LiveTryOn({
+  picks = [],
+  startWith = [],
+  onOutfitChange,
+}: {
+  /** Pieces brought from Shopping. */
+  picks?: ShopPick[];
+  /** The look to start wearing. */
+  startWith?: ClothingItem[];
+  onOutfitChange?: (pieces: ClothingItem[]) => void;
+}) {
   const { user } = useAuth();
   const videoRef = useRef<HTMLVideoElement | null>(null);
   const streamRef = useRef<MediaStream | null>(null);
   const [source, setSource] = useState<Source>("none");
   const [cameraError, setCameraError] = useState<string | null>(null);
   const [closet, setCloset] = useState<ClothingItem[] | null>(null);
-  const [tab, setTab] = useState("top");
-  // Pieces sent from Shopping's try-on tray: worn to start with, and kept in a "Shop picks" tab to switch between.
-  const [shopPicks, setShopPicks] = useState<ShopPick[]>([]);
+  const shopPicks = picks;
+  const [tab, setTab] = useState(picks.length ? "shop" : "top");
   const [savedKeys, setSavedKeys] = useState<string[]>([]);
-  const [outfit, setOutfit] = useState<ClothingItem[]>([]);
+  const [outfit, setOutfit] = useState<ClothingItem[]>(startWith);
   // Real-time AI preview (Decart), only where it's connected.
   const [liveAvailable, setLiveAvailable] = useState(false);
   const [ai, setAi] = useState<Ai>("off");
@@ -112,19 +124,14 @@ export function LiveTryOn() {
   const timerRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const aiVideoRef = useRef<HTMLVideoElement | null>(null);
 
+  // Tell the Studio about outfit changes, so switching to Photo keeps this look.
+  const reportRef = useRef(onOutfitChange);
   useEffect(() => {
-    try {
-      const picks = JSON.parse(sessionStorage.getItem(LIVE_SHOP_KEY) ?? "[]") as ShopPick[];
-      if (Array.isArray(picks) && picks.length) {
-        /* eslint-disable react-hooks/set-state-in-effect -- browser-only storage, read after the first render */
-        setShopPicks(picks);
-        // Wear one of each kind to start (the first picked); the others are a tap away in "Shop picks".
-        setOutfit([...picks].reverse().reduce<ClothingItem[]>((worn, piece) => withPiece(worn, piece), []));
-        setTab("shop");
-        /* eslint-enable react-hooks/set-state-in-effect */
-      }
-    } catch {}
-  }, []);
+    reportRef.current = onOutfitChange;
+  });
+  useEffect(() => {
+    reportRef.current?.(outfit);
+  }, [outfit]);
 
   useEffect(() => {
     let ignore = false;

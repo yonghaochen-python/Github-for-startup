@@ -3,9 +3,8 @@
 import { useEffect, useState } from "react";
 import Link from "next/link";
 import { useAuth } from "@/components/AuthProvider";
-import { photoToJpeg } from "@/lib/clientImage";
 import { DEMO_LABEL, priceLabel, type ShopProduct } from "@/lib/shopCatalog";
-import type { TryOnResult } from "@/lib/tryOn/types";
+import { requestShopTryOn, type TryOnResult } from "@/lib/tryOnClient";
 
 /**
  * A product up close: bigger picture, what's known about it, and the ways to try it on (live on camera, or on the
@@ -22,19 +21,6 @@ const KIND: Record<ShopProduct["category"], string> = {
 };
 
 type PhotoState = { status: "idle" } | { status: "running" } | { status: "done"; result: TryOnResult } | { status: "error"; message: string; noPhoto?: boolean };
-
-/** Sends the piece's picture with its description to the Shopping photo try-on. */
-async function photoTryOn(product: ShopProduct): Promise<TryOnResult> {
-  const picture = await fetch(product.imageUrl).then((r) => (r.ok ? r.blob() : Promise.reject(new Error("picture"))));
-  const garment = await photoToJpeg(picture, 0.9, 1024);
-  const form = new FormData();
-  form.append("pieces", JSON.stringify([{ description: product.name, color: product.color, layeringRole: product.layeringRole }]));
-  form.append("garment:0", garment, "garment.jpg");
-  const res = await fetch("/api/shop/try-on", { method: "POST", body: form });
-  const data = (await res.json().catch(() => ({}))) as { result?: TryOnResult; error?: string; code?: string };
-  if (!res.ok || !data.result) throw Object.assign(new Error(data.error ?? "Couldn't run the try-on right now. Please try again."), { code: data.code });
-  return data.result;
-}
 
 export function ProductDetail({
   product,
@@ -74,14 +60,10 @@ export function ProductDetail({
     if (!user?.photoVersion) return setPhoto({ status: "error", message: "Add a full-body photo in Profile first.", noPhoto: true });
     setPhoto({ status: "running" });
     try {
-      setPhoto({ status: "done", result: await photoTryOn(product) });
+      setPhoto({ status: "done", result: await requestShopTryOn([{ imageUrl: product.imageUrl, description: product.name, color: product.color, layeringRole: product.layeringRole }]) });
     } catch (err) {
-      const code = (err as { code?: string }).code;
-      setPhoto({
-        status: "error",
-        message: err instanceof Error && err.message !== "picture" ? err.message : "This piece's picture couldn't be used for a try-on.",
-        noPhoto: code === "no_photo",
-      });
+      const message = err instanceof Error ? err.message : "Couldn't run the try-on right now.";
+      setPhoto({ status: "error", message, noPhoto: message.includes("full-body photo") });
     }
   }
 

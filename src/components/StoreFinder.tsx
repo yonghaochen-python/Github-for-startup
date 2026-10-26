@@ -507,7 +507,7 @@ export function StoreFinder({
                 onClick={() => onTryNow(item())}
                 className="inline-flex min-h-[44px] items-center justify-center gap-2 rounded-[2px] bg-[#121821] px-5 text-[12.5px] font-medium text-white hover:bg-[#2a3542]"
               >
-                Try on with Live Try-On
+                Try on in Studio
               </button>
               <button
                 onClick={() => {
