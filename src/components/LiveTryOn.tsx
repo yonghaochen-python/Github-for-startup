@@ -3,7 +3,6 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import Image from "next/image";
 import Link from "next/link";
-import { useAuth } from "@/components/AuthProvider";
 import type { ClothingItem } from "@/components/OutfitCard";
 import { LAYER_LABELS } from "@/lib/layering";
 import { withPiece } from "@/lib/outfitPieces";
@@ -14,7 +13,7 @@ import { addToWishlist } from "@/lib/shopWishlist";
 import type { RealTimeClient } from "@decartai/sdk";
 
 /**
- * Live Try On — preview. A live camera mirror (or the saved photo) beside the closet, where pieces can be picked
+ * Live Try On — preview. A live camera mirror beside the closet, where pieces can be picked
  * and swapped without restarting anything. On its own nothing is recorded or sent and no clothes are drawn on the
  * person (the page says so). For admin accounts where a Decart key is set, "AI try-on" can run Decart's real-time
  * try-on on the camera with the whole outfit (all pieces on one reference picture), after a tap on Start, for at
@@ -33,7 +32,7 @@ const TABS = [
   { value: "accessory", label: "Accessories" },
 ];
 
-type Source = "none" | "starting" | "camera" | "photo";
+type Source = "none" | "starting" | "camera";
 /** A piece sent from Shopping; store finds keep their page link and store name. */
 export type ShopPick = ClothingItem & { color?: string; productUrl?: string | null; retailer?: string };
 type Ai = "off" | "confirm" | "connecting" | "on";
@@ -89,7 +88,6 @@ function Icon({ d, className = "h-5 w-5" }: { d: string; className?: string }) {
   );
 }
 const CAMERA = "M4 8h3l2-2.5h6L17 8h3v11H4zM12 16.5a3.5 3.5 0 1 0 0-7 3.5 3.5 0 0 0 0 7z";
-const PHOTO = "M4 5h16v14H4zM4 15l4.5-4.5 4 4L15 12l5 5M15.5 9.5h.01";
 const OFF = "M5 5l14 14M8 6h7l2 2h3v9M20 19H4V8h3";
 
 export function LiveTryOn({
@@ -103,7 +101,6 @@ export function LiveTryOn({
   startWith?: ClothingItem[];
   onOutfitChange?: (pieces: ClothingItem[]) => void;
 }) {
-  const { user } = useAuth();
   const videoRef = useRef<HTMLVideoElement | null>(null);
   const streamRef = useRef<MediaStream | null>(null);
   const [source, setSource] = useState<Source>("none");
@@ -256,7 +253,7 @@ export function LiveTryOn({
   async function startCamera() {
     setCameraError(null);
     if (!navigator.mediaDevices?.getUserMedia) {
-      setCameraError("This browser can't open the camera here. You can use your saved photo instead.");
+      setCameraError("This browser can't open the camera here. Switch to Photo above to try it on your saved photo.");
       return;
     }
     setSource("starting");
@@ -271,8 +268,8 @@ export function LiveTryOn({
       setSource("none");
       setCameraError(
         err instanceof DOMException && err.name === "NotAllowedError"
-          ? "Camera access was turned down. You can allow it in your browser's settings, or use your saved photo."
-          : "Couldn't start the camera. Check that no other app is using it, or use your saved photo."
+          ? "Camera access was turned down. You can allow it in your browser's settings, or switch to Photo above."
+          : "Couldn't start the camera. Check that no other app is using it, or switch to Photo above."
       );
     }
   }
@@ -281,13 +278,6 @@ export function LiveTryOn({
   useEffect(() => {
     if (source === "camera" && videoRef.current && streamRef.current) videoRef.current.srcObject = streamRef.current;
   }, [source]);
-
-  function usePhoto() {
-    stopAi();
-    stopCamera();
-    setCameraError(null);
-    setSource("photo");
-  }
 
   function turnOff() {
     stopAi();
@@ -299,7 +289,6 @@ export function LiveTryOn({
     setOutfit((current) => (current.some((p) => p.id === item.id) ? current.filter((p) => p.id !== item.id) : withPiece(current, item)));
   }
 
-  const hasPhoto = Boolean(user?.photoVersion);
   const tabs = shopPicks.length ? [{ value: "shop", label: "Shop picks" }, ...TABS] : TABS;
   const tabItems = tab === "shop" ? shopPicks : (closet ?? []).filter((item) => item.category === tab);
   const countIn = (value: string) =>
@@ -331,11 +320,6 @@ export function LiveTryOn({
           {source === "camera" && aiStream && (
             <video ref={aiVideoRef} autoPlay playsInline muted className="absolute inset-0 h-full w-full -scale-x-100 object-cover" aria-label="AI try-on, live" />
           )}
-          {source === "photo" && hasPhoto && (
-            // eslint-disable-next-line @next/next/no-img-element -- private, owner-only image
-            <img src={`/api/me/photo?v=${user?.photoVersion}`} alt="Your saved photo" className="absolute inset-0 h-full w-full object-contain" />
-          )}
-
           {(source === "none" || source === "starting") && (
             <div className="absolute inset-0 flex flex-col items-center justify-center px-8 text-center">
               <span className="mb-5 flex h-16 w-16 items-center justify-center rounded-full border border-white/15 bg-[rgba(255,255,255,0.07)] text-[#cfe3e6] backdrop-blur-md">
@@ -356,15 +340,6 @@ export function LiveTryOn({
                   <Icon d={CAMERA} className="h-4 w-4" />
                   {source === "starting" ? "Waiting for permission…" : "Turn on camera"}
                 </button>
-                {hasPhoto && (
-                  <button
-                    onClick={usePhoto}
-                    className="inline-flex min-h-[46px] items-center gap-2 rounded-full border border-white/20 bg-[rgba(255,255,255,0.06)] px-6 text-[13.5px] font-medium text-white backdrop-blur-md transition hover:bg-[rgba(255,255,255,0.12)]"
-                  >
-                    <Icon d={PHOTO} className="h-4 w-4" />
-                    Use my saved photo
-                  </button>
-                )}
               </div>
             </div>
           )}
@@ -374,19 +349,9 @@ export function LiveTryOn({
             {ai === "on" ? `Live AI try-on · ${secondsLeft}s left` : "Prototype · clothes aren't drawn on you yet"}
           </span>
 
-          {(source === "camera" || source === "photo") && (
+          {source === "camera" && (
             <div className="absolute right-3 top-12 flex flex-col gap-2">
-              {source === "camera" && hasPhoto && (
-                <button onClick={usePhoto} aria-label="Use my saved photo instead" title="Use my saved photo" className={iconButton}>
-                  <Icon d={PHOTO} />
-                </button>
-              )}
-              {source === "photo" && (
-                <button onClick={startCamera} aria-label="Use the camera instead" title="Use the camera" className={iconButton}>
-                  <Icon d={CAMERA} />
-                </button>
-              )}
-              <button onClick={turnOff} aria-label={source === "camera" ? "Turn off the camera" : "Close the photo"} title="Turn off" className={iconButton}>
+              <button onClick={turnOff} aria-label="Turn off the camera" title="Turn off" className={iconButton}>
                 <Icon d={OFF} />
               </button>
             </div>
