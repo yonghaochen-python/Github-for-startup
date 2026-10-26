@@ -14,9 +14,9 @@ export const eyebrow = "text-[11px] font-medium uppercase tracking-[2.2px] text-
 /** The standard surface: white, softly lifted, rounded — instead of bordered boxes. */
 export const surface = "rounded-[22px] bg-white shadow-[0_1px_0_rgba(18,24,33,0.03),0_14px_36px_rgba(18,30,45,0.06)]";
 
-/** The Studio mirror's frame (Photo and Live use the same one): tall on phones, filling the screen height on desktop. */
+/** The Studio mirror's frame (Photo and Live use the same one): as big as the screen allows, on phones and desktop. */
 export const mirrorFrame =
-  "relative mx-auto aspect-[3/4] max-h-[640px] w-full lg:aspect-auto lg:h-[min(820px,calc(100vh-230px))] lg:min-h-[420px]";
+  "relative mx-auto aspect-[3/4] max-h-[78vh] w-full lg:aspect-auto lg:h-[calc(100vh-170px)] lg:max-h-[1100px] lg:min-h-[480px]";
 
 /** Page width + side padding used by every page. */
 export function PageShell({ children, className = "" }: { children: React.ReactNode; className?: string }) {

@@ -434,12 +434,13 @@ export default function StudioPage() {
 
   return (
     <main className="flex-1 pb-16">
-      <PageShell className="pt-6 sm:pt-8">
+      <PageShell className="max-w-[1440px]! pt-6 sm:pt-8">
         <h1 className="sr-only">Studio</h1>
         <Tips id="studio" tips={STUDIO_TIPS} />
 
-        <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
-          <div role="tablist" aria-label="How to try it on" className="relative grid grid-cols-2 rounded-full bg-white p-1 shadow-[0_1px_0_rgba(18,24,33,0.03),0_8px_22px_rgba(18,30,45,0.06)]">
+        {/* One row above the mirror (so it can be bigger): Photo | Live, the theme box, and the way back to Shopping. */}
+        <div className="mb-4 flex flex-wrap items-center gap-3 lg:flex-nowrap">
+          <div role="tablist" aria-label="How to try it on" className="relative grid shrink-0 grid-cols-2 rounded-full bg-white p-1 shadow-[0_1px_0_rgba(18,24,33,0.03),0_8px_22px_rgba(18,30,45,0.06)]">
             {/* The dark pill slides to the chosen side. */}
             <span
               aria-hidden
@@ -460,13 +461,11 @@ export default function StudioPage() {
             ))}
           </div>
           {fromShop && (
-            <Link href="/shop" className="text-[12.5px] font-semibold text-[#29343a] underline-offset-4 hover:underline">
+            <Link href="/shop" className="ml-auto shrink-0 text-[12.5px] font-semibold text-[#29343a] underline-offset-4 hover:underline lg:order-last">
               ← Back to Shopping
             </Link>
           )}
-        </div>
-
-        <form onSubmit={styleTheme} data-tip="studio-theme" className="mb-5 flex items-center gap-2 rounded-full bg-white p-1.5 pl-5 shadow-[0_1px_0_rgba(18,24,33,0.03),0_14px_36px_rgba(18,30,45,0.06)]">
+        <form onSubmit={styleTheme} data-tip="studio-theme" className="flex w-full min-w-0 items-center gap-2 rounded-full lg:w-auto lg:flex-1 bg-white p-1.5 pl-5 shadow-[0_1px_0_rgba(18,24,33,0.03),0_14px_36px_rgba(18,30,45,0.06)]">
           <SearchIcon className="h-[18px] w-[18px] shrink-0 text-[#5d6874]" />
           <label htmlFor="studio-theme" className="sr-only">
             Theme
@@ -482,6 +481,7 @@ export default function StudioPage() {
             {styling ? "Styling…" : "Style it"}
           </button>
         </form>
+        </div>
 
         {error && (
           <div className="mb-5">
@@ -489,7 +489,7 @@ export default function StudioPage() {
           </div>
         )}
 
-        <div className="grid gap-6 lg:grid-cols-[minmax(0,1fr)_minmax(0,460px)]">
+        <div className="grid gap-6 lg:grid-cols-[minmax(0,1fr)_minmax(0,400px)] xl:grid-cols-[minmax(0,1fr)_minmax(0,430px)]">
           {/* The mirror: Live (the camera) or Photo (the saved photo or its try-on), in the same frame. */}
           {mode === "live" ? (
             <LiveTryOn outfit={pieces} picks={pieces.filter((p) => p.id.startsWith("shop-")) as ShopPick[]} />
