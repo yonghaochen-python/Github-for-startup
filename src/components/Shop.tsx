@@ -2,7 +2,6 @@
 
 import { useEffect, useMemo, useState } from "react";
 import Image from "next/image";
-import Link from "next/link";
 import { useRouter } from "next/navigation";
 import {
   DEMO_LABEL,
@@ -183,15 +182,8 @@ export function Shop() {
     <>
       <section id="collection" className="mx-auto max-w-[1400px] scroll-mt-24 px-4 pb-16 pt-8 sm:px-6">
         <div className="flex flex-wrap items-end justify-between gap-4">
-          <div>
-            <h1 className="font-display text-[44px] leading-none tracking-[-1px] text-[#121821] sm:text-[52px]">Shopping</h1>
-            <p className="mt-2 text-[14px] text-[#4f5b66]">Browse, then see it on you before you buy.</p>
-          </div>
+          <h1 className="font-display text-[44px] leading-none tracking-[-1px] text-[#121821] sm:text-[52px]">Shopping</h1>
           <div className="flex items-center gap-5">
-            <Link href="/studio?mode=live" className="flex items-baseline gap-3 text-[10.5px] uppercase tracking-[1.6px] text-[#5d6874] hover:text-[#121821]">
-              <span className="font-display text-[18px] normal-case italic tracking-normal text-[#29343a]">20 sec</span>
-              Live session preview
-            </Link>
             <button
               onClick={() => setImporting((v) => !v)}
               aria-expanded={importing}
