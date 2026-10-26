@@ -199,7 +199,7 @@ export function Shop() {
                       {/* eslint-disable-next-line @next/next/no-img-element -- a picture saved on this device */}
                       <img src={w.imageUrl} alt={w.name} className="absolute inset-0 h-full w-full object-contain p-1.5" />
                     </div>
-                    <p className="mt-2 truncate text-[9.5px] uppercase tracking-[1.4px] text-[#5d6874]">{w.label}</p>
+                    <p className="mt-2 truncate text-[9.5px] uppercase tracking-[1.4px] text-[#5d6874]">{w.label || "Store find"}</p>
                     <p className="truncate text-[12.5px] font-medium text-[#121821]">{w.name}</p>
                     <div className="mt-1.5 flex flex-wrap gap-x-3 text-[11.5px]">
                       <button onClick={() => toggleTray(w)} disabled={!added && tray.length >= MAX_TRAY} className="font-semibold text-[#121821] underline-offset-4 hover:underline disabled:opacity-40">
@@ -379,7 +379,7 @@ export function Shop() {
                     <span className="min-w-0 flex-1">
                       <span className="block truncate text-[9.5px] uppercase tracking-[1.6px] text-[#5d6874]">
                         {SLOT_NAMES[p.category]}
-                        {p.productUrl || p.key.startsWith("ext-") ? ` · ${p.label}` : ""}
+                        {(p.productUrl || p.key.startsWith("ext-")) && p.label ? ` · ${p.label}` : ""}
                       </span>
                       <span className="block truncate text-[12.5px] font-medium text-[#121821]">{p.name}</span>
                     </span>

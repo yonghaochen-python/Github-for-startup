@@ -29,6 +29,51 @@ const SMALL_SIDE = 300;
 const LINK_FAILED = "Couldn't read that page. Upload a photo of the item instead.";
 const DROP_FAILED = "That picture couldn't be read from the other tab. Save it or take a screenshot, then upload it.";
 
+/* ---------- Brand guesses (free, no AI): from the link's website or the picture's file name ---------- */
+
+// How brands write their own names, where that isn't just a capital first letter.
+const BRAND_NAMES: Record<string, string> = {
+  hm: "H&M", "h&m": "H&M", jcrew: "J.Crew", "j crew": "J.Crew", levi: "Levi's", levis: "Levi's", "levi's": "Levi's",
+  cos: "COS", asos: "ASOS", shein: "SHEIN", skims: "SKIMS", alo: "Alo", "alo yoga": "Alo Yoga", "and other stories": "& Other Stories",
+  stories: "& Other Stories", thenorthface: "The North Face", "north face": "The North Face", "the north face": "The North Face",
+  "new balance": "New Balance", newbalance: "New Balance", "under armour": "Under Armour", underarmour: "Under Armour",
+  "ralph lauren": "Ralph Lauren", ralphlauren: "Ralph Lauren", "tommy hilfiger": "Tommy Hilfiger", "calvin klein": "Calvin Klein",
+  "michael kors": "Michael Kors", "banana republic": "Banana Republic", bananarepublic: "Banana Republic", "old navy": "Old Navy",
+  oldnavy: "Old Navy", "american eagle": "American Eagle", ae: "American Eagle", "urban outfitters": "Urban Outfitters",
+  urbanoutfitters: "Urban Outfitters", "free people": "Free People", freepeople: "Free People", abercrombie: "Abercrombie & Fitch",
+};
+// Brands recognised in a picture's file name (e.g. "lululemon-align-pant.jpg").
+const KNOWN_BRANDS = [
+  "lululemon", "nike", "adidas", "zara", "h&m", "hm", "uniqlo", "gap", "patagonia", "allbirds", "everlane", "madewell", "aritzia",
+  "levi's", "levis", "levi", "j crew", "jcrew", "banana republic", "old navy", "abercrombie", "hollister", "american eagle",
+  "urban outfitters", "free people", "anthropologie", "mango", "cos", "arket", "and other stories", "reformation", "skims",
+  "alo yoga", "alo", "vuori", "gymshark", "the north face", "north face", "columbia", "new balance", "converse", "vans", "puma",
+  "reebok", "under armour", "ralph lauren", "tommy hilfiger", "calvin klein", "gucci", "prada", "coach", "michael kors", "shein",
+  "asos", "nordstrom", "target", "quince", "athleta", "fabletics", "on running", "hoka", "birkenstock", "dr martens", "ugg",
+];
+// Picture hosts that belong to no particular brand.
+const SHARED_HOSTS = /(shopify|cloudfront|akamai|scene7|imgix|cloudinary|amazonaws|googleusercontent|fbcdn|cdninstagram|pinimg|wp)\./i;
+
+const brandName = (word: string) => BRAND_NAMES[word.toLowerCase()] ?? word.replace(/\b\w/g, (c) => c.toUpperCase());
+
+/** "images.lululemon.com" → "Lululemon"; null for shared picture hosts. */
+function brandFromHost(host: string): string | null {
+  if (SHARED_HOSTS.test(host)) return null;
+  const parts = host.toLowerCase().replace(/^(www\d*|shop|store|images?|static|cdn|media|assets|img)\./, "").split(".");
+  const word = parts.length > 2 && parts[parts.length - 2].length <= 3 ? parts[parts.length - 3] : parts[0];
+  return word ? brandName(word) : null;
+}
+
+/** A known brand named in a picture's file name, if any. */
+function brandFromFileName(name: string): string | null {
+  const words = ` ${name.toLowerCase().replace(/\.[a-z0-9]+$/, "").replace(/[-_.+]+/g, " ")} `;
+  const hit = KNOWN_BRANDS.find((b) => words.includes(` ${b} `));
+  return hit ? brandName(hit) : null;
+}
+
+/** "Nike.com" → "Nike". */
+const tidyStore = (name: string) => name.replace(/\.(com|co|net|org|shop|store)(\.[a-z]{2})?$/i, "").trim();
+
 type Found = { name: string; retailer: string; price: string | null; productUrl: string | null; imageUrl: string };
 type Box = { x: number; y: number; w: number; h: number };
 
@@ -198,10 +243,12 @@ export function StoreFinder({
       };
       if (!res.ok || !data.product) throw new Error(data.error ?? failed);
       const p = data.product;
+      // A store page names itself; for a picture link, go by its website (or the page it was dragged from).
+      const pictureHost = new URL(page ?? url).hostname;
       const image = await (await fetch(p.imageDataUrl)).blob();
       setFound({
         name: p.name ?? "",
-        retailer: p.retailer,
+        retailer: p.productUrl ? tidyStore(p.retailer) : (brandFromHost(pictureHost) ?? ""),
         price: priceText(p.price, p.currency),
         productUrl: p.productUrl ?? page,
         imageUrl: await shrink(image, SIDE),
@@ -219,7 +266,7 @@ export function StoreFinder({
     importLink(link.trim(), LINK_FAILED);
   }
 
-  async function upload(file: Blob) {
+  async function upload(file: Blob, fileName = "") {
     begin();
     if (!file.type.startsWith("image/")) return setError("Choose a picture (JPG, PNG or WebP).");
     if (file.size > MAX_UPLOAD_BYTES) return setError("That picture is too large. Please use one under 10MB.");
@@ -234,7 +281,7 @@ export function StoreFinder({
       } catch {}
       setFound({
         name: found?.name ?? "",
-        retailer: productUrl ? new URL(productUrl).hostname.replace(/^www\./, "") : "Your photo",
+        retailer: (productUrl && brandFromHost(new URL(productUrl).hostname)) || brandFromFileName(fileName) || found?.retailer || "",
         price: found?.price ?? null,
         productUrl,
         imageUrl,
@@ -248,7 +295,7 @@ export function StoreFinder({
 
   async function drop(data: DataTransfer) {
     const file = Array.from(data.files).find((f) => f.type.startsWith("image/")) ?? data.files[0];
-    if (file) return upload(file);
+    if (file) return upload(file, file.name);
     const dropped = droppedLink(data);
     if (!dropped) return setError(DROP_FAILED);
     if (dropped.startsWith("data:image/")) {
@@ -268,7 +315,7 @@ export function StoreFinder({
       const file = Array.from(e.clipboardData?.files ?? []).find((f) => f.type.startsWith("image/"));
       if (!file) return;
       e.preventDefault();
-      upload(file);
+      upload(file, file.name);
     };
     document.addEventListener("paste", onPaste);
     return () => document.removeEventListener("paste", onPaste);
@@ -278,7 +325,7 @@ export function StoreFinder({
   const item = (): TrayItem => ({
     key: `ext-${crypto.randomUUID()}`,
     name: found?.name.trim() || "Store find",
-    label: found?.retailer ?? "Store",
+    label: found?.retailer.trim() ?? "",
     category: kind,
     layeringRole: ROLE_FOR[kind],
     color: "",
@@ -343,7 +390,7 @@ export function StoreFinder({
         onChange={(e) => {
           const file = e.target.files?.[0];
           e.target.value = "";
-          if (file) upload(file);
+          if (file) upload(file, file.name);
         }}
       />
 
@@ -423,7 +470,14 @@ export function StoreFinder({
             </div>
           </div>
           <div className="min-w-0">
-            <p className="text-[9.5px] uppercase tracking-[1.6px] text-[#5d6874]">{found.retailer}</p>
+            <input
+              value={found.retailer}
+              onChange={(e) => setFound({ ...found, retailer: e.target.value })}
+              placeholder="Brand (tap to add)"
+              aria-label="Brand or store"
+              title="Wrong brand? Type the right one."
+              className="w-full border-b border-dashed border-black/15 bg-transparent py-0.5 text-[10px] uppercase tracking-[1.6px] text-[#5d6874] outline-none placeholder:normal-case placeholder:tracking-normal placeholder:text-[#8a949c] focus:border-[#121821] focus:text-[#121821]"
+            />
             <input
               value={found.name}
               onChange={(e) => setFound({ ...found, name: e.target.value })}
