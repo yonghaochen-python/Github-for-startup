@@ -9,6 +9,7 @@ import {
   LIVE_SHOP_KEY,
   PRICE_BANDS,
   SHOP_BRANDS,
+  SHOP_OUTFIT_KEY,
   SHOP_COLORS,
   SHOP_PRODUCTS,
   SHOP_STYLES,
@@ -51,8 +52,8 @@ const SLOT_NAMES: Record<string, string> = {
 
 // Hearts used to be kept apart from the wishlist; they're one list now, so the old key is cleared.
 const OLD_LOVED_KEY = "virm-shop-loved";
-// "Your outfit" is kept on this device too, so it's still there after visiting Live (or leaving Shopping).
-const OUTFIT_KEY = "virm-shop-outfit";
+// "Your outfit" is kept on this device too, so it's still there after visiting Studio (which lists it first too).
+const OUTFIT_KEY = SHOP_OUTFIT_KEY;
 
 function keepOutfit(list: TrayItem[]) {
   try {

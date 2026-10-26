@@ -15,7 +15,7 @@ import { MirrorIcon, PlusIcon, SearchIcon } from "@/components/Icons";
 import { EmptyState, ErrorNote, PageShell, btnPrimary, mirrorFrame } from "@/components/ui";
 import { requestShopTryOn, requestTryOn, type TryOnResult } from "@/lib/tryOnClient";
 import { LiveTryOn, type ShopPick } from "@/components/LiveTryOn";
-import { LIVE_SHOP_KEY, SHOP_PRODUCTS, shopPiece, trayItemFrom } from "@/lib/shopCatalog";
+import { LIVE_SHOP_KEY, SHOP_OUTFIT_KEY, SHOP_PRODUCTS, shopPiece, trayItemFrom, type TrayItem } from "@/lib/shopCatalog";
 import { Tips, type Tip } from "@/components/Tips";
 
 const STUDIO_TIPS: Tip[] = [
@@ -200,18 +200,29 @@ export default function StudioPage() {
     // eslint-disable-next-line react-hooks/exhaustive-deps -- load once per visit
   }, []);
 
+  // Shopping's "Your outfit" (kept on this device) is listed first in the Shop panel on every visit. Arriving from
+  // Shopping (?shop=1), the pieces sent over are also worn to start with.
   useEffect(() => {
-    if (!fromShop) return;
+    let outfit: ShopPick[] = [];
+    let sent: ShopPick[] = [];
     try {
-      const picks = JSON.parse(sessionStorage.getItem(LIVE_SHOP_KEY) ?? "[]") as ShopPick[];
-      if (Array.isArray(picks) && picks.length) {
-        /* eslint-disable react-hooks/set-state-in-effect -- browser-only storage, read after the first render */
-        setShopPicks(picks);
-        // Wear one of each kind to start (the first picked); the others are a tap away in "Shop picks".
-        setPieces([...picks].reverse().reduce<ClothingItem[]>((worn, piece) => withPiece(worn, piece), []));
-        setTab("picks");
-      }
+      const kept = JSON.parse(localStorage.getItem(SHOP_OUTFIT_KEY) ?? "[]") as TrayItem[];
+      if (Array.isArray(kept)) outfit = kept.filter((x) => x && typeof x.key === "string" && typeof x.imageUrl === "string").map(shopPiece);
     } catch {}
+    if (fromShop) {
+      try {
+        const picks = JSON.parse(sessionStorage.getItem(LIVE_SHOP_KEY) ?? "[]") as ShopPick[];
+        if (Array.isArray(picks)) sent = picks;
+      } catch {}
+    }
+    const all = [...outfit, ...sent.filter((p) => !outfit.some((o) => o.id === p.id))];
+    /* eslint-disable react-hooks/set-state-in-effect -- browser-only storage, read after the first render */
+    setShopPicks(all);
+    if (sent.length) {
+      // Wear one of each kind to start (the first picked); the others are a tap away in "Your outfit".
+      setPieces([...sent].reverse().reduce<ClothingItem[]>((worn, piece) => withPiece(worn, piece), []));
+    }
+    if (all.length) setTab("picks");
     /* eslint-enable react-hooks/set-state-in-effect */
     // eslint-disable-next-line react-hooks/exhaustive-deps -- once per visit
   }, []);
@@ -376,14 +387,15 @@ export default function StudioPage() {
     setIdeas([]);
   }
 
-  const tabs = source === "shop" && shopPicks.length ? [{ value: "picks", label: "Your picks" }, ...TABS] : TABS;
+  const tabs = source === "shop" && shopPicks.length ? [{ value: "picks", label: "Your outfit" }, ...TABS] : TABS;
   const activeTab = tabs.some((t) => t.value === tab) ? tab : tabs[0].value;
   const isShopPiece = (p: ClothingItem) => p.id.startsWith("shop-");
   const tabItems: ClothingItem[] =
     source === "shop"
       ? activeTab === "picks"
         ? shopPicks
-        : CATALOG.filter((item) => item.category === activeTab)
+        : // Your outfit's pieces of this kind first, then the rest of the catalog.
+          [...shopPicks.filter((p) => p.category === activeTab), ...CATALOG.filter((c) => c.category === activeTab && !shopPicks.some((p) => p.id === c.id))]
       : (closet ?? []).filter((item) => item.category === activeTab);
   const countIn = (value: string) =>
     source === "shop"
@@ -668,7 +680,11 @@ export default function StudioPage() {
                   {(["closet", "shop"] as const).map((s) => (
                     <button
                       key={s}
-                      onClick={() => setSource(s)}
+                      onClick={() => {
+                        setSource(s);
+                        // Opening Shop starts on "Your outfit" when there's something in it.
+                        if (s === "shop" && shopPicks.length) setTab("picks");
+                      }}
                       aria-pressed={source === s}
                       className={`rounded-full px-4 py-1.5 text-[12.5px] font-semibold transition ${source === s ? "bg-white text-[#121821] shadow-sm" : "text-[#5d6874] hover:text-[#121821]"}`}
                     >

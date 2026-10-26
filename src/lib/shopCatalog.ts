@@ -102,6 +102,9 @@ export function priceLabel(price: number | null, currency: string | null): strin
   }
 }
 
+/** Shopping's "Your outfit" list, kept on this device (Studio's Shop panel shows it first too). */
+export const SHOP_OUTFIT_KEY = "virm-shop-outfit";
+
 /** Shop picks handed to the Live page (kept for this browser tab). */
 export const LIVE_SHOP_KEY = "virm-live-shop";
 
