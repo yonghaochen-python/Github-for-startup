@@ -92,6 +92,30 @@ export const PRICE_BANDS = [
   { value: "over-150", label: "$150+", test: (p: number) => p > 150 },
 ] as const;
 
+/**
+ * Real listings show their price and store link only once checked (updatedAt set when the listing was verified).
+ * Demo pieces never show either.
+ */
+export const isVerified = (p: ShopProduct) => !p.isDemo && Boolean(p.updatedAt);
+
+/** Searches to suggest; each finds pieces in the current catalog. */
+export const SUGGESTED_SEARCHES = ["Linen shirts", "Light jeans", "Brown boots", "Summer dresses", "Camel coats", "Cozy knits"];
+
+/** Every word of the search must appear somewhere in the piece's details (plurals match too: "shirts" finds "shirt"). */
+export function matchesSearch(p: ShopProduct, query: string): boolean {
+  const words = query
+    .toLowerCase()
+    .split(/[\s,]+/)
+    .filter(Boolean)
+    .map((w) => (w.length > 4 && w.endsWith("es") ? w.slice(0, -2) : w.endsWith("s") ? w.slice(0, -1) : w));
+  if (!words.length) return true;
+  const haystack = [p.name, p.brand, p.retailer, p.color, p.category, p.style, ...p.colors.map((c) => c.name)]
+    .filter(Boolean)
+    .join(" ")
+    .toLowerCase();
+  return words.every((w) => haystack.includes(w));
+}
+
 /** A price in its own currency, or null when it isn't known. */
 export function priceLabel(price: number | null, currency: string | null): string | null {
   if (price === null) return null;

@@ -13,6 +13,9 @@ import {
   SHOP_COLORS,
   SHOP_PRODUCTS,
   SHOP_STYLES,
+  SUGGESTED_SEARCHES,
+  isVerified,
+  matchesSearch,
   priceLabel,
   shopPiece,
   trayItemFrom,
@@ -155,7 +158,6 @@ export function Shop() {
   }
 
   const shown = useMemo(() => {
-    const q = query.trim().toLowerCase();
     const band = PRICE_BANDS.find((b) => b.value === price);
     return SHOP_PRODUCTS.filter(
       (p) =>
@@ -164,7 +166,7 @@ export function Shop() {
         (style === "all" || p.style === style) &&
         (!band || (p.price !== null && band.test(p.price))) &&
         (brand === "all" || p.brand === brand) &&
-        (!q || [p.name, p.brand, p.retailer, p.color, p.category, p.style].some((v) => v?.toLowerCase().includes(q)))
+        matchesSearch(p, query)
     );
   }, [query, color, style, price, brand, tab]);
 
@@ -175,7 +177,7 @@ export function Shop() {
     ...(SHOP_BRANDS.length ? [["Brand", brand, setBrand, SHOP_BRANDS.map((b) => [b, b])]] : []),
     ...(HAS_PRICES ? [["Price", price, setPrice, PRICE_BANDS.map((b) => [b.value, b.label])]] : []),
   ] as [string, string, (v: string) => void, string[][]][];
-  const allDemo = shown.every((p) => p.isDemo);
+  const allDemo = shown.length > 0 && shown.every((p) => p.isDemo);
 
   const inTray = new Set(tray.map((p) => p.key));
 
@@ -184,22 +186,7 @@ export function Shop() {
       <section id="collection" className="mx-auto max-w-[1400px] scroll-mt-24 px-4 pb-16 pt-8 sm:px-6">
         <div className="flex flex-wrap items-end justify-between gap-4">
           <h1 className="font-display text-[44px] leading-none tracking-[-1px] text-[#121821] sm:text-[52px]">Shopping</h1>
-          <div className="flex items-center gap-5">
-            <button
-              onClick={() => setImporting((v) => !v)}
-              aria-expanded={importing}
-              className="inline-flex min-h-[42px] items-center gap-2 rounded-full bg-white px-4 text-[12.5px] font-medium text-[#121821] shadow-[inset_0_0_0_1px_rgba(18,24,33,0.14)] hover:shadow-[inset_0_0_0_1px_rgba(18,24,33,0.3)]"
-            >
-              {importing ? "× Close import" : "+ Import an item"}
-            </button>
-          </div>
         </div>
-
-        {importing && (
-          <div className="mt-6">
-            <StoreFinder onTryNow={(item) => tryInStudio(item)} onAdd={toggleTray} onSave={saveFind} trayFull={tray.length >= MAX_TRAY} />
-          </div>
-        )}
 
         {wishlist.length > 0 && (
           <div className="mt-6">
@@ -241,7 +228,9 @@ export function Shop() {
         )}
 
         <div className="mt-8 grid gap-6 border-b border-black/10 pb-5 md:grid-cols-[minmax(0,1fr)_minmax(0,420px)] md:items-end">
-          <label className="flex max-w-md items-center gap-3 border-b border-black/15 pb-1.5">
+          <div className="min-w-0">
+          <div className="flex items-center gap-4">
+          <label className="flex min-w-0 max-w-md flex-1 items-center gap-3 border-b border-black/15 pb-1.5">
             <svg viewBox="0 0 24 24" className="h-4 w-4 text-[#5d6874]" fill="none" stroke="currentColor" strokeWidth="1.7" aria-hidden>
               <circle cx="11" cy="11" r="6.5" />
               <path d="m16 16 4 4" strokeLinecap="round" />
@@ -253,7 +242,32 @@ export function Shop() {
               aria-label="Search the collection"
               className="w-full bg-transparent text-[13px] text-[#121821] outline-none placeholder:text-[#7d8790]"
             />
+            {query && (
+              <button onClick={() => setQuery("")} aria-label="Clear search" className="text-[14px] leading-none text-[#5d6874] hover:text-[#121821]">
+                ×
+              </button>
+            )}
           </label>
+          {/* Secondary to search: bring in a piece from any store. */}
+          <button
+            onClick={() => setImporting((v) => !v)}
+            aria-expanded={importing}
+            className="shrink-0 text-[12px] font-semibold text-[#4f5b66] underline-offset-4 hover:text-[#121821] hover:underline"
+          >
+            {importing ? "Close" : "+ Add a product"}
+          </button>
+          </div>
+          {!query && (
+            <p className="mt-3 flex flex-wrap items-center gap-x-1.5 gap-y-1.5 text-[11.5px] text-[#5d6874]">
+              <span className="mr-1">Try</span>
+              {SUGGESTED_SEARCHES.slice(0, 4).map((s) => (
+                <button key={s} onClick={() => setQuery(s)} className="rounded-full bg-white px-2.5 py-1 text-[11.5px] text-[#26313a] shadow-[inset_0_0_0_1px_rgba(18,24,33,0.1)] hover:shadow-[inset_0_0_0_1px_rgba(18,24,33,0.3)]">
+                  {s}
+                </button>
+              ))}
+            </p>
+          )}
+          </div>
           <div className="grid gap-4" style={{ gridTemplateColumns: `repeat(${filters.length}, minmax(0, 1fr))` }}>
             {filters.map(([name, value, set, options]) => (
               <label key={name} className="relative block">
@@ -273,6 +287,12 @@ export function Shop() {
             ))}
           </div>
         </div>
+
+        {importing && (
+          <div className="mt-5">
+            <StoreFinder onTryNow={(item) => tryInStudio(item)} onAdd={toggleTray} onSave={saveFind} trayFull={tray.length >= MAX_TRAY} />
+          </div>
+        )}
 
         <div className="flex gap-6 overflow-x-auto pt-4">
           {TABS.map((t) => (
@@ -299,13 +319,51 @@ export function Shop() {
               <p className="mb-5 text-[12px] text-[#5d6874]">Demo items photographed by Virm, not store listings. Real products will appear here as they&apos;re added.</p>
             )}
             {shown.length === 0 ? (
-              <p className="rounded-[6px] bg-white px-6 py-10 text-center text-[13px] text-[#5d6874]">Nothing matches. Try another filter.</p>
+              <div className="rounded-[6px] bg-white px-6 py-10 text-center text-[13px] text-[#5d6874]">
+                {query.trim() ? (
+                  <>
+                    <p className="text-[14px] text-[#121821]">No pieces match &ldquo;{query.trim()}&rdquo;.</p>
+                    <p className="mt-1">Try one of these:</p>
+                    <div className="mt-3 flex flex-wrap justify-center gap-2">
+                      {SUGGESTED_SEARCHES.map((s) => (
+                        <button key={s} onClick={() => setQuery(s)} className="rounded-full px-3 py-1.5 text-[12px] text-[#26313a] shadow-[inset_0_0_0_1px_rgba(18,24,33,0.14)] hover:shadow-[inset_0_0_0_1px_rgba(18,24,33,0.3)]">
+                          {s}
+                        </button>
+                      ))}
+                    </div>
+                    <p className="mt-4 text-[12px]">
+                      Saw it somewhere else?{" "}
+                      <button onClick={() => setImporting(true)} className="font-semibold text-[#121821] underline underline-offset-4">
+                        Add a product
+                      </button>{" "}
+                      from any store.
+                    </p>
+                  </>
+                ) : (
+                  <>
+                    <p>Nothing matches these filters.</p>
+                    <button
+                      onClick={() => {
+                        setTab("all");
+                        setColor("all");
+                        setStyle("all");
+                        setPrice("all");
+                        setBrand("all");
+                      }}
+                      className="mt-3 font-semibold text-[#121821] underline underline-offset-4"
+                    >
+                      Clear filters
+                    </button>
+                  </>
+                )}
+              </div>
             ) : (
               <ul className="grid grid-cols-2 gap-x-4 gap-y-8 md:grid-cols-3">
                 {shown.map((p) => {
                   const selected = inTray.has(p.id);
                   const saved = isSaved(p.id);
-                  const price = priceLabel(p.price, p.currency);
+                  // Price and store link only for verified real listings.
+                  const price = isVerified(p) ? priceLabel(p.price, p.currency) : null;
                   return (
                     <li key={p.id} className="flex flex-col">
                       <div className="relative aspect-[3/4] overflow-hidden bg-[#f0eee9]">
@@ -320,6 +378,11 @@ export function Shop() {
                         >
                           <Heart filled={saved} />
                         </button>
+                        {p.isDemo && (
+                          <span className="pointer-events-none absolute left-3 top-3 rounded-full bg-white/90 px-2 py-0.5 text-[9px] font-semibold uppercase tracking-[1.2px] text-[#4f5b66]">
+                            Demo
+                          </span>
+                        )}
                         {selected && (
                           <span className="pointer-events-none absolute bottom-3 left-3 inline-flex items-center gap-1.5 bg-[#121821]/85 px-2.5 py-1.5 text-[9.5px] font-medium uppercase tracking-[1.5px] text-white">
                             ✓ In outfit
@@ -335,7 +398,7 @@ export function Shop() {
                       </div>
                       <p className="mt-1 text-[11px] text-[#5d6874]">
                         {SLOT_NAMES[p.category]} · {p.style}
-                        {p.productUrl && (
+                        {isVerified(p) && p.productUrl && (
                           <>
                             {" · "}
                             <a href={p.productUrl} target="_blank" rel="noopener noreferrer" className="text-[#121821] underline underline-offset-2">
@@ -349,7 +412,7 @@ export function Shop() {
                           onClick={() => setOpen(p)}
                           className="inline-flex min-h-[42px] flex-1 items-center justify-center gap-2 rounded-[2px] bg-[#121821] text-[12px] font-medium text-white hover:bg-[#2a3542]"
                         >
-                          <Spark className="h-3.5 w-3.5" /> Try On
+                          <Spark className="hidden h-3.5 w-3.5 sm:block" /> Try this on
                         </button>
                         <button
                           onClick={() => toggleTray(trayItemFrom(p))}
@@ -357,11 +420,11 @@ export function Shop() {
                           aria-label={selected ? `Take ${p.name} out of your outfit` : `Add ${p.name} to your outfit`}
                           title={selected ? "In your outfit" : "Add to outfit"}
                           disabled={!selected && tray.length >= MAX_TRAY}
-                          className={`inline-flex min-h-[42px] w-[42px] items-center justify-center rounded-[2px] border text-[15px] transition ${
+                          className={`inline-flex min-h-[42px] shrink-0 items-center justify-center rounded-[2px] border px-3 text-[12px] font-medium transition ${
                             selected ? "border-[#121821] bg-[#eef1f2] text-[#121821]" : "border-black/15 bg-white text-[#121821] hover:border-[#121821] disabled:opacity-40"
                           }`}
                         >
-                          {selected ? "✓" : "+"}
+                          {selected ? "✓ Outfit" : "+ Outfit"}
                         </button>
                       </div>
                     </li>

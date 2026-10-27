@@ -3,7 +3,7 @@
 import { useEffect, useState } from "react";
 import Link from "next/link";
 import { useAuth } from "@/components/AuthProvider";
-import { DEMO_LABEL, priceLabel, type ShopProduct } from "@/lib/shopCatalog";
+import { DEMO_LABEL, isVerified, priceLabel, type ShopProduct } from "@/lib/shopCatalog";
 import { requestShopTryOn, type TryOnResult } from "@/lib/tryOnClient";
 
 /**
@@ -43,7 +43,9 @@ export function ProductDetail({
 }) {
   const { user } = useAuth();
   const [photo, setPhoto] = useState<PhotoState>({ status: "idle" });
-  const price = priceLabel(product.price, product.currency);
+  // Price and store details only for verified real listings, never for demo pieces.
+  const verified = isVerified(product);
+  const price = verified ? priceLabel(product.price, product.currency) : null;
 
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => e.key === "Escape" && onClose();
@@ -71,9 +73,9 @@ export function ProductDetail({
     ["Category", KIND[product.category]],
     ["Color", product.colors.map((c) => c.name).join(", ")],
     ["Style", product.style],
-    ...(product.retailer ? ([["Store", product.retailer]] as [string, string][]) : []),
+    ...(verified && product.retailer ? ([["Store", product.retailer]] as [string, string][]) : []),
     ...(product.availability ? ([["Availability", product.availability]] as [string, string][]) : []),
-    ...(product.updatedAt ? ([["Updated", new Date(product.updatedAt).toLocaleDateString()]] as [string, string][]) : []),
+    ...(verified && product.updatedAt ? ([["Price checked", new Date(product.updatedAt).toLocaleDateString()]] as [string, string][]) : []),
   ];
   const result = photo.status === "done" ? photo.result : null;
 
@@ -171,7 +173,7 @@ export function ProductDetail({
             <button onClick={onToggleOutfit} disabled={!inOutfit && outfitFull} className="font-medium text-[#121821] underline-offset-4 hover:underline disabled:opacity-40">
               {inOutfit ? "✓ In your outfit" : "+ Add to outfit"}
             </button>
-            {product.productUrl && (
+            {verified && product.productUrl && (
               <a href={product.productUrl} target="_blank" rel="noopener noreferrer" className="font-medium text-[#121821] underline underline-offset-4">
                 View at {product.retailer ?? "the store"} ↗
               </a>
