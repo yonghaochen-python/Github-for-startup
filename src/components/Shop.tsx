@@ -4,7 +4,6 @@ import { useEffect, useMemo, useState } from "react";
 import Image from "next/image";
 import { useRouter } from "next/navigation";
 import {
-  DEMO_LABEL,
   HAS_PRICES,
   LIVE_SHOP_KEY,
   PRICE_BANDS,
@@ -108,6 +107,8 @@ export function Shop() {
   const [swapping, setSwapping] = useState<TrayItem | null>(null);
   // Phones: the outfit sits in a slim bar at the bottom; this opens its list.
   const [outfitOpen, setOutfitOpen] = useState(false);
+  const [searchFocused, setSearchFocused] = useState(false);
+  const [filtersOpen, setFiltersOpen] = useState(false);
 
   // The wishlist and "Your outfit" are remembered on this device only.
   useEffect(() => {
@@ -202,6 +203,7 @@ export function Shop() {
     ...(SHOP_BRANDS.length ? [["Brand", brand, setBrand, SHOP_BRANDS.map((b) => [b, b])]] : []),
     ...(HAS_PRICES ? [["Price", price, setPrice, PRICE_BANDS.map((b) => [b.value, b.label])]] : []),
   ] as [string, string, (v: string) => void, string[][]][];
+  const activeFilters = [color, style, price, brand].filter((v) => v !== "all").length;
   const allDemo = shown.length > 0 && shown.every((p) => p.isDemo);
 
   const inTray = new Set(tray.map((p) => p.key));
@@ -234,7 +236,7 @@ export function Shop() {
         </div>
         {tray.length === 0 ? (
           <p className="mt-4 border-t border-black/[0.07] pt-4 text-[12px] leading-snug text-[#5d6874]">
-            Tap <b className="font-semibold text-[#121821]">+ Outfit</b> on pieces to build a look, then try it on in Studio.
+            Tap <b className="font-semibold text-[#121821]">+</b> on pieces to build a look, then try it on in Studio.
           </p>
         ) : (
           <ul className="mt-4 flex flex-col gap-3 border-t border-black/[0.07] pt-4">
@@ -325,7 +327,7 @@ export function Shop() {
           </div>
         )}
 
-        <div className="mt-8 grid gap-6 border-b border-black/10 pb-5 md:grid-cols-[minmax(0,1fr)_minmax(0,420px)] md:items-end">
+        <div className="mt-8">
           <div className="min-w-0">
           <div className="flex items-center gap-4">
           <label className="flex min-w-0 max-w-md flex-1 items-center gap-3 border-b border-black/15 pb-1.5">
@@ -336,6 +338,8 @@ export function Shop() {
             <input
               value={query}
               onChange={(e) => setQuery(e.target.value)}
+              onFocus={() => setSearchFocused(true)}
+              onBlur={() => setSearchFocused(false)}
               placeholder="Search clothes, brands, or styles…"
               aria-label="Search the collection"
               className="w-full bg-transparent text-[13px] text-[#121821] outline-none placeholder:text-[#7d8790]"
@@ -355,18 +359,55 @@ export function Shop() {
             {importing ? "Close" : "+ Add a product"}
           </button>
           </div>
-          {!query && (
+          {!query && searchFocused && (
             <p className="mt-3 flex flex-wrap items-center gap-x-1.5 gap-y-1.5 text-[11.5px] text-[#5d6874]">
               <span className="mr-1">Try</span>
               {SUGGESTED_SEARCHES.slice(0, 4).map((s) => (
-                <button key={s} onClick={() => setQuery(s)} className="rounded-full bg-white px-2.5 py-1 text-[11.5px] text-[#26313a] shadow-[inset_0_0_0_1px_rgba(18,24,33,0.1)] hover:shadow-[inset_0_0_0_1px_rgba(18,24,33,0.3)]">
+                <button key={s} onMouseDown={(e) => e.preventDefault()} onClick={() => setQuery(s)} className="rounded-full bg-white px-2.5 py-1 text-[11.5px] text-[#26313a] shadow-[inset_0_0_0_1px_rgba(18,24,33,0.1)] hover:shadow-[inset_0_0_0_1px_rgba(18,24,33,0.3)]">
                   {s}
                 </button>
               ))}
             </p>
           )}
           </div>
-          <div className="grid gap-4" style={{ gridTemplateColumns: `repeat(${filters.length}, minmax(0, 1fr))` }}>
+        </div>
+
+        {importing && (
+          <div className="mt-5">
+            <StoreFinder onTryNow={(item) => tryInStudio(item)} onAdd={toggleTray} onSave={saveFind} trayFull={tray.length >= MAX_TRAY} />
+          </div>
+        )}
+
+        <div className="mt-5 flex items-center gap-4 border-b border-black/10">
+        <div className="flex min-w-0 flex-1 gap-6 overflow-x-auto pb-2">
+          {TABS.map((t) => (
+            <button
+              key={t.value}
+              onClick={() => setTab(t.value)}
+              aria-pressed={tab === t.value}
+              className={`shrink-0 pb-1 text-[12.5px] ${tab === t.value ? "border-b border-[#121821] font-semibold text-[#121821]" : "text-[#5d6874] hover:text-[#121821]"}`}
+            >
+              {t.label}
+            </button>
+          ))}
+        </div>
+          <button
+            onClick={() => setFiltersOpen((v) => !v)}
+            aria-expanded={filtersOpen}
+            aria-label={activeFilters ? `Filters (${activeFilters} on)` : "Filters"}
+            title="Filters"
+            className={`relative mb-2 flex h-8 w-8 shrink-0 items-center justify-center rounded-full ${filtersOpen ? "bg-[#121821] text-white" : "text-[#26313a] hover:bg-black/5"}`}
+          >
+            <svg viewBox="0 0 24 24" className="h-4 w-4" fill="none" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" aria-hidden>
+              <path d="M4 7h10M18 7h2M4 17h4M12 17h8" />
+              <circle cx="16" cy="7" r="2" />
+              <circle cx="10" cy="17" r="2" />
+            </svg>
+            {activeFilters > 0 && <span className="absolute right-0.5 top-0.5 h-2 w-2 rounded-full bg-[#c23a2c]" />}
+          </button>
+        </div>
+        {filtersOpen && (
+          <div className="mt-4 grid max-w-[480px] gap-4" style={{ gridTemplateColumns: `repeat(${filters.length}, minmax(0, 1fr))` }}>
             {filters.map(([name, value, set, options]) => (
               <label key={name} className="relative block">
                 <span className={`${label} text-[9.5px]`}>{name}</span>
@@ -384,26 +425,7 @@ export function Shop() {
               </label>
             ))}
           </div>
-        </div>
-
-        {importing && (
-          <div className="mt-5">
-            <StoreFinder onTryNow={(item) => tryInStudio(item)} onAdd={toggleTray} onSave={saveFind} trayFull={tray.length >= MAX_TRAY} />
-          </div>
         )}
-
-        <div className="flex gap-6 overflow-x-auto pt-4">
-          {TABS.map((t) => (
-            <button
-              key={t.value}
-              onClick={() => setTab(t.value)}
-              aria-pressed={tab === t.value}
-              className={`shrink-0 pb-1 text-[12.5px] ${tab === t.value ? "border-b border-[#121821] font-semibold text-[#121821]" : "text-[#5d6874] hover:text-[#121821]"}`}
-            >
-              {t.label}
-            </button>
-          ))}
-        </div>
 
         <div id="collection-grid" className="mt-6 grid scroll-mt-24 gap-6 lg:grid-cols-[minmax(0,1fr)_280px]">
           <div>
@@ -417,15 +439,11 @@ export function Shop() {
                 </button>
               </div>
             )}
-            <div className="mb-3 flex justify-between text-[10px] uppercase tracking-[1.8px] text-[#5d6874]">
-              <span>
-                {shown.length} {allDemo ? "demo " : ""}
-                {shown.length === 1 ? "piece" : "pieces"}
-              </span>
-            </div>
-            {allDemo && shown.length > 0 && (
-              <p className="mb-5 text-[12px] text-[#5d6874]">Demo items photographed by Virm, not store listings. Real products will appear here as they&apos;re added.</p>
-            )}
+            <p className="mb-4 text-[11.5px] text-[#5d6874]">
+              {shown.length} {allDemo ? "demo " : ""}
+              {shown.length === 1 ? "piece" : "pieces"}
+              {allDemo && " · not store listings"}
+            </p>
             {shown.length === 0 ? (
               <div className="rounded-[6px] bg-white px-6 py-10 text-center text-[13px] text-[#5d6874]">
                 {query.trim() ? (
@@ -499,28 +517,22 @@ export function Shop() {
                       </div>
                       <div className="mt-3 flex items-start justify-between gap-3">
                         <button onClick={() => setOpen(p)} className="min-w-0 text-left">
-                          <p className="text-[9.5px] uppercase tracking-[1.6px] text-[#5d6874]">{p.brand ?? (p.isDemo ? DEMO_LABEL : p.retailer)}</p>
+                          {!p.isDemo && <p className="text-[9.5px] uppercase tracking-[1.6px] text-[#5d6874]">{p.brand ?? p.retailer}</p>}
                           <p className="mt-0.5 truncate text-[13.5px] font-medium text-[#121821] hover:underline">{p.name}</p>
                         </button>
                         {price && <p className="text-[13px] font-medium text-[#121821]">{price}</p>}
                       </div>
-                      <p className="mt-1 text-[11px] text-[#5d6874]">
-                        {SLOT_NAMES[p.category]} · {p.style}
-                        {isVerified(p) && p.productUrl && (
-                          <>
-                            {" · "}
-                            <a href={p.productUrl} target="_blank" rel="noopener noreferrer" className="text-[#121821] underline underline-offset-2">
-                              Store ↗
-                            </a>
-                          </>
-                        )}
-                      </p>
+                      {isVerified(p) && p.productUrl && (
+                        <a href={p.productUrl} target="_blank" rel="noopener noreferrer" className="mt-1 self-start text-[11px] text-[#121821] underline underline-offset-2">
+                          Store ↗
+                        </a>
+                      )}
                       <div className="mt-3 flex gap-2">
                         <button
                           onClick={() => setOpen(p)}
                           className="inline-flex min-h-[42px] flex-1 items-center justify-center gap-2 rounded-[2px] bg-[#121821] text-[12px] font-medium text-white hover:bg-[#2a3542]"
                         >
-                          <Spark className="hidden h-3.5 w-3.5 sm:block" /> Try this on
+                          <Spark className="hidden h-3.5 w-3.5 sm:block" /> Try on
                         </button>
                         <button
                           onClick={() => toggleTray(trayItemFrom(p))}
@@ -528,11 +540,11 @@ export function Shop() {
                           aria-label={selected ? `Take ${p.name} out of your outfit` : `Add ${p.name} to your outfit`}
                           title={selected ? "In your outfit" : "Add to outfit"}
                           disabled={!p.tryOnEligible || (!selected && !swapping && tray.length >= MAX_TRAY)}
-                          className={`inline-flex min-h-[42px] shrink-0 items-center justify-center rounded-[2px] border px-3 text-[12px] font-medium transition ${
+                          className={`inline-flex min-h-[42px] shrink-0 items-center justify-center rounded-[2px] border ${swapping && !selected ? "px-3" : "w-[42px]"} text-[12px] font-medium transition ${
                             selected ? "border-[#121821] bg-[#eef1f2] text-[#121821]" : "border-black/15 bg-white text-[#121821] hover:border-[#121821] disabled:opacity-40"
                           }`}
                         >
-                          {selected ? "✓ Outfit" : swapping ? "Swap in" : "+ Outfit"}
+                          {selected ? "✓" : swapping ? "Swap in" : <span className="text-[18px] font-light leading-none">+</span>}
                         </button>
                       </div>
                     </li>
