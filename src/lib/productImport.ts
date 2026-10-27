@@ -59,11 +59,25 @@ function ipv4Private(ip: string): boolean {
   );
 }
 
+/** Two hex groups (as in ::ffff:7f00:1) as a dotted IPv4 address. */
+const hexToIpv4 = (hi: string, lo: string) => {
+  const a = parseInt(hi, 16);
+  const b = parseInt(lo, 16);
+  return `${a >> 8}.${a & 255}.${b >> 8}.${b & 255}`;
+};
+
 function ipv6Private(ip: string): boolean {
   const v = ip.toLowerCase().replace(/^\[|\]$/g, "");
   if (v === "::" || v === "::1") return true;
-  const mapped = v.match(/::ffff:(\d+\.\d+\.\d+\.\d+)$/);
-  if (mapped) return ipv4Private(mapped[1]);
+  // An IPv4 address carried inside IPv6 is judged as that IPv4 address: mapped (::ffff:), compatible (::),
+  // NAT64 (64:ff9b::), in dotted or hex form.
+  const dotted = v.match(/^(?:::ffff:|::|64:ff9b::)(\d+\.\d+\.\d+\.\d+)$/);
+  if (dotted) return ipv4Private(dotted[1]);
+  const hex = v.match(/^(?:::ffff:|64:ff9b::)([0-9a-f]{1,4}):([0-9a-f]{1,4})$/);
+  if (hex) return ipv4Private(hexToIpv4(hex[1], hex[2]));
+  // 6to4 (2002:AABB:CCDD::) carries the IPv4 address AA.BB.CC.DD.
+  const sixToFour = v.match(/^2002:([0-9a-f]{1,4}):([0-9a-f]{1,4})(?::|$)/);
+  if (sixToFour) return ipv4Private(hexToIpv4(sixToFour[1], sixToFour[2]));
   return /^(fc|fd|fe8|fe9|fea|feb|ff)/.test(v);
 }
 
@@ -91,10 +105,17 @@ export function checkUrl(raw: string): URL {
   return url;
 }
 
-// Public DNS-over-HTTPS resolvers, tried in order (if one can't be reached, the next is asked).
+// Public DNS-over-HTTPS resolvers, tried in order (if one can't be reached or can't answer, the next is asked).
 const RESOLVERS = ["https://cloudflare-dns.com/dns-query", "https://1.1.1.1/dns-query", "https://dns.google/resolve"];
 
-/** One record type's addresses from the first resolver that answers, or null if none could be reached. */
+// DNS answer codes: 0 = found, 3 = no such name. Anything else (e.g. 2, server failure) means the lookup didn't work.
+const DNS_OK = 0;
+const DNS_NO_SUCH_NAME = 3;
+
+/**
+ * One record type's addresses from the first resolver that gives a real answer, or null if none could (so the
+ * caller can refuse instead of trusting a partial check). An empty list means "verified: no records of this type".
+ */
 async function lookup(host: string, type: "A" | "AAAA"): Promise<string[] | null> {
   for (const resolver of RESOLVERS) {
     const res = await fetch(`${resolver}?name=${encodeURIComponent(host)}&type=${type}`, {
@@ -102,18 +123,23 @@ async function lookup(host: string, type: "A" | "AAAA"): Promise<string[] | null
       signal: AbortSignal.timeout(4000),
     }).catch(() => null);
     if (!res?.ok) continue;
-    const data = (await res.json().catch(() => null)) as { Answer?: { type: number; data: string }[] } | null;
-    if (!data) continue;
+    const data = (await res.json().catch(() => null)) as { Status?: number; Answer?: { type: number; data: string }[] } | null;
+    if (!data || (data.Status !== DNS_OK && data.Status !== DNS_NO_SUCH_NAME)) continue;
     return (data.Answer ?? []).filter((a) => a.type === 1 || a.type === 28).map((a) => a.data);
   }
   return null;
 }
 
-/** Looks up the host's addresses (public DNS over HTTPS) and refuses any private or internal one. */
+/**
+ * Looks up the host's addresses (public DNS over HTTPS) and refuses any private or internal one. Fails safe: both
+ * IPv4 and IPv6 must be looked up successfully, and every address returned must be public; if either lookup
+ * can't be completed, the link isn't read.
+ */
 async function checkHostAddresses(host: string): Promise<void> {
   if (isIpv4(host) || isIpv6(host)) return; // Already checked as a literal address.
-  const found: string[] = [];
-  for (const type of ["A", "AAAA"] as const) found.push(...((await lookup(host, type)) ?? []));
+  const [v4, v6] = await Promise.all([lookup(host, "A"), lookup(host, "AAAA")]);
+  if (v4 === null || v6 === null) throw new ImportError("unreachable", "Couldn't check that website's address. Please try again, or upload a photo of the item.");
+  const found = [...v4, ...v6];
   if (found.length === 0) throw new ImportError("unreachable", "Couldn't find that website.");
   if (found.some((ip) => (isIpv4(ip) ? ipv4Private(ip) : ipv6Private(ip)))) {
     throw new ImportError("invalid", "That link isn't a public store page.");
