@@ -1,6 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useState } from "react";
+import Link from "next/link";
 import type { AdminStats } from "@/lib/adminStats";
 import { BarChart, HBars, LineChart } from "@/components/admin/Charts";
 import { InlineLoading } from "@/components/InlineLoading";
@@ -134,6 +135,11 @@ export default function AdminPage() {
         <PageHeader
           title="Dashboard"
           description="Owner only. Real numbers from your database; days are in UTC."
+          actions={
+            <Link href="/admin/costs" className={btnSecondary}>
+              Costs & break-even
+            </Link>
+          }
         />
 
         {/* Date filters */}
