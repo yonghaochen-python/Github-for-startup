@@ -10,6 +10,7 @@ import { eyebrow, surface } from "@/components/ui";
  *
  * Formulas (per month, for a scenario's usage share u):
  *   Claude per user           = clothing photos added × Claude per photo + "Style it" requests × Claude per request
+ *   Effective usage u         = (1 − heavy share) × scenario usage + heavy share × 100%
  *   AI cost per user          = photos × u × photo cost + lives × u × live cost + Claude per user + other AI per user
  *   Contribution per user     = price − payment fee − AI cost per user
  *   Pack contribution         = price − fee − credits × u × cost per try-on   (per pack sold)
@@ -20,7 +21,7 @@ import { eyebrow, surface } from "@/components/ui";
  */
 
 // Bumped when the assumptions' shape changes, so older saved edits aren't read into the new shape.
-const STORE_KEY = "virm-admin-costs-v2";
+const STORE_KEY = "virm-admin-costs-v3";
 const PLAN_KEYS: PlanKey[] = ["free", "plus", "pro"];
 const PAID = ["plus", "pro"] as const;
 
@@ -31,8 +32,14 @@ const packName = (p: PackAssumption) => `${p.credits} ${p.kind === "live" ? "liv
 
 type Row = { label: string; count: number; revenue: number; fees: number; photoAi: number; liveAi: number; otherAi: number; contribution: number };
 
+/** Usage with the heavy-user buffer: that share of users uses everything, the rest the scenario's usage. */
+const effectiveUsage = (a: CostAssumptions, usagePct: number) => {
+  const h = Math.min(100, Math.max(0, a.heavyShare)) / 100;
+  return (1 - h) * (Math.max(0, usagePct) / 100) + h;
+};
+
 function compute(a: CostAssumptions, usagePct: number) {
-  const u = Math.max(0, usagePct) / 100;
+  const u = effectiveUsage(a, usagePct);
   const perUser = (key: PlanKey) => {
     const p = a.plans[key];
     const photoAi = p.photos * u * a.photoCost;
@@ -109,6 +116,7 @@ function compute(a: CostAssumptions, usagePct: number) {
     totalCosts,
     profit,
     margin: revenue > 0 ? profit / revenue : null,
+    usage: u,
     freeCost,
     freePerUser: planRows.free.perUser.ai,
     breakEven: { plus: breakEven("plus"), pro: breakEven("pro") },
@@ -233,7 +241,7 @@ function ProfitChart({ points }: { points: { n: number; plus: number; pro: numbe
   );
 }
 
-export function CostCalculator({ defaults }: { defaults: CostAssumptions }) {
+export function CostCalculator({ defaults, confirmedLiveCost }: { defaults: CostAssumptions; confirmedLiveCost: number }) {
   const [a, setA] = useState<CostAssumptions>(defaults);
   const [active, setActive] = useState(1);
   const [loaded, setLoaded] = useState(false);
@@ -298,6 +306,18 @@ export function CostCalculator({ defaults }: { defaults: CostAssumptions }) {
           </div>
         </Card>
 
+        <Card title="Buffer for heavy users">
+          <Num
+            label="Users who use all their try-ons"
+            suffix="%"
+            value={a.heavyShare}
+            onChange={(n) => update((d) => void (d.heavyShare = Math.min(100, n)))}
+          />
+          <p className="mt-2 text-[11.5px] leading-snug text-[#5d6874]">
+            This share of every plan uses 100% of its photo try-ons, live sessions and pack credits; everyone else uses the scenario&apos;s usage.
+          </p>
+        </Card>
+
         <Card title="Plans">
           <div className="flex flex-col gap-4">
             {PLAN_KEYS.map((k) => (
@@ -347,8 +367,16 @@ export function CostCalculator({ defaults }: { defaults: CostAssumptions }) {
               step={0.01}
               value={a.liveCost}
               onChange={(n) => update((d) => void (d.liveCost = n))}
-              hint="Decart: about $0.02 a second, so $0.40 for a full 20-second session."
+              hint={`Confirmed: Decart charges $0.02 a second, so ${money(confirmedLiveCost)} for a full 20-second session.`}
             />
+            {a.liveCost !== confirmedLiveCost && (
+              <button
+                onClick={() => update((d) => void (d.liveCost = confirmedLiveCost))}
+                className="col-span-2 justify-self-start text-[11.5px] font-semibold text-[#121821] underline underline-offset-4"
+              >
+                Use the confirmed {money(confirmedLiveCost)}
+              </button>
+            )}
           </div>
           <p className="mb-2 mt-4 text-[12px] font-semibold text-[#121821]">Claude (Sonnet 5)</p>
           <div className="grid grid-cols-2 gap-3">
@@ -397,6 +425,7 @@ export function CostCalculator({ defaults }: { defaults: CostAssumptions }) {
                 </div>
                 <p className={`mt-3 font-display text-[28px] leading-none ${res.profit < 0 ? "text-[#a3261b]" : "text-[#121821]"}`}>{money(res.profit)}</p>
                 <p className="mt-1 text-[11px] text-[#5d6874]">profit · margin {pctText(res.margin)}</p>
+                <p className="mt-0.5 text-[11px] text-[#5d6874]">Effective usage {Math.round(res.usage * 100)}%</p>
               </div>
             );
           })}
@@ -419,7 +448,9 @@ export function CostCalculator({ defaults }: { defaults: CostAssumptions }) {
           ))}
         </div>
 
-        <Card title={`Breakdown · ${scenario.name} (${scenario.usage}% of allowances used)`}>
+        <Card
+          title={`Breakdown · ${scenario.name} (${scenario.usage}% usage, ${Math.round(r.usage * 100)}% with ${a.heavyShare}% heavy users)`}
+        >
           <div className="-mx-2 overflow-x-auto">
             <table className="w-full min-w-[640px] border-collapse text-[13px] text-[#26313a]">
               <thead>
@@ -569,7 +600,7 @@ export function CostCalculator({ defaults }: { defaults: CostAssumptions }) {
             <li>Free users&apos; cost = Free users × AI cost per Free user.</li>
             <li>Profit = all revenue − payment fees − AI costs − hosting − other expenses. Margin = profit ÷ revenue.</li>
             <li>Break-even subscribers = (hosting + other expenses + Free users&apos; cost) ÷ contribution per subscriber, rounded up.</li>
-            <li>Usage is the share of each allowance people actually use; the same share is applied to credit packs.</li>
+            <li>Effective usage = (100% − heavy users) × scenario usage + heavy users × 100%. It applies to plans and credit packs alike.</li>
           </ul>
         </details>
       </div>

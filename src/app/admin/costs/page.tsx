@@ -1,6 +1,6 @@
 import { headers } from "next/headers";
 import { getCurrentUser } from "@/lib/auth";
-import { DEFAULT_COSTS } from "@/lib/businessCosts";
+import { CONFIRMED_LIVE_COST, DEFAULT_COSTS } from "@/lib/businessCosts";
 import { CostCalculator } from "@/components/admin/CostCalculator";
 import { PageHeader, PageShell } from "@/components/ui";
 
@@ -31,7 +31,7 @@ export default async function CostsPage() {
           description="Estimates only, not guaranteed profits. Change any assumption; your changes stay in this browser."
           back={{ href: "/admin", label: "Dashboard" }}
         />
-        <CostCalculator defaults={DEFAULT_COSTS} />
+        <CostCalculator defaults={DEFAULT_COSTS} confirmedLiveCost={CONFIRMED_LIVE_COST} />
       </PageShell>
     </main>
   );

@@ -54,12 +54,17 @@ export type CostAssumptions = {
   other: number;
   /** Share of each allowance actually used, in percent. */
   scenarios: Scenario[];
+  /** Buffer: percent of users who use every included try-on (100%); the rest use the scenario's usage. */
+  heavyShare: number;
 };
+
+/** Decart's confirmed cost of a full 20-second live session ($0.02 a second). */
+export const CONFIRMED_LIVE_COST = 0.4;
 
 export const DEFAULT_COSTS: CostAssumptions = {
   plans: {
     free: { label: "Free", price: 0, fee: 0, photos: 4, lives: 1, closetPhotos: 3, styleIts: 3 },
-    plus: { label: "Plus", price: 14.99, fee: 0.84, photos: 100, lives: 10, closetPhotos: 10, styleIts: 15 },
+    plus: { label: "Plus", price: 14.99, fee: 0.84, photos: 60, lives: 15, closetPhotos: 10, styleIts: 15 },
     pro: { label: "Pro", price: 24.99, fee: 1.2, photos: 100, lives: 30, closetPhotos: 15, styleIts: 30 },
   },
   packs: [
@@ -71,8 +76,8 @@ export const DEFAULT_COSTS: CostAssumptions = {
   ],
   // FLUX VTO v2 on the BFL API. BFL doesn't publish this model's price (1 credit = $0.01); confirm in the BFL dashboard.
   photoCost: 0.04,
-  // Decart charges about $0.02 a second; a full 20-second session is about $0.40.
-  liveCost: 0.4,
+  // Confirmed: Decart charges $0.02 a second (Lucy VTON, 720p); a full 20-second session is $0.40.
+  liveCost: CONFIRMED_LIVE_COST,
   // Claude Sonnet 5 ($2 / $10 per million input / output tokens), estimated from the app's prompts and image sizes:
   // a clothing photo is ~1,600 image + ~700 prompt tokens in and ~1,500 out (incl. thinking), plus a crop check;
   // "Style it" is the closet as text (~3,000 tokens) in and ~2,300 out.
@@ -87,4 +92,5 @@ export const DEFAULT_COSTS: CostAssumptions = {
     { name: "Expected usage", usage: 50 },
     { name: "Heavy usage", usage: 100 },
   ],
+  heavyShare: 10,
 };
