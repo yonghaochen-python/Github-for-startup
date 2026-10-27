@@ -49,8 +49,8 @@ function cameraErrorMessage(err: unknown): string {
 
 /**
  * Gets the person's full-body try-on photo, either from the camera (only opened after an explicit click) or
- * an upload, shows a preview, and hands it to the parent only when they press "Save My Photo". Nothing is
- * uploaded or saved before that click.
+ * an upload, and hands it to the parent to save as soon as it's picked or captured (no extra "save" click). The
+ * preview stays on screen while it saves; if saving fails, "Save My Photo" is there to try again.
  */
 export function TryOnPhotoStep({
   onConfirm,
@@ -183,8 +183,9 @@ export function TryOnPhotoStep({
         canvas.toBlob((b) => (b ? resolve(b) : reject(new Error("capture"))), "image/jpeg", 0.95)
       );
       stopCamera();
-      await preparePhoto(raw);
+      const photo = await preparePhoto(raw);
       setMode("review");
+      onConfirm(photo);
     } catch {
       setError("Couldn't capture that photo. Please try again.");
     } finally {
@@ -196,7 +197,7 @@ export function TryOnPhotoStep({
   useEffect(() => preloadAutoFrame(), []);
 
   /** Prepares a chosen or captured photo: crops it head to toe when the feet are in it, otherwise keeps it as is. */
-  async function preparePhoto(raw: Blob) {
+  async function preparePhoto(raw: Blob): Promise<Blob> {
     const [original, firstTry] = await Promise.all([photoToJpeg(raw), frameToBody(raw)]);
     // Some photos (like iPhone HEIC) can't be read directly for framing; the converted copy always can.
     const frame = firstTry.framed === false && firstTry.reason === "unavailable" ? await frameToBody(original) : firstTry;
@@ -205,10 +206,12 @@ export function TryOnPhotoStep({
       setFraming({ cropped, original, useCropped: true });
       setFrameNote(null);
       setPendingPhoto(cropped);
+      return cropped;
     } else {
       setFraming(null);
       setFrameNote(frame.reason === "no-feet" ? "Your feet aren't in this photo, so it's kept as it is." : null);
       setPendingPhoto(original);
+      return original;
     }
   }
 
@@ -234,9 +237,10 @@ export function TryOnPhotoStep({
     }
     setBusy(true);
     try {
-      await preparePhoto(file);
+      const photo = await preparePhoto(file);
       setSource("upload");
       setMode("review");
+      onConfirm(photo);
     } catch {
       setError("We couldn't read that photo. Try a JPG, PNG, or WebP image.");
     } finally {
@@ -311,7 +315,7 @@ export function TryOnPhotoStep({
               )}
             </div>
             <p className="mt-5 text-xs leading-relaxed text-[#5d6874]">
-              Nothing is saved until you press Save My Photo. Only you can see it, and you can change it anytime.
+              Your photo is saved as soon as you pick it. Only you can see it, and you can change it anytime.
             </p>
           </div>
         </div>
