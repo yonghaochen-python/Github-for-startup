@@ -104,6 +104,10 @@ export function Shop() {
   const [wishlist, setWishlist] = useState<TrayItem[]>([]);
   const [open, setOpen] = useState<ShopProduct | null>(null);
   const [importing, setImporting] = useState(false);
+  // Swap: the outfit piece being replaced; the next piece picked takes its place.
+  const [swapping, setSwapping] = useState<TrayItem | null>(null);
+  // Phones: the outfit sits in a slim bar at the bottom; this opens its list.
+  const [outfitOpen, setOutfitOpen] = useState(false);
 
   // The wishlist and "Your outfit" are remembered on this device only.
   useEffect(() => {
@@ -133,17 +137,38 @@ export function Shop() {
 
   /** Adds a piece to the tray, or takes it out (up to MAX_TRAY pieces). */
   function toggleTray(item: TrayItem) {
+    const replacing = swapping && swapping.key !== item.key ? swapping : null;
+    if (swapping) setSwapping(null);
     setTray((list) => {
-      const next = list.some((p) => p.key === item.key) ? list.filter((p) => p.key !== item.key) : list.length >= MAX_TRAY ? list : [...list, item];
+      const inList = list.some((p) => p.key === item.key);
+      const next = replacing && !inList
+        ? list.map((p) => (p.key === replacing.key ? item : p))
+        : inList
+          ? list.filter((p) => p.key !== item.key)
+          : list.length >= MAX_TRAY
+            ? list
+            : [...list, item];
       keepOutfit(next);
       return next;
     });
   }
 
+  /** Swap: show that kind of piece, so the next one picked replaces it. */
+  function startSwap(item: TrayItem) {
+    setSwapping(item);
+    setOutfitOpen(false);
+    setTab(TABS.some((t) => t.value === item.category) ? item.category : "all");
+    setQuery("");
+    requestAnimationFrame(() => document.getElementById("collection-grid")?.scrollIntoView({ behavior: "smooth", block: "start" }));
+  }
+
+  /** Catalog pieces whose picture isn't suitable for try-on (they can't be sent to Studio). */
+  const unsuitable = (items: TrayItem[]) => items.filter((t) => SHOP_PRODUCTS.find((p) => p.id === t.key)?.tryOnEligible === false);
+
   /** Opens the Studio with the outfit (plus one more piece, when trying one straight away), in Photo or Live. */
   function tryInStudio(extra?: TrayItem, mode: "photo" | "live" = "photo") {
     const pieces = extra && !tray.some((p) => p.key === extra.key) ? [...tray, extra].slice(-MAX_TRAY) : tray;
-    if (!pieces.length) return;
+    if (!pieces.length || unsuitable(pieces).length) return;
     try {
       sessionStorage.setItem(LIVE_SHOP_KEY, JSON.stringify(pieces.map(shopPiece)));
     } catch {}
@@ -181,9 +206,82 @@ export function Shop() {
 
   const inTray = new Set(tray.map((p) => p.key));
 
+  const blocked = unsuitable(tray);
+
+  /** The outfit list and its actions, shared by the side panel and the phone bar. */
+  function outfitPanel() {
+    return (
+      <>
+        <div className="flex items-baseline justify-between">
+          <div>
+            <p className="text-[13px] font-semibold text-[#121821]">Your outfit</p>
+            <p className="text-[11px] text-[#5d6874]">
+              {tray.length} selected{tray.length >= MAX_TRAY ? " (the most)" : ""} · shopping pieces, not your closet
+            </p>
+          </div>
+          {tray.length > 0 && (
+            <button
+              onClick={() => {
+                setTray([]);
+                keepOutfit([]);
+                setSwapping(null);
+              }}
+              className="text-[11px] text-[#5d6874] underline-offset-4 hover:text-[#121821] hover:underline"
+            >
+              Clear
+            </button>
+          )}
+        </div>
+        {tray.length === 0 ? (
+          <p className="mt-4 border-t border-black/[0.07] pt-4 text-[12px] leading-snug text-[#5d6874]">
+            Tap <b className="font-semibold text-[#121821]">+ Outfit</b> on pieces to build a look, then try it on in Studio.
+          </p>
+        ) : (
+          <ul className="mt-4 flex flex-col gap-3 border-t border-black/[0.07] pt-4">
+            {tray.map((p) => (
+              <li key={p.key} className={`flex items-center gap-3 ${swapping?.key === p.key ? "opacity-50" : ""}`}>
+                <span className="relative h-14 w-11 shrink-0 overflow-hidden bg-[#f0eee9]">
+                  <Image src={p.imageUrl} alt="" fill unoptimized className="p-1" style={{ objectFit: "contain" }} />
+                </span>
+                <span className="min-w-0 flex-1">
+                  <span className="block truncate text-[9.5px] uppercase tracking-[1.6px] text-[#5d6874]">
+                    {SLOT_NAMES[p.category]}
+                    {(p.productUrl || p.key.startsWith("ext-")) && p.label ? ` · ${p.label}` : ""}
+                  </span>
+                  <span className="block truncate text-[12.5px] font-medium text-[#121821]">{p.name}</span>
+                </span>
+                <button onClick={() => startSwap(p)} className="text-[11px] font-semibold text-[#121821] underline-offset-4 hover:underline">
+                  Swap
+                </button>
+                <button onClick={() => toggleTray(p)} aria-label={`Remove ${p.name}`} className="p-1 text-[#5d6874] hover:text-[#c23a2c]">
+                  <svg viewBox="0 0 24 24" className="h-4 w-4" fill="none" stroke="currentColor" strokeWidth="1.6" aria-hidden>
+                    <path d="M5 7h14M10 7V5h4v2M7 7l1 12h8l1-12" strokeLinecap="round" strokeLinejoin="round" />
+                  </svg>
+                </button>
+              </li>
+            ))}
+          </ul>
+        )}
+        {blocked.length > 0 && (
+          <p className="mt-3 rounded-[4px] bg-red-50 px-3 py-2 text-[11.5px] text-red-700">
+            {blocked.map((b) => b.name).join(", ")} can&apos;t be tried on (its picture isn&apos;t suitable). Remove it to continue.
+          </p>
+        )}
+        <button
+          onClick={() => tryInStudio()}
+          disabled={tray.length === 0 || blocked.length > 0}
+          className="mt-4 inline-flex min-h-[46px] w-full items-center justify-center gap-2 rounded-[2px] bg-[#121821] text-[12.5px] font-medium text-white hover:bg-[#2a3542] disabled:bg-[#c9cdd0]"
+        >
+          <Spark className="h-3.5 w-3.5" /> Try on in Studio
+        </button>
+        <p className="mt-2 text-center text-[10.5px] text-[#5d6874]">Choose Photo or Live there. Two of a kind? Compare them in Studio.</p>
+      </>
+    );
+  }
+
   return (
     <>
-      <section id="collection" className="mx-auto max-w-[1400px] scroll-mt-24 px-4 pb-16 pt-8 sm:px-6">
+      <section id="collection" className={`mx-auto max-w-[1400px] scroll-mt-24 px-4 pt-8 sm:px-6 ${tray.length ? "pb-32 lg:pb-16" : "pb-16"}`}>
         <div className="flex flex-wrap items-end justify-between gap-4">
           <h1 className="font-display text-[44px] leading-none tracking-[-1px] text-[#121821] sm:text-[52px]">Shopping</h1>
         </div>
@@ -307,8 +405,18 @@ export function Shop() {
           ))}
         </div>
 
-        <div className="mt-6 grid gap-6 lg:grid-cols-[minmax(0,1fr)_300px]">
+        <div id="collection-grid" className="mt-6 grid scroll-mt-24 gap-6 lg:grid-cols-[minmax(0,1fr)_280px]">
           <div>
+            {swapping && (
+              <div className="mb-4 flex items-center gap-3 rounded-[6px] bg-[#121821] px-4 py-3 text-[12.5px] text-white">
+                <span className="flex-1">
+                  Pick a replacement for <b>{swapping.name}</b>.
+                </span>
+                <button onClick={() => setSwapping(null)} className="font-semibold underline underline-offset-4">
+                  Cancel
+                </button>
+              </div>
+            )}
             <div className="mb-3 flex justify-between text-[10px] uppercase tracking-[1.8px] text-[#5d6874]">
               <span>
                 {shown.length} {allDemo ? "demo " : ""}
@@ -419,12 +527,12 @@ export function Shop() {
                           aria-pressed={selected}
                           aria-label={selected ? `Take ${p.name} out of your outfit` : `Add ${p.name} to your outfit`}
                           title={selected ? "In your outfit" : "Add to outfit"}
-                          disabled={!selected && tray.length >= MAX_TRAY}
+                          disabled={!p.tryOnEligible || (!selected && !swapping && tray.length >= MAX_TRAY)}
                           className={`inline-flex min-h-[42px] shrink-0 items-center justify-center rounded-[2px] border px-3 text-[12px] font-medium transition ${
                             selected ? "border-[#121821] bg-[#eef1f2] text-[#121821]" : "border-black/15 bg-white text-[#121821] hover:border-[#121821] disabled:opacity-40"
                           }`}
                         >
-                          {selected ? "✓ Outfit" : "+ Outfit"}
+                          {selected ? "✓ Outfit" : swapping ? "Swap in" : "+ Outfit"}
                         </button>
                       </div>
                     </li>
@@ -434,68 +542,42 @@ export function Shop() {
             )}
           </div>
 
-          {/* The live try-on tray */}
-          <aside aria-label="Your outfit" className="self-start rounded-[6px] bg-white p-5 shadow-[0_1px_0_rgba(18,24,33,0.03),0_14px_36px_rgba(18,30,45,0.06)] lg:sticky lg:top-24">
-            <div className="flex items-baseline justify-between">
-              <div>
-                <p className="text-[13px] font-semibold text-[#121821]">Your outfit</p>
-                <p className="text-[11px] text-[#5d6874]">
-                  {tray.length} selected{tray.length >= MAX_TRAY ? " (the most)" : ""}
-                </p>
-              </div>
-              {tray.length > 0 && (
-                <button onClick={() => {
-                    setTray([]);
-                    keepOutfit([]);
-                  }} className="text-[11px] text-[#5d6874] underline-offset-4 hover:text-[#121821] hover:underline">
-                  Clear
-                </button>
-              )}
-            </div>
-            <div className="my-4 border-t border-black/[0.07]" />
-            {tray.length === 0 ? (
-              <div className="flex flex-col items-center px-2 py-8 text-center">
-                <span className="flex h-12 w-12 items-center justify-center rounded-full bg-[#f4f5f6] text-[#29343a]">
-                  <Spark />
-                </span>
-                <p className="mt-3 text-[13px] font-medium text-[#121821]">Build a look to try on</p>
-                <p className="mt-1 text-[11.5px] leading-snug text-[#5d6874]">Add pieces from any store or the collection, then try them on together.</p>
-              </div>
-            ) : (
-              <ul className="flex flex-col gap-3">
-                {tray.map((p) => (
-                  <li key={p.key} className="flex items-center gap-3">
-                    <span className="relative h-14 w-11 shrink-0 overflow-hidden bg-[#f0eee9]">
-                      <Image src={p.imageUrl} alt="" fill unoptimized className="p-1" style={{ objectFit: "contain" }} />
-                    </span>
-                    <span className="min-w-0 flex-1">
-                      <span className="block truncate text-[9.5px] uppercase tracking-[1.6px] text-[#5d6874]">
-                        {SLOT_NAMES[p.category]}
-                        {(p.productUrl || p.key.startsWith("ext-")) && p.label ? ` · ${p.label}` : ""}
-                      </span>
-                      <span className="block truncate text-[12.5px] font-medium text-[#121821]">{p.name}</span>
-                    </span>
-                    <button onClick={() => toggleTray(p)} aria-label={`Remove ${p.name}`} className="p-1 text-[#5d6874] hover:text-[#c23a2c]">
-                      <svg viewBox="0 0 24 24" className="h-4 w-4" fill="none" stroke="currentColor" strokeWidth="1.6" aria-hidden>
-                        <path d="M5 7h14M10 7V5h4v2M7 7l1 12h8l1-12" strokeLinecap="round" strokeLinejoin="round" />
-                      </svg>
-                    </button>
-                  </li>
-                ))}
-              </ul>
-            )}
-            <div className="my-4 border-t border-black/[0.07]" />
-            <p className="mb-3 text-center text-[10.5px] text-[#5d6874]">In Studio, choose Photo or Live. Pick two of a kind to compare.</p>
-            <button
-              onClick={() => tryInStudio()}
-              disabled={tray.length === 0}
-              className="inline-flex min-h-[46px] w-full items-center justify-center gap-2 rounded-[2px] bg-[#121821] text-[12.5px] font-medium text-white hover:bg-[#2a3542] disabled:bg-[#c9cdd0]"
-            >
-              <Spark className="h-3.5 w-3.5" /> Try on in Studio
-            </button>
+          {/* Your outfit: beside the grid on wide screens (a bar at the bottom on phones, below). */}
+          <aside aria-label="Your outfit" className="hidden self-start rounded-[6px] bg-white p-5 shadow-[0_1px_0_rgba(18,24,33,0.03),0_14px_36px_rgba(18,30,45,0.06)] lg:sticky lg:top-24 lg:block">
+            {outfitPanel()}
           </aside>
         </div>
       </section>
+
+      {/* Phones and tablets: the outfit as a slim bar above the tab bar; tap to open its list. */}
+      {tray.length > 0 && (
+        <div className="fixed inset-x-0 bottom-[calc(64px+env(safe-area-inset-bottom))] z-20 px-3 pb-2 md:bottom-0 lg:hidden">
+          {outfitOpen && (
+            <div className="mb-2 max-h-[55vh] overflow-y-auto rounded-[10px] bg-white p-4 shadow-[0_-8px_30px_rgba(18,30,45,0.18)]">{outfitPanel()}</div>
+          )}
+          <div className="flex items-center gap-3 rounded-[10px] bg-[#121821] px-3 py-2.5 text-white shadow-[0_8px_30px_rgba(18,30,45,0.25)]">
+            <button onClick={() => setOutfitOpen((v) => !v)} aria-expanded={outfitOpen} className="flex min-w-0 flex-1 items-center gap-2 text-left">
+              <span className="flex -space-x-2">
+                {tray.slice(0, 3).map((p) => (
+                  <span key={p.key} className="relative h-8 w-8 overflow-hidden rounded-full border-2 border-[#121821] bg-[#f0eee9]">
+                    <Image src={p.imageUrl} alt="" fill unoptimized className="p-0.5" style={{ objectFit: "contain" }} />
+                  </span>
+                ))}
+              </span>
+              <span className="truncate text-[12.5px] font-medium">
+                Your outfit · {tray.length} {outfitOpen ? "▾" : "▴"}
+              </span>
+            </button>
+            <button
+              onClick={() => tryInStudio()}
+              disabled={blocked.length > 0}
+              className="shrink-0 rounded-full bg-white px-3.5 py-2 text-[12px] font-semibold text-[#121821] disabled:opacity-50"
+            >
+              Try on in Studio
+            </button>
+          </div>
+        </div>
+      )}
 
       {open && (
         <ProductDetail

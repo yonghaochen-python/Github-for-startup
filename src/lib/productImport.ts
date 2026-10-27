@@ -91,19 +91,29 @@ export function checkUrl(raw: string): URL {
   return url;
 }
 
-/** Looks up the host's addresses (public DNS over HTTPS) and refuses any private or internal one. */
-async function checkHostAddresses(host: string): Promise<void> {
-  if (isIpv4(host) || isIpv6(host)) return; // Already checked as a literal address.
-  const found: string[] = [];
-  for (const type of ["A", "AAAA"]) {
-    const res = await fetch(`https://cloudflare-dns.com/dns-query?name=${encodeURIComponent(host)}&type=${type}`, {
+// Public DNS-over-HTTPS resolvers, tried in order (if one can't be reached, the next is asked).
+const RESOLVERS = ["https://cloudflare-dns.com/dns-query", "https://1.1.1.1/dns-query", "https://dns.google/resolve"];
+
+/** One record type's addresses from the first resolver that answers, or null if none could be reached. */
+async function lookup(host: string, type: "A" | "AAAA"): Promise<string[] | null> {
+  for (const resolver of RESOLVERS) {
+    const res = await fetch(`${resolver}?name=${encodeURIComponent(host)}&type=${type}`, {
       headers: { accept: "application/dns-json" },
       signal: AbortSignal.timeout(4000),
     }).catch(() => null);
     if (!res?.ok) continue;
-    const data = (await res.json().catch(() => ({}))) as { Answer?: { type: number; data: string }[] };
-    for (const a of data.Answer ?? []) if (a.type === 1 || a.type === 28) found.push(a.data);
+    const data = (await res.json().catch(() => null)) as { Answer?: { type: number; data: string }[] } | null;
+    if (!data) continue;
+    return (data.Answer ?? []).filter((a) => a.type === 1 || a.type === 28).map((a) => a.data);
   }
+  return null;
+}
+
+/** Looks up the host's addresses (public DNS over HTTPS) and refuses any private or internal one. */
+async function checkHostAddresses(host: string): Promise<void> {
+  if (isIpv4(host) || isIpv6(host)) return; // Already checked as a literal address.
+  const found: string[] = [];
+  for (const type of ["A", "AAAA"] as const) found.push(...((await lookup(host, type)) ?? []));
   if (found.length === 0) throw new ImportError("unreachable", "Couldn't find that website.");
   if (found.some((ip) => (isIpv4(ip) ? ipv4Private(ip) : ipv6Private(ip)))) {
     throw new ImportError("invalid", "That link isn't a public store page.");

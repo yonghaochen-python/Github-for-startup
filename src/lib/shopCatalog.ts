@@ -22,6 +22,8 @@ export type ShopProduct = {
   color: string;
   colors: ShopColor[];
   style: string;
+  /** Descriptive words that are true of the piece as pictured (fit, fabric, details), used by search. */
+  tags: string[];
   /** Our own image (in /public) or one we have permission to show. */
   imageUrl: string;
   price: number | null;
@@ -50,7 +52,7 @@ const BROWN = { name: "Brown", hex: "#8a5f3c" };
 const GREY = { name: "Grey", hex: "#a5a8ab" };
 const BEIGE = { name: "Beige", hex: "#d8c7ab" };
 
-const demo = (p: Pick<ShopProduct, "id" | "name" | "category" | "layeringRole" | "color" | "colors" | "style" | "imageUrl">): ShopProduct => ({
+const demo = (p: Pick<ShopProduct, "id" | "name" | "category" | "layeringRole" | "color" | "colors" | "style" | "tags" | "imageUrl">): ShopProduct => ({
   ...p,
   brand: null,
   price: null,
@@ -63,19 +65,34 @@ const demo = (p: Pick<ShopProduct, "id" | "name" | "category" | "layeringRole" |
   isDemo: true,
 });
 
+// Every tag below describes what the photo shows; nothing is added just to make a search match.
 export const SHOP_PRODUCTS: ShopProduct[] = [
-  demo({ id: "demo-linen-shirt", name: "Linen shirt", category: "top", layeringRole: "mid_layer", color: "light blue", colors: [BLUE], style: "Casual", imageUrl: "/sample/linen-shirt.jpg" }),
-  demo({ id: "demo-camel-coat", name: "Camel coat", category: "outerwear", layeringRole: "outer_layer", color: "camel", colors: [CAMEL], style: "Classic", imageUrl: "/sample/camel-coat.jpg" }),
-  demo({ id: "demo-light-jeans", name: "Light-wash jeans", category: "bottom", layeringRole: "bottom", color: "light blue denim", colors: [BLUE], style: "Casual", imageUrl: "/sample/light-jeans.jpg" }),
-  demo({ id: "demo-floral-sundress", name: "Floral sundress", category: "dress", layeringRole: "one_piece", color: "cream floral", colors: [CREAM], style: "Summer", imageUrl: "/sample/floral-sundress.jpg" }),
-  demo({ id: "demo-white-sneakers", name: "White sneakers", category: "shoes", layeringRole: "shoes", color: "white", colors: [WHITE], style: "Casual", imageUrl: "/sample/white-sneakers.jpg" }),
-  demo({ id: "demo-chelsea-boots", name: "Chelsea boots", category: "shoes", layeringRole: "shoes", color: "brown leather", colors: [BROWN], style: "Classic", imageUrl: "/sample/chelsea-boots.jpg" }),
-  demo({ id: "demo-turtleneck", name: "Rib turtleneck", category: "top", layeringRole: "mid_layer", color: "black", colors: [BLACK], style: "Classic", imageUrl: "/sample/turtleneck.jpg" }),
-  demo({ id: "demo-puffer", name: "Quilted puffer jacket", category: "outerwear", layeringRole: "outer_layer", color: "black", colors: [BLACK], style: "Cozy", imageUrl: "/sample/puffer-jacket.jpg" }),
-  demo({ id: "demo-plaid-skirt", name: "Pleated plaid skirt", category: "bottom", layeringRole: "bottom", color: "grey plaid", colors: [GREY], style: "Classic", imageUrl: "/sample/plaid-skirt.jpg" }),
-  demo({ id: "demo-cable-sweater", name: "Cable-knit sweater", category: "top", layeringRole: "mid_layer", color: "cream", colors: [CREAM], style: "Cozy", imageUrl: "/sample/cable-sweater.jpg" }),
-  demo({ id: "demo-wrap-coat", name: "Belted wrap coat", category: "outerwear", layeringRole: "outer_layer", color: "beige", colors: [BEIGE], style: "Classic", imageUrl: "/sample/wrap-coat.jpg" }),
-  demo({ id: "demo-straw-hat", name: "Straw hat", category: "accessory", layeringRole: "accessory", color: "natural straw", colors: [BEIGE], style: "Summer", imageUrl: "/sample/straw-hat.jpg" }),
+  // Tops
+  demo({ id: "demo-linen-shirt", name: "Linen shirt", category: "top", layeringRole: "mid_layer", color: "light blue", colors: [BLUE], style: "Casual", tags: ["short sleeve", "button-up", "linen"], imageUrl: "/sample/linen-shirt.jpg" }),
+  demo({ id: "demo-eyelet-blouse", name: "Eyelet blouse", category: "top", layeringRole: "mid_layer", color: "white", colors: [WHITE], style: "Summer", tags: ["short sleeve", "button-up", "eyelet", "cotton"], imageUrl: "/sample/eyelet-blouse.jpg" }),
+  demo({ id: "demo-white-tshirt", name: "White T-shirt", category: "top", layeringRole: "base_layer", color: "white", colors: [WHITE], style: "Casual", tags: ["crewneck", "short sleeve", "tee", "minimalist", "everyday"], imageUrl: "/sample/white-tshirt.jpg" }),
+  demo({ id: "demo-turtleneck", name: "Rib turtleneck", category: "top", layeringRole: "mid_layer", color: "black", colors: [BLACK], style: "Classic", tags: ["ribbed", "knit", "sweater", "long sleeve"], imageUrl: "/sample/turtleneck.jpg" }),
+  demo({ id: "demo-cable-sweater", name: "Cable-knit sweater", category: "top", layeringRole: "mid_layer", color: "cream", colors: [CREAM], style: "Cozy", tags: ["crewneck", "knit", "long sleeve"], imageUrl: "/sample/cable-sweater.jpg" }),
+  // Bottoms
+  demo({ id: "demo-light-jeans", name: "Light-wash jeans", category: "bottom", layeringRole: "bottom", color: "light blue denim", colors: [BLUE], style: "Casual", tags: ["straight-leg", "denim", "five-pocket", "everyday"], imageUrl: "/sample/light-jeans.jpg" }),
+  demo({ id: "demo-grey-trousers", name: "Tailored trousers", category: "bottom", layeringRole: "bottom", color: "grey", colors: [GREY], style: "Classic", tags: ["tailored", "straight-leg", "cuffed", "pants"], imageUrl: "/sample/wool-trousers.jpg" }),
+  demo({ id: "demo-plaid-skirt", name: "Pleated plaid skirt", category: "bottom", layeringRole: "bottom", color: "grey plaid", colors: [GREY], style: "Classic", tags: ["pleated", "plaid"], imageUrl: "/sample/plaid-skirt.jpg" }),
+  demo({ id: "demo-chino-shorts", name: "Chino shorts", category: "bottom", layeringRole: "bottom", color: "beige", colors: [BEIGE], style: "Summer", tags: ["chino", "shorts"], imageUrl: "/sample/chino-shorts.jpg" }),
+  demo({ id: "demo-denim-shorts", name: "Denim shorts", category: "bottom", layeringRole: "bottom", color: "light blue denim", colors: [BLUE], style: "Summer", tags: ["denim", "shorts", "five-pocket"], imageUrl: "/sample/denim-shorts.jpg" }),
+  // Dresses
+  demo({ id: "demo-floral-sundress", name: "Floral sundress", category: "dress", layeringRole: "one_piece", color: "cream floral", colors: [CREAM], style: "Summer", tags: ["sleeveless", "floral"], imageUrl: "/sample/floral-sundress.jpg" }),
+  // Outerwear
+  demo({ id: "demo-camel-coat", name: "Camel coat", category: "outerwear", layeringRole: "outer_layer", color: "camel", colors: [CAMEL], style: "Classic", tags: ["single-breasted", "tailored", "minimalist"], imageUrl: "/sample/camel-coat.jpg" }),
+  demo({ id: "demo-wrap-coat", name: "Belted wrap coat", category: "outerwear", layeringRole: "outer_layer", color: "beige", colors: [BEIGE], style: "Classic", tags: ["belted", "wrap"], imageUrl: "/sample/wrap-coat.jpg" }),
+  demo({ id: "demo-puffer", name: "Quilted puffer jacket", category: "outerwear", layeringRole: "outer_layer", color: "black", colors: [BLACK], style: "Cozy", tags: ["quilted", "zip-up"], imageUrl: "/sample/puffer-jacket.jpg" }),
+  // Shoes
+  demo({ id: "demo-white-sneakers", name: "White sneakers", category: "shoes", layeringRole: "shoes", color: "white", colors: [WHITE], style: "Casual", tags: ["low-top", "leather", "minimalist", "everyday"], imageUrl: "/sample/white-sneakers.jpg" }),
+  demo({ id: "demo-chelsea-boots", name: "Chelsea boots", category: "shoes", layeringRole: "shoes", color: "brown leather", colors: [BROWN], style: "Classic", tags: ["ankle boots", "leather"], imageUrl: "/sample/chelsea-boots.jpg" }),
+  demo({ id: "demo-knee-boots", name: "Knee-high boots", category: "shoes", layeringRole: "shoes", color: "black leather", colors: [BLACK], style: "Classic", tags: ["knee-high", "leather", "side zip"], imageUrl: "/sample/knee-boots.jpg" }),
+  demo({ id: "demo-slide-sandals", name: "Leather slide sandals", category: "shoes", layeringRole: "shoes", color: "brown leather", colors: [BROWN], style: "Summer", tags: ["slides", "double strap", "leather"], imageUrl: "/sample/leather-sandals.jpg" }),
+  demo({ id: "demo-strappy-sandals", name: "Strappy sandals", category: "shoes", layeringRole: "shoes", color: "tan leather", colors: [CAMEL], style: "Summer", tags: ["strappy", "buckle", "flat", "leather"], imageUrl: "/sample/strappy-sandals.jpg" }),
+  // Accessories
+  demo({ id: "demo-straw-hat", name: "Straw hat", category: "accessory", layeringRole: "accessory", color: "natural straw", colors: [BEIGE], style: "Summer", tags: ["straw"], imageUrl: "/sample/straw-hat.jpg" }),
 ];
 
 const unique = (values: (string | null)[]) => [...new Set(values.filter((v): v is string => Boolean(v)))].sort();
@@ -98,8 +115,6 @@ export const PRICE_BANDS = [
  */
 export const isVerified = (p: ShopProduct) => !p.isDemo && Boolean(p.updatedAt);
 
-/** Searches to suggest; each finds pieces in the current catalog. */
-export const SUGGESTED_SEARCHES = ["Linen shirts", "Light jeans", "Brown boots", "Summer dresses", "Camel coats", "Cozy knits"];
 
 /** Every word of the search must appear somewhere in the piece's details (plurals match too: "shirts" finds "shirt"). */
 export function matchesSearch(p: ShopProduct, query: string): boolean {
@@ -109,12 +124,27 @@ export function matchesSearch(p: ShopProduct, query: string): boolean {
     .filter(Boolean)
     .map((w) => (w.length > 4 && w.endsWith("es") ? w.slice(0, -2) : w.endsWith("s") ? w.slice(0, -1) : w));
   if (!words.length) return true;
-  const haystack = [p.name, p.brand, p.retailer, p.color, p.category, p.style, ...p.colors.map((c) => c.name)]
+  const haystack = [p.name, p.brand, p.retailer, p.color, p.category, p.style, ...p.tags, ...p.colors.map((c) => c.name)]
     .filter(Boolean)
     .join(" ")
     .toLowerCase();
   return words.every((w) => haystack.includes(w));
 }
+
+// Searches worth suggesting. Only the ones that find something in the current catalog are shown, so a suggestion
+// never leads nowhere (and none is forced to match).
+const SEARCH_IDEAS = [
+  "Linen shirts",
+  "Straight-leg jeans",
+  "Minimalist jackets",
+  "Everyday sneakers",
+  "Summer sandals",
+  "Tailored trousers",
+  "Knit sweaters",
+  "Leather boots",
+  "Denim shorts",
+];
+export const SUGGESTED_SEARCHES = SEARCH_IDEAS.filter((idea) => SHOP_PRODUCTS.some((p) => matchesSearch(p, idea)));
 
 /** A price in its own currency, or null when it isn't known. */
 export function priceLabel(price: number | null, currency: string | null): string | null {

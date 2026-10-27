@@ -73,6 +73,7 @@ export function ProductDetail({
     ["Category", KIND[product.category]],
     ["Color", product.colors.map((c) => c.name).join(", ")],
     ["Style", product.style],
+    ...(product.tags.length ? ([["Details", product.tags.join(", ")]] as [string, string][]) : []),
     ...(verified && product.retailer ? ([["Store", product.retailer]] as [string, string][]) : []),
     ...(product.availability ? ([["Availability", product.availability]] as [string, string][]) : []),
     ...(verified && product.updatedAt ? ([["Price checked", new Date(product.updatedAt).toLocaleDateString()]] as [string, string][]) : []),

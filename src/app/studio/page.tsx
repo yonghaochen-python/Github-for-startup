@@ -659,6 +659,12 @@ export default function StudioPage() {
                           className="relative block h-20 w-20 overflow-hidden rounded-[14px] bg-[#f4f5f6] shadow-[inset_0_0_0_1px_rgba(18,24,33,0.06)]"
                         >
                           <Image src={piece.imageUrl} alt={piece.description} fill unoptimized className="object-cover" />
+                          {/* Shopping pieces aren't owned: marked so they're never mistaken for closet clothes. */}
+                          {piece.id.startsWith("shop-") && (
+                            <span className="absolute bottom-1 left-1 rounded-full bg-white/95 px-1.5 py-[1px] text-[8.5px] font-semibold uppercase tracking-[1px] text-[#4f5b66]">
+                              Shop
+                            </span>
+                          )}
                         </button>
                         <button
                           onClick={() => pick(piece)}
