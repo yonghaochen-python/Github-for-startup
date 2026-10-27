@@ -52,16 +52,16 @@ const PACKS: { title: string; note: string; options: { amount: string; price: st
     title: "Live try-on",
     note: "See an outfit on you in real time, on camera.",
     options: [
-      { amount: "5 extra sessions", price: "$2.99" },
-      { amount: "15 extra sessions", price: "$7.99" },
+      { amount: "5 fixed sessions", price: "$2.99" },
+      { amount: "15 fixed sessions", price: "$7.99" },
     ],
   },
   {
     title: "Photo try-on",
     note: "See an outfit on your full-body photo.",
     options: [
-      { amount: "20 extra sessions", price: "$1.99" },
-      { amount: "60 extra sessions", price: "$4.99" },
+      { amount: "20 fixed sessions", price: "$1.99" },
+      { amount: "60 fixed sessions", price: "$4.99" },
     ],
   },
 ];
