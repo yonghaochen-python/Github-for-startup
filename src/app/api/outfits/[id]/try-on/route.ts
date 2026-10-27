@@ -9,6 +9,7 @@ import { runTryOn, TryOnError, type TryOnInputLayer } from "@/lib/tryOn";
 import { toPlainLayers, type ImageBytes, type TryOnResult } from "@/lib/tryOn/types";
 import { cacheTryOn, getCachedTryOn, tryOnCacheKey } from "@/lib/tryOnCache";
 import { isSavedPhotoKey, loadPersonalPhoto, saveCurrentLook, saveOutfitTryOn } from "@/lib/personalPhoto";
+import { CreditError, requestIdFrom, withCredit } from "@/lib/credits";
 
 const MAX_PHOTO_BYTES = 12 * 1024 * 1024;
 const MAX_GARMENT_BYTES = 4 * 1024 * 1024;
@@ -107,7 +108,14 @@ export async function POST(request: Request, ctx: RouteContext<"/api/outfits/[id
       result = { isMock: false, provider: "saved", imageDataUrl: remembered, layers: toPlainLayers(layers), reused: true };
       await track(user.id, "tryon_reused");
     } else {
-      result = await trackTimed(user.id, "tryon", () => runTryOn({ person: person!, layers, garmentSheet }, user.id));
+      // One photo credit: counted only when a real picture comes back; a failure gives it back.
+      result = await withCredit(
+        user,
+        "photo",
+        requestIdFrom(formData.get("requestId")),
+        () => trackTimed(user.id, "tryon", () => runTryOn({ person: person!, layers, garmentSheet }, user.id)),
+        (r) => !r.isMock && Boolean(r.imageDataUrl)
+      );
       if (cacheKey && !result.isMock && result.imageDataUrl) await cacheTryOn(cacheKey, result.imageDataUrl).catch(() => {});
     }
 
@@ -126,6 +134,9 @@ export async function POST(request: Request, ctx: RouteContext<"/api/outfits/[id
 
     return NextResponse.json({ result, look }, { headers: noStore });
   } catch (err) {
+    if (err instanceof CreditError) {
+      return NextResponse.json({ error: err.message, code: err.code }, { status: err.code === "duplicate" ? 409 : 402, headers: noStore });
+    }
     if (err instanceof TryOnError) {
       return NextResponse.json({ error: err.message, code: err.code }, { status: STATUS_BY_CODE[err.code], headers: noStore });
     }

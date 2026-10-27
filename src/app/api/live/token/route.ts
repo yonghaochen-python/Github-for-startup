@@ -1,6 +1,8 @@
 import { NextResponse } from "next/server";
 import { createDecartClient } from "@decartai/sdk";
+import { randomUUID } from "node:crypto";
 import { requireAdmin } from "@/lib/auth";
+import { reserveCredit, settleCredit } from "@/lib/credits";
 
 /**
  * Live Try On (preview): a short-lived Decart token for one real-time session, so the permanent key never reaches
@@ -34,6 +36,13 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: `That's ${SESSIONS_PER_DAY} live sessions today. Try again tomorrow.` }, { status: 429, headers: noStore });
   }
 
+  // One live credit is reserved for this session; the page reports whether the stream connected (counted) or failed
+  // before connecting (given back) through /api/live/session. With no report it stays reserved, since Decart may
+  // have billed the session.
+  const sessionId = `live-${randomUUID()}`;
+  const reservation = await reserveCredit(user, "live", sessionId);
+  if (!reservation.ok) return NextResponse.json({ error: "You've used this month's live sessions." }, { status: 402, headers: noStore });
+
   try {
     const client = createDecartClient({ apiKey, telemetry: false });
     const token = await client.tokens.create({
@@ -43,8 +52,9 @@ export async function POST(request: Request) {
       constraints: { realtime: { maxSessionDuration: MAX_SESSION_SECONDS } },
     });
     used.set(user.id, { day, count: count + 1 });
-    return NextResponse.json({ apiKey: token.apiKey, model: MODEL, maxSeconds: MAX_SESSION_SECONDS }, { headers: noStore });
+    return NextResponse.json({ apiKey: token.apiKey, model: MODEL, maxSeconds: MAX_SESSION_SECONDS, sessionId }, { headers: noStore });
   } catch (err) {
+    await settleCredit(user.id, sessionId, "released", "token_failed").catch(() => {});
     console.error("Couldn't create a Decart token:", err instanceof Error ? err.message : "unknown error");
     return NextResponse.json({ error: "Couldn't start live try-on right now." }, { status: 502, headers: noStore });
   }

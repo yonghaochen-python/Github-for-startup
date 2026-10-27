@@ -15,6 +15,7 @@ import { MirrorIcon, PlusIcon, SearchIcon } from "@/components/Icons";
 import { EmptyState, ErrorNote, PageShell, btnPrimary, mirrorFrame } from "@/components/ui";
 import { TRY_ON_CAVEAT, requestShopTryOn, requestTryOn, type TryOnResult } from "@/lib/tryOnClient";
 import { LiveTryOn, type ShopPick } from "@/components/LiveTryOn";
+import { CreditsLine, refreshCredits } from "@/components/Credits";
 import { LIVE_SHOP_KEY, SHOP_OUTFIT_KEY, SHOP_PRODUCTS, shopPiece, trayItemFrom, type TrayItem } from "@/lib/shopCatalog";
 import { Tips, type Tip } from "@/components/Tips";
 
@@ -322,6 +323,7 @@ export default function StudioPage() {
       setError(err instanceof Error ? err.message : "Couldn't run the try-on right now.");
     } finally {
       setTrying(false);
+      refreshCredits();
     }
   }
 
@@ -597,6 +599,7 @@ export default function StudioPage() {
                   {trying ? "Trying on…" : "Try On"}
                 </button>
               </div>
+              <CreditsLine kind="photo" />
               {hasShopPieces && (
                 <p className="mt-2 text-center text-[11.5px] text-[#5d6874]">Looks with Shopping pieces aren&apos;t saved: the picture shows here only.</p>
               )}

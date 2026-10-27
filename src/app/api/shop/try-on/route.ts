@@ -5,6 +5,7 @@ import { orderedLayerEntries, type LayeringRole } from "@/lib/layering";
 import { isSavedPhotoKey, loadPersonalPhoto } from "@/lib/personalPhoto";
 import { runTryOn, TryOnError, type TryOnInputItem } from "@/lib/tryOn";
 import type { ImageBytes } from "@/lib/tryOn/types";
+import { CreditError, requestIdFrom, withCredit } from "@/lib/credits";
 
 const MAX_PIECES = 6;
 const MAX_GARMENT_BYTES = 4 * 1024 * 1024;
@@ -72,9 +73,19 @@ export async function POST(request: Request) {
   const garmentSheet = (await readImage(formData.get("garmentSheet"))) ?? undefined;
 
   try {
-    const result = await runTryOn({ person, layers: orderedLayerEntries(items), garmentSheet }, user.id);
+    // One photo credit: counted only when a real picture comes back; a failure gives it back.
+    const result = await withCredit(
+      user,
+      "photo",
+      requestIdFrom(formData.get("requestId")),
+      () => runTryOn({ person, layers: orderedLayerEntries(items), garmentSheet }, user.id),
+      (r) => !r.isMock && Boolean(r.imageDataUrl)
+    );
     return NextResponse.json({ result }, { headers: noStore });
   } catch (err) {
+    if (err instanceof CreditError) {
+      return NextResponse.json({ error: err.message, code: err.code }, { status: err.code === "duplicate" ? 409 : 402, headers: noStore });
+    }
     if (err instanceof TryOnError) {
       return NextResponse.json({ error: err.message, code: err.code }, { status: STATUS_BY_CODE[err.code], headers: noStore });
     }

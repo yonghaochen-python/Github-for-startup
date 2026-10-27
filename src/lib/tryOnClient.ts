@@ -14,6 +14,8 @@ export type TryOnResult = { isMock: boolean; provider: string; imageDataUrl: str
  */
 export async function requestTryOn(outfitId: string, pieces: Piece[], liveProvider: boolean, fresh = false): Promise<TryOnResult> {
   const formData = new FormData();
+  // One id per Try On press, so a repeated request is never counted twice.
+  formData.append("requestId", crypto.randomUUID());
   // By default a picture already made of this photo and these pieces is shown again for free; fresh asks for a new one.
   if (fresh) formData.append("fresh", "1");
   if (liveProvider) {
@@ -54,6 +56,7 @@ export async function requestShopTryOn(pieces: ShopPiece[]): Promise<TryOnResult
     })
   );
   const formData = new FormData();
+  formData.append("requestId", crypto.randomUUID());
   formData.append("pieces", JSON.stringify(pieces.map((p) => ({ description: p.description, color: p.color ?? "", layeringRole: p.layeringRole }))));
   photos.forEach((photo, i) => formData.append(`garment:${i}`, photo, `${i}.jpg`));
   if (photos.length > 1) {

@@ -5,6 +5,7 @@ import { createPortal } from "react-dom";
 import Link from "next/link";
 import { useAuth } from "@/components/AuthProvider";
 import { eyebrow } from "@/components/ui";
+import { PLAN_ALLOWANCES } from "@/lib/plans";
 
 /**
  * The planned pricing, shown for feedback only. Nothing here charges, subscribes, or limits anyone: plans, credits and
@@ -32,8 +33,8 @@ const PLANS: Plan[] = [
     line: "Explore your style",
     price: "$0",
     purpose: "Build your closet and see a few outfits on you.",
-    photos: 4,
-    lives: 1,
+    photos: PLAN_ALLOWANCES.free.photo,
+    lives: PLAN_ALLOWANCES.free.live,
     features: [
       { text: "Personal digital closet" },
       { text: "Browse the shopping catalog" },
@@ -47,8 +48,8 @@ const PLANS: Plan[] = [
     line: "Your everyday AI stylist",
     price: "$14.99",
     purpose: "Plan what to wear and try before you buy, week after week.",
-    photos: 60,
-    lives: 15,
+    photos: PLAN_ALLOWANCES.plus.photo,
+    lives: PLAN_ALLOWANCES.plus.live,
     features: [
       { text: "Everything in Free" },
       { text: "AI outfit ideas from your closet + outfit planning by occasion" },
@@ -63,8 +64,8 @@ const PLANS: Plan[] = [
     line: "A more personal wardrobe experience",
     price: "$24.99",
     purpose: "The most try-ons and live sessions, with personal styling tools on the way.",
-    photos: 100,
-    lives: 30,
+    photos: PLAN_ALLOWANCES.pro.photo,
+    lives: PLAN_ALLOWANCES.pro.live,
     features: [
       { text: "Everything in Plus" },
       { text: "Style Profile", soon: "Will let you save your colors, fits and favorite styles once, so outfit ideas use them." },
@@ -75,8 +76,8 @@ const PLANS: Plan[] = [
 
 /** The comparison table. "soon" cells are features that aren't built yet. */
 const COMPARE: { label: string; cells: [string, string, string] }[] = [
-  { label: "Photo try-ons / month", cells: ["4", "60", "100"] },
-  { label: "Live try-on sessions / month", cells: ["1", "15", "30"] },
+  { label: "Photo try-ons / month", cells: [String(PLAN_ALLOWANCES.free.photo), String(PLAN_ALLOWANCES.plus.photo), String(PLAN_ALLOWANCES.pro.photo)] },
+  { label: "Live try-on sessions / month", cells: [String(PLAN_ALLOWANCES.free.live), String(PLAN_ALLOWANCES.plus.live), String(PLAN_ALLOWANCES.pro.live)] },
   { label: "Personal digital closet", cells: ["yes", "yes", "yes"] },
   { label: "Browse the shopping catalog", cells: ["yes", "yes", "yes"] },
   { label: "Product importing", cells: ["no", "yes", "yes"] },

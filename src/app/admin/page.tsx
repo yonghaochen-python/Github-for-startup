@@ -5,6 +5,7 @@ import Link from "next/link";
 import type { AdminStats } from "@/lib/adminStats";
 import { BarChart, HBars, LineChart } from "@/components/admin/Charts";
 import { InlineLoading } from "@/components/InlineLoading";
+import { CreditsAdmin } from "@/components/admin/CreditsAdmin";
 import { ErrorNote, PageHeader, PageShell, btnSecondary, eyebrow } from "@/components/ui";
 
 type Account = { email: string; createdAt: string; lastActiveAt: string | null; closetItems: number; outfits: number };
@@ -342,6 +343,10 @@ export default function AdminPage() {
             &ldquo;Came back&rdquo; uses last-active dates, which only started being recorded with tracking — it will become more
             accurate over time.
           </p>
+        </Section>
+
+        <Section title="Credits" description="Photo and live try-on credits. Limits are counted but not applied yet. Admin tests are shown apart from real users.">
+          <CreditsAdmin />
         </Section>
 
         <Section title="Accounts" description="Minimal information only: emails are partly hidden, and there's no access to anyone's closet or photos.">

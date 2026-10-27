@@ -33,6 +33,17 @@ type Replay = { file: File; url: string } | { failed: string };
 
 const nameOf = (piece: ClothingItem & { color?: string }) => garmentName({ description: piece.description, color: piece.color });
 
+/** Tells the server how a live session went, for its reserved credit (sent even if the page is closing). */
+function reportSession(sessionId: string | null, outcome: "connected" | "failed") {
+  if (!sessionId) return;
+  fetch("/api/live/session", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ sessionId, outcome }),
+    keepalive: true,
+  }).catch(() => {});
+}
+
 /** What to ask for: one piece swaps the matching part of what the person wears; several replace the outfit. */
 function promptFor(pieces: ClothingItem[]): string {
   if (pieces.length === 1) {
@@ -251,9 +262,12 @@ export function LiveTryOn({
     if (!stream || outfit.length === 0) return;
     setAi("connecting");
     setPieceError(null);
+    let sessionId: string | null = null;
+    let connected = false;
     try {
       const tokenRes = await fetch("/api/live/token", { method: "POST" });
-      const token = (await tokenRes.json().catch(() => ({}))) as { apiKey?: string; model?: string; maxSeconds?: number; error?: string };
+      const token = (await tokenRes.json().catch(() => ({}))) as { apiKey?: string; model?: string; maxSeconds?: number; sessionId?: string; error?: string };
+      sessionId = token.sessionId ?? null;
       if (!tokenRes.ok || !token.apiKey || !token.model) throw new Error(token.error ?? "Couldn't start live try-on right now.");
       const [{ createDecartClient, models }, image] = await Promise.all([import("@decartai/sdk"), referenceFor(outfit)]);
       const client = createDecartClient({ apiKey: token.apiKey, telemetry: false });
@@ -273,6 +287,9 @@ export function LiveTryOn({
         initialState: { image, prompt: { text: promptFor(outfit), enhance: true } },
       });
       rtRef.current = rt;
+      // The stream connected: this session's live credit counts.
+      reportSession(sessionId, "connected");
+      connected = true;
       rt.on("sessionEnded", () => endAi());
       rt.on("error", (err) => endAi(err.message || "Live try-on stopped."));
       // Our own stop at the limit (Decart ends it too).
@@ -285,6 +302,8 @@ export function LiveTryOn({
       }, 1000);
       setAi("on");
     } catch (err) {
+      // Failed before connecting: the reserved live credit is given back.
+      if (!connected) reportSession(sessionId, "failed");
       endAi(err instanceof Error ? err.message : "Couldn't start live try-on right now.");
     }
   }

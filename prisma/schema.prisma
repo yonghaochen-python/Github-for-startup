@@ -20,6 +20,10 @@ model User {
   /// Updated at most hourly from signed-in requests; powers active-user and retention stats.
   lastActiveAt DateTime?
   createdAt    DateTime  @default(now())
+  /// free | plus | pro (see lib/plans). Only an admin can change it until billing exists.
+  plan         String    @default("free")
+  /// Start of the person's monthly periods; empty means their sign-up date.
+  periodAnchor DateTime?
 
   items    ClothingItem[]
   outfits  Outfit[]
@@ -27,6 +31,37 @@ model User {
   events   AnalyticsEvent[]
   resets   PasswordReset[]
   picks    Pick[]
+  credits  CreditEntry[]
+}
+
+/// The credit history: one row per grant, adjustment or use, never deleted. A use is "reserved" while its try-on
+/// runs, then "completed" (counted) or "released" (given back). Balances are worked out from these rows (lib/credits).
+model CreditEntry {
+  id        String    @id @default(cuid())
+  userId    String
+  /// photo | live (never mixed)
+  kind      String
+  /// use | adjustment
+  type      String
+  /// plan (monthly allowance) | extra (added credits) | over (beyond the limit, count-only mode) | admin (exempt)
+  source    String
+  /// -1 for a use; + or - for an adjustment
+  amount    Int
+  /// reserved | completed | released
+  status    String
+  /// e.g. connected, failed, timed_out, not_real (practice mode), token_failed
+  outcome   String?
+  note      String?
+  /// One per user: a repeated request with the same id is never counted twice.
+  requestId String
+  createdAt DateTime  @default(now())
+  settledAt DateTime?
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, requestId])
+  @@index([userId, kind, createdAt])
+  @@index([status, createdAt])
 }
 
 /// One usage event for the owner's analytics dashboard: what happened, never any content.

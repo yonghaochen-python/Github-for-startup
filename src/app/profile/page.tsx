@@ -9,6 +9,7 @@ import { CurrentLookBar, MirrorImage, SavedPhotoSetup, useRemoveSavedPhoto } fro
 import { BookmarkIcon, ClosetIcon, SparkleIcon } from "@/components/Icons";
 import { ErrorNote, PageHeader, PageShell, btnPrimary, btnSecondary, btnText, eyebrow } from "@/components/ui";
 import { resetTips } from "@/components/Tips";
+import { CreditsCard } from "@/components/Credits";
 
 type Outfit = { id: string; isFavorite: boolean };
 
@@ -56,15 +57,7 @@ export default function ProfilePage() {
               <p className="mt-1.5 break-all text-[15px] text-[#121821]">{user?.email ?? "…"}</p>
               <p className="mt-1 text-[12px] text-[#5d6874]">Used to log in. Can&apos;t be changed.</p>
             </div>
-            <div className="mt-6">
-              <p className={eyebrow}>Plan</p>
-              <p className="mt-1.5 text-[15px] text-[#121821]">
-                Free ·{" "}
-                <Link href="/pricing" className="text-[13px] font-semibold underline-offset-4 hover:underline">
-                  See plans
-                </Link>
-              </p>
-            </div>
+            <CreditsCard />
             <ul className="mt-8 grid grid-cols-3 gap-3 border-t border-black/[0.07] pt-6">
               {stats.map(({ label, value, href, Icon }) => (
                 <li key={label}>

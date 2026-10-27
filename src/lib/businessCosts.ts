@@ -4,7 +4,9 @@
  * can be changed on the page; this file is just the starting point. All figures are monthly estimates.
  */
 
-export type PlanKey = "free" | "plus" | "pro";
+import { PLAN_ALLOWANCES, type PlanKey } from "@/lib/plans";
+
+export type { PlanKey };
 
 export type PlanAssumption = {
   label: string;
@@ -63,9 +65,9 @@ export const CONFIRMED_LIVE_COST = 0.4;
 
 export const DEFAULT_COSTS: CostAssumptions = {
   plans: {
-    free: { label: "Free", price: 0, fee: 0, photos: 4, lives: 1, closetPhotos: 3, styleIts: 3 },
-    plus: { label: "Plus", price: 14.99, fee: 0.84, photos: 60, lives: 15, closetPhotos: 10, styleIts: 15 },
-    pro: { label: "Pro", price: 24.99, fee: 1.2, photos: 100, lives: 30, closetPhotos: 15, styleIts: 30 },
+    free: { label: "Free", price: 0, fee: 0, photos: PLAN_ALLOWANCES.free.photo, lives: PLAN_ALLOWANCES.free.live, closetPhotos: 3, styleIts: 3 },
+    plus: { label: "Plus", price: 14.99, fee: 0.84, photos: PLAN_ALLOWANCES.plus.photo, lives: PLAN_ALLOWANCES.plus.live, closetPhotos: 10, styleIts: 15 },
+    pro: { label: "Pro", price: 24.99, fee: 1.2, photos: PLAN_ALLOWANCES.pro.photo, lives: PLAN_ALLOWANCES.pro.live, closetPhotos: 15, styleIts: 30 },
   },
   packs: [
     { id: "live-5", kind: "live", credits: 5, price: 2.99, fee: 0.39, sold: 0 },
