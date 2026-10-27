@@ -1,6 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useRef, useState } from "react";
+import Link from "next/link";
 import type { ClothingItem } from "@/components/OutfitCard";
 import { mirrorFrame } from "@/components/ui";
 import { LiquidGlass } from "@/components/LiquidGlass";
@@ -9,6 +10,7 @@ import { garmentName } from "@/lib/tryOn/types";
 import { garmentSheetJpeg, photoToJpeg } from "@/lib/clientImage";
 import type { TrayCategory } from "@/lib/shopCatalog";
 import { addToWishlist } from "@/lib/shopWishlist";
+import { startRecording, type LiveRecording } from "@/lib/liveRecording";
 import type { RealTimeClient } from "@decartai/sdk";
 
 /**
@@ -25,7 +27,9 @@ import type { RealTimeClient } from "@decartai/sdk";
 type Source = "none" | "starting" | "camera";
 /** A piece sent from Shopping; store finds keep their page link and store name. */
 export type ShopPick = ClothingItem & { color?: string; productUrl?: string | null; retailer?: string };
-type Ai = "off" | "confirm" | "connecting" | "on";
+type Ai = "off" | "confirm" | "countdown" | "connecting" | "on";
+/** After a session: the recorded AI video (kept in memory only), or why there's no replay. */
+type Replay = { file: File; url: string } | { failed: string };
 
 const nameOf = (piece: ClothingItem & { color?: string }) => garmentName({ description: piece.description, color: piece.color });
 
@@ -105,6 +109,44 @@ export function LiveTryOn({
   const rtRef = useRef<RealTimeClient | null>(null);
   const timerRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const aiVideoRef = useRef<HTMLVideoElement | null>(null);
+  // 3-2-1 before anything billable starts (no token, no Decart session until it reaches 0).
+  const [count, setCount] = useState(3);
+  // The session's AI video, recorded in this page's memory from its first frame; never uploaded or stored.
+  const recordingRef = useRef<LiveRecording | null>(null);
+  const recordingTriedRef = useRef(false);
+  const [replay, setReplay] = useState<Replay | null>(null);
+  const replayVideoRef = useRef<HTMLVideoElement | null>(null);
+  const [shareNote, setShareNote] = useState<string | null>(null);
+  // "Save to Virm": only on an explicit click; the video is stored privately for this person.
+  const [saveState, setSaveState] = useState<"idle" | "saving" | "saved" | { error: string }>("idle");
+
+  /** Ends the recording: keep it for the replay (a session that ended), or throw it away. */
+  const finishRecording = useCallback((keep: boolean) => {
+    const recording = recordingRef.current;
+    const tried = recordingTriedRef.current;
+    recordingRef.current = null;
+    recordingTriedRef.current = false;
+    if (!keep) {
+      recording?.discard();
+      return;
+    }
+    if (!tried) return; // The AI never showed a frame, so there's nothing to replay.
+    if (!recording) {
+      setReplay({ failed: "Replay isn't available in this browser." });
+      return;
+    }
+    recording.stop().then((file) =>
+      setReplay(file ? { file, url: URL.createObjectURL(file) } : { failed: "Replay isn't available for this session." })
+    );
+  }, []);
+
+  // The replay's in-memory video is let go whenever it's replaced or closed, or the page is left.
+  useEffect(
+    () => () => {
+      if (replay && "url" in replay) URL.revokeObjectURL(replay.url);
+    },
+    [replay]
+  );
 
   useEffect(() => {
     let ignore = false;
@@ -138,12 +180,13 @@ export function LiveTryOn({
    */
   const endAi = useCallback(
     (message?: string) => {
+      finishRecording(true);
       stopAi();
       stopCamera();
       setSource("none");
       setCameraError(message ?? null);
     },
-    [stopAi, stopCamera]
+    [stopAi, stopCamera, finishRecording]
   );
 
   // The camera and any AI session stop when leaving the page; the AI also stops when the tab is hidden.
@@ -152,10 +195,56 @@ export function LiveTryOn({
     document.addEventListener("visibilitychange", onHide);
     return () => {
       document.removeEventListener("visibilitychange", onHide);
+      finishRecording(false);
       stopAi();
       stopCamera();
     };
-  }, [stopAi, stopCamera, endAi]);
+  }, [stopAi, stopCamera, endAi, finishRecording]);
+
+  /** Start: a 3-2-1 first, then the session (the countdown isn't part of the 20 seconds). */
+  function beginCountdown() {
+    setReplay(null);
+    setShareNote(null);
+    setSaveState("idle");
+    setCount(3);
+    setAi("countdown");
+  }
+
+  /** Recording starts with the first AI frame actually shown. */
+  function onAiPlaying() {
+    if (recordingTriedRef.current || !aiStream) return;
+    recordingTriedRef.current = true;
+    recordingRef.current = startRecording(aiStream);
+  }
+
+  async function share(file: File) {
+    setShareNote(null);
+    try {
+      await navigator.share({ files: [file], title: "My Virm live try-on" });
+    } catch (err) {
+      if (!(err instanceof DOMException && err.name === "AbortError")) setShareNote("Couldn't share the video. You can download it instead.");
+    }
+  }
+
+  function closeReplay() {
+    setReplay(null);
+    setShareNote(null);
+    setSaveState("idle");
+  }
+
+  async function saveToVirm(file: File) {
+    setSaveState("saving");
+    const form = new FormData();
+    form.append("video", file, file.name);
+    try {
+      const res = await fetch("/api/me/live-videos", { method: "POST", body: form });
+      const data = (await res.json().catch(() => ({}))) as { error?: string };
+      if (!res.ok) throw new Error(data.error ?? "Couldn't save the video. Please try again.");
+      setSaveState("saved");
+    } catch (err) {
+      setSaveState({ error: err instanceof Error ? err.message : "Couldn't save the video. Please try again." });
+    }
+  }
 
   async function startAi() {
     const stream = streamRef.current;
@@ -200,6 +289,22 @@ export function LiveTryOn({
     }
   }
 
+  // The countdown ticks once a second (3, 2, 1); a second after "1" the session starts.
+  useEffect(() => {
+    if (ai !== "countdown") return;
+    const tick = setTimeout(() => (count <= 1 ? startAi() : setCount((c) => c - 1)), 1000);
+    return () => clearTimeout(tick);
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- runs on each tick of the countdown
+  }, [ai, count]);
+
+  // Leaving the tab during the countdown cancels it, so a session never starts out of sight.
+  useEffect(() => {
+    if (ai !== "countdown") return;
+    const onHide = () => document.visibilityState === "hidden" && setAi("off");
+    document.addEventListener("visibilitychange", onHide);
+    return () => document.removeEventListener("visibilitychange", onHide);
+  }, [ai]);
+
   // Changing the outfit during a session updates it live, with no restart.
   const outfitKey = outfit.map((p) => p.id).join(",");
   useEffect(() => {
@@ -224,6 +329,7 @@ export function LiveTryOn({
 
   async function startCamera() {
     setCameraError(null);
+    closeReplay();
     if (!navigator.mediaDevices?.getUserMedia) {
       setCameraError("This browser can't open the camera here. Switch to Photo above to try it on your saved photo.");
       return;
@@ -252,6 +358,7 @@ export function LiveTryOn({
   }, [source]);
 
   function turnOff() {
+    finishRecording(false);
     stopAi();
     stopCamera();
     setSource("none");
@@ -276,11 +383,39 @@ export function LiveTryOn({
           )}
           {/* The AI picture is wide (16:9): shown whole, centred in the frame. */}
           {source === "camera" && aiStream && (
-            <video ref={aiVideoRef} autoPlay playsInline muted className="absolute inset-0 h-full w-full -scale-x-100 object-contain" aria-label="AI try-on, live" />
+            <video
+              ref={aiVideoRef}
+              autoPlay
+              playsInline
+              muted
+              onPlaying={onAiPlaying}
+              className="absolute inset-0 h-full w-full -scale-x-100 object-contain"
+              aria-label="AI try-on, live"
+            />
+          )}
+          {/* 3, 2, 1 over the camera before the session starts. */}
+          {ai === "countdown" && (
+            <div className="absolute inset-0 flex items-center justify-center bg-[rgba(8,14,22,0.35)]" aria-live="assertive">
+              <span key={count} className="font-display text-[128px] leading-none text-white animate-[piece-in_.3s_ease-out] motion-reduce:animate-none">
+                {count}
+              </span>
+            </div>
+          )}
+          {/* The replay: mirrored like the live view (the file itself isn't). In memory only. */}
+          {replay && "url" in replay && (
+            <video
+              ref={replayVideoRef}
+              src={replay.url}
+              autoPlay
+              playsInline
+              muted
+              className="absolute inset-0 z-10 h-full w-full -scale-x-100 bg-[#0b1520] object-contain"
+              aria-label="Replay of your live try-on"
+            />
           )}
           {/* Before the camera is on: Virm's slowly moving satin glass, as on Home (its colors follow the time of day). */}
-          {(source === "none" || source === "starting") && <LiquidGlass className="absolute inset-0" />}
-          {(source === "none" || source === "starting") && (
+          {(source === "none" || source === "starting") && !(replay && "url" in replay) && <LiquidGlass className="absolute inset-0" />}
+          {(source === "none" || source === "starting") && !(replay && "url" in replay) && (
             <div className="glass-legible glass-text absolute inset-0 flex flex-col items-center justify-center px-8 text-center">
               <span className="glass-icon mb-5 flex h-16 w-16 items-center justify-center rounded-full border border-[rgba(18,24,33,0.12)] bg-[rgba(255,255,255,0.35)] text-[#26313a] backdrop-blur-md">
                 <Icon d={CAMERA} className="h-7 w-7" />
@@ -303,7 +438,11 @@ export function LiveTryOn({
 
           {/* Honest label: says whether the AI is drawing the clothes right now. */}
           <span className="absolute left-3 top-3 rounded-full border border-white/15 bg-black/40 px-3 py-1.5 text-[11px] font-medium text-white/90 backdrop-blur-md">
-            {ai === "on" ? `Live AI try-on · ${secondsLeft}s left` : "Prototype · clothes aren't drawn on you yet"}
+            {replay && "url" in replay
+              ? "Replay · not saved"
+              : ai === "on"
+                ? `Live AI try-on · ${secondsLeft}s left`
+                : "Prototype · clothes aren't drawn on you yet"}
           </span>
 
           {source === "camera" && (
@@ -383,9 +522,17 @@ export function LiveTryOn({
             {ai === "confirm" && (
               <>
                 <span className="min-w-0 flex-1">Uses Decart credits, about $0.02 a second. Runs up to 20 seconds, then stops.</span>
-                <button onClick={startAi} className="rounded-full bg-[#121821] px-4 py-2 text-[12.5px] font-semibold text-white hover:bg-[#2a3542]">
+                <button onClick={beginCountdown} className="rounded-full bg-[#121821] px-4 py-2 text-[12.5px] font-semibold text-white hover:bg-[#2a3542]">
                   Start
                 </button>
+                <button onClick={() => setAi("off")} className="text-[12.5px] font-medium text-[#121821] underline-offset-4 hover:underline">
+                  Cancel
+                </button>
+              </>
+            )}
+            {ai === "countdown" && (
+              <>
+                <span className="min-w-0 flex-1">Get ready… starting in {count}. Your 20 seconds start after this.</span>
                 <button onClick={() => setAi("off")} className="text-[12.5px] font-medium text-[#121821] underline-offset-4 hover:underline">
                   Cancel
                 </button>
@@ -401,6 +548,76 @@ export function LiveTryOn({
                   Stop
                 </button>
               </>
+            )}
+          </div>
+        )}
+
+        {/* After a session: replay and what to do with it. Nothing leaves this page unless chosen. */}
+        {replay && (
+          <div className="flex flex-col gap-2 rounded-[14px] bg-[#f4f5f6] px-4 py-3 text-[12.5px] text-[#4f5b66]">
+            {"url" in replay ? (
+              <>
+                <p>
+                  {saveState === "saved"
+                    ? "Replay of your live try-on."
+                    : "Replay of your live try-on. It isn't saved unless you choose to, and is gone when you leave or start again."}
+                </p>
+                <div className="flex flex-wrap items-center gap-2">
+                  <button
+                    onClick={() => {
+                      const v = replayVideoRef.current;
+                      if (!v) return;
+                      v.currentTime = 0;
+                      v.play().catch(() => {});
+                    }}
+                    className="rounded-full bg-[#121821] px-4 py-2 text-[12.5px] font-semibold text-white hover:bg-[#2a3542]"
+                  >
+                    Replay
+                  </button>
+                  <a
+                    href={replay.url}
+                    download={replay.file.name}
+                    className="rounded-full px-4 py-2 text-[12.5px] font-semibold text-[#121821] shadow-[inset_0_0_0_1px_rgba(18,24,33,0.14)] hover:shadow-[inset_0_0_0_1px_rgba(18,24,33,0.3)]"
+                  >
+                    Download video
+                  </a>
+                  <button
+                    onClick={() => saveToVirm(replay.file)}
+                    disabled={saveState === "saving" || saveState === "saved"}
+                    className="rounded-full px-4 py-2 text-[12.5px] font-semibold text-[#121821] shadow-[inset_0_0_0_1px_rgba(18,24,33,0.14)] hover:shadow-[inset_0_0_0_1px_rgba(18,24,33,0.3)] disabled:opacity-60"
+                  >
+                    {saveState === "saving" ? "Saving…" : saveState === "saved" ? "✓ Saved to Virm" : "Save to Virm"}
+                  </button>
+                  {typeof navigator !== "undefined" && navigator.canShare?.({ files: [replay.file] }) && (
+                    <button
+                      onClick={() => share(replay.file)}
+                      className="rounded-full px-4 py-2 text-[12.5px] font-semibold text-[#121821] shadow-[inset_0_0_0_1px_rgba(18,24,33,0.14)] hover:shadow-[inset_0_0_0_1px_rgba(18,24,33,0.3)]"
+                    >
+                      Share
+                    </button>
+                  )}
+                  <button onClick={closeReplay} className="ml-auto text-[12.5px] font-medium text-[#121821] underline-offset-4 hover:underline">
+                    Done
+                  </button>
+                </div>
+                {!(typeof navigator !== "undefined" && navigator.canShare?.({ files: [replay.file] })) && (
+                  <p className="text-[11.5px] text-[#5d6874]">Sharing isn&apos;t supported in this browser. Download the video to share it.</p>
+                )}
+                {shareNote && <p className="text-[11.5px] text-[#a3261b]">{shareNote}</p>}
+                {saveState === "saved" && (
+                  <p className="text-[11.5px] text-[#5d6874]">
+                    Saved privately. Find it in <Link href="/outfits/saved" className="font-semibold text-[#121821] underline underline-offset-2">Saved Looks</Link>.
+                  </p>
+                )}
+                {typeof saveState === "object" && <p className="text-[11.5px] text-[#a3261b]">{saveState.error}</p>}
+              </>
+            ) : (
+              <div className="flex items-center gap-3">
+                <span className="flex-1">{replay.failed}</span>
+                <button onClick={closeReplay} className="text-[12.5px] font-medium text-[#121821] underline-offset-4 hover:underline">
+                  Done
+                </button>
+              </div>
             )}
           </div>
         )}

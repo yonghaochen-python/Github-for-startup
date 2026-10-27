@@ -48,6 +48,10 @@ export default function PrivacyPage() {
           <strong>Anthropic</strong> (Claude) recognises and describes clothes when you add a photo to your closet. It also
           suggests outfits, using the written descriptions of your clothes, not your photos.
         </li>
+        <li>
+          <strong>Decart</strong> powers live try-on. When you start an AI live session, your camera video and the outfit&apos;s
+          clothing photos are sent to them for that session, up to 20 seconds.
+        </li>
       </ul>
 
       <h2>Your photos</h2>
@@ -59,7 +63,12 @@ export default function PrivacyPage() {
           need an account, and we don&apos;t record who they are.
         </li>
         <li>Clothing photos are stored at long, random web addresses that aren&apos;t listed anywhere or shown to other users.</li>
-        <li>We don&apos;t use your photos to train AI models.</li>
+        <li>
+          Live try-on is recorded in your browser so you can replay it. The recording isn&apos;t uploaded or kept unless you
+          choose Save to Virm, Download or Share. Saved videos are private to you, and you can delete them any time in
+          Saved Looks.
+        </li>
+        <li>We don&apos;t use your photos or videos to train AI models.</li>
       </ul>
 
       <h2>Keeping and deleting your data</h2>

@@ -9,6 +9,7 @@ import { SparkleIcon } from "@/components/Icons";
 import { EmptyState, ErrorNote, PageHeader, PageShell, btnPrimary, btnSecondary } from "@/components/ui";
 import { Tips, type Tip } from "@/components/Tips";
 import { OpenPicks, ShareLooksButton } from "@/components/ShareLooks";
+import { LiveVideos } from "@/components/LiveVideos";
 
 const SAVED_TIPS: Tip[] = [{ target: '[aria-label="Saved. Tap to unsave"]', text: "Tap the red bookmark to unsave a look." }];
 
@@ -63,6 +64,7 @@ export default function SavedLooksPage() {
         />
 
         <OpenPicks refreshKey={picksVersion} />
+        <LiveVideos />
 
         {loading ? (
           <InlineLoading label="Loading your saved looks…" />
