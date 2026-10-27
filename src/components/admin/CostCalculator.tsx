@@ -9,7 +9,8 @@ import { eyebrow, surface } from "@/components/ui";
  * or saved on the server); "Reset" goes back to the defaults the server sent. Every result is an estimate.
  *
  * Formulas (per month, for a scenario's usage share u):
- *   AI cost per user          = photos × u × photo cost + lives × u × live cost + other AI per user
+ *   Claude per user           = clothing photos added × Claude per photo + "Style it" requests × Claude per request
+ *   AI cost per user          = photos × u × photo cost + lives × u × live cost + Claude per user + other AI per user
  *   Contribution per user     = price − payment fee − AI cost per user
  *   Pack contribution         = price − fee − credits × u × cost per try-on   (per pack sold)
  *   Free users' cost          = free users × AI cost per free user
@@ -18,7 +19,8 @@ import { eyebrow, surface } from "@/components/ui";
  *   Break-even subscribers    = ⌈(hosting + other + free users' cost) ÷ contribution per subscriber⌉ (no other paid users)
  */
 
-const STORE_KEY = "virm-admin-costs";
+// Bumped when the assumptions' shape changes, so older saved edits aren't read into the new shape.
+const STORE_KEY = "virm-admin-costs-v2";
 const PLAN_KEYS: PlanKey[] = ["free", "plus", "pro"];
 const PAID = ["plus", "pro"] as const;
 
@@ -35,8 +37,9 @@ function compute(a: CostAssumptions, usagePct: number) {
     const p = a.plans[key];
     const photoAi = p.photos * u * a.photoCost;
     const liveAi = p.lives * u * a.liveCost;
-    const ai = photoAi + liveAi + a.extraAiPerUser;
-    return { photoAi, liveAi, ai, contribution: p.price - p.fee - ai };
+    const otherAi = p.closetPhotos * a.claudePerClosetPhoto + p.styleIts * a.claudePerStyleIt + a.extraAiPerUser;
+    const ai = photoAi + liveAi + otherAi;
+    return { photoAi, liveAi, otherAi, ai, contribution: p.price - p.fee - ai };
   };
   const planRows: Record<PlanKey, Row & { perUser: ReturnType<typeof perUser> }> = {} as never;
   for (const key of PLAN_KEYS) {
@@ -50,7 +53,7 @@ function compute(a: CostAssumptions, usagePct: number) {
       fees: p.fee * n,
       photoAi: each.photoAi * n,
       liveAi: each.liveAi * n,
-      otherAi: a.extraAiPerUser * n,
+      otherAi: each.otherAi * n,
       contribution: each.contribution * n,
       perUser: each,
     };
@@ -110,6 +113,26 @@ function compute(a: CostAssumptions, usagePct: number) {
     freePerUser: planRows.free.perUser.ai,
     breakEven: { plus: breakEven("plus"), pro: breakEven("pro") },
     profitAt,
+  };
+}
+
+/** Saved edits laid over the defaults, so a value added to the defaults later is never missing (or NaN). */
+function withDefaults(kept: Partial<CostAssumptions>, d: CostAssumptions): CostAssumptions {
+  const num = (v: unknown, fallback: number) => (typeof v === "number" && Number.isFinite(v) ? v : fallback);
+  const pick = <T extends object>(saved: unknown, base: T): T => {
+    const out = { ...base };
+    for (const key of Object.keys(base) as (keyof T)[]) {
+      const v = (saved as Record<keyof T, unknown> | undefined)?.[key];
+      if (typeof base[key] === "number") out[key] = num(v, base[key] as number) as T[keyof T];
+    }
+    return out;
+  };
+  return {
+    ...pick(kept, d),
+    plans: { free: pick(kept.plans?.free, d.plans.free), plus: pick(kept.plans?.plus, d.plans.plus), pro: pick(kept.plans?.pro, d.plans.pro) },
+    packs: d.packs.map((p) => pick(kept.packs?.find((k) => k?.id === p.id), p)),
+    users: pick(kept.users, d.users),
+    scenarios: d.scenarios.map((sc, i) => pick(kept.scenarios?.[i], sc)),
   };
 }
 
@@ -218,12 +241,12 @@ export function CostCalculator({ defaults }: { defaults: CostAssumptions }) {
   // Edits are remembered in this browser only.
   useEffect(() => {
     try {
-      const kept = JSON.parse(localStorage.getItem(STORE_KEY) ?? "null") as CostAssumptions | null;
+      const kept = JSON.parse(localStorage.getItem(STORE_KEY) ?? "null") as Partial<CostAssumptions> | null;
       // eslint-disable-next-line react-hooks/set-state-in-effect -- browser-only storage, read after the first render
-      if (kept?.plans && kept.packs?.length === defaults.packs.length && kept.scenarios?.length === 3) setA(kept);
+      if (kept) setA(withDefaults(kept, defaults));
     } catch {}
     setLoaded(true);
-  }, [defaults.packs.length]);
+  }, [defaults]);
   useEffect(() => {
     if (!loaded) return;
     try {
@@ -285,6 +308,8 @@ export function CostCalculator({ defaults }: { defaults: CostAssumptions }) {
                   <Num label="Payment fee" prefix="$" step={0.01} value={a.plans[k].fee} onChange={(n) => update((d) => void (d.plans[k].fee = n))} />
                   <Num label="Photo try-ons" value={a.plans[k].photos} onChange={(n) => update((d) => void (d.plans[k].photos = Math.round(n)))} />
                   <Num label="Live sessions" value={a.plans[k].lives} onChange={(n) => update((d) => void (d.plans[k].lives = Math.round(n)))} />
+                  <Num label="Clothing photos / user" value={a.plans[k].closetPhotos} onChange={(n) => update((d) => void (d.plans[k].closetPhotos = Math.round(n)))} />
+                  <Num label="“Style it” / user" value={a.plans[k].styleIts} onChange={(n) => update((d) => void (d.plans[k].styleIts = Math.round(n)))} />
                 </div>
               </div>
             ))}
@@ -308,7 +333,14 @@ export function CostCalculator({ defaults }: { defaults: CostAssumptions }) {
 
         <Card title="AI costs (per completed try-on)">
           <div className="grid grid-cols-2 gap-3">
-            <Num label="Photo try-on" prefix="$" step={0.01} value={a.photoCost} onChange={(n) => update((d) => void (d.photoCost = n))} />
+            <Num
+              label="Photo try-on"
+              prefix="$"
+              step={0.01}
+              value={a.photoCost}
+              onChange={(n) => update((d) => void (d.photoCost = n))}
+              hint="FLUX VTO v2 (BFL). BFL doesn't publish this price; check your BFL dashboard (1 credit = $0.01)."
+            />
             <Num
               label="Live session"
               prefix="$"
@@ -318,15 +350,16 @@ export function CostCalculator({ defaults }: { defaults: CostAssumptions }) {
               hint="Decart: about $0.02 a second, so $0.40 for a full 20-second session."
             />
           </div>
+          <p className="mb-2 mt-4 text-[12px] font-semibold text-[#121821]">Claude (Sonnet 5)</p>
+          <div className="grid grid-cols-2 gap-3">
+            <Num label="Per clothing photo" prefix="$" step={0.01} value={a.claudePerClosetPhoto} onChange={(n) => update((d) => void (d.claudePerClosetPhoto = n))} />
+            <Num label="Per “Style it”" prefix="$" step={0.01} value={a.claudePerStyleIt} onChange={(n) => update((d) => void (d.claudePerStyleIt = n))} />
+          </div>
+          <p className="mt-1 text-[10.5px] leading-snug text-[#8a5a14]">
+            $2 / $10 per million tokens in / out, estimated from the app&apos;s prompts. Your Claude Console usage page shows the real totals.
+          </p>
           <div className="mt-3">
-            <Num
-              label="Other AI cost per user / mo"
-              prefix="$"
-              step={0.01}
-              value={a.extraAiPerUser}
-              onChange={(n) => update((d) => void (d.extraAiPerUser = n))}
-              hint="Not included unless you add it: Claude for clothing tagging and outfit ideas."
-            />
+            <Num label="Other AI cost per user / mo" prefix="$" step={0.01} value={a.extraAiPerUser} onChange={(n) => update((d) => void (d.extraAiPerUser = n))} />
           </div>
         </Card>
 
@@ -397,7 +430,7 @@ export function CostCalculator({ defaults }: { defaults: CostAssumptions }) {
                   <th className={th}>Payment fees</th>
                   <th className={th}>Photo AI</th>
                   <th className={th}>Live AI</th>
-                  <th className={th}>Other AI</th>
+                  <th className={th}>Claude & other AI</th>
                   <th className={th}>Contribution</th>
                 </tr>
               </thead>
@@ -452,7 +485,7 @@ export function CostCalculator({ defaults }: { defaults: CostAssumptions }) {
                   ["Payment processing fees", -r.fees],
                   ["Photo try-on costs", -r.photoAi],
                   ["Live try-on costs", -r.liveAi],
-                  ["Other AI costs", -r.otherAi],
+                  ["Claude & other AI costs", -r.otherAi],
                   ["Hosting & Cloudflare", -a.hosting],
                   ["Other expenses", -a.other],
                   ["Total costs", -r.totalCosts],
@@ -529,7 +562,8 @@ export function CostCalculator({ defaults }: { defaults: CostAssumptions }) {
         <details className={`${surface} p-5 text-[13px] text-[#26313a] sm:p-6`}>
           <summary className="cursor-pointer text-[14px] font-semibold text-[#121821]">How it&apos;s worked out</summary>
           <ul className="mt-3 flex list-disc flex-col gap-1.5 pl-5 leading-relaxed">
-            <li>AI cost per user = photo try-ons × usage × photo cost + live sessions × usage × live cost + other AI per user.</li>
+            <li>Claude per user = clothing photos added × Claude per photo + “Style it” requests × Claude per request (not scaled by usage).</li>
+            <li>AI cost per user = photo try-ons × usage × photo cost + live sessions × usage × live cost + Claude per user + other AI per user.</li>
             <li>Contribution per subscriber = price − payment fee − AI cost per user.</li>
             <li>Credit pack contribution = (price − fee) × packs sold − credits × usage × cost per try-on × packs sold.</li>
             <li>Free users&apos; cost = Free users × AI cost per Free user.</li>
