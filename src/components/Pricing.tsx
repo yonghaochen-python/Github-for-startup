@@ -1,50 +1,90 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { Fragment, useEffect, useState } from "react";
 import { createPortal } from "react-dom";
 import Link from "next/link";
 import { useAuth } from "@/components/AuthProvider";
-import { btnPrimary, btnSecondary, eyebrow, surface } from "@/components/ui";
+import { eyebrow } from "@/components/ui";
 
 /**
- * The planned pricing, shown for feedback only. Nothing here charges, subscribes or changes anyone's usage:
- * the paid buttons just say "coming soon". To change a price or allowance, edit the lists below.
+ * The planned pricing, shown for feedback only. Nothing here charges, subscribes, or limits anyone: plans, credits and
+ * plan limits aren't active, and every paid button says "Coming soon". Features that aren't built are marked
+ * "Coming soon" and described in the future tense. To change a price, limit or feature, edit the lists below.
  */
 
-type Plan = { name: string; price: string; blurb: string; features: string[]; missing?: string[]; suggested?: boolean };
+type Feature = { text: string; soon?: string };
+type Plan = {
+  key: "free" | "plus" | "pro";
+  name: string;
+  line: string;
+  price: string;
+  purpose: string;
+  photos: number;
+  lives: number;
+  features: Feature[];
+  bestValue?: boolean;
+};
 
 const PLANS: Plan[] = [
   {
+    key: "free",
     name: "Free",
+    line: "Explore your style",
     price: "$0",
-    blurb: "Get to know your virtual mirror.",
-    features: ["10 photo try-ons per month", "Basic My Closet and Saved Looks", "Limited AI outfit recommendations"],
-    missing: ["No included live try-on sessions"],
+    purpose: "Build your closet and see a few outfits on you.",
+    photos: 4,
+    lives: 1,
+    features: [
+      { text: "Personal digital closet" },
+      { text: "Browse the shopping catalog" },
+      { text: "AI outfit ideas from your closet" },
+      { text: "Up to 5 saved looks" },
+    ],
   },
   {
+    key: "plus",
     name: "Plus",
+    line: "Your everyday AI stylist",
     price: "$14.99",
-    blurb: "For getting dressed and shopping with confidence.",
+    purpose: "Plan what to wear and try before you buy, week after week.",
+    photos: 60,
+    lives: 15,
     features: [
-      "100 photo try-ons per month",
-      "10 live try-on sessions per month",
-      "AI outfit recommendations",
-      "Digital closet and unlimited saved looks",
-      "Access to the Virm Shopping page and product importing",
+      { text: "Everything in Free" },
+      { text: "AI outfit ideas from your closet + outfit planning by occasion" },
+      { text: "Unlimited saved looks" },
+      { text: "Shopping catalog and product importing" },
     ],
-    suggested: true,
+    bestValue: true,
   },
   {
+    key: "pro",
     name: "Pro",
+    line: "A more personal wardrobe experience",
     price: "$24.99",
-    blurb: "For trying on the most, live.",
+    purpose: "The most try-ons and live sessions, with personal styling tools on the way.",
+    photos: 100,
+    lives: 30,
     features: [
-      "100 photo try-ons per month",
-      "30 live try-on sessions per month",
-      "Everything included in Plus",
-      "Access to more advanced outfit planning and shopping features as they become available",
+      { text: "Everything in Plus" },
+      { text: "Style Profile", soon: "Will let you save your colors, fits and favorite styles once, so outfit ideas use them." },
+      { text: "Wardrobe Insights", soon: "Will show pieces you never wear, your go-to colors, and what your closet is missing." },
     ],
   },
+];
+
+/** The comparison table. "soon" cells are features that aren't built yet. */
+const COMPARE: { label: string; cells: [string, string, string] }[] = [
+  { label: "Photo try-ons / month", cells: ["4", "60", "100"] },
+  { label: "Live try-on sessions / month", cells: ["1", "15", "30"] },
+  { label: "Personal digital closet", cells: ["yes", "yes", "yes"] },
+  { label: "Browse the shopping catalog", cells: ["yes", "yes", "yes"] },
+  { label: "Product importing", cells: ["no", "yes", "yes"] },
+  { label: "AI outfit ideas from your closet", cells: ["yes", "yes", "yes"] },
+  { label: "Outfit planning by occasion", cells: ["no", "yes", "yes"] },
+  { label: "Saved looks", cells: ["Up to 5", "Unlimited", "Unlimited"] },
+  { label: "Style Profile", cells: ["no", "no", "soon"] },
+  { label: "Wardrobe Insights", cells: ["no", "no", "soon"] },
 ];
 
 const PACKS: { title: string; note: string; options: { amount: string; price: string }[] }[] = [
@@ -67,123 +107,224 @@ const PACKS: { title: string; note: string; options: { amount: string; price: st
 ];
 
 const COMING_SOON = "Paid plans and extra try-on credits are coming soon.";
+const SOON_TAG = "ml-2 inline-block rounded-full border px-2 py-[1px] align-middle text-[9px] font-semibold uppercase tracking-[1.2px]";
 
-function Check({ off = false }: { off?: boolean }) {
-  return (
-    <svg viewBox="0 0 16 16" className={`mt-[3px] h-4 w-4 shrink-0 ${off ? "text-[#a3abb2]" : "text-[#121821]"}`} fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" aria-hidden>
-      {off ? <path d="M4.5 8h7" /> : <path d="M3.5 8.5l3 3 6-7" />}
-    </svg>
-  );
+function Cell({ value }: { value: string }) {
+  if (value === "yes") return <span aria-label="Included">●</span>;
+  if (value === "no") return <span aria-label="Not included" className="text-[#c3c9ce]">—</span>;
+  if (value === "soon")
+    return (
+      <span className="text-[11px] font-semibold uppercase tracking-[1px] text-[#8a5a14]">
+        <span className="sm:hidden">Soon</span>
+        <span className="hidden sm:inline">Coming soon</span>
+      </span>
+    );
+  return <span>{value}</span>;
 }
 
-/** compact: tighter cards for the Upgrade window, so the next plan peeks into view and it's clear there's more. */
-export function Pricing({ compact = false }: { compact?: boolean }) {
+/**
+ * compact: the Upgrade window version (tighter, no comparison table, with a link to the full page). onCompare runs
+ * when that link is followed, so the window can close.
+ */
+export function Pricing({ compact = false, onCompare }: { compact?: boolean; onCompare?: () => void }) {
   const { user } = useAuth();
-  // Which card's "Coming soon" was tapped; the note shows under it (a plain note, nothing is bought).
+  // Which "Coming soon" was tapped; the note shows under it (a plain note, nothing is bought).
   const [tapped, setTapped] = useState<string | null>(null);
-  const note = (id: string) =>
+  const note = (id: string, dark = false) =>
     tapped === id && (
-      <p role="status" className="mt-3 text-[12.5px] leading-snug text-[#4f5b66]">
+      <p role="status" className={`mt-3 text-[12px] leading-snug ${dark ? "text-[#c9d2da]" : "text-[#4f5b66]"}`}>
         {COMING_SOON}
       </p>
     );
+  const pad = compact ? "p-5 sm:p-6" : "p-6 sm:p-8";
 
   return (
     <>
-      <p className={`max-w-2xl rounded-[14px] bg-[#eef1f2] text-[#3b4850] ${compact ? "mb-5 px-3 py-2 text-[12px] leading-snug" : "mb-6 px-4 py-3 text-[13px] leading-snug"}`}>
-        Pricing shown is for preview purposes only. Paid plans and extra credits are not available for purchase yet.
+      <p className={`max-w-2xl text-[#3b4850] ${compact ? "mb-5 text-[12px]" : "mb-8 text-[13px]"} leading-snug`}>
+        <span className="mr-2 inline-block rounded-full bg-[#121821] px-2 py-[1px] align-middle text-[9px] font-semibold uppercase tracking-[1.4px] text-white">
+          Preview
+        </span>
+        Paid plans, credits and plan limits aren&apos;t active yet, so nothing can be bought.
       </p>
 
-      {/* Plans: side by side on wide screens, stacked on phones. Plus is the suggested one. */}
-      <section aria-label="Plans" className={`grid md:grid-cols-3 md:items-stretch ${compact ? "gap-4" : "gap-5"}`}>
-        {PLANS.map((plan) => (
-          <article
-            key={plan.name}
-            className={`${surface} relative flex flex-col ${compact ? "p-5" : "p-6 sm:p-7"} ${plan.suggested ? "order-first ring-[1.5px] ring-[#121821] md:order-none" : ""}`}
-          >
-            {plan.suggested && (
-              <span className="absolute -top-3 left-6 rounded-full bg-[#121821] px-3 py-1 text-[10.5px] font-semibold uppercase tracking-[1.6px] text-white">
-                Suggested
-              </span>
-            )}
-            <p className={eyebrow}>{plan.name}</p>
-            <p className={`flex items-baseline gap-1.5 text-[#121821] ${compact ? "mt-2" : "mt-3"}`}>
-              <span className={`font-display leading-none tracking-[-1px] ${compact ? "text-[34px]" : "text-[48px]"}`}>{plan.price}</span>
-              <span className="text-[13px] text-[#5d6874]">/ month</span>
-            </p>
-            <p className={`text-[#4f5b66] ${compact ? "mt-1 text-[12px]" : "mt-2 text-[13px]"}`}>{plan.blurb}</p>
-            <ul
-              className={`flex flex-1 flex-col border-t border-black/[0.07] leading-snug text-[#26313a] ${
-                compact ? "mt-4 gap-1.5 pt-4 text-[12.5px]" : "mt-6 gap-2.5 pt-6 text-[13.5px]"
+      {/* The plans: one sheet, columns divided by hairlines; Plus is the inked column. */}
+      <section aria-label="Plans" className="grid overflow-hidden rounded-[6px] bg-white shadow-[0_1px_0_rgba(18,24,33,0.03),0_14px_36px_rgba(18,30,45,0.06)] md:grid-cols-3">
+        {PLANS.map((plan) => {
+          const dark = Boolean(plan.bestValue);
+          const muted = dark ? "text-[#aeb8c2]" : "text-[#5d6874]";
+          return (
+            <article
+              key={plan.key}
+              className={`relative flex flex-col ${pad} ${
+                dark ? "order-first bg-[#121821] text-white md:order-none" : `text-[#121821] ${plan.key === "pro" ? "border-t border-black/[0.07] md:border-l md:border-t-0" : "border-t border-black/[0.07] md:border-t-0"}`
               }`}
             >
-              {plan.features.map((f) => (
-                <li key={f} className="flex gap-2.5">
-                  <Check />
-                  {f}
-                </li>
-              ))}
-              {plan.missing?.map((f) => (
-                <li key={f} className="flex gap-2.5 text-[#6b757e]">
-                  <Check off />
-                  {f}
-                </li>
-              ))}
-            </ul>
-            <div className={compact ? "mt-4 [&>*]:min-h-[40px]" : "mt-7"}>
-              {plan.name === "Free" ? (
-                user ? (
-                  <span className={`${btnSecondary} w-full cursor-default`} aria-disabled>
-                    Current plan
-                  </span>
-                ) : (
-                  <Link href="/login" className={`${btnSecondary} w-full`}>
-                    Start free
-                  </Link>
-                )
-              ) : (
-                <button onClick={() => setTapped(plan.name)} className={`${plan.suggested ? btnPrimary : btnSecondary} w-full`}>
-                  Coming soon
-                </button>
-              )}
-              {note(plan.name)}
-            </div>
-          </article>
-        ))}
-      </section>
+              <div className="flex items-center justify-between gap-3">
+                <p className={`text-[11px] font-semibold uppercase tracking-[2.2px] ${muted}`}>{plan.name}</p>
+                {plan.bestValue && (
+                  <span className="rounded-full bg-white px-2.5 py-[3px] text-[9.5px] font-semibold uppercase tracking-[1.6px] text-[#121821]">Best value</span>
+                )}
+              </div>
+              <h3 className={`mt-2 font-display italic leading-[1.05] ${compact ? "text-[22px]" : "text-[26px] sm:text-[28px]"} ${dark ? "text-white" : "text-[#121821]"}`}>
+                {plan.line}
+              </h3>
+              <p className={`flex items-baseline gap-1.5 ${compact ? "mt-3" : "mt-5"}`}>
+                <span className={`font-display leading-none tracking-[-1px] ${compact ? "text-[34px]" : "text-[46px]"} ${dark ? "text-white" : "text-[#121821]"}`}>
+                  {plan.price}
+                </span>
+                <span className={`text-[12.5px] ${muted}`}>/ month</span>
+              </p>
 
-      {/* Extra credits: live and photo try-ons kept apart. */}
-      <section aria-labelledby="more-try-ons" className={compact ? "mt-10" : "mt-16"}>
-        <h2
-          id="more-try-ons"
-          className={`font-display leading-tight tracking-[-0.6px] text-[#121821] ${compact ? "text-[26px] sm:text-[30px]" : "text-[32px] sm:text-[38px]"}`}
-        >
-          Need more try-ons?
-        </h2>
-        <p className="mt-2 max-w-xl text-[14px] text-[#4f5b66]">
-          Optional packs to top up any plan. These are proposed prices for future purchases. Credits can&apos;t be bought yet.
-        </p>
-        <div className="mt-6 grid gap-5 md:grid-cols-2">
-          {PACKS.map((pack) => (
-            <article key={pack.title} className={`${surface} ${compact ? "p-5" : "p-6 sm:p-7"}`}>
-              <h3 className="text-[15px] font-semibold text-[#121821]">{pack.title}</h3>
-              <p className="mt-1 text-[13px] text-[#5d6874]">{pack.note}</p>
-              <ul className="mt-5 divide-y divide-black/[0.07] border-y border-black/[0.07]">
-                {pack.options.map((o) => (
-                  <li key={o.amount} className={`flex items-center gap-4 ${compact ? "py-3" : "py-4"}`}>
-                    <span className="min-w-0 flex-1 text-[14px] text-[#26313a]">{o.amount}</span>
-                    <span className="font-display text-[24px] leading-none text-[#121821]">{o.price}</span>
-                    <button
-                      onClick={() => setTapped(pack.title)}
-                      className="rounded-full px-3 py-2 text-[12px] font-medium text-[#121821] shadow-[inset_0_0_0_1px_rgba(18,24,33,0.14)] hover:shadow-[inset_0_0_0_1px_rgba(18,24,33,0.3)]"
-                    >
-                      Coming soon
-                    </button>
+              {/* Monthly limits, side by side */}
+              <dl className={`grid grid-cols-2 border-y ${dark ? "border-white/15" : "border-black/[0.07]"} ${compact ? "mt-4 py-3" : "mt-6 py-4"}`}>
+                {[
+                  [plan.photos, "photo try-ons"],
+                  [plan.lives, plan.lives === 1 ? "live session" : "live sessions"],
+                ].map(([n, label], i) => (
+                  <div key={String(label)} className={i ? `border-l pl-4 ${dark ? "border-white/15" : "border-black/[0.07]"}` : ""}>
+                    <dd className={`font-display leading-none ${compact ? "text-[26px]" : "text-[32px]"} ${dark ? "text-white" : "text-[#121821]"}`}>{n}</dd>
+                    <dt className={`mt-1 text-[11px] ${muted}`}>{label} / month</dt>
+                  </div>
+                ))}
+              </dl>
+
+              <p className={`${compact ? "mt-3 text-[12.5px]" : "mt-4 text-[13.5px]"} leading-snug ${dark ? "text-[#dfe5ea]" : "text-[#3b4850]"}`}>{plan.purpose}</p>
+
+              <ul className={`flex flex-1 flex-col ${compact ? "mt-3 gap-1.5 text-[12.5px]" : "mt-5 gap-2.5 text-[13.5px]"} leading-snug`}>
+                {plan.features.map((f) => (
+                  <li key={f.text} className={f.soon ? (dark ? "text-[#8f9aa5]" : "text-[#7b858e]") : dark ? "text-white" : "text-[#26313a]"}>
+                    <span aria-hidden className="mr-2 inline-block h-px w-3 bg-current align-middle opacity-60" />
+                    {f.text}
+                    {f.soon && (
+                      <>
+                        <span className={`${SOON_TAG} ${dark ? "border-white/30 text-[#c9d2da]" : "border-[#d9c7ab] text-[#8a5a14]"}`}>Coming soon</span>
+                        {!compact && <span className="mt-0.5 block pl-5 text-[12px]">{f.soon}</span>}
+                      </>
+                    )}
                   </li>
                 ))}
               </ul>
-              {note(pack.title)}
+
+              <div className={compact ? "mt-5" : "mt-8"}>
+                {plan.key === "free" ? (
+                  user ? (
+                    <span className="flex min-h-[44px] w-full cursor-default items-center justify-center rounded-full text-[13px] font-medium text-[#121821] shadow-[inset_0_0_0_1px_rgba(18,24,33,0.14)]" aria-disabled>
+                      Current plan
+                    </span>
+                  ) : (
+                    <Link href="/login" className="flex min-h-[44px] w-full items-center justify-center rounded-full text-[13px] font-medium text-[#121821] shadow-[inset_0_0_0_1px_rgba(18,24,33,0.14)] hover:shadow-[inset_0_0_0_1px_rgba(18,24,33,0.3)]">
+                      Start free
+                    </Link>
+                  )
+                ) : (
+                  <button
+                    onClick={() => setTapped(plan.key)}
+                    className={`flex min-h-[44px] w-full items-center justify-center rounded-full text-[13px] font-medium ${
+                      dark ? "bg-white text-[#121821] hover:bg-[#eef1f2]" : "text-[#121821] shadow-[inset_0_0_0_1px_rgba(18,24,33,0.14)] hover:shadow-[inset_0_0_0_1px_rgba(18,24,33,0.3)]"
+                    }`}
+                  >
+                    Coming soon
+                  </button>
+                )}
+                {note(plan.key, dark)}
+              </div>
             </article>
+          );
+        })}
+      </section>
+
+      {compact ? (
+        <Link href="/pricing" onClick={onCompare} className="mt-4 inline-block text-[12.5px] font-semibold text-[#121821] underline-offset-4 hover:underline">
+          Compare all features →
+        </Link>
+      ) : (
+        <>
+          {/* Photo vs live, in one line each */}
+          <section aria-label="Two kinds of try-on" className="mt-14 grid gap-6 border-t border-black/10 pt-8 sm:grid-cols-2">
+            {[
+              ["Photo try-on", "Your outfit layered onto your full-body photo, as a picture you can save."],
+              ["Live try-on session", "Up to 20 seconds of you on camera, wearing the outfit as you move."],
+            ].map(([title, text]) => (
+              <div key={title}>
+                <p className={eyebrow}>{title}</p>
+                <p className="mt-2 max-w-sm font-display text-[22px] leading-snug text-[#121821]">{text}</p>
+              </div>
+            ))}
+          </section>
+
+          {/* Feature comparison */}
+          <section aria-labelledby="compare" className="mt-14">
+            <h2 id="compare" className="font-display text-[32px] leading-tight tracking-[-0.6px] text-[#121821] sm:text-[38px]">
+              Compare plans
+            </h2>
+            <div className="mt-6 overflow-hidden rounded-[6px] bg-white shadow-[0_1px_0_rgba(18,24,33,0.03),0_14px_36px_rgba(18,30,45,0.06)]">
+              <table className="w-full border-collapse text-[12.5px] text-[#26313a] sm:text-[13.5px]">
+                <thead>
+                  <tr className="border-b border-black/[0.07]">
+                    <th className="px-3 py-3 text-left font-normal sm:px-6" />
+                    {PLANS.map((p) => (
+                      <th key={p.key} className={`px-2 py-3 text-center text-[11px] font-semibold uppercase tracking-[1.6px] sm:px-4 ${p.bestValue ? "bg-[#f1f3f4] text-[#121821]" : "text-[#5d6874]"}`}>
+                        {p.name}
+                      </th>
+                    ))}
+                  </tr>
+                </thead>
+                <tbody>
+                  {COMPARE.map((row) => (
+                    <tr key={row.label} className="border-b border-black/[0.05] last:border-0">
+                      <th scope="row" className="px-3 py-3 text-left font-normal sm:px-6">
+                        {row.label}
+                      </th>
+                      {row.cells.map((c, i) => (
+                        <td key={i} className={`px-2 py-3 text-center tabular-nums sm:px-4 ${PLANS[i].bestValue ? "bg-[#f1f3f4]" : ""}`}>
+                          <Cell value={c} />
+                        </td>
+                      ))}
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+            <p className="mt-3 text-[12px] text-[#5d6874]">Coming soon features aren&apos;t available yet. Limits are part of the preview and aren&apos;t applied today.</p>
+          </section>
+        </>
+      )}
+
+      {/* Extra credits: live and photo kept apart */}
+      <section aria-labelledby="more-try-ons" className={compact ? "mt-8" : "mt-14"}>
+        <h2
+          id="more-try-ons"
+          className={`font-display leading-tight tracking-[-0.6px] text-[#121821] ${compact ? "text-[24px] sm:text-[28px]" : "text-[32px] sm:text-[38px]"}`}
+        >
+          Need more try-ons?
+        </h2>
+        <p className={`mt-1 max-w-xl text-[#4f5b66] ${compact ? "text-[12.5px]" : "text-[14px]"}`}>
+          Optional packs to top up any plan. Proposed prices; credits can&apos;t be bought yet.
+        </p>
+        <div className={`grid gap-x-10 sm:grid-cols-2 ${compact ? "mt-3" : "mt-6"}`}>
+          {PACKS.map((pack) => (
+            <div key={pack.title} className="border-t border-black/10 pt-4">
+              <p className="text-[13px] font-semibold text-[#121821]">{pack.title}</p>
+              <p className="text-[12px] text-[#5d6874]">{pack.note}</p>
+              <ul className="mt-2">
+                {pack.options.map((o) => (
+                  <Fragment key={o.amount}>
+                    <li className={`flex items-center gap-3 ${compact ? "py-2" : "py-3"}`}>
+                      <span className="text-[13.5px] text-[#26313a]">{o.amount}</span>
+                      <span aria-hidden className="mb-1 flex-1 self-end border-b border-dotted border-black/20" />
+                      <span className="font-display text-[22px] leading-none text-[#121821]">{o.price}</span>
+                      <button
+                        onClick={() => setTapped(pack.title)}
+                        className="rounded-full px-3 py-1.5 text-[11.5px] font-medium text-[#121821] shadow-[inset_0_0_0_1px_rgba(18,24,33,0.14)] hover:shadow-[inset_0_0_0_1px_rgba(18,24,33,0.3)]"
+                      >
+                        Coming soon
+                      </button>
+                    </li>
+                  </Fragment>
+                ))}
+              </ul>
+              {note(pack.title)}
+            </div>
           ))}
         </div>
       </section>
@@ -193,7 +334,7 @@ export function Pricing({ compact = false }: { compact?: boolean }) {
 
 /**
  * The plans in a sheet over the current page (opened from "Upgrade" in the top bar), so people see pricing without
- * leaving what they're doing. Same content as the Pricing page; nothing can be bought yet.
+ * leaving what they're doing. Same content as the Pricing page, more compact; nothing can be bought yet.
  */
 export function PricingSheet({ onClose }: { onClose: () => void }) {
   useEffect(() => {
@@ -222,7 +363,7 @@ export function PricingSheet({ onClose }: { onClose: () => void }) {
         </button>
         <p className={eyebrow}>Plans</p>
         <h2 className="mb-4 mt-1.5 font-display text-[30px] leading-none tracking-[-0.6px] text-[#121821] sm:text-[36px]">Choose your mirror</h2>
-        <Pricing compact />
+        <Pricing compact onCompare={onClose} />
       </div>
     </div>,
     document.body
