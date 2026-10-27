@@ -36,7 +36,7 @@ function Wordmark() {
       <span className="font-display text-[34px] tracking-[-1px] text-[#121821] sm:text-[36px]">
         Vir<em className="font-normal">m</em>
       </span>
-      <span className="hidden text-[10px] font-semibold uppercase tracking-[2.2px] text-[#4f5b66] lg:inline">
+      <span className="hidden text-[10px] font-semibold uppercase tracking-[2.2px] text-[#4f5b66] 2xl:inline">
         Your virtual mirror
       </span>
     </Link>
@@ -67,11 +67,11 @@ export function Nav() {
 
   return (
     <header className="site-nav sticky top-0 z-30 border-b border-black/[0.06] backdrop-blur-xl">
-      <div className="mx-auto flex h-[68px] w-full max-w-[1440px] items-center gap-6 px-5 sm:px-8 md:h-[76px]">
+      <div className="mx-auto flex h-[68px] w-full max-w-[1440px] items-center gap-3 px-5 lg:gap-6 sm:px-8 md:h-[76px]">
         <Wordmark />
 
         {user && (
-          <nav aria-label="Main" className="hidden flex-1 items-center justify-center gap-1 md:flex">
+          <nav aria-label="Main" className="hidden min-w-0 flex-1 items-center justify-center gap-0.5 md:flex lg:gap-1">
             {LINKS.map(({ section, href, label, Icon }) => {
               const active = current === section;
               return (
@@ -79,11 +79,11 @@ export function Nav() {
                   key={section}
                   href={href}
                   aria-current={active ? "page" : undefined}
-                  className={`relative flex items-center gap-2 rounded-full px-3 py-2 text-[13px] font-medium transition-colors lg:px-3.5 ${
+                  className={`relative flex shrink-0 items-center gap-2 whitespace-nowrap rounded-full px-2 py-2 text-[12.5px] lg:px-3.5 lg:text-[13px] font-medium transition-colors ${
                     active ? "bg-white text-[#121821] shadow-[0_1px_2px_rgba(18,24,33,0.08)]" : "text-[#5b6875] hover:text-[#121821]"
                   }`}
                 >
-                  <Icon className={`h-[17px] w-[17px] ${active ? "text-[#121821]" : "text-[#5d6874]"}`} />
+                  <Icon className={`hidden h-[17px] w-[17px] xl:block ${active ? "text-[#121821]" : "text-[#5d6874]"}`} />
                   {label}
                 </Link>
               );
