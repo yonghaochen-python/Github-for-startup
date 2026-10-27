@@ -76,7 +76,8 @@ function Check({ off = false }: { off?: boolean }) {
   );
 }
 
-export function Pricing() {
+/** compact: tighter cards for the Upgrade window, so the next plan peeks into view and it's clear there's more. */
+export function Pricing({ compact = false }: { compact?: boolean }) {
   const { user } = useAuth();
   // Which card's "Coming soon" was tapped; the note shows under it (a plain note, nothing is bought).
   const [tapped, setTapped] = useState<string | null>(null);
@@ -89,16 +90,16 @@ export function Pricing() {
 
   return (
     <>
-      <p className="mb-6 max-w-2xl rounded-[14px] bg-[#eef1f2] px-4 py-3 text-[13px] leading-snug text-[#3b4850]">
+      <p className={`max-w-2xl rounded-[14px] bg-[#eef1f2] text-[#3b4850] ${compact ? "mb-5 px-3 py-2 text-[12px] leading-snug" : "mb-6 px-4 py-3 text-[13px] leading-snug"}`}>
         Pricing shown is for preview purposes only. Paid plans and extra credits are not available for purchase yet.
       </p>
 
       {/* Plans: side by side on wide screens, stacked on phones. Plus is the suggested one. */}
-      <section aria-label="Plans" className="grid gap-5 md:grid-cols-3 md:items-stretch">
+      <section aria-label="Plans" className={`grid md:grid-cols-3 md:items-stretch ${compact ? "gap-4" : "gap-5"}`}>
         {PLANS.map((plan) => (
           <article
             key={plan.name}
-            className={`${surface} relative flex flex-col p-6 sm:p-7 ${plan.suggested ? "order-first ring-[1.5px] ring-[#121821] md:order-none" : ""}`}
+            className={`${surface} relative flex flex-col ${compact ? "p-5" : "p-6 sm:p-7"} ${plan.suggested ? "order-first ring-[1.5px] ring-[#121821] md:order-none" : ""}`}
           >
             {plan.suggested && (
               <span className="absolute -top-3 left-6 rounded-full bg-[#121821] px-3 py-1 text-[10.5px] font-semibold uppercase tracking-[1.6px] text-white">
@@ -106,12 +107,16 @@ export function Pricing() {
               </span>
             )}
             <p className={eyebrow}>{plan.name}</p>
-            <p className="mt-3 flex items-baseline gap-1.5 text-[#121821]">
-              <span className="font-display text-[48px] leading-none tracking-[-1px]">{plan.price}</span>
+            <p className={`flex items-baseline gap-1.5 text-[#121821] ${compact ? "mt-2" : "mt-3"}`}>
+              <span className={`font-display leading-none tracking-[-1px] ${compact ? "text-[34px]" : "text-[48px]"}`}>{plan.price}</span>
               <span className="text-[13px] text-[#5d6874]">/ month</span>
             </p>
-            <p className="mt-2 text-[13px] text-[#4f5b66]">{plan.blurb}</p>
-            <ul className="mt-6 flex flex-1 flex-col gap-2.5 border-t border-black/[0.07] pt-6 text-[13.5px] leading-snug text-[#26313a]">
+            <p className={`text-[#4f5b66] ${compact ? "mt-1 text-[12px]" : "mt-2 text-[13px]"}`}>{plan.blurb}</p>
+            <ul
+              className={`flex flex-1 flex-col border-t border-black/[0.07] leading-snug text-[#26313a] ${
+                compact ? "mt-4 gap-1.5 pt-4 text-[12.5px]" : "mt-6 gap-2.5 pt-6 text-[13.5px]"
+              }`}
+            >
               {plan.features.map((f) => (
                 <li key={f} className="flex gap-2.5">
                   <Check />
@@ -125,7 +130,7 @@ export function Pricing() {
                 </li>
               ))}
             </ul>
-            <div className="mt-7">
+            <div className={compact ? "mt-4 [&>*]:min-h-[40px]" : "mt-7"}>
               {plan.name === "Free" ? (
                 user ? (
                   <span className={`${btnSecondary} w-full cursor-default`} aria-disabled>
@@ -148,8 +153,11 @@ export function Pricing() {
       </section>
 
       {/* Extra credits: live and photo try-ons kept apart. */}
-      <section aria-labelledby="more-try-ons" className="mt-16">
-        <h2 id="more-try-ons" className="font-display text-[32px] leading-tight tracking-[-0.6px] text-[#121821] sm:text-[38px]">
+      <section aria-labelledby="more-try-ons" className={compact ? "mt-10" : "mt-16"}>
+        <h2
+          id="more-try-ons"
+          className={`font-display leading-tight tracking-[-0.6px] text-[#121821] ${compact ? "text-[26px] sm:text-[30px]" : "text-[32px] sm:text-[38px]"}`}
+        >
           Need more try-ons?
         </h2>
         <p className="mt-2 max-w-xl text-[14px] text-[#4f5b66]">
@@ -157,12 +165,12 @@ export function Pricing() {
         </p>
         <div className="mt-6 grid gap-5 md:grid-cols-2">
           {PACKS.map((pack) => (
-            <article key={pack.title} className={`${surface} p-6 sm:p-7`}>
+            <article key={pack.title} className={`${surface} ${compact ? "p-5" : "p-6 sm:p-7"}`}>
               <h3 className="text-[15px] font-semibold text-[#121821]">{pack.title}</h3>
               <p className="mt-1 text-[13px] text-[#5d6874]">{pack.note}</p>
               <ul className="mt-5 divide-y divide-black/[0.07] border-y border-black/[0.07]">
                 {pack.options.map((o) => (
-                  <li key={o.amount} className="flex items-center gap-4 py-4">
+                  <li key={o.amount} className={`flex items-center gap-4 ${compact ? "py-3" : "py-4"}`}>
                     <span className="min-w-0 flex-1 text-[14px] text-[#26313a]">{o.amount}</span>
                     <span className="font-display text-[24px] leading-none text-[#121821]">{o.price}</span>
                     <button
@@ -207,14 +215,14 @@ export function PricingSheet({ onClose }: { onClose: () => void }) {
         aria-modal="true"
         aria-label="Plans"
         onClick={(e) => e.stopPropagation()}
-        className="relative max-h-[92vh] w-full max-w-[1080px] overflow-y-auto rounded-t-[22px] bg-[#f4f2ee] px-5 pb-8 pt-7 shadow-[0_24px_60px_rgba(10,16,24,0.3)] sm:rounded-[22px] sm:px-8"
+        className="relative max-h-[92vh] w-full max-w-[1080px] overflow-y-auto rounded-t-[22px] bg-[#f4f2ee] px-5 pb-8 pt-6 shadow-[0_24px_60px_rgba(10,16,24,0.3)] sm:rounded-[22px] sm:px-8"
       >
         <button onClick={onClose} aria-label="Close" className="absolute right-4 top-4 flex h-9 w-9 items-center justify-center rounded-full bg-white text-[18px] text-[#29343a] shadow-sm hover:text-[#121821]">
           ×
         </button>
         <p className={eyebrow}>Plans</p>
-        <h2 className="mb-5 mt-2 font-display text-[36px] leading-none tracking-[-0.8px] text-[#121821] sm:text-[44px]">Choose your mirror</h2>
-        <Pricing />
+        <h2 className="mb-4 mt-1.5 font-display text-[30px] leading-none tracking-[-0.6px] text-[#121821] sm:text-[36px]">Choose your mirror</h2>
+        <Pricing compact />
       </div>
     </div>,
     document.body
