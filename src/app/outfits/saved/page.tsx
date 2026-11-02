@@ -10,6 +10,7 @@ import { EmptyState, ErrorNote, PageHeader, PageShell, btnPrimary, btnSecondary 
 import { Tips, type Tip } from "@/components/Tips";
 import { OpenPicks, ShareLooksButton } from "@/components/ShareLooks";
 import { LiveVideos } from "@/components/LiveVideos";
+import { SavedStylist } from "@/components/studio/SavedStylist";
 
 const SAVED_TIPS: Tip[] = [{ target: '[aria-label="Saved. Tap to unsave"]', text: "Tap the red bookmark to unsave a look." }];
 
@@ -65,6 +66,7 @@ export default function SavedLooksPage() {
 
         <OpenPicks refreshKey={picksVersion} />
         <LiveVideos />
+        <SavedStylist />
 
         {loading ? (
           <InlineLoading label="Loading your saved looks…" />
