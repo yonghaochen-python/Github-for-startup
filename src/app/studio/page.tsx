@@ -11,8 +11,8 @@ import { SavedPhotoImage, SavedPhotoSetup, uploadSavedPhoto } from "@/components
 import { ShareArrowButton, ShareTray } from "@/components/ShareLooks";
 import { SaveToggle } from "@/components/SaveToggle";
 import { useToast } from "@/components/Toast";
-import { MirrorIcon, PlusIcon, SearchIcon } from "@/components/Icons";
-import { EmptyState, ErrorNote, PageShell, btnPrimary, mirrorFrame } from "@/components/ui";
+import { MirrorIcon, SearchIcon } from "@/components/Icons";
+import { ErrorNote, PageShell, btnPrimary, mirrorFrame } from "@/components/ui";
 import { TRY_ON_CAVEAT, requestShopTryOn, requestTryOn, type TryOnResult } from "@/lib/tryOnClient";
 import { LiveTryOn, type ShopPick } from "@/components/LiveTryOn";
 import { CreditsLine, refreshCredits } from "@/components/Credits";
@@ -421,24 +421,6 @@ export default function StudioPage() {
       : !changed && look.tryOn && look.outfitId
         ? `/api/outfits/${look.outfitId}/try-on/image?v=${look.tryOn}`
         : null;
-
-  if (closet && closet.length === 0 && shopPicks.length === 0) {
-    return (
-      <main className="flex-1 pb-16">
-        <PageShell className="pt-10">
-          <EmptyState
-            title="Add a few pieces first"
-            body="Your closet is empty. Add clothes to start styling."
-            action={
-              <Link href="/closet?add=1" className={btnPrimary}>
-                <PlusIcon className="h-4 w-4" /> Add Clothes
-              </Link>
-            }
-          />
-        </PageShell>
-      </main>
-    );
-  }
 
   return (
     <main className="flex-1 pb-16">
