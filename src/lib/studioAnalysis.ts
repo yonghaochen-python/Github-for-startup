@@ -3,6 +3,7 @@ import { isDevMode } from "@/lib/auth";
 import { SEASONS, isHex, type ColorExtra, type NotedSwatch, type Season } from "@/lib/studioColor";
 import type { StudioReportData } from "@/lib/studioModules";
 import type { MakeupExtra } from "@/lib/studioMakeup";
+import { HAIR_DIMENSIONS, HAIR_FAMILIES, type HairDimension, type HairExtra, type HairRating } from "@/lib/studioHair";
 import { JEWELRY, type Jewelry, type JewelryRating, type StyleExtra } from "@/lib/studioStyle";
 import { LOOK_PROPERTIES, LOOK_RULES, cleanLook, inventoryOf, practiceLook, type StyledLook, type StyledPiece } from "@/lib/closetLook";
 import type { ClothingItem } from "@/generated/prisma/client";
@@ -687,4 +688,176 @@ export async function analyzeMakeup(portrait: { bytes: Uint8Array; mediaType: st
   if (!answer.photoUsable) throw new PortraitUnusableError(answer.photoIssue || "Your face isn't clear enough in this portrait. Try a front-facing photo in daylight.");
   const { input_tokens, output_tokens } = message.usage;
   return { data: makeupReport(answer), practice: false, inputTokens: input_tokens, outputTokens: output_tokens, costMicros: costMicros(input_tokens, output_tokens) };
+}
+
+/* ---------- Hair & Color Guide ---------- */
+
+const HAIR_OPTIONS = HAIR_DIMENSIONS.flatMap((d) => d.options.map((o) => `${d.id}: ${o}`));
+
+const HAIR_SCHEMA = {
+  type: "object",
+  properties: {
+    photoUsable: { type: "boolean", description: "False if the face and hair aren't clearly visible" },
+    photoIssue: { type: "string", description: "When not usable: what to change, kindly (else empty)" },
+    headline: { type: "string", description: "A short editorial headline for their best hair direction, 3-6 words" },
+    summary: { type: "string", description: "Two or three sentences: the recommended direction and how it frames them" },
+    keywords: { type: "array", items: { type: "string" }, description: "4 to 6 hair aesthetic keywords" },
+    styles: {
+      type: "array",
+      description: `Every one of these options, each rated once: ${HAIR_OPTIONS.join("; ")}`,
+      items: {
+        type: "object",
+        properties: {
+          dimension: { type: "string", enum: HAIR_DIMENSIONS.map((d) => d.id) },
+          option: { type: "string", description: "The option's name exactly as listed" },
+          rating: { type: "string", enum: ["recommended", "alternative", "less"] },
+          effect: { type: "string", description: "One sentence: how it changes the overall impression, balance and framing" },
+        },
+        required: ["dimension", "option", "rating", "effect"],
+        additionalProperties: false,
+      },
+    },
+    colors: {
+      type: "array",
+      description: `Every one of these hair color families (${HAIR_FAMILIES.join(", ")}), plus up to 3 other suitable fashion colors, each with a representative shade`,
+      items: {
+        type: "object",
+        properties: {
+          family: { type: "string" },
+          name: { type: "string", description: "A specific shade name" },
+          hex: { type: "string", description: "#RRGGBB of the hair color as it looks on hair (mid-tone)" },
+          rating: { type: "string", enum: ["recommended", "alternative", "less"] },
+          note: { type: "string", description: "One sentence on how it works with their coloring" },
+        },
+        required: ["family", "name", "hex", "rating", "note"],
+        additionalProperties: false,
+      },
+    },
+    finalStyle: { type: "string", description: "The single most suitable hairstyle, described in one line" },
+    finalColor: { type: "string", description: "The single most suitable hair color, in one line" },
+    finalWhy: { type: "string", description: "Two sentences on why together they suit them" },
+    confidence: { type: "string", enum: ["high", "medium", "low"] },
+    limits: { type: "string", description: "What may have affected the reading (hair tied back, hats, lighting, dyed hair), or empty" },
+  },
+  required: ["photoUsable", "photoIssue", "headline", "summary", "keywords", "styles", "colors", "finalStyle", "finalColor", "finalWhy", "confidence", "limits"],
+  additionalProperties: false,
+};
+
+type HairAnswer = {
+  photoUsable: boolean;
+  photoIssue: string;
+  headline: string;
+  summary: string;
+  keywords: string[];
+  styles: HairExtra["styles"];
+  colors: HairExtra["colors"];
+  finalStyle: string;
+  finalColor: string;
+  finalWhy: string;
+  confidence: "high" | "medium" | "low";
+  limits: string;
+};
+
+function hairReport(a: HairAnswer): StudioReportData {
+  // Every listed option once, in the listed order; anything else is dropped.
+  const styles = HAIR_DIMENSIONS.flatMap((d) =>
+    d.options.flatMap((option) => {
+      const found = a.styles.find((s) => s.dimension === d.id && s.option.toLowerCase() === option.toLowerCase());
+      return found ? [{ dimension: d.id, option, rating: found.rating, effect: short(found.effect) }] : [];
+    })
+  );
+  const colors = a.colors
+    .filter((c) => isHex(c.hex))
+    .slice(0, 8)
+    .map((c) => ({ family: c.family.slice(0, 40), name: c.name.slice(0, 40), hex: c.hex.toUpperCase(), rating: c.rating, note: short(c.note ?? "", 200) }));
+  const extra: HairExtra = { styles, colors, final: { style: short(a.finalStyle, 160), color: short(a.finalColor, 160), why: short(a.finalWhy, 500) } };
+  return {
+    headline: a.headline.slice(0, 80),
+    summary: a.summary.slice(0, 600),
+    keywords: a.keywords.slice(0, 6).map((k) => k.slice(0, 30)),
+    palette: colors.filter((c) => c.rating !== "less").slice(0, 8).map(({ name, hex }) => ({ name, hex })),
+    sections: [{ title: "Your best direction", body: extra.final.why }],
+    confidence: a.confidence,
+    limits: a.limits.slice(0, 300),
+    extra,
+  };
+}
+
+const practiceStyle = (dimension: HairDimension, option: string, rating: HairRating) => ({ dimension, option, rating, effect: "Practice text: how this changes the overall impression and framing." });
+const PRACTICE_HAIR: HairAnswer = {
+  photoUsable: true,
+  photoIssue: "",
+  headline: "Long layers with soft movement",
+  summary: "Practice report: no photo was read. With the real guide, this explains the hairstyle and color that suit you best.",
+  keywords: ["Layered", "Soft movement", "Face-framing", "Warm depth"],
+  styles: [
+    practiceStyle("length", "Short", "less"),
+    practiceStyle("length", "Medium", "alternative"),
+    practiceStyle("length", "Long", "recommended"),
+    practiceStyle("texture", "Straight", "alternative"),
+    practiceStyle("texture", "Wavy", "recommended"),
+    practiceStyle("texture", "Curly", "alternative"),
+    practiceStyle("bangs", "With bangs", "alternative"),
+    practiceStyle("bangs", "Without bangs", "recommended"),
+    practiceStyle("parting", "Center part", "alternative"),
+    practiceStyle("parting", "Side part", "recommended"),
+    practiceStyle("parting", "Deep side part", "less"),
+    practiceStyle("cut", "Layered", "recommended"),
+    practiceStyle("cut", "Blunt", "alternative"),
+  ],
+  colors: [
+    { family: "Black / natural dark brown", name: "Soft black", hex: "#2B2420", rating: "recommended", note: "Practice" },
+    { family: "Cool brown", name: "Mocha", hex: "#4A3A33", rating: "alternative", note: "Practice" },
+    { family: "Warm brown", name: "Chestnut", hex: "#6E4B33", rating: "recommended", note: "Practice" },
+    { family: "Ash brown", name: "Ash brown", hex: "#6B6157", rating: "less", note: "Practice" },
+    { family: "Burgundy", name: "Black cherry", hex: "#4A1F2A", rating: "alternative", note: "Practice" },
+    { family: "Fashion", name: "Copper", hex: "#9A4F2A", rating: "alternative", note: "Practice" },
+  ],
+  finalStyle: "Practice: long, soft layers with a side part",
+  finalColor: "Practice: chestnut brown",
+  finalWhy: "Practice text: why this combination suits you.",
+  confidence: "medium",
+  limits: "Practice data: no photo was read.",
+};
+
+/** Hair & Color Guide of the portrait. */
+export async function analyzeHair(portrait: { bytes: Uint8Array; mediaType: string }): Promise<Analysis> {
+  if (inPracticeMode()) {
+    await new Promise((resolve) => setTimeout(resolve, 1200));
+    return { data: hairReport(PRACTICE_HAIR), practice: true };
+  }
+
+  const message = await anthropic.messages.create({
+    model: OUTFIT_MODEL,
+    max_tokens: 8000,
+    output_config: { format: { type: "json_schema", schema: HAIR_SCHEMA } },
+    messages: [
+      {
+        role: "user",
+        content: [
+          {
+            type: "image",
+            source: { type: "base64", media_type: portrait.mediaType as "image/jpeg", data: Buffer.from(portrait.bytes).toString("base64") },
+          },
+          {
+            type: "text",
+            text: [
+              RESPECT,
+              "You are writing as a hairstylist and colorist. Talk about framing, balance, movement and impression; never",
+              "label a natural facial characteristic as a flaw, and never aim to make a face look smaller or slimmer.",
+              "",
+              "Write a personal hair guide from this portrait: rate every hairstyle option listed (recommended, alternative",
+              "or less preferred) with how it changes their look, rate every hair color family with a realistic shade and",
+              "accurate HEX code, and give the single best hairstyle and color.",
+            ].join("\n"),
+          },
+        ],
+      },
+    ],
+  });
+
+  const answer = JSON.parse(firstText(message)) as HairAnswer;
+  if (!answer.photoUsable) throw new PortraitUnusableError(answer.photoIssue || "Your face and hair aren't clear enough in this portrait. Try a front-facing photo with your hair down.");
+  const { input_tokens, output_tokens } = message.usage;
+  return { data: hairReport(answer), practice: false, inputTokens: input_tokens, outputTokens: output_tokens, costMicros: costMicros(input_tokens, output_tokens) };
 }

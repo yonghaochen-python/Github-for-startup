@@ -8,7 +8,7 @@ import type { StyledPiece } from "@/lib/closetLook";
 import type { NotedSwatch } from "@/lib/studioColor";
 import type { StudioModule, StudioReportData } from "@/lib/studioModules";
 import { JEWELRY_INFO, type JewelryRating, type StyleExtra } from "@/lib/studioStyle";
-import { recolorTop, type Recolored } from "@/lib/topRecolor";
+import { recolorTop, type Recolored } from "@/lib/recolor";
 
 const label = "text-[11px] font-medium uppercase tracking-[2.6px] text-[#5d6874]";
 const longDay = (iso: string) => new Date(iso).toLocaleDateString(undefined, { month: "long", day: "numeric", year: "numeric" });

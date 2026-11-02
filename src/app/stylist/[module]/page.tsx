@@ -7,6 +7,7 @@ import { ArrowLeftIcon, CheckIcon } from "@/components/Icons";
 import { CreditsLine, refreshCredits } from "@/components/Credits";
 import { ErrorNote, PageShell, btnPrimary, btnSecondary, btnText } from "@/components/ui";
 import { ColorReport } from "@/components/studio/ColorReport";
+import { HairReport } from "@/components/studio/HairReport";
 import { MakeupReport } from "@/components/studio/MakeupReport";
 import { ModuleVisual } from "@/components/studio/ModuleVisual";
 import { StyleReport } from "@/components/studio/StyleReport";
@@ -309,9 +310,8 @@ export default function StudioModulePage() {
                       <CreditsLine kind="photo" />
                     </div>
                     <p className="mt-2 text-[12px] leading-relaxed text-[#5d6874]">
-                      {mod.id !== "hair"
-                        ? "Uses one photo credit, only if your report is made. Your portrait goes to our AI provider for this analysis; the report is saved to open again for free."
-                        : "Practice mode for now: no AI is used and nothing is counted."}
+                      Uses one photo credit, only if your report is made. Your portrait goes to our AI provider for this analysis; the report is saved to open
+                      again for free.
                     </p>
                   </>
                 )}
@@ -337,6 +337,8 @@ export default function StudioModulePage() {
             </div>
             {mod.id === "color" && report.data.extra ? (
               <ColorReport module={mod} data={report.data} portrait={reportPicture} createdAt={report.createdAt} />
+            ) : mod.id === "hair" && report.data.extra ? (
+              <HairReport module={mod} data={report.data} portrait={reportPicture} createdAt={report.createdAt} />
             ) : mod.id === "makeup" && report.data.extra ? (
               <MakeupReport module={mod} data={report.data} portrait={reportPicture} createdAt={report.createdAt} />
             ) : mod.id === "style" && report.data.extra ? (

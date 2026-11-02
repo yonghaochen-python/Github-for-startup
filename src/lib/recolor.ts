@@ -3,16 +3,18 @@
 import type { ImageSegmenter } from "@mediapipe/tasks-vision";
 
 /**
- * Shows the person's portrait in different top colors, on their own device (free; the photo isn't sent anywhere
- * for this). Google's MediaPipe multiclass selfie model (Apache-2.0, served from Virm's own site) finds the clothes;
- * only those pixels change color, keeping their folds and shading, so the face, hair, pose, background and light
- * stay exactly the same.
+ * Shows the person's portrait with a different top color or hair color, on their own device (free; the photo isn't
+ * sent anywhere for this). Google's MediaPipe multiclass selfie model (Apache-2.0, served from Virm's own site)
+ * finds the clothes or the hair; only those pixels change color, keeping their folds, strands and shading, so the
+ * face, pose, background and light stay exactly the same.
  */
 
 const WASM_PATH = "/mediapipe/wasm";
 const MODEL_PATH = "/mediapipe/selfie_multiclass_256x256.tflite";
 /** The model's classes: 0 background, 1 hair, 2 body skin, 3 face skin, 4 clothes, 5 others. */
-const CLOTHES = 4;
+const PARTS = { hair: 1, top: 4 } as const;
+/** How each part is recolored: how strongly, and how much of its own light and shade carries over. */
+const BLEND = { hair: { strength: 0.85, shade: 1.1 }, top: { strength: 1, shade: 0.85 } } as const;
 /** Longest side of the pictures made. */
 const MAX_SIDE = 720;
 
@@ -47,11 +49,17 @@ const rgb = (hex: string) => [1, 3, 5].map((i) => parseInt(hex.slice(i, i + 2), 
 
 export type Recolored = { hex: string; url: string };
 
+/** The portrait once per color, with only the top recolored. Null when no clothes were found. */
+export const recolorTop = (portraitUrl: string, colors: string[]) => recolorPart(portraitUrl, colors, "top");
+
+/** The portrait once per color, with only the hair recolored. Null when no hair was found. */
+export const recolorHair = (portraitUrl: string, colors: string[]) => recolorPart(portraitUrl, colors, "hair");
+
 /**
- * The portrait once per color, with only the top recolored. Null when no clothes were found (or the model can't
- * run on this device), so the page can say so instead of showing unchanged pictures.
+ * The portrait once per color, with one part recolored. Null when that part wasn't found (or the model can't run on
+ * this device), so the page can say so instead of showing unchanged pictures.
  */
-export async function recolorTop(portraitUrl: string, colors: string[]): Promise<Recolored[] | null> {
+async function recolorPart(portraitUrl: string, colors: string[], part: keyof typeof PARTS): Promise<Recolored[] | null> {
   const [segmenter, blob] = await Promise.all([loadSegmenter(), fetch(portraitUrl).then((r) => r.blob())]);
   const bitmap = await createImageBitmap(blob);
   const scale = Math.min(1, MAX_SIDE / Math.max(bitmap.width, bitmap.height));
@@ -64,9 +72,9 @@ export async function recolorTop(portraitUrl: string, colors: string[]): Promise
   ctx.drawImage(bitmap, 0, 0, w, h);
   bitmap.close();
 
-  // How sure the model is, per pixel, that it's clothing, brought to the picture's size with soft edges.
+  // How sure the model is, per pixel, that it's this part, brought to the picture's size with soft edges.
   const result = segmenter.segment(canvas);
-  const mask = result.confidenceMasks?.[CLOTHES];
+  const mask = result.confidenceMasks?.[PARTS[part]];
   if (!mask) {
     result.close();
     return null;
@@ -89,7 +97,7 @@ export async function recolorTop(portraitUrl: string, colors: string[]): Promise
 
   const original = ctx.getImageData(0, 0, w, h);
   const px = original.data;
-  // The garment's average brightness, so its folds and shading carry over to the new color.
+  // The part's average brightness, so its folds, strands and shading carry over to the new color.
   let sum = 0;
   let weight = 0;
   for (let i = 0; i < px.length; i += 4) {
@@ -98,8 +106,9 @@ export async function recolorTop(portraitUrl: string, colors: string[]): Promise
     sum += (0.299 * px[i] + 0.587 * px[i + 1] + 0.114 * px[i + 2]) * a;
     weight += a;
   }
-  // Too little clothing found to be a believable comparison.
-  if (weight < w * h * 0.04) return null;
+  // Too little found to be a believable comparison.
+  if (weight < w * h * 0.03) return null;
+  const { strength, shade: shadeCarry } = BLEND[part];
   const mean = sum / weight;
 
   const out: Recolored[] = [];
@@ -108,9 +117,9 @@ export async function recolorTop(portraitUrl: string, colors: string[]): Promise
     const pic = new ImageData(new Uint8ClampedArray(px), w, h);
     const d = pic.data;
     for (let i = 0; i < d.length; i += 4) {
-      const a = alpha[i + 3] / 255;
+      const a = (alpha[i + 3] / 255) * strength;
       if (a === 0) continue;
-      const shade = (0.299 * d[i] + 0.587 * d[i + 1] + 0.114 * d[i + 2] - mean) * 0.85;
+      const shade = (0.299 * d[i] + 0.587 * d[i + 1] + 0.114 * d[i + 2] - mean) * shadeCarry;
       d[i] = d[i] * (1 - a) + Math.min(255, Math.max(0, r + shade)) * a;
       d[i + 1] = d[i + 1] * (1 - a) + Math.min(255, Math.max(0, g + shade)) * a;
       d[i + 2] = d[i + 2] * (1 - a) + Math.min(255, Math.max(0, b + shade)) * a;

@@ -1,7 +1,7 @@
 import { prisma } from "@/lib/prisma";
 import { loadPortrait } from "@/lib/portrait";
 import { CreditError, withCredit } from "@/lib/credits";
-import { PortraitUnusableError, analyzeColor, analyzeMakeup, analyzeStyle, type Analysis } from "@/lib/studioAnalysis";
+import { PortraitUnusableError, analyzeColor, analyzeHair, analyzeMakeup, analyzeStyle, type Analysis } from "@/lib/studioAnalysis";
 import type { StyledLook, StyledPiece } from "@/lib/closetLook";
 import { type ReportSummary, type StudioModuleId, type StudioReportData } from "@/lib/studioModules";
 
@@ -11,7 +11,6 @@ import { type ReportSummary, type StudioModuleId, type StudioReportData } from "
  * until it finishes (or is clearly stuck).
  *
  * A real analysis uses one photo credit, counted only when a real report comes back (a failure gives it back).
- * Modules not built yet return practice data (no AI, no cost).
  */
 
 /** Earlier reports kept per module, so people can look back. Older ones are deleted. */
@@ -147,39 +146,12 @@ export async function deleteReport(userId: string, id: string): Promise<boolean>
 }
 
 
-/* ---------- Practice data (Stage 1: no AI, no cost) ---------- */
-
-const PRACTICE: Record<"hair", StudioReportData> = {
-  hair: {
-    headline: "Long layers with soft movement",
-    summary: "Practice report. The real guide compares lengths, textures, bangs and colors, and explains how each frames your face.",
-    keywords: ["Layered", "Face-framing", "Warm brown"],
-    palette: [
-      { name: "Natural black", hex: "#1E1A18" },
-      { name: "Dark brown", hex: "#3B2A20" },
-      { name: "Warm brown", hex: "#6E4B33" },
-      { name: "Ash brown", hex: "#6B6157" },
-      { name: "Burgundy", hex: "#5A2630" },
-    ],
-    sections: [
-      { title: "Recommended", body: "Practice text. The cuts that suit you best and why." },
-      { title: "Hair colors", body: "Practice text. Color families compared with swatches." },
-    ],
-    confidence: "medium",
-    limits: "Practice data: no photo was read.",
-  },
-};
-
 async function makeReport(userId: string, module: StudioModuleId, portrait: { bytes: Uint8Array; mediaType: string }): Promise<Analysis> {
   if (module === "color") return analyzeColor(portrait);
   if (module === "makeup") return analyzeMakeup(portrait);
-  if (module === "style") {
-    const closet = await prisma.clothingItem.findMany({ where: { userId }, orderBy: { createdAt: "desc" } });
-    return analyzeStyle(portrait, closet);
-  }
-  // Not built yet: practice data, after a short pause so the loading state can be seen.
-  await new Promise((resolve) => setTimeout(resolve, 1200));
-  return { data: PRACTICE.hair, practice: true };
+  if (module === "hair") return analyzeHair(portrait);
+  const closet = await prisma.clothingItem.findMany({ where: { userId }, orderBy: { createdAt: "desc" } });
+  return analyzeStyle(portrait, closet);
 }
 
 /**
