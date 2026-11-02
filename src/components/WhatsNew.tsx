@@ -3,8 +3,8 @@
 import { useEffect, useState } from "react";
 import Image from "next/image";
 import Link from "next/link";
-import { LATEST_UPDATE } from "@/lib/whatsNew";
-import { ArrowRightIcon } from "@/components/Icons";
+import { LATEST_UPDATE, NEW_FEATURES } from "@/lib/whatsNew";
+import { ArrowRightIcon, BagIcon, MirrorIcon, PaletteIcon } from "@/components/Icons";
 import { btnPrimary } from "@/components/ui";
 
 const NewPill = () => (
@@ -130,9 +130,9 @@ export function WhatsNewSection() {
   );
 }
 
-/** After logging in: a short card that can be closed (remembered on this device). */
+/** After logging in: the newest features as small tiles, one tap each; can be closed (remembered on this device). */
 export function WhatsNewCard() {
-  const key = `virm-closed-${LATEST_UPDATE.id}`;
+  const key = `virm-closed-${NEW_FEATURES.id}`;
   const [closed, setClosed] = useState(true);
 
   useEffect(() => {
@@ -153,41 +153,31 @@ export function WhatsNewCard() {
     } catch {}
   }
 
+  const icons = [MirrorIcon, BagIcon, PaletteIcon];
   return (
-    <section
-      aria-label="What's new"
-      className="relative mb-6 flex flex-col gap-4 overflow-hidden rounded-[22px] bg-white p-5 shadow-[0_1px_0_rgba(18,24,33,0.03),0_14px_36px_rgba(18,30,45,0.06)] sm:flex-row sm:items-center sm:gap-6 sm:p-6"
-    >
-      <div className="flex shrink-0 -space-x-3">
-        {LATEST_UPDATE.pieces.map((piece) => (
-          <span
-            key={piece.src}
-            className="relative h-12 w-12 overflow-hidden rounded-full bg-[#f4f5f6] ring-2 ring-white"
-          >
-            <Image
-              src={piece.src}
-              alt=""
-              fill
-              unoptimized
-              className="object-cover"
-            />
-          </span>
-        ))}
-      </div>
-      <div className="min-w-0 flex-1 pr-6">
-        <p className="flex items-center gap-2 text-[15px] font-semibold text-[#121821]">
-          <NewPill /> {LATEST_UPDATE.title}
-        </p>
-        <p className="mt-1 text-[13px] leading-relaxed text-[#4f5b66]">
-          {LATEST_UPDATE.body}
-        </p>
-      </div>
-      <Link
-        href="/studio"
-        className={`${btnPrimary} shrink-0 self-start sm:self-auto`}
-      >
-        Try it in Studio
-      </Link>
+    <section aria-label="What's new" className="relative mb-6 rounded-[22px] bg-white p-5 shadow-[0_1px_0_rgba(18,24,33,0.03),0_14px_36px_rgba(18,30,45,0.06)]">
+      <p className="mb-3 flex items-center gap-2 text-[15px] font-semibold text-[#121821]">
+        <NewPill /> What&apos;s new
+      </p>
+      <ul className="grid gap-3 sm:grid-cols-3">
+        {NEW_FEATURES.items.map((item, i) => {
+          const Icon = icons[i];
+          return (
+            <li key={item.href}>
+              <Link href={item.href} className="group flex h-full items-center gap-3 rounded-[16px] bg-[#f6f7f8] p-3.5 transition-colors hover:bg-[#eef1f4]">
+                <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-[#121821] text-white">
+                  <Icon className="h-[18px] w-[18px]" />
+                </span>
+                <span className="min-w-0 flex-1">
+                  <span className="block text-[14px] font-semibold text-[#121821]">{item.title}</span>
+                  <span className="block text-[12px] text-[#5d6874]">{item.body}</span>
+                </span>
+                <ArrowRightIcon className="h-4 w-4 shrink-0 text-[#121821] transition-transform group-hover:translate-x-0.5" />
+              </Link>
+            </li>
+          );
+        })}
+      </ul>
       <button
         onClick={close}
         aria-label="Close"

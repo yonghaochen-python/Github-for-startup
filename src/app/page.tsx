@@ -211,8 +211,8 @@ function Dashboard({ closet, outfits }: { closet: ClothingItem[]; outfits: Outfi
       </section>
 
       <PageShell className="pt-8">
-        <CreditGuide />
         <WhatsNewCard />
+        <CreditGuide />
 
         {/* Your Virtual Mirror */}
         <section id="mirror" aria-labelledby="mirror-title" className="mb-6 scroll-mt-24 overflow-hidden rounded-[22px] bg-white shadow-[0_1px_0_rgba(18,24,33,0.03),0_14px_36px_rgba(18,30,45,0.06)]">

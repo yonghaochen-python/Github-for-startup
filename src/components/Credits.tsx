@@ -89,63 +89,50 @@ export function CreditsLine({ kind }: { kind: "photo" | "live" }) {
   );
 }
 
-/** One kind of credit on Home: how many are left (big), a bar, and exactly what uses it. */
-function CreditKindCard({ title, b, exempt, usedBy }: { title: string; b: KindBalance; exempt: boolean; usedBy: string[] }) {
+/** One kind of credit on Home: how many are left, a bar, and what uses it. */
+function CreditKindCard({ title, b, exempt, usedBy }: { title: string; b: KindBalance; exempt: boolean; usedBy: string }) {
   const share = b.allowance ? Math.min(1, b.planLeft / b.allowance) : 0;
   return (
     <div className="rounded-[16px] bg-[#f6f7f8] p-4">
-      <p className="text-[12px] font-semibold text-[#4f5b66]">{title}</p>
-      {exempt ? (
-        <p className="mt-1 text-[14px] text-[#121821]">
-          <span className="font-display text-[34px] leading-none">∞</span> <span className="text-[12.5px] text-[#5d6874]">Admin · not limited</span>
+      <div className="flex items-baseline justify-between gap-2">
+        <p className="text-[12.5px] font-semibold text-[#121821]">{title}</p>
+        <p className="text-[#121821]">
+          {exempt ? (
+            <span className="text-[12px] text-[#5d6874]">Not limited</span>
+          ) : (
+            <>
+              <span className="font-display text-[30px] leading-none">{b.total}</span>
+              <span className="text-[12px] text-[#5d6874]"> left</span>
+            </>
+          )}
         </p>
-      ) : (
-        <>
-          <p className="mt-1 text-[#121821]">
-            <span className="font-display text-[38px] leading-none">{b.total}</span>
-            <span className="ml-1.5 text-[13px] text-[#5d6874]">
-              left · {b.planLeft} of {b.allowance} this month{b.extraLeft ? ` + ${b.extraLeft} extra` : ""}
-            </span>
-          </p>
-          <div className="mt-2 h-1.5 overflow-hidden rounded-full bg-[#e3e7eb]" aria-hidden>
-            <div className="h-full rounded-full bg-[#121821]" style={{ width: `${share * 100}%` }} />
-          </div>
-        </>
+      </div>
+      {!exempt && (
+        <div className="mt-2 h-1.5 overflow-hidden rounded-full bg-[#e3e7eb]" aria-hidden>
+          <div className="h-full rounded-full bg-[#121821]" style={{ width: `${share * 100}%` }} />
+        </div>
       )}
-      <p className="mt-3 text-[11px] font-semibold uppercase tracking-[1.2px] text-[#5d6874]">1 credit each</p>
-      <ul className="mt-1 space-y-0.5 text-[13px] text-[#2b3540]">
-        {usedBy.map((u) => (
-          <li key={u}>· {u}</li>
-        ))}
-      </ul>
+      <p className="mt-2 text-[12px] text-[#5d6874]">{usedBy}</p>
     </div>
   );
 }
 
-/** Home: what uses which credit, and how many are left of each. */
+/** Home: how many of each credit are left, and what uses each (one credit per use). */
 export function CreditGuide() {
   const b = useCredits();
   if (!b) return null;
   return (
-    <section aria-labelledby="credits-home" className="mb-6 rounded-[22px] bg-white p-5 shadow-[0_1px_0_rgba(18,24,33,0.03),0_10px_28px_rgba(18,30,45,0.05)] sm:p-6">
-      <div className="mb-4 flex flex-wrap items-baseline justify-between gap-2">
-        <h2 id="credits-home" className="font-display text-[26px] leading-none text-[#121821]">
+    <section aria-labelledby="credits-home" className="mb-6 rounded-[22px] bg-white p-5 shadow-[0_1px_0_rgba(18,24,33,0.03),0_10px_28px_rgba(18,30,45,0.05)]">
+      <div className="mb-3 flex items-baseline justify-between gap-2">
+        <h2 id="credits-home" className="font-display text-[24px] leading-none text-[#121821]">
           Your credits
         </h2>
-        <p className="text-[12px] text-[#5d6874]">
-          {PLAN_NAMES[b.plan]} plan · resets {day(b.period.end)} ·{" "}
-          <Link href="/pricing" className="font-semibold text-[#121821] underline-offset-4 hover:underline">
-            See plans
-          </Link>
-        </p>
+        <p className="text-[12px] text-[#5d6874]">Resets {day(b.period.end)}</p>
       </div>
       <div className="grid gap-3 sm:grid-cols-2">
-        <CreditKindCard title="Photo credits" b={b.photo} exempt={b.exempt} usedBy={["AI Stylist analysis (color, makeup, hair or style)", "Outfit try-on on your photo"]} />
-        <CreditKindCard title="Live credits" b={b.live} exempt={b.exempt} usedBy={["Live AI try-on (up to 20 seconds)"]} />
+        <CreditKindCard title="Photo" b={b.photo} exempt={b.exempt} usedBy="1 per AI Stylist analysis or photo try-on" />
+        <CreditKindCard title="Live" b={b.live} exempt={b.exempt} usedBy="1 per live try-on" />
       </div>
-      <p className="mt-3 text-[12px] text-[#5d6874]">
-        Free: Style it outfit ideas, opening saved looks and reports, color and hair previews. A try-on that fails gives its credit back.
-      </p>
     </section>
   );
 }
