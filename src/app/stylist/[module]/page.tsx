@@ -16,7 +16,7 @@ import { StyleReport } from "@/components/studio/StyleReport";
 import type { StyledPiece } from "@/lib/closetLook";
 import { drawReportCard } from "@/components/studio/reportCard";
 import { portraitUrl, useStudio } from "@/components/studio/useStudio";
-import { isStudioModule, studioModule, type ReportSummary, type StudioModule, type StudioReportData } from "@/lib/studioModules";
+import { isStudioModule, portraitReadiness, studioModule, type ReportSummary, type StudioModule, type StudioReportData } from "@/lib/studioModules";
 
 type Report = { id: string; data: StudioReportData; practice: boolean; createdAt: string; portraitVersion: string | null };
 type Loaded = { report: Report | null; history: ReportSummary[]; generating: boolean };
@@ -247,7 +247,9 @@ export default function StudioModulePage() {
     else setError("Couldn't delete it right now. Please try again.");
   }
 
-  const canAnalyze = Boolean(portrait) && !busy && !loaded?.generating;
+  // A photo that isn't ready (too small, dark, no clear face) is never sent: change it first.
+  const photoReady = Boolean(portrait) && portraitReadiness(portrait?.checks ?? null).ready;
+  const canAnalyze = photoReady && !busy && !loaded?.generating;
 
   return (
     <main className="flex-1 pb-20">
@@ -321,7 +323,7 @@ export default function StudioModulePage() {
                     <PortraitControls portrait={portrait} savePortrait={savePortrait} />
                   </div>
                 </div>
-                {portrait && (
+                {photoReady && (
                   <>
                     <button onClick={analyze} disabled={!canAnalyze} className={btnPrimary}>
                       Analyze
@@ -358,9 +360,9 @@ export default function StudioModulePage() {
                 Share
               </button>
             </div>
-            {(changingPhoto || fromEarlierPhoto) && (
+            {(changingPhoto || (fromEarlierPhoto && photoReady)) && (
               <div className="mb-5 rounded-[18px] bg-white p-5 shadow-[0_8px_22px_rgba(18,30,45,0.06)]">
-                {fromEarlierPhoto && (
+                {fromEarlierPhoto && photoReady && (
                   <p className="mb-3 text-[13.5px] text-[#2b3540]">
                     This report was made from an earlier photo.{" "}
                     <button onClick={analyze} disabled={!canAnalyze} className="font-semibold text-[#121821] underline underline-offset-4">
@@ -398,13 +400,15 @@ export default function StudioModulePage() {
                   </select>
                 </label>
               )}
-              <button
-                onClick={() => confirm("Make a new report? This one stays in Earlier reports.") && analyze()}
-                disabled={!canAnalyze}
-                className={btnText}
-              >
-                Regenerate
-              </button>
+              {photoReady && (
+                <button
+                  onClick={() => confirm("Make a new report? This one stays in Earlier reports.") && analyze()}
+                  disabled={!canAnalyze}
+                  className={btnText}
+                >
+                  Regenerate
+                </button>
+              )}
               <button onClick={deleteThis} className={`${btnText} text-[#5d6874]`}>
                 Delete this report
               </button>

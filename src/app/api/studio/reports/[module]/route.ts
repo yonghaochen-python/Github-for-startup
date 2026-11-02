@@ -37,7 +37,7 @@ export async function POST(request: Request, ctx: Ctx) {
     return NextResponse.json({ report }, { headers: noStore });
   } catch (err) {
     const e = err instanceof ReportError ? err : new ReportError("failed", "This analysis couldn't be made right now. Please try again.");
-    const status = { no_portrait: 400, unusable: 422, no_credits: 402, busy: 409, failed: 502 }[e.code];
+    const status = { no_portrait: 400, not_ready: 422, unusable: 422, no_credits: 402, busy: 409, failed: 502 }[e.code];
     return NextResponse.json({ error: e.message, code: e.code }, { status, headers: noStore });
   }
 }

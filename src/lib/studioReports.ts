@@ -1,10 +1,10 @@
 import { prisma } from "@/lib/prisma";
-import { loadPortrait } from "@/lib/portrait";
+import { loadPortrait, portraitInfo } from "@/lib/portrait";
 import { CreditError, withCredit } from "@/lib/credits";
 import { PortraitUnusableError, analyzeColor, analyzeHair, analyzeMakeup, analyzeStyle, type Analysis } from "@/lib/studioAnalysis";
 import type { StyledLook, StyledPiece } from "@/lib/closetLook";
 import { topPicks } from "@/lib/studioPicks";
-import { type ReportSummary, type StudioModuleId, type StudioReportData } from "@/lib/studioModules";
+import { portraitReadiness, type ReportSummary, type StudioModuleId, type StudioReportData } from "@/lib/studioModules";
 
 /**
  * AI Stylist reports: made one module at a time, only when the person asks, and kept so opening one again is free.
@@ -21,7 +21,7 @@ const STUCK_MS = 3 * 60 * 1000;
 
 export class ReportError extends Error {
   constructor(
-    public code: "no_portrait" | "unusable" | "no_credits" | "busy" | "failed",
+    public code: "no_portrait" | "not_ready" | "unusable" | "no_credits" | "busy" | "failed",
     message: string
   ) {
     super(message);
@@ -95,7 +95,10 @@ export async function generateReport(account: { id: string; role: string }, modu
   }
 
   const portrait = await loadPortrait(userId);
-  if (!portrait) throw new ReportError("no_portrait", "Add your portrait first.");
+  if (!portrait) throw new ReportError("no_portrait", "Add your photo first.");
+  // A photo the device check flagged (too small, dark, no clear face) isn't sent to the AI: no cost, no credit.
+  const readiness = portraitReadiness((await portraitInfo(userId))?.checks ?? null);
+  if (!readiness.ready) throw new ReportError("not_ready", `${readiness.note} Change your photo to analyze.`);
 
   // Clear anything stuck, then make sure this module isn't already being made.
   await prisma.studioReport.updateMany({
