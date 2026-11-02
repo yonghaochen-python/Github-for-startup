@@ -231,7 +231,7 @@ export function Shop() {
         </div>
         {tray.length === 0 ? (
           <p className="mt-4 border-t border-black/[0.07] pt-4 text-[12px] leading-snug text-[#5d6874]">
-            Tap <b className="font-semibold text-[#121821]">+</b> on pieces to build a look, then try it on in Studio.
+            Tap pieces to add them here, then try them all on together.
           </p>
         ) : (
           <ul className="mt-4 flex flex-col gap-3 border-t border-black/[0.07] pt-4">
@@ -283,49 +283,44 @@ export function Shop() {
     return searchWords.every((w) => text.includes(w.replace(/s$/, "")));
   });
 
-  /** One of "Your shopping try-ons": a tap tries it on (or swaps it in); Edit shows remove and add-to-outfit. */
+  /** A tap on a piece's picture adds it to Your outfit (or takes it out, or swaps it in); try-on happens from there. */
+  const outfitFull = (selected: boolean) => !selected && !swapping && tray.length >= MAX_TRAY;
+  const tapLabel = (name: string, selected: boolean) =>
+    selected ? `Take ${name} out of your outfit` : swapping ? `Swap in ${name}` : `Add ${name} to your outfit`;
+  const pickedRing = (selected: boolean) => (selected ? "ring-2 ring-[#121821] ring-offset-2 ring-offset-transparent" : "");
+  const pickedBadge = (
+    <span aria-hidden className="pointer-events-none absolute bottom-6 right-0 flex h-6 w-6 items-center justify-center rounded-full bg-[#121821] text-[11px] text-white shadow-sm">
+      ✓
+    </span>
+  );
+
+  /** One of "Your shopping try-ons": a tap adds it to Your outfit; Edit shows remove. */
   function renderTryOn(t: TrayItem) {
     const selected = inTray.has(t.key);
     return (
       <li key={t.key} className="relative shrink-0 snap-start">
         <button
-          onClick={() => (swapping && !selected ? toggleTray(t) : tryInStudio(t))}
-          aria-label={swapping && !selected ? `Swap in ${t.name}` : `Try on ${t.name}`}
+          onClick={() => !outfitFull(selected) && toggleTray(t)}
+          aria-pressed={selected}
+          aria-label={tapLabel(t.name, selected)}
+          title={outfitFull(selected) ? `Your outfit is full (${MAX_TRAY} pieces)` : undefined}
           className={`group block ${editMode ? "animate-[wiggle_0.6s_ease-in-out_infinite]" : ""}`}
         >
-          <span className="relative block h-[124px] w-[96px] overflow-hidden rounded-[10px] sm:h-[150px] sm:w-[116px]">
+          <span className={`relative block h-[124px] w-[96px] overflow-hidden rounded-[10px] sm:h-[150px] sm:w-[116px] ${pickedRing(selected)}`}>
             <Image src={t.imageUrl} alt="" fill unoptimized className="bg-white object-contain p-1 transition-transform duration-300 group-hover:scale-[1.04]" />
           </span>
           <span className="mt-1 block w-[96px] truncate text-center text-[11px] sm:w-[116px]">{t.name}</span>
         </button>
-        {editMode ? (
-          <>
-            <button
-              onClick={() => setMyTryOns(removeShopTryOn(t.key))}
-              aria-label={`Remove ${t.name}`}
-              className="absolute right-0 top-0 flex h-6 w-6 items-center justify-center rounded-full bg-[#121821] text-[11px] text-white shadow"
-            >
-              ✕
-            </button>
-            <button
-              onClick={() => toggleTray(t)}
-              aria-pressed={selected}
-              aria-label={selected ? `Take ${t.name} out of your outfit` : `Add ${t.name} to your outfit`}
-              disabled={!selected && tray.length >= MAX_TRAY}
-              className={`absolute bottom-6 right-0 flex h-7 w-7 items-center justify-center rounded-full text-[13px] shadow-sm disabled:opacity-40 ${
-                selected ? "bg-[#121821] text-white" : "bg-white/90 text-[#121821]"
-              }`}
-            >
-              {selected ? "✓" : <span className="text-[17px] font-light leading-none">+</span>}
-            </button>
-          </>
-        ) : (
-          selected && (
-            <span aria-label="In your outfit" className="pointer-events-none absolute bottom-6 right-0 flex h-6 w-6 items-center justify-center rounded-full bg-[#121821] text-[11px] text-white shadow-sm">
-              ✓
-            </span>
-          )
+        {editMode && (
+          <button
+            onClick={() => setMyTryOns(removeShopTryOn(t.key))}
+            aria-label={`Remove ${t.name}`}
+            className="absolute right-0 top-0 flex h-6 w-6 items-center justify-center rounded-full bg-[#121821] text-[11px] text-white shadow"
+          >
+            ✕
+          </button>
         )}
+        {selected && pickedBadge}
       </li>
     );
   }
@@ -339,12 +334,15 @@ export function Shop() {
     const cut = Boolean(p.shelfImageUrl);
     return (
       <li key={p.id} className="relative shrink-0 snap-start">
+        {/* Pieces that can't be tried on (bags, hats) open their details instead. */}
         <button
-          onClick={() => (swapping && !selected ? toggleTray(trayItemFrom(p)) : setOpen(p))}
-          aria-label={swapping && !selected ? `Swap in ${p.name}` : `Open ${p.name}`}
+          onClick={() => (!p.tryOnEligible ? setOpen(p) : !outfitFull(selected) && toggleTray(trayItemFrom(p)))}
+          aria-pressed={p.tryOnEligible ? selected : undefined}
+          aria-label={p.tryOnEligible ? tapLabel(p.name, selected) : `Open ${p.name}`}
+          title={outfitFull(selected) ? `Your outfit is full (${MAX_TRAY} pieces)` : undefined}
           className={`group block ${editMode ? "animate-[wiggle_0.6s_ease-in-out_infinite]" : ""}`}
         >
-          <span className={`relative block h-[124px] w-[96px] sm:h-[150px] sm:w-[116px] ${cut ? "" : "overflow-hidden rounded-[10px]"}`}>
+          <span className={`relative block h-[124px] w-[96px] sm:h-[150px] sm:w-[116px] ${cut ? "" : "overflow-hidden rounded-[10px]"} ${pickedRing(selected)}`}>
             <Image
               src={p.shelfImageUrl ?? p.imageUrl}
               alt=""
@@ -357,36 +355,27 @@ export function Shop() {
           </span>
           {price && <span className="mt-1 block text-center text-[11px] font-medium">{price}</span>}
         </button>
-        {editMode ? (
+        {editMode && (
           <>
-        <button
-          onClick={() => toggleSaved(p)}
-          aria-pressed={saved}
-          aria-label={saved ? `Remove ${p.name} from wishlist` : `Save ${p.name} to wishlist`}
-          className={`absolute right-0 top-0 flex h-7 w-7 items-center justify-center rounded-full bg-white/90 shadow-sm [&_svg]:h-3.5 [&_svg]:w-3.5 ${saved ? "text-[#c23a2c]" : "text-[#29343a]"}`}
-        >
-          <Heart filled={saved} />
-        </button>
-        <button
-          onClick={() => toggleTray(trayItemFrom(p))}
-          aria-pressed={selected}
-          aria-label={selected ? `Take ${p.name} out of your outfit` : swapping ? `Swap in ${p.name}` : `Add ${p.name} to your outfit`}
-          title={selected ? "In your outfit" : swapping ? "Swap in" : "Add to outfit"}
-          disabled={!p.tryOnEligible || (!selected && !swapping && tray.length >= MAX_TRAY)}
-          className={`absolute bottom-0 right-0 flex h-7 w-7 items-center justify-center rounded-full text-[13px] shadow-sm disabled:opacity-40 ${
-            selected ? "bg-[#121821] text-white" : "bg-white/90 text-[#121821]"
-          }`}
-        >
-          {selected ? "✓" : swapping ? "⇄" : <span className="text-[17px] font-light leading-none">+</span>}
-        </button>
+            <button
+              onClick={() => toggleSaved(p)}
+              aria-pressed={saved}
+              aria-label={saved ? `Remove ${p.name} from wishlist` : `Save ${p.name} to wishlist`}
+              className={`absolute right-0 top-0 flex h-7 w-7 items-center justify-center rounded-full bg-white/90 shadow-sm [&_svg]:h-3.5 [&_svg]:w-3.5 ${saved ? "text-[#c23a2c]" : "text-[#29343a]"}`}
+            >
+              <Heart filled={saved} />
+            </button>
+            <button
+              onClick={() => setOpen(p)}
+              aria-label={`Details for ${p.name}`}
+              title="Details"
+              className="absolute left-0 top-0 flex h-7 w-7 items-center justify-center rounded-full bg-white/90 font-display text-[13px] italic text-[#29343a] shadow-sm"
+            >
+              i
+            </button>
           </>
-        ) : (
-          selected && (
-            <span aria-label="In your outfit" className="pointer-events-none absolute bottom-0 right-0 flex h-6 w-6 items-center justify-center rounded-full bg-[#121821] text-[11px] text-white shadow-sm">
-              ✓
-            </span>
-          )
         )}
+        {selected && pickedBadge}
       </li>
     );
   }
@@ -504,7 +493,7 @@ export function Shop() {
           </div>
         )}
 
-        {editMode && <p className="mt-5 text-[11.5px] text-[#5d6874]">✕ removes a try-on, + adds it to your outfit.</p>}
+        {editMode && <p className="mt-5 text-[11.5px] text-[#5d6874]">♡ saves, i shows details, ✕ removes one of your try-ons.</p>}
 
         <div id="collection-grid" className="mt-6 grid scroll-mt-24 grid-cols-[minmax(0,1fr)] gap-6 lg:grid-cols-[minmax(0,1fr)_280px]">
           <div>
@@ -532,7 +521,7 @@ export function Shop() {
                 {myTryOnsShown.map(renderTryOn)}
               </ShelfRow>
               {myTryOns.length === 0 && (
-                <p className="pb-2 text-[11.5px] opacity-70">Add a piece from any store&apos;s link or photo, and it waits here, one tap from a try-on.</p>
+                <p className="pb-2 text-[11.5px] opacity-70">Add a piece from any store&apos;s link or photo, and it waits here, one tap from your outfit.</p>
               )}
             </div>
 
