@@ -25,6 +25,8 @@ import { addToWishlist, readWishlist, removeFromWishlist } from "@/lib/shopWishl
 import { StoreFinder } from "@/components/StoreFinder";
 import { ProductDetail } from "@/components/ProductDetail";
 import { btnPrimary, btnSecondary } from "@/components/ui";
+import { useAuth } from "@/components/AuthProvider";
+import type { StoreShelf } from "@/lib/storeFeeds";
 
 /**
  * Shopping: browse the catalog, open a piece to see it up close and try it on (live, or on your saved photo), or
@@ -111,6 +113,21 @@ export function Shop() {
   const [searchFocused, setSearchFocused] = useState(false);
   // Edit: shows the ♡ and + on every piece for quick changes; otherwise a tap opens the piece.
   const [editMode, setEditMode] = useState(false);
+  // Admin-only preview of real store shelves.
+  const { user } = useAuth();
+  const [stores, setStores] = useState<StoreShelf[]>([]);
+
+  useEffect(() => {
+    if (!user?.isAdmin) return;
+    let ignore = false;
+    fetch("/api/shop/stores", { cache: "no-store" })
+      .then((r) => (r.ok ? (r.json() as Promise<{ stores: StoreShelf[] }>) : { stores: [] }))
+      .then((d) => !ignore && setStores(d.stores))
+      .catch(() => {});
+    return () => {
+      ignore = true;
+    };
+  }, [user?.isAdmin]);
   const [filtersOpen, setFiltersOpen] = useState(false);
 
   // The wishlist and "Your outfit" are remembered on this device only.
@@ -287,6 +304,67 @@ export function Shop() {
         </button>
         <p className="mt-2 text-center text-[10.5px] text-[#5d6874]">Choose Photo or Live there. Two of a kind? Compare them in Studio.</p>
       </>
+    );
+  }
+
+  /** One piece on the shelf (demo or store). */
+  function renderPiece(p: ShopProduct) {
+    const selected = inTray.has(p.id);
+    const saved = isSaved(p.id);
+    // Price only for verified real listings.
+    const price = isVerified(p) ? priceLabel(p.price, p.currency) : null;
+    const cut = Boolean(p.shelfImageUrl);
+    return (
+      <li key={p.id} className="relative shrink-0 snap-start">
+        <button
+          onClick={() => (swapping && !selected ? toggleTray(trayItemFrom(p)) : setOpen(p))}
+          aria-label={swapping && !selected ? `Swap in ${p.name}` : `Open ${p.name}`}
+          className={`group block ${editMode ? "animate-[wiggle_0.6s_ease-in-out_infinite]" : ""}`}
+        >
+          <span className={`relative block h-[124px] w-[96px] sm:h-[150px] sm:w-[116px] ${cut ? "" : "overflow-hidden rounded-[10px]"}`}>
+            <Image
+              src={p.shelfImageUrl ?? p.imageUrl}
+              alt=""
+              fill
+              unoptimized
+              className={`transition-transform duration-300 group-hover:scale-[1.04] ${
+                cut ? "object-contain drop-shadow-[0_6px_10px_rgba(18,24,33,0.14)]" : "bg-white object-contain p-1"
+              }`}
+            />
+          </span>
+          {price && <span className="mt-1 block text-center text-[11px] font-medium">{price}</span>}
+        </button>
+        {editMode ? (
+          <>
+        <button
+          onClick={() => toggleSaved(p)}
+          aria-pressed={saved}
+          aria-label={saved ? `Remove ${p.name} from wishlist` : `Save ${p.name} to wishlist`}
+          className={`absolute right-0 top-0 flex h-7 w-7 items-center justify-center rounded-full bg-white/90 shadow-sm [&_svg]:h-3.5 [&_svg]:w-3.5 ${saved ? "text-[#c23a2c]" : "text-[#29343a]"}`}
+        >
+          <Heart filled={saved} />
+        </button>
+        <button
+          onClick={() => toggleTray(trayItemFrom(p))}
+          aria-pressed={selected}
+          aria-label={selected ? `Take ${p.name} out of your outfit` : swapping ? `Swap in ${p.name}` : `Add ${p.name} to your outfit`}
+          title={selected ? "In your outfit" : swapping ? "Swap in" : "Add to outfit"}
+          disabled={!p.tryOnEligible || (!selected && !swapping && tray.length >= MAX_TRAY)}
+          className={`absolute bottom-0 right-0 flex h-7 w-7 items-center justify-center rounded-full text-[13px] shadow-sm disabled:opacity-40 ${
+            selected ? "bg-[#121821] text-white" : "bg-white/90 text-[#121821]"
+          }`}
+        >
+          {selected ? "✓" : swapping ? "⇄" : <span className="text-[17px] font-light leading-none">+</span>}
+        </button>
+          </>
+        ) : (
+          selected && (
+            <span aria-label="In your outfit" className="pointer-events-none absolute bottom-0 right-0 flex h-6 w-6 items-center justify-center rounded-full bg-[#121821] text-[11px] text-white shadow-sm">
+              ✓
+            </span>
+          )
+        )}
+      </li>
     );
   }
 
@@ -494,69 +572,36 @@ export function Shop() {
                       </h2>
                       {/* Slides left and right; pieces snap into place. */}
                       <ul className="closet-row -mx-4 flex snap-x snap-mandatory items-end gap-1.5 overflow-x-auto scroll-px-4 px-4 pb-1 pt-2 sm:-mx-6 sm:scroll-px-6 sm:px-6">
-                        {row.map((p) => {
-                          const selected = inTray.has(p.id);
-                          const saved = isSaved(p.id);
-                          // Price only for verified real listings.
-                          const price = isVerified(p) ? priceLabel(p.price, p.currency) : null;
-                          const cut = Boolean(p.shelfImageUrl);
-                          return (
-                            <li key={p.id} className="relative shrink-0 snap-start">
-                              <button
-                                onClick={() => (swapping && !selected ? toggleTray(trayItemFrom(p)) : setOpen(p))}
-                                aria-label={swapping && !selected ? `Swap in ${p.name}` : `Open ${p.name}`}
-                                className={`group block ${editMode ? "animate-[wiggle_0.6s_ease-in-out_infinite]" : ""}`}
-                              >
-                                <span className={`relative block h-[124px] w-[96px] sm:h-[150px] sm:w-[116px] ${cut ? "" : "overflow-hidden rounded-[10px]"}`}>
-                                  <Image
-                                    src={p.shelfImageUrl ?? p.imageUrl}
-                                    alt=""
-                                    fill
-                                    unoptimized
-                                    className={`transition-transform duration-300 group-hover:scale-[1.04] ${
-                                      cut ? "object-contain drop-shadow-[0_6px_10px_rgba(18,24,33,0.14)]" : "object-cover"
-                                    }`}
-                                  />
-                                </span>
-                                {price && <span className="mt-1 block text-center text-[11px] font-medium">{price}</span>}
-                              </button>
-                              {editMode ? (
-                                <>
-                              <button
-                                onClick={() => toggleSaved(p)}
-                                aria-pressed={saved}
-                                aria-label={saved ? `Remove ${p.name} from wishlist` : `Save ${p.name} to wishlist`}
-                                className={`absolute right-0 top-0 flex h-7 w-7 items-center justify-center rounded-full bg-white/90 shadow-sm [&_svg]:h-3.5 [&_svg]:w-3.5 ${saved ? "text-[#c23a2c]" : "text-[#29343a]"}`}
-                              >
-                                <Heart filled={saved} />
-                              </button>
-                              <button
-                                onClick={() => toggleTray(trayItemFrom(p))}
-                                aria-pressed={selected}
-                                aria-label={selected ? `Take ${p.name} out of your outfit` : swapping ? `Swap in ${p.name}` : `Add ${p.name} to your outfit`}
-                                title={selected ? "In your outfit" : swapping ? "Swap in" : "Add to outfit"}
-                                disabled={!p.tryOnEligible || (!selected && !swapping && tray.length >= MAX_TRAY)}
-                                className={`absolute bottom-0 right-0 flex h-7 w-7 items-center justify-center rounded-full text-[13px] shadow-sm disabled:opacity-40 ${
-                                  selected ? "bg-[#121821] text-white" : "bg-white/90 text-[#121821]"
-                                }`}
-                              >
-                                {selected ? "✓" : swapping ? "⇄" : <span className="text-[17px] font-light leading-none">+</span>}
-                              </button>
-                                </>
-                              ) : (
-                                selected && (
-                                  <span aria-label="In your outfit" className="pointer-events-none absolute bottom-0 right-0 flex h-6 w-6 items-center justify-center rounded-full bg-[#121821] text-[11px] text-white shadow-sm">
-                                    ✓
-                                  </span>
-                                )
-                              )}
-                            </li>
-                          );
-                        })}
+                        {row.map(renderPiece)}
                       </ul>
                     </section>
                   );
                 })}
+              </div>
+            )}
+
+            {/* PREVIEW, admin only: real products from stores that haven't joined Virm (see lib/storeFeeds). */}
+            {stores.length > 0 && (
+              <div className="mt-8">
+                <p className="mb-3 text-[11.5px] text-[#5d6874]">
+                  From stores · preview, only admins see this. These stores haven&apos;t joined Virm.
+                </p>
+                <div className="closet-shelf -mx-5 px-4 py-4 sm:mx-0 sm:rounded-[24px] sm:px-6 sm:py-5">
+                  {stores.map((store) => {
+                    const row = store.products.filter((p) => (tab === "all" || p.category === tab) && matchesSearch(p, query));
+                    if (row.length === 0) return null;
+                    return (
+                      <section key={store.id} aria-label={store.name} className="py-2.5">
+                        <h2 className="mb-1.5 text-[10.5px] font-semibold uppercase tracking-[1.8px] opacity-70">
+                          {store.name} <span className="ml-1 font-normal">{row.length}</span>
+                        </h2>
+                        <ul className="closet-row -mx-4 flex snap-x snap-mandatory items-end gap-1.5 overflow-x-auto scroll-px-4 px-4 pb-1 pt-2 sm:-mx-6 sm:scroll-px-6 sm:px-6">
+                          {row.map(renderPiece)}
+                        </ul>
+                      </section>
+                    );
+                  })}
+                </div>
               </div>
             )}
           </div>

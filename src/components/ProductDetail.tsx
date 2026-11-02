@@ -69,15 +69,17 @@ export function ProductDetail({
     }
   }
 
-  const details: [string, string][] = [
+  const allDetails: [string, string][] = [
     ["Category", KIND[product.category]],
-    ["Color", product.colors.map((c) => c.name).join(", ")],
+    ["Color", product.colors.map((c) => c.name).join(", ") || product.color],
     ["Style", product.style],
     ...(product.tags.length ? ([["Details", product.tags.join(", ")]] as [string, string][]) : []),
     ...(verified && product.retailer ? ([["Store", product.retailer]] as [string, string][]) : []),
     ...(product.availability ? ([["Availability", product.availability]] as [string, string][]) : []),
     ...(verified && product.updatedAt ? ([["Price checked", new Date(product.updatedAt).toLocaleDateString()]] as [string, string][]) : []),
   ];
+  // Store listings don't always say a color or style; leave those rows out rather than show them empty.
+  const details = allDetails.filter(([, value]) => value);
   const result = photo.status === "done" ? photo.result : null;
 
   return (
