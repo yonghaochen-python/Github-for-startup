@@ -18,7 +18,7 @@ export function PortraitControls({
   removePortrait,
 }: {
   portrait: PortraitInfo | null;
-  savePortrait: (photo: Blob, fromTryOnPhoto?: boolean) => Promise<void>;
+  savePortrait: (photo: Blob, fromTryOnPhoto?: boolean) => Promise<PortraitInfo | void>;
   removePortrait?: () => Promise<void>;
 }) {
   const { user } = useAuth();
@@ -47,6 +47,23 @@ export function PortraitControls({
     else setError("Couldn't open your try-on photo. Upload a portrait instead.");
   }
 
+  async function zoomIn() {
+    const current = await fetch(`/api/studio/portrait?v=${portrait?.version}`)
+      .then((r) => (r.ok ? r.blob() : null))
+      .catch(() => null);
+    if (!current) return setError("Couldn't open your photo. Please try again.");
+    setSaving(true);
+    setError(null);
+    try {
+      const saved = await savePortrait(current);
+      if (saved && saved.checks?.face !== "clear") setError("Your face couldn't be zoomed in clearly. Try a head-and-shoulders photo.");
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Couldn't zoom in. Try a head-and-shoulders photo.");
+    } finally {
+      setSaving(false);
+    }
+  }
+
   async function remove() {
     if (!removePortrait || !confirm("Remove your photo? Your finished reports stay.")) return;
     try {
@@ -71,8 +88,14 @@ export function PortraitControls({
       />
       {/* Only a problem with the photo is worth a line; a good photo needs no words. */}
       {portrait && !readiness.ready && <p className="text-[13px] text-amber-800">⚠ {readiness.note}</p>}
+      {/* A full-body photo already saved: zoom in on the face right here instead of choosing a new one. */}
+      {portrait && portrait.checks?.face === "small" && !saving && (
+        <button onClick={zoomIn} className={`${btnPrimary} self-start`}>
+          Zoom in on my face
+        </button>
+      )}
       <div className="flex flex-wrap items-center gap-x-4 gap-y-2">
-        <button onClick={() => fileInput.current?.click()} disabled={saving} className={portrait && readiness.ready ? btnSecondary : btnPrimary}>
+        <button onClick={() => fileInput.current?.click()} disabled={saving} className={portrait && (readiness.ready || portrait.checks?.face === "small") ? btnSecondary : btnPrimary}>
           <CameraIcon className="h-4 w-4" /> {saving ? "Checking…" : portrait ? "Change photo" : "Upload a photo"}
         </button>
         {!portrait && user?.photoVersion && !saving && (

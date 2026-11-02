@@ -29,7 +29,14 @@ export function useStudio() {
   const savePortrait = useCallback(async (photo: Blob, fromTryOnPhoto = false) => {
     const source = fromTryOnPhoto ? await cropPortrait(photo) : photo;
     if (!source) throw new Error("We couldn't find your face in your try-on photo. Upload a portrait instead.");
-    const { blob, checks } = await preparePortrait(source);
+    let { blob, checks } = await preparePortrait(source);
+    // A full-body photo (face too small to read): zoom in on the head and shoulders instead of turning it down,
+    // and keep the zoomed one only if the face then reads clearly.
+    if (checks.face === "small") {
+      const zoomed = await cropPortrait(source).catch(() => null);
+      const prepared = zoomed ? await preparePortrait(zoomed).catch(() => null) : null;
+      if (prepared?.checks.face === "clear") ({ blob, checks } = prepared);
+    }
     const form = new FormData();
     form.append("photo", blob, "portrait.jpg");
     form.append("checks", JSON.stringify(checks));
@@ -37,6 +44,7 @@ export function useStudio() {
     const data = (await res.json().catch(() => ({}))) as { portrait?: PortraitInfo; error?: string };
     if (!res.ok || !data.portrait) throw new Error(data.error ?? "Couldn't save your portrait. Please try again.");
     setState((s) => (s ? { ...s, portrait: data.portrait! } : s));
+    return data.portrait;
   }, []);
 
   const removePortrait = useCallback(async () => {
