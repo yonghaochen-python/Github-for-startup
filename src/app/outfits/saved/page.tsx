@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import Link from "next/link";
 import { byLatestTryOn, type Outfit } from "@/components/OutfitCard";
 import { OutfitBoard } from "@/components/OutfitBoard";
@@ -15,6 +16,15 @@ import { SavedStylist } from "@/components/studio/SavedStylist";
 const SAVED_TIPS: Tip[] = [{ target: '[aria-label="Saved. Tap to unsave"]', text: "Tap the red bookmark to unsave a look." }];
 
 export default function SavedLooksPage() {
+  const router = useRouter();
+  const pathname = usePathname();
+  const searchParams = useSearchParams();
+  // Saved looks on one side, the AI Stylist's reports on the other (?tab=stylist), switched by the sliding bar.
+  const [tab, setTabState] = useState<"looks" | "stylist">(searchParams.get("tab") === "stylist" ? "stylist" : "looks");
+  function setTab(next: "looks" | "stylist") {
+    setTabState(next);
+    router.replace(next === "stylist" ? `${pathname}?tab=stylist` : pathname, { scroll: false });
+  }
   const [outfits, setOutfits] = useState<Outfit[]>([]);
   const [loading, setLoading] = useState(true);
   const [loadError, setLoadError] = useState(false);
@@ -51,9 +61,9 @@ export default function SavedLooksPage() {
       <Tips id="saved" tips={SAVED_TIPS} delay={1400} />
       <PageShell>
         <PageHeader
-                    title="Saved Looks"
+          title={tab === "stylist" ? "Saved Stylist" : "Saved Looks"}
           actions={
-            saved.length > 0 ? (
+            saved.length > 0 && tab === "looks" ? (
               <>
                 <ShareLooksButton looks={saved.filter((o) => o.isFavorite)} onShared={() => setPicksVersion((v) => v + 1)} />
                 <Link href="/studio" className={btnSecondary}>
@@ -64,9 +74,33 @@ export default function SavedLooksPage() {
           }
         />
 
+        <div role="tablist" aria-label="What's saved" className="relative mb-8 inline-grid grid-cols-2 rounded-full bg-white p-1 shadow-[0_1px_0_rgba(18,24,33,0.03),0_8px_22px_rgba(18,30,45,0.06)]">
+          {/* The dark pill slides to the chosen side. */}
+          <span
+            aria-hidden
+            className={`absolute inset-y-1 left-1 w-[calc(50%-4px)] rounded-full bg-[#121821] transition-transform duration-300 ease-[cubic-bezier(.3,.7,.2,1)] motion-reduce:transition-none ${
+              tab === "stylist" ? "translate-x-full" : "translate-x-0"
+            }`}
+          />
+          {(["looks", "stylist"] as const).map((t) => (
+            <button
+              key={t}
+              role="tab"
+              aria-selected={tab === t}
+              onClick={() => setTab(t)}
+              className={`relative rounded-full px-6 py-2 text-[13px] font-semibold transition-colors duration-300 ${tab === t ? "text-white" : "text-[#4f5b66] hover:text-[#121821]"}`}
+            >
+              {t === "looks" ? "Looks" : "AI Stylist"}
+            </button>
+          ))}
+        </div>
+
+        {tab === "stylist" ? (
+          <SavedStylist />
+        ) : (
+          <>
         <OpenPicks refreshKey={picksVersion} />
         <LiveVideos />
-        <SavedStylist />
 
         {loading ? (
           <InlineLoading label="Loading your saved looks…" />
@@ -97,6 +131,8 @@ export default function SavedLooksPage() {
                 <OutfitBoard key={outfit.id} outfit={outfit} onSavedChange={onSavedChange} showTryOn />
               ))}
             </div>
+          </>
+        )}
           </>
         )}
       </PageShell>

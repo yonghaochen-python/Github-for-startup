@@ -3,44 +3,54 @@
 import { useEffect, useState } from "react";
 import Link from "next/link";
 import { PaletteIcon } from "@/components/Icons";
+import { ModuleVisual } from "@/components/studio/ModuleVisual";
 import { PickSwatches } from "@/components/studio/TopPicks";
-import { STUDIO_MODULES, type ReportSummary, type StudioModuleId } from "@/lib/studioModules";
+import { portraitUrl } from "@/components/studio/useStudio";
+import { STUDIO_MODULES, type PortraitInfo, type ReportSummary, type StudioModuleId } from "@/lib/studioModules";
 
 const day = (iso: string) => new Date(iso).toLocaleDateString(undefined, { month: "short", day: "numeric" });
 
+type Studio = { portrait: PortraitInfo | null; reports: Partial<Record<StudioModuleId, ReportSummary>> };
+
 /**
- * Saved: the person's finished AI Stylist reports (the newest of each), with their main picks, one tap from the full
- * report. Reading them costs nothing. Shows nothing until there's at least one.
+ * Saved: the person's finished AI Stylist reports (the newest of each), each with their photo styled the way that
+ * report looks and its main picks, one tap from the full report. Reading them costs nothing.
  */
 export function SavedStylist() {
-  const [reports, setReports] = useState<Partial<Record<StudioModuleId, ReportSummary>> | null>(null);
+  const [studio, setStudio] = useState<Studio | null | undefined>(undefined);
 
   useEffect(() => {
     fetch("/api/studio")
-      .then(async (res) => (res.ok ? ((await res.json()) as { reports: Partial<Record<StudioModuleId, ReportSummary>> }).reports : null))
-      .then(setReports)
-      .catch(() => {});
+      .then(async (res) => (res.ok ? ((await res.json()) as Studio) : null))
+      .then(setStudio)
+      .catch(() => setStudio(null));
   }, []);
 
-  const done = STUDIO_MODULES.filter((m) => reports?.[m.id]);
-  if (!done.length) return null;
-
-  return (
-    <section className="mb-10" aria-labelledby="saved-stylist">
-      <div className="mb-4 flex items-end justify-between gap-3">
-        <h2 id="saved-stylist" className="font-display text-[28px] leading-none text-[#121821]">
-          AI Stylist
-        </h2>
-        <Link href="/stylist" className="text-[12.5px] font-semibold text-[#121821] underline-offset-4 hover:underline">
+  if (studio === undefined) return <p className="text-[13px] text-[#5d6874]">Loading…</p>;
+  const reports = studio?.reports ?? {};
+  const picture = portraitUrl(studio?.portrait ?? null);
+  const done = STUDIO_MODULES.filter((m) => reports[m.id]);
+  if (!done.length) {
+    return (
+      <p className="rounded-[18px] bg-white px-5 py-6 text-[14px] text-[#4f5b66]">
+        No AI Stylist reports yet.{" "}
+        <Link href="/stylist" className="font-semibold text-[#121821] underline underline-offset-4">
           Open AI Stylist
         </Link>
-      </div>
+      </p>
+    );
+  }
+
+  return (
+    <section aria-label="AI Stylist reports">
       <ul className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
         {done.map((m) => {
           const r = reports![m.id]!;
           return (
             <li key={m.id}>
-              <Link href={`/stylist/${m.id}`} className="flex h-full flex-col rounded-[20px] p-5 transition-transform hover:-translate-y-0.5" style={{ background: m.tint }}>
+              <Link href={`/stylist/${m.id}`} className="flex h-full flex-col overflow-hidden rounded-[20px] transition-transform hover:-translate-y-0.5" style={{ background: m.tint }}>
+                <ModuleVisual module={m} portrait={picture} className="aspect-[4/3] w-full" />
+                <div className="flex flex-1 flex-col p-5">
                 <p className="flex items-center justify-between text-[11px] font-medium uppercase tracking-[2px]" style={{ color: m.accent }}>
                   <span className="flex items-center gap-1.5">
                     <PaletteIcon className="h-3.5 w-3.5" /> {m.label}
@@ -62,6 +72,7 @@ export function SavedStylist() {
                   ))}
                 </dl>
                 <span className="mt-4 text-[12.5px] font-semibold text-[#121821]">See your report →</span>
+                </div>
               </Link>
             </li>
           );
