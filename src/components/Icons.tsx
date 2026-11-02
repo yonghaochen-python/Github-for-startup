@@ -45,15 +45,6 @@ export const SparkleIcon = (p: IconProps) => (
   </Svg>
 );
 
-export const PaletteIcon = (p: IconProps) => (
-  <Svg {...p}>
-    <path d="M12 3.5a8.5 8.5 0 1 0 0 17c1.2 0 1.9-.8 1.9-1.8 0-.5-.2-.9-.5-1.3-.3-.4-.5-.8-.5-1.3 0-1 .8-1.8 1.8-1.8h2.1a3.7 3.7 0 0 0 3.7-3.7c0-3.9-3.8-7.1-8.5-7.1z" />
-    <circle cx="7.8" cy="11" r="1" />
-    <circle cx="10.5" cy="7.3" r="1" />
-    <circle cx="15" cy="7.6" r="1" />
-  </Svg>
-);
-
 export const MirrorIcon = (p: IconProps) => (
   <Svg {...p}>
     <rect x="6" y="2.5" width="12" height="16" rx="6" />

@@ -2,7 +2,7 @@ import { NextResponse } from "next/server";
 import { requireUser } from "@/lib/auth";
 import { requestIdFrom } from "@/lib/credits";
 import { isStudioModule } from "@/lib/studioModules";
-import { ReportError, deleteReport, generateReport, moduleReports } from "@/lib/studioReports";
+import { ReportError, deleteReport, generateReport, moduleReports, updateStyleLook } from "@/lib/studioReports";
 
 const noStore = { "cache-control": "no-store" };
 type Ctx = { params: Promise<{ module: string }> };
@@ -49,4 +49,16 @@ export async function DELETE(request: Request, ctx: Ctx) {
   const id = new URL(request.url).searchParams.get("id");
   if (!id || !(await deleteReport(user.id, id))) return NextResponse.json({ error: "Not found" }, { status: 404, headers: noStore });
   return NextResponse.json({ ok: true }, { headers: noStore });
+}
+
+/** Saves the Style report's closet look after a piece is swapped or taken out (?id=). */
+export async function PATCH(request: Request, ctx: Ctx) {
+  const { user, module, res } = await setUp(request, ctx);
+  if (!user) return res;
+  const id = new URL(request.url).searchParams.get("id");
+  const body = ((await request.json().catch(() => ({}))) ?? {}) as { pieces?: unknown };
+  if (module !== "style" || !id || !Array.isArray(body.pieces)) return NextResponse.json({ error: "Nothing to change." }, { status: 400, headers: noStore });
+  const report = await updateStyleLook(user.id, id, body.pieces);
+  if (!report) return NextResponse.json({ error: "Not found" }, { status: 404, headers: noStore });
+  return NextResponse.json({ report }, { headers: noStore });
 }

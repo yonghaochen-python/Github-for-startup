@@ -2,6 +2,9 @@ import { anthropic, OUTFIT_MODEL, firstText } from "@/lib/anthropic";
 import { isDevMode } from "@/lib/auth";
 import { SEASONS, isHex, type ColorExtra, type NotedSwatch, type Season } from "@/lib/studioColor";
 import type { StudioReportData } from "@/lib/studioModules";
+import { JEWELRY, type Jewelry, type JewelryRating, type StyleExtra } from "@/lib/studioStyle";
+import { LOOK_PROPERTIES, LOOK_RULES, cleanLook, inventoryOf, practiceLook, type StyledLook, type StyledPiece } from "@/lib/closetLook";
+import type { ClothingItem } from "@/generated/prisma/client";
 
 /**
  * The real Studio analyses: one AI call per module, reading the person's portrait and returning a structured report.
@@ -253,4 +256,219 @@ export async function analyzeColor(portrait: { bytes: Uint8Array; mediaType: str
   if (!answer.photoUsable) throw new PortraitUnusableError(answer.photoIssue || "Your face isn't clear enough in this portrait. Try a front-facing photo in daylight.");
   const { input_tokens, output_tokens } = message.usage;
   return { data: colorReport(answer), practice: false, inputTokens: input_tokens, outputTokens: output_tokens, costMicros: costMicros(input_tokens, output_tokens) };
+}
+
+/* ---------- Personal Style Guide ---------- */
+
+const STYLE_SCHEMA = {
+  type: "object",
+  properties: {
+    photoUsable: { type: "boolean", description: "False if no face is clearly visible" },
+    photoIssue: { type: "string", description: "When not usable: what to change, kindly (else empty)" },
+    headline: { type: "string", description: "A short editorial headline for their style direction, 3-6 words" },
+    summary: { type: "string", description: "Two or three sentences: the recommended direction and why" },
+    keywords: { type: "array", items: { type: "string" }, description: "4 to 6 aesthetic keywords (not personality)" },
+    directions: {
+      type: "array",
+      description: "2 to 4 style directions (e.g. Minimalist, Classic, Elegant, Casual chic, Modern, Romantic, Streetwear, Contemporary), best first",
+      items: {
+        type: "object",
+        properties: {
+          name: { type: "string" },
+          why: { type: "string", description: "One or two sentences, based on their coloring, the photo's styling and their closet, never on assumed personality" },
+          keywords: { type: "array", items: { type: "string" }, description: "3 keywords" },
+        },
+        required: ["name", "why", "keywords"],
+        additionalProperties: false,
+      },
+    },
+    topRecommended: { type: "array", items: swatchSchema, description: "3 top colors that harmonize best with their visible coloring" },
+    topNeutral: { type: "array", items: swatchSchema, description: "2 neutral top colors" },
+    topLessHarmonious: { type: "array", items: swatchSchema, description: "2 top colors that may create less harmony" },
+    colorNotes: { type: "string", description: "Two sentences on how these colors interact with their skin, hair and eyes" },
+    jewelry: {
+      type: "array",
+      description: "Every one of: pearl, jade, ruby, sapphire, diamond, gold, silver, rose_gold, each rated",
+      items: {
+        type: "object",
+        properties: {
+          material: { type: "string", enum: ["pearl", "jade", "ruby", "sapphire", "diamond", "gold", "silver", "rose_gold"] },
+          rating: { type: "string", enum: ["recommended", "alternative", "less"] },
+          why: { type: "string", description: "One short sentence on the material's color and finish with their coloring and direction" },
+        },
+        required: ["material", "rating", "why"],
+        additionalProperties: false,
+      },
+    },
+    jewelryDirection: { type: "string", description: "One or two sentences: metals, stones and scale" },
+    colorFamilies: { type: "string", description: "One sentence: the clothing color families to build on" },
+    aesthetic: { type: "string", description: "One sentence: the overall aesthetic" },
+    wardrobe: { type: "string", description: "Two sentences: the wardrobe styling direction (key pieces, silhouettes, textures)" },
+    look: { type: "object", properties: LOOK_PROPERTIES, required: ["pieces", "rationale"], additionalProperties: false },
+    confidence: { type: "string", enum: ["high", "medium", "low"] },
+    limits: { type: "string", description: "What may have affected the reading (lighting, filters, makeup), or empty" },
+  },
+  required: [
+    "photoUsable",
+    "photoIssue",
+    "headline",
+    "summary",
+    "keywords",
+    "directions",
+    "topRecommended",
+    "topNeutral",
+    "topLessHarmonious",
+    "colorNotes",
+    "jewelry",
+    "jewelryDirection",
+    "colorFamilies",
+    "aesthetic",
+    "wardrobe",
+    "look",
+    "confidence",
+    "limits",
+  ],
+  additionalProperties: false,
+};
+
+type StyleAnswer = {
+  photoUsable: boolean;
+  photoIssue: string;
+  headline: string;
+  summary: string;
+  keywords: string[];
+  directions: { name: string; why: string; keywords: string[] }[];
+  topRecommended: NotedSwatch[];
+  topNeutral: NotedSwatch[];
+  topLessHarmonious: NotedSwatch[];
+  colorNotes: string;
+  jewelry: { material: Jewelry; rating: JewelryRating; why: string }[];
+  jewelryDirection: string;
+  colorFamilies: string;
+  aesthetic: string;
+  wardrobe: string;
+  look: { pieces: StyledPiece[]; rationale: string };
+  confidence: "high" | "medium" | "low";
+  limits: string;
+};
+
+function styleReport(a: StyleAnswer, look: StyledLook | null): StudioReportData {
+  const extra: StyleExtra = {
+    directions: a.directions.slice(0, 4).map((d, i) => ({ name: d.name.slice(0, 30), primary: i === 0, why: d.why.slice(0, 300), keywords: d.keywords.slice(0, 3) })),
+    topColors: { recommended: clean(a.topRecommended, 3), neutral: clean(a.topNeutral, 2), lessHarmonious: clean(a.topLessHarmonious, 2) },
+    colorNotes: a.colorNotes.slice(0, 400),
+    // Every material once, in a fixed order.
+    jewelry: JEWELRY.flatMap((material) => {
+      const found = a.jewelry.find((j) => j.material === material);
+      return found ? [{ material, rating: found.rating, why: found.why.slice(0, 200) }] : [];
+    }),
+    jewelryDirection: a.jewelryDirection.slice(0, 300),
+    overall: { colorFamilies: a.colorFamilies.slice(0, 300), aesthetic: a.aesthetic.slice(0, 300), wardrobe: a.wardrobe.slice(0, 500) },
+    look,
+  };
+  return {
+    headline: a.headline.slice(0, 80),
+    summary: a.summary.slice(0, 600),
+    keywords: a.keywords.slice(0, 6).map((k) => k.slice(0, 30)),
+    palette: [...extra.topColors.recommended, ...extra.topColors.neutral],
+    sections: [
+      { title: "Color families", body: extra.overall.colorFamilies },
+      { title: "Wardrobe direction", body: extra.overall.wardrobe },
+    ],
+    confidence: a.confidence,
+    limits: a.limits.slice(0, 300),
+    extra,
+  };
+}
+
+const PRACTICE_STYLE: StyleAnswer = {
+  photoUsable: true,
+  photoIssue: "",
+  headline: "Modern classic, softly refined",
+  summary: "Practice report: no photo was read. With the real guide, this explains the style direction that suits your coloring and your closet.",
+  keywords: ["Minimal", "Refined", "Warm neutrals", "Clean lines"],
+  directions: [
+    { name: "Modern classic", why: "Practice text: why this direction suits you.", keywords: ["Tailored", "Timeless", "Clean"] },
+    { name: "Casual chic", why: "Practice text: a relaxed second direction.", keywords: ["Easy", "Polished", "Soft"] },
+    { name: "Minimalist", why: "Practice text: a pared-back option.", keywords: ["Simple", "Neutral", "Quiet"] },
+  ],
+  topRecommended: [
+    { name: "Camel", hex: "#C19A6B", note: "Practice" },
+    { name: "Deep teal", hex: "#0F7C7C", note: "Practice" },
+    { name: "Terracotta", hex: "#C8603F", note: "Practice" },
+  ],
+  topNeutral: [
+    { name: "Cream", hex: "#F3EBD3", note: "Practice" },
+    { name: "Taupe", hex: "#8B7D6B", note: "Practice" },
+  ],
+  topLessHarmonious: [
+    { name: "Icy blue", hex: "#D6E6F2", note: "Practice" },
+    { name: "Fuchsia", hex: "#D1349B", note: "Practice" },
+  ],
+  colorNotes: "Practice text: how these colors interact with your skin, hair and eyes.",
+  jewelry: [
+    { material: "pearl", rating: "recommended", why: "Practice text." },
+    { material: "gold", rating: "recommended", why: "Practice text." },
+    { material: "jade", rating: "alternative", why: "Practice text." },
+    { material: "rose_gold", rating: "alternative", why: "Practice text." },
+    { material: "ruby", rating: "alternative", why: "Practice text." },
+    { material: "sapphire", rating: "less", why: "Practice text." },
+    { material: "diamond", rating: "alternative", why: "Practice text." },
+    { material: "silver", rating: "less", why: "Practice text." },
+  ],
+  jewelryDirection: "Practice text: metals, stones and scale.",
+  colorFamilies: "Practice text: the color families to build on.",
+  aesthetic: "Practice text: the overall aesthetic.",
+  wardrobe: "Practice text: key pieces, silhouettes and textures.",
+  look: { pieces: [], rationale: "" },
+  confidence: "medium",
+  limits: "Practice data: no photo was read.",
+};
+
+/** Personal Style Guide of the portrait, with a look from the person's closet when they have one. */
+export async function analyzeStyle(portrait: { bytes: Uint8Array; mediaType: string }, closet: ClothingItem[]): Promise<Analysis> {
+  if (inPracticeMode()) {
+    await new Promise((resolve) => setTimeout(resolve, 1200));
+    return { data: styleReport(PRACTICE_STYLE, closet.length >= 2 ? practiceLook(closet, null) : null), practice: true };
+  }
+
+  const message = await anthropic.messages.create({
+    model: OUTFIT_MODEL,
+    max_tokens: 10000,
+    output_config: { format: { type: "json_schema", schema: STYLE_SCHEMA } },
+    messages: [
+      {
+        role: "user",
+        content: [
+          {
+            type: "image",
+            source: { type: "base64", media_type: portrait.mediaType as "image/jpeg", data: Buffer.from(portrait.bytes).toString("base64") },
+          },
+          {
+            type: "text",
+            text: [
+              RESPECT,
+              "Never assume personality traits from appearance. Base style directions on their visible coloring, how they",
+              "are styled in the photo, and the clothes they already own (their closet shows their preferences).",
+              "",
+              "Write a personal style guide: style directions, top colors compared (recommended, neutral, less harmonious,",
+              "with accurate HEX codes), every jewelry material rated (recommended, alternative or less preferred) with why,",
+              "and an overall summary.",
+              "",
+              closet.length >= 2 ? LOOK_RULES : "Their closet has fewer than two pieces: return an empty pieces list and an empty rationale.",
+              "",
+              "Their closet, as JSON:",
+              JSON.stringify(inventoryOf(closet)),
+            ].join("\n"),
+          },
+        ],
+      },
+    ],
+  });
+
+  const answer = JSON.parse(firstText(message)) as StyleAnswer;
+  if (!answer.photoUsable) throw new PortraitUnusableError(answer.photoIssue || "Your face isn't clear enough in this portrait. Try a front-facing photo in daylight.");
+  const look = closet.length >= 2 ? cleanLook(answer.look, closet, null) : null;
+  const { input_tokens, output_tokens } = message.usage;
+  return { data: styleReport(answer, look), practice: false, inputTokens: input_tokens, outputTokens: output_tokens, costMicros: costMicros(input_tokens, output_tokens) };
 }

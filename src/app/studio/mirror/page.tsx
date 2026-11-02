@@ -92,7 +92,7 @@ export default function StudioPage() {
   const [pieces, setPieces] = useState<ClothingItem[]>([]);
   const [look, setLook] = useState<Look>(EMPTY_LOOK);
   // Which look to start from: the one asked for, else the latest try-on.
-  // A look sent from the Stylist (?items=id,id,…): those closet pieces are worn to start with.
+  // A look sent from Studio's Style Guide (?items=id,id,…): those closet pieces are worn to start with.
   const [startItems] = useState(() => (fromShop ? [] : (searchParams.get("items") ?? "").split(",").filter(Boolean).slice(0, 8)));
   const [startId] = useState(() => (fromShop || startItems.length ? null : searchParams.get("outfit") || user?.look?.outfitId || null));
   const [loadingLook, setLoadingLook] = useState(Boolean(startId));
@@ -209,7 +209,7 @@ export default function StudioPage() {
     // eslint-disable-next-line react-hooks/exhaustive-deps -- load once per visit
   }, []);
 
-  // Wear the Stylist's look once the closet has loaded.
+  // Wear that look once the closet has loaded.
   const wornStart = useRef(false);
   useEffect(() => {
     if (wornStart.current || !closet || !startItems.length) return;

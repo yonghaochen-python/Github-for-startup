@@ -4,16 +4,15 @@ import { useEffect, useState } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useAuth } from "@/components/AuthProvider";
-import { BagIcon, BookmarkIcon, ClosetIcon, HomeIcon, PaletteIcon, SparkleIcon, UserIcon } from "@/components/Icons";
+import { BagIcon, BookmarkIcon, ClosetIcon, HomeIcon, SparkleIcon, UserIcon } from "@/components/Icons";
 import { PricingSheet } from "@/components/Pricing";
 
-type Section = "home" | "shop" | "closet" | "stylist" | "studio" | "saved" | "profile";
+type Section = "home" | "shop" | "closet" | "studio" | "saved" | "profile";
 
 const LINKS: { section: Section; href: string; label: string; short: string; Icon: typeof HomeIcon }[] = [
   { section: "home", href: "/", label: "Home", short: "Home", Icon: HomeIcon },
   { section: "shop", href: "/shop", label: "Shopping", short: "Shop", Icon: BagIcon },
   { section: "closet", href: "/closet", label: "My Closet", short: "Closet", Icon: ClosetIcon },
-  { section: "stylist", href: "/stylist", label: "Stylist", short: "Stylist", Icon: PaletteIcon },
   { section: "studio", href: "/studio", label: "Studio", short: "Studio", Icon: SparkleIcon },
   { section: "saved", href: "/outfits/saved", label: "Saved Looks", short: "Saved", Icon: BookmarkIcon },
   { section: "profile", href: "/profile", label: "Profile", short: "Profile", Icon: UserIcon },
@@ -25,7 +24,6 @@ function sectionFor(pathname: string | null): Section | null {
   if (p === "/") return "home";
   if (p.startsWith("/shop")) return "shop";
   if (p.startsWith("/closet")) return "closet";
-  if (p.startsWith("/stylist")) return "stylist";
   if (p.startsWith("/outfits/saved")) return "saved";
   if (p.startsWith("/studio") || p.startsWith("/outfits") || p === "/try-on") return "studio";
   if (p.startsWith("/profile")) return "profile";

@@ -8,6 +8,8 @@ import { CreditsLine, refreshCredits } from "@/components/Credits";
 import { ErrorNote, PageShell, btnPrimary, btnSecondary, btnText } from "@/components/ui";
 import { ColorReport } from "@/components/studio/ColorReport";
 import { ModuleVisual } from "@/components/studio/ModuleVisual";
+import { StyleReport } from "@/components/studio/StyleReport";
+import type { StyledPiece } from "@/lib/closetLook";
 import { drawReportCard } from "@/components/studio/reportCard";
 import { portraitUrl, useStudio } from "@/components/studio/useStudio";
 import { isStudioModule, portraitReadiness, studioModule, type ReportSummary, type StudioModule, type StudioReportData } from "@/lib/studioModules";
@@ -211,6 +213,22 @@ export default function StudioModulePage() {
     }
   }
 
+  /** Saves the closet look with a piece swapped or taken out (shown straight away). */
+  async function changeLook(pieces: StyledPiece[]) {
+    if (!report || !loaded) return;
+    const extra = { ...(report.data.extra ?? {}), look: { ...(report.data.extra?.look as object), pieces } };
+    setLoaded({ ...loaded, report: { ...report, data: { ...report.data, extra } } });
+    const res = await fetch(`/api/studio/reports/${id}?id=${report.id}`, {
+      method: "PATCH",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({ pieces }),
+    }).catch(() => null);
+    if (!res?.ok) {
+      setError("Couldn't save that change. Please try again.");
+      await load(report.id);
+    }
+  }
+
   async function deleteThis() {
     if (!report || !confirm("Delete this report? This can't be undone.")) return;
     const res = await fetch(`/api/studio/reports/${id}?id=${report.id}`, { method: "DELETE" });
@@ -290,8 +308,8 @@ export default function StudioModulePage() {
                       <CreditsLine kind="photo" />
                     </div>
                     <p className="mt-2 text-[12px] leading-relaxed text-[#5d6874]">
-                      {mod.id === "color"
-                        ? "Uses one photo credit, only if your report is made. Your portrait goes to our AI provider to read your coloring; the report is saved to open again for free."
+                      {mod.id === "color" || mod.id === "style"
+                        ? "Uses one photo credit, only if your report is made. Your portrait goes to our AI provider for this analysis; the report is saved to open again for free."
                         : "Practice mode for now: no AI is used and nothing is counted."}
                     </p>
                   </>
@@ -318,6 +336,8 @@ export default function StudioModulePage() {
             </div>
             {mod.id === "color" && report.data.extra ? (
               <ColorReport module={mod} data={report.data} portrait={reportPicture} createdAt={report.createdAt} />
+            ) : mod.id === "style" && report.data.extra ? (
+              <StyleReport module={mod} data={report.data} portrait={reportPicture} createdAt={report.createdAt} onLookChange={changeLook} />
             ) : (
               <ReportView module={mod} report={report} portrait={reportPicture} />
             )}

@@ -1,7 +1,8 @@
 import { prisma } from "@/lib/prisma";
 import { loadPortrait } from "@/lib/portrait";
 import { CreditError, withCredit } from "@/lib/credits";
-import { PortraitUnusableError, analyzeColor, type Analysis } from "@/lib/studioAnalysis";
+import { PortraitUnusableError, analyzeColor, analyzeStyle, type Analysis } from "@/lib/studioAnalysis";
+import type { StyledLook, StyledPiece } from "@/lib/closetLook";
 import { type ReportSummary, type StudioModuleId, type StudioReportData } from "@/lib/studioModules";
 
 /**
@@ -105,7 +106,7 @@ export async function generateReport(account: { id: string; role: string }, modu
 
   try {
     // One photo credit for a real analysis, counted only when a real report comes back.
-    const made = await withCredit(account, "photo", `studio-${requestId}`, () => makeReport(module, portrait), (r) => !r.practice);
+    const made = await withCredit(account, "photo", `studio-${requestId}`, () => makeReport(userId, module, portrait), (r) => !r.practice);
     const done = await prisma.studioReport.update({
       where: { id: row.id },
       data: {
@@ -148,7 +149,7 @@ export async function deleteReport(userId: string, id: string): Promise<boolean>
 
 /* ---------- Practice data (Stage 1: no AI, no cost) ---------- */
 
-const PRACTICE: Record<Exclude<StudioModuleId, "color">, StudioReportData> = {
+const PRACTICE: Record<"makeup" | "hair", StudioReportData> = {
   makeup: {
     headline: "Fresh, rosy and softly defined",
     summary: "Practice report. The real guide describes your features respectfully and suggests shades and finishes that suit them.",
@@ -185,29 +186,43 @@ const PRACTICE: Record<Exclude<StudioModuleId, "color">, StudioReportData> = {
     confidence: "medium",
     limits: "Practice data: no photo was read.",
   },
-  style: {
-    headline: "Modern classic, softly refined",
-    summary: "Practice report. The real guide suggests style directions, compares top colors on your photo, and covers jewelry.",
-    keywords: ["Minimalist", "Classic", "Elegant"],
-    palette: [
-      { name: "Navy", hex: "#1F2A44" },
-      { name: "Ivory", hex: "#F6F1E1" },
-      { name: "Camel", hex: "#C19A6B" },
-      { name: "Burgundy", hex: "#7A1C2E" },
-      { name: "Gold", hex: "#C9A227" },
-    ],
-    sections: [
-      { title: "Your direction", body: "Practice text. Style directions and aesthetic keywords, and why." },
-      { title: "Jewelry", body: "Practice text. Pearls, jade, gold, silver and more, compared." },
-    ],
-    confidence: "medium",
-    limits: "Practice data: no photo was read.",
-  },
 };
 
-async function makeReport(module: StudioModuleId, portrait: { bytes: Uint8Array; mediaType: string }): Promise<Analysis> {
+async function makeReport(userId: string, module: StudioModuleId, portrait: { bytes: Uint8Array; mediaType: string }): Promise<Analysis> {
   if (module === "color") return analyzeColor(portrait);
+  if (module === "style") {
+    const closet = await prisma.clothingItem.findMany({ where: { userId }, orderBy: { createdAt: "desc" } });
+    return analyzeStyle(portrait, closet);
+  }
   // Not built yet: practice data, after a short pause so the loading state can be seen.
   await new Promise((resolve) => setTimeout(resolve, 1200));
-  return { data: PRACTICE[module], practice: true };
+  return { data: PRACTICE[module as "makeup" | "hair"], practice: true };
+}
+
+/**
+ * Saves the Style report's closet look after a piece is swapped or taken out. The page sends the look as it now
+ * stands; only this person's own pieces are kept, and alternates must be the same kind.
+ */
+export async function updateStyleLook(userId: string, id: string, sent: unknown[]): Promise<StoredReport | null> {
+  const row = await prisma.studioReport.findFirst({ where: { id, userId, module: "style", status: "ready" } });
+  const data = row ? parse(row.data) : null;
+  const extra = data?.extra as { look?: StyledLook | null } | undefined;
+  if (!row || !data || !extra?.look) return null;
+
+  const pieces = sent.slice(0, 8).filter((p): p is StyledPiece => typeof (p as StyledPiece)?.itemId === "string" && Array.isArray((p as StyledPiece)?.alternates));
+  const ids = [...new Set(pieces.flatMap((p) => [p.itemId, ...p.alternates]))].filter((v) => typeof v === "string");
+  const owned = await prisma.clothingItem.findMany({ where: { userId, id: { in: ids } }, select: { id: true, category: true } });
+  const category = new Map(owned.map((i) => [i.id, i.category]));
+  const look: StyledLook = {
+    ...extra.look,
+    pieces: pieces
+      .filter((p) => category.has(p.itemId))
+      .map((p) => ({
+        itemId: p.itemId,
+        why: typeof p.why === "string" ? p.why.slice(0, 240) : "",
+        alternates: [...new Set(p.alternates)].filter((a) => a !== p.itemId && category.get(a) === category.get(p.itemId)).slice(0, 4),
+      })),
+  };
+  const updated = await prisma.studioReport.update({ where: { id }, data: { data: JSON.stringify({ ...data, extra: { ...extra, look } }) } });
+  return toStored(updated);
 }

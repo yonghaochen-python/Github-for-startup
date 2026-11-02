@@ -98,7 +98,8 @@ export async function drawReportCard(module: StudioModule, data: StudioReportDat
   // Title and headline, left side.
   ctx.fillStyle = INK;
   ctx.font = `400 34px ${serif}`;
-  const subtype = (data.extra as { primary?: { subtype?: string } } | undefined)?.primary?.subtype;
+  const extra = data.extra as { primary?: { subtype?: string }; directions?: { name?: string }[] } | undefined;
+  const subtype = extra?.primary?.subtype ?? extra?.directions?.[0]?.name;
   ctx.fillText(subtype ?? module.title, 80, 200);
   ctx.font = `400 76px ${serif}`;
   let y = 300;
