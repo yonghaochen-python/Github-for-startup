@@ -108,10 +108,10 @@ export type PortraitInfo = { version: string; checks: PortraitChecks | null };
 /** Whether a portrait is good enough to analyze, and if not, what to change. */
 export function portraitReadiness(checks: PortraitChecks | null): { ready: boolean; note: string } {
   if (!checks) return { ready: true, note: "Ready for analysis" };
-  if (Math.min(checks.width, checks.height) < 500) return { ready: false, note: "This photo is quite small. A sharper one gives better results." };
-  if (checks.brightness < 60) return { ready: false, note: "This photo is quite dark. Try daylight, facing a window." };
-  if (checks.brightness > 225) return { ready: false, note: "This photo is very bright. Try softer light." };
-  if (checks.face === "none") return { ready: false, note: "We couldn't find a face. Try a front-facing photo." };
-  if (checks.face === "small") return { ready: false, note: "Your face is small in this photo. A head-and-shoulders photo works best." };
+  if (Math.min(checks.width, checks.height) < 500) return { ready: false, note: "This photo is low resolution. Try a sharper one." };
+  if (checks.brightness < 60) return { ready: false, note: "This photo is dark. Try daylight." };
+  if (checks.brightness > 225) return { ready: false, note: "This photo is too bright. Try softer light." };
+  if (checks.face === "none") return { ready: false, note: "No face found. Try a front-facing photo." };
+  if (checks.face === "small") return { ready: false, note: "Your face is small here. Try a head-and-shoulders photo." };
   return { ready: true, note: "Ready for analysis" };
 }

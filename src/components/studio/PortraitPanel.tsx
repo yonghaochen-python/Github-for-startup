@@ -16,12 +16,10 @@ export function PortraitControls({
   portrait,
   savePortrait,
   removePortrait,
-  showTips = true,
 }: {
   portrait: PortraitInfo | null;
   savePortrait: (photo: Blob, fromTryOnPhoto?: boolean) => Promise<void>;
   removePortrait?: () => Promise<void>;
-  showTips?: boolean;
 }) {
   const { user } = useAuth();
   const [saving, setSaving] = useState(false);
@@ -71,24 +69,15 @@ export function PortraitControls({
           if (file) save(file);
         }}
       />
-      {portrait && !readiness.ready ? (
-        <div className="rounded-[14px] bg-amber-50 px-4 py-3 text-[13px] text-amber-900">
-          <p className="font-semibold">This photo may not give good results.</p>
-          <p className="mt-0.5">{readiness.note}</p>
-        </div>
-      ) : (
-        <p className="flex items-center gap-2 text-[13.5px] font-medium text-[#121821]">
-          <span className={`h-2 w-2 rounded-full ${portrait ? "bg-emerald-500" : "bg-[#c3cad1]"}`} />
-          {portrait ? "Your photo is ready" : "Add a photo to begin"}
-        </p>
-      )}
-      <div className="flex flex-wrap items-center gap-3">
+      {/* Only a problem with the photo is worth a line; a good photo needs no words. */}
+      {portrait && !readiness.ready && <p className="text-[13px] text-amber-800">⚠ {readiness.note}</p>}
+      <div className="flex flex-wrap items-center gap-x-4 gap-y-2">
         <button onClick={() => fileInput.current?.click()} disabled={saving} className={portrait && readiness.ready ? btnSecondary : btnPrimary}>
-          <CameraIcon className="h-4 w-4" /> {saving ? "Checking your photo…" : portrait ? "Change photo" : "Upload a photo"}
+          <CameraIcon className="h-4 w-4" /> {saving ? "Checking…" : portrait ? "Change photo" : "Upload a photo"}
         </button>
-        {user?.photoVersion && !saving && (
+        {!portrait && user?.photoVersion && !saving && (
           <button onClick={useTryOnPhoto} className={btnText}>
-            {portrait ? "Use my try-on photo" : "Use my try-on photo instead"}
+            Use my try-on photo
           </button>
         )}
         {portrait && removePortrait && (
@@ -97,7 +86,8 @@ export function PortraitControls({
           </button>
         )}
       </div>
-      {showTips && (
+      {/* Tips only before there's a photo. */}
+      {!portrait && (
         <ul className="flex flex-wrap gap-x-4 gap-y-1 text-[12px] text-[#5d6874]">
           {PHOTO_TIPS.map((t) => (
             <li key={t} className="flex items-center gap-1.5">

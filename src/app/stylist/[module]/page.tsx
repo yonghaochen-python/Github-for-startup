@@ -16,7 +16,7 @@ import { StyleReport } from "@/components/studio/StyleReport";
 import type { StyledPiece } from "@/lib/closetLook";
 import { drawReportCard } from "@/components/studio/reportCard";
 import { portraitUrl, useStudio } from "@/components/studio/useStudio";
-import { isStudioModule, portraitReadiness, studioModule, type ReportSummary, type StudioModule, type StudioReportData } from "@/lib/studioModules";
+import { isStudioModule, studioModule, type ReportSummary, type StudioModule, type StudioReportData } from "@/lib/studioModules";
 
 type Report = { id: string; data: StudioReportData; practice: boolean; createdAt: string; portraitVersion: string | null };
 type Loaded = { report: Report | null; history: ReportSummary[]; generating: boolean };
@@ -153,7 +153,6 @@ export default function StudioModulePage() {
 
   const portrait = state?.portrait ?? null;
   const picture = portraitUrl(portrait);
-  const readiness = portraitReadiness(portrait?.checks ?? null);
   const report = loaded?.report ?? null;
   const reportPicture = picture;
   // A report made from an earlier photo still opens; it says so and offers a new one.
@@ -319,7 +318,7 @@ export default function StudioModulePage() {
                     )}
                   </div>
                   <div className="min-w-0 flex-1">
-                    <PortraitControls portrait={portrait} savePortrait={savePortrait} showTips={!portrait || !readiness.ready} />
+                    <PortraitControls portrait={portrait} savePortrait={savePortrait} />
                   </div>
                 </div>
                 {portrait && (
