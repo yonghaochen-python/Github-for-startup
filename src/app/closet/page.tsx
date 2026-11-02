@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useRef, useState } from "react";
+import { fetchWithRetry } from "@/lib/fetchRetry";
 import Image from "next/image";
 import Link from "next/link";
 import { useSearchParams } from "next/navigation";
@@ -97,7 +98,7 @@ export default function ClosetPage() {
 
   async function loadItems() {
     try {
-      const res = await fetch("/api/closet/items");
+      const res = await fetchWithRetry("/api/closet/items");
       if (!res.ok) throw new Error("Failed to load closet");
       const data = (await res.json()) as { items?: ClothingItem[] };
       setItems(data.items ?? []);
@@ -117,6 +118,18 @@ export default function ClosetPage() {
       .then((data) => setAiEnabled(Boolean(data.aiEnabled)))
       .catch(() => {});
   }, []);
+
+  // If the closet couldn't load, try again by itself when the connection comes back or the tab is opened again.
+  useEffect(() => {
+    if (!loadError) return;
+    const retry = () => document.visibilityState === "visible" && loadItems();
+    window.addEventListener("online", retry);
+    document.addEventListener("visibilitychange", retry);
+    return () => {
+      window.removeEventListener("online", retry);
+      document.removeEventListener("visibilitychange", retry);
+    };
+  }, [loadError]);
 
   const filteredItems = useMemo(() => {
     const q = search.trim().toLowerCase();
@@ -299,7 +312,7 @@ export default function ClosetPage() {
           <InlineLoading label="Loading your closet…" />
         ) : loadError ? (
           <div className="flex flex-col items-start gap-3">
-            <ErrorNote message="Couldn't load your closet. Please try again." />
+            <ErrorNote message="Couldn't load your closet. Check your connection and try again." />
             <button onClick={() => { setLoading(true); loadItems(); }} className={btnSecondary}>
               Try again
             </button>

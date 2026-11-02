@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { fetchWithRetry } from "@/lib/fetchRetry";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import Link from "next/link";
 import { byLatestTryOn, type Outfit } from "@/components/OutfitCard";
@@ -35,7 +36,7 @@ export default function SavedLooksPage() {
 
   async function loadOutfits() {
     try {
-      const res = await fetch("/api/outfits");
+      const res = await fetchWithRetry("/api/outfits");
       if (!res.ok) throw new Error("Failed to load outfits");
       const data = (await res.json()) as { outfits?: Outfit[] };
       setOutfits(data.outfits ?? []);

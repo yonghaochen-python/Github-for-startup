@@ -1,4 +1,5 @@
 import { prisma } from "@/lib/prisma";
+import { withRetry } from "@/lib/dbRetry";
 import { SAMPLE_CLOSET } from "@/lib/sampleCloset";
 
 const SESSION_COOKIE = "session";
@@ -139,7 +140,7 @@ export async function getCurrentUser(request: Request): Promise<SessionUser | nu
   const token = readSessionToken(request);
   if (token) {
     const tokenHash = await sha256Hex(token);
-    const session = await prisma.session.findUnique({ where: { tokenHash }, include: { user: true } });
+    const session = await withRetry(() => prisma.session.findUnique({ where: { tokenHash }, include: { user: true } }));
     if (session && session.expiresAt >= new Date()) {
       await touchActivity(session.user.id, session.user.lastActiveAt);
       return {
@@ -168,12 +169,28 @@ async function touchActivity(userId: string, lastActiveAt: Date | null): Promise
 }
 
 /**
+ * The signed-in user, or a clean "try again" Response (503) when the database can't be reached even after retries,
+ * so a database hiccup never looks like being signed out or crashes the request.
+ */
+async function currentUserOr503(request: Request): Promise<SessionUser | null> {
+  try {
+    return await getCurrentUser(request);
+  } catch (err) {
+    console.error("Couldn't check the session:", err instanceof Error ? err.message : err);
+    throw new Response(JSON.stringify({ error: "Virm is having trouble connecting. Please try again in a moment.", code: "unavailable" }), {
+      status: 503,
+      headers: { "content-type": "application/json", "cache-control": "no-store", "retry-after": "2" },
+    });
+  }
+}
+
+/**
  * Returns the signed-in admin, or throws a 404 Response. Admin is a role stored on the account and only ever set
  * directly in the database, so no request can grant it. Non-admins (and signed-out visitors) get "not found", so
  * they can't tell the admin area exists.
  */
 export async function requireAdmin(request: Request): Promise<SessionUser> {
-  const user = await getCurrentUser(request);
+  const user = await currentUserOr503(request);
   if (!user || user.role !== "admin") {
     throw new Response(JSON.stringify({ error: "Not found." }), {
       status: 404,
@@ -185,7 +202,7 @@ export async function requireAdmin(request: Request): Promise<SessionUser> {
 
 /** Returns the signed-in user, or throws a 401 Response for the route handler to return directly. */
 export async function requireUser(request: Request): Promise<SessionUser> {
-  const user = await getCurrentUser(request);
+  const user = await currentUserOr503(request);
   if (!user) {
     throw new Response(JSON.stringify({ error: "Not signed in." }), {
       status: 401,

@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useRef, useState } from "react";
+import { fetchWithRetry } from "@/lib/fetchRetry";
 import Image from "next/image";
 import Link from "next/link";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
@@ -186,7 +187,7 @@ export default function StudioPage() {
   // The closet, the try-on settings, and the starting look.
   useEffect(() => {
     let ignore = false;
-    fetch("/api/closet/items")
+    fetchWithRetry("/api/closet/items")
       .then(async (res) => (res.ok ? (((await res.json()) as { items?: ClothingItem[] }).items ?? []) : []))
       .then((items) => !ignore && setCloset(items))
       .catch(() => !ignore && setCloset([]));

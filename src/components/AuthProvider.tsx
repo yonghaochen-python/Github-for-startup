@@ -5,6 +5,7 @@ import { usePathname, useRouter } from "next/navigation";
 import { LoadingScreen } from "@/components/LoadingScreen";
 import { useToast } from "@/components/Toast";
 import { afterMinDelay } from "@/lib/minDelay";
+import { fetchWithRetry } from "@/lib/fetchRetry";
 
 /**
  * photoVersion is set when the person has a saved try-on photo (it changes whenever the photo is replaced).
@@ -21,7 +22,7 @@ export type CurrentUser = {
   /** Only shows/hides the Admin link; every admin page and request is checked again on the server. */
   isAdmin?: boolean;
 };
-type AuthStatus = "loading" | "signedOut" | "signedIn";
+type AuthStatus = "loading" | "signedOut" | "signedIn" | "unavailable";
 
 type AuthContextValue = {
   status: AuthStatus;
@@ -43,14 +44,19 @@ export function useAuth(): AuthContextValue {
 
 const PUBLIC_PATHS = ["/", "/login", "/reset-password", "/about", "/how-it-works", "/pricing", "/privacy", "/terms", "/contact", "/try"];
 
-async function fetchCurrentUser(): Promise<CurrentUser | null> {
+/**
+ * Who's signed in. A connection problem or server hiccup is tried again; if Virm still can't be reached the answer
+ * is "unavailable" (never "signed out"), so a short outage doesn't send anyone to the login page.
+ */
+async function fetchCurrentUser(): Promise<CurrentUser | null | "unavailable"> {
   try {
-    const res = await fetch("/api/auth/me", { cache: "no-store" });
+    const res = await fetchWithRetry("/api/auth/me", { cache: "no-store" });
+    if (res.status >= 500) return "unavailable";
     if (!res.ok) return null;
     const data = (await res.json()) as { user: CurrentUser | null };
     return data.user;
   } catch {
-    return null;
+    return "unavailable";
   }
 }
 
@@ -71,17 +77,31 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [sessionKey, setSessionKey] = useState(0);
   const justLoggedOut = useRef(false);
 
+  const [checkCount, setCheckCount] = useState(0);
   useEffect(() => {
     let ignore = false;
     fetchCurrentUser().then((u) => {
       if (ignore) return;
+      if (u === "unavailable") return setStatus("unavailable");
       setUser(u);
       setStatus(u ? "signedIn" : "signedOut");
     });
     return () => {
       ignore = true;
     };
-  }, []);
+  }, [checkCount]);
+
+  // Can't reach Virm: check again by itself when the connection comes back, or after a few seconds.
+  useEffect(() => {
+    if (status !== "unavailable") return;
+    const retry = () => setCheckCount((n) => n + 1);
+    window.addEventListener("online", retry);
+    const timer = setTimeout(retry, 10_000);
+    return () => {
+      window.removeEventListener("online", retry);
+      clearTimeout(timer);
+    };
+  }, [status]);
 
   const completeLogin = useCallback(
     (message: string) => {
@@ -90,6 +110,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       router.replace("/");
       fetchCurrentUser().then((u) => {
         afterMinDelay(startedAt, 1400, () => {
+          if (u === "unavailable") return setStatus("unavailable");
           setUser(u);
           setSessionKey((k) => k + 1);
           setStatus(u ? "signedIn" : "signedOut");
@@ -114,7 +135,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   const refreshUser = useCallback(async () => {
     const u = await fetchCurrentUser();
-    if (u) setUser(u);
+    if (u && u !== "unavailable") setUser(u);
   }, []);
 
   // A shared "Share looks" link opens for anyone who has it.
@@ -138,6 +159,17 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     <AuthContext.Provider value={value}>
       {status === "loading" ? (
         <LoadingScreen />
+      ) : status === "unavailable" ? (
+        <div role="alert" className="flex min-h-[60vh] flex-1 flex-col items-center justify-center gap-4 px-6 text-center">
+          <p className="font-display text-[32px] leading-tight text-[#121821]">Can&apos;t reach Virm right now</p>
+          <p className="max-w-sm text-[14px] text-[#4f5b66]">Check your connection. This page tries again by itself.</p>
+          <button
+            onClick={() => setCheckCount((n) => n + 1)}
+            className="rounded-full bg-[#121821] px-6 py-2.5 text-[13.5px] font-medium text-white hover:bg-[#2a3542]"
+          >
+            Try again
+          </button>
+        </div>
       ) : status === "signedOut" && !isPublicPath ? null : (
         <Fragment key={sessionKey}>{children}</Fragment>
       )}
