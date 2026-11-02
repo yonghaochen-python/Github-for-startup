@@ -26,43 +26,32 @@ function ActionBar({ children }: { children: React.ReactNode }) {
 /** Photo frame: 3:4, as large as fits above the action bar and tab bar on a phone. */
 const frameStyle = { height: "min(56dvh, calc((100vw - 2.5rem) * 4 / 3), 640px)", aspectRatio: "3 / 4" } as const;
 
+const POSE_TIPS = ["Face forward", "Arms down at your sides", "Fitted or shorter clothes", "Head to feet in the photo", "Even light, plain background"];
+
 /**
- * The pose to aim for, drawn inside the photo box: a person standing straight and facing forward, arms down at the
- * sides and a little apart, in fitted, shorter clothes (so the body's shape shows), with "head" and "feet" lines and
- * the tips placed around them.
+ * The pose to aim for, inside the photo box: one clean figure standing straight and facing forward, arms down and
+ * a little apart, in fitted clothes so the body's shape shows, with the tips in plain words underneath.
  */
 function PoseGuide({ label }: { label: string }) {
-  const tip = "absolute flex items-center gap-1 whitespace-nowrap rounded-full bg-white/95 px-2 py-0.5 text-[10.5px] font-medium text-[#2b3540] shadow-[0_1px_4px_rgba(18,24,33,0.12)]";
-  const check = <span aria-hidden className="text-[9px] text-emerald-600">✓</span>;
   return (
-    <>
-      {/* Head and feet lines: the whole body fits between them. */}
-      <span aria-hidden className="absolute inset-x-5 top-[9%] border-t border-dashed border-[#9aa6ad]" />
-      <span aria-hidden className="absolute inset-x-5 top-[83%] border-t border-dashed border-[#9aa6ad]" />
-      <svg viewBox="0 0 120 300" aria-hidden className="absolute left-1/2 top-[9%] h-[74%] -translate-x-1/2">
-        {/* Arms, down at the sides and a little apart */}
-        <path d="M37 64 L29 112 L26 160" fill="none" stroke="#c9d2d8" strokeWidth="10" strokeLinecap="round" strokeLinejoin="round" />
-        <path d="M83 64 L91 112 L94 160" fill="none" stroke="#c9d2d8" strokeWidth="10" strokeLinecap="round" strokeLinejoin="round" />
-        {/* Legs */}
-        <path d="M50 150 L49 278" fill="none" stroke="#c9d2d8" strokeWidth="15" strokeLinecap="round" />
-        <path d="M70 150 L71 278" fill="none" stroke="#c9d2d8" strokeWidth="15" strokeLinecap="round" />
-        <ellipse cx="46" cy="290" rx="9" ry="5" fill="#9aa6ad" />
-        <ellipse cx="74" cy="290" rx="9" ry="5" fill="#9aa6ad" />
-        {/* Head, facing forward */}
-        <rect x="54" y="44" width="12" height="14" rx="4" fill="#c9d2d8" />
-        <ellipse cx="60" cy="28" rx="15" ry="18" fill="#c9d2d8" />
-        <path d="M54 26 h0.1 M66 26 h0.1" stroke="#7e8a91" strokeWidth="3" strokeLinecap="round" />
-        {/* A fitted top and fitted shorts, so the shape shows */}
-        <path d="M34 60 Q60 54 86 60 L80 98 Q76 120 77 140 L43 140 Q44 120 40 98 Z" fill="#7e8a91" />
-        <path d="M42 138 L78 138 L80 186 L63 186 L60 160 L57 186 L40 186 Z" fill="#5d6874" />
+    <span className="flex h-full flex-col items-center px-5 pb-4 pt-6">
+      <svg viewBox="0 0 120 300" aria-hidden className="min-h-0 flex-1">
+        <ellipse cx="60" cy="26" rx="13" ry="16" fill="#aeb9c0" />
+        <path
+          d="M53 42 L67 42 L68 52 Q84 55 87 64 L92 130 Q92 138 87 138 L82 82 L80 140 L84 284 L68 284 L61 170 L59 170 L52 284 L36 284 L40 140 L38 82 L33 138 Q28 138 28 130 L33 64 Q36 55 52 52 Z"
+          fill="#aeb9c0"
+        />
       </svg>
-      <span className={`${tip} left-1/2 top-[2.5%] -translate-x-1/2`}>{check} Head to feet in the photo</span>
-      <span className={`${tip} left-[4%] top-[17%]`}>{check} Face forward</span>
-      <span className={`${tip} right-[4%] top-[38%]`}>{check} Arms down</span>
-      <span className={`${tip} left-[4%] top-[52%]`}>{check} Fitted or shorter clothes</span>
-      <span className={`${tip} left-1/2 top-[86%] -translate-x-1/2`}>{check} Even light, plain background</span>
-      <span className="absolute inset-x-0 bottom-[3%] text-center text-[12px] font-semibold text-[#121821] underline-offset-4 group-hover:underline">{label}</span>
-    </>
+      <span className="mx-auto mt-4 grid w-fit gap-1 text-left text-[11.5px] text-[#4f5b66]">
+        {POSE_TIPS.map((t) => (
+          <span key={t} className="flex items-center gap-2">
+            <span aria-hidden className="h-1 w-1 shrink-0 rounded-full bg-[#7e888e]" />
+            {t}
+          </span>
+        ))}
+      </span>
+      <span className="mt-3 text-[12px] font-semibold text-[#121821] underline-offset-4 group-hover:underline">{label}</span>
+    </span>
   );
 }
 
@@ -311,7 +300,7 @@ export function TryOnPhotoStep({
             type="button"
             onClick={() => fileInputRef.current?.click()}
             disabled={starting || busy}
-            aria-label="Choose a full-body photo: head to feet, facing forward, arms down, fitted or shorter clothes, even light and a plain background"
+            aria-label="Choose a full-body photo: face forward, arms down at your sides, fitted or shorter clothes, head to feet in the photo, even light and a plain background"
             className="group relative aspect-[3/4] w-full max-w-[300px] justify-self-center overflow-hidden rounded-[22px] border border-dashed border-[#aab6bc] bg-[#f4f7f8] transition-colors hover:border-[#121821] hover:bg-white @2xl:justify-self-start"
           >
             <PoseGuide label={busy ? "Preparing photo…" : "Choose a full-body photo"} />
