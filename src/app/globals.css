@@ -367,9 +367,9 @@ html[data-period="night"] .site-tabbar [aria-current="page"] > span {
   }
 }
 
-/* My Closet's shelf: clothes sit straight on a soft yellow by day and a deep blue at night. */
+/* The closet and Shopping shelf: clothes sit straight on a light blue-grey by day and a deep blue at night. */
 .closet-shelf {
-  background-color: #fbf3d5;
+  background-color: #e4e9ef;
   transition: background-color 4s ease;
 }
 html[data-period="night"] .closet-shelf {
