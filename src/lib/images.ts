@@ -65,3 +65,41 @@ export async function deleteSavedImage(url: string): Promise<void> {
   const key = url.replace(/^\/uploads\//, "");
   await env.UPLOADS.delete(key);
 }
+
+/* ---------- Cut-outs (background removed on the person's device) ---------- */
+
+const CUTOUT_PREFIX = "cut-";
+const MAX_CUTOUT_BYTES = 8 * 1024 * 1024;
+
+const keyOf = (url: string) => decodeURIComponent(url.replace(/^\/uploads\//, ""));
+
+/** Whether a picture is a cut-out made by "Remove background". */
+export const isCutout = (url: string) => url.startsWith("/uploads/") && keyOf(url).startsWith(CUTOUT_PREFIX);
+
+/**
+ * Saves a piece's cut-out as a new picture. The original stays where it is (its address is kept with the cut-out), so
+ * "Keep background" can always bring it back.
+ */
+export async function saveCutout(originalUrl: string, file: File): Promise<string> {
+  if (file.type !== "image/png" || file.size === 0 || file.size > MAX_CUTOUT_BYTES) throw new Error("bad cutout");
+  const key = `${CUTOUT_PREFIX}${randomUUID()}.png`;
+  await env.UPLOADS.put(key, new Uint8Array(await file.arrayBuffer()), {
+    httpMetadata: { contentType: "image/png" },
+    customMetadata: { original: originalUrl },
+  });
+  return `/uploads/${key}`;
+}
+
+/** The original picture a cut-out was made from (null if it isn't a cut-out or the record is missing). */
+export async function cutoutOriginal(url: string): Promise<string | null> {
+  if (!isCutout(url)) return null;
+  const head = await env.UPLOADS.head(keyOf(url));
+  return head?.customMetadata?.original ?? null;
+}
+
+/** The stored files behind a piece's picture: just the picture, or a cut-out plus the original it was made from. */
+export async function pictureKeys(url: string): Promise<string[]> {
+  if (!url.startsWith("/uploads/")) return [];
+  const original = await cutoutOriginal(url).catch(() => null);
+  return [keyOf(url), ...(original?.startsWith("/uploads/") ? [keyOf(original)] : [])];
+}

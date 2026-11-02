@@ -1,5 +1,6 @@
 import { env } from "cloudflare:workers";
 import { prisma } from "@/lib/prisma";
+import { pictureKeys } from "@/lib/images";
 import { clearCurrentLook, deleteAllOutfitTryOns, deletePersonalPhoto, isSavedPhotoKey } from "@/lib/personalPhoto";
 import { deleteAllPicks } from "@/lib/picks";
 import { clearTryOnCache } from "@/lib/tryOnCache";
@@ -18,10 +19,8 @@ export async function deleteAccount(userId: string): Promise<void> {
   if (!user) return;
 
   // Files first, so nothing is left behind if the database step fails partway.
-  const ownUploads = user.items
-    .map((item) => item.imageUrl)
-    .filter((url) => url.startsWith("/uploads/"))
-    .map((url) => decodeURIComponent(url.slice("/uploads/".length)));
+  // A piece with its background removed has two files: the cut-out and the original photo.
+  const ownUploads = (await Promise.all(user.items.map((item) => pictureKeys(item.imageUrl)))).flat();
   for (let i = 0; i < ownUploads.length; i += 1000) await env.UPLOADS.delete(ownUploads.slice(i, i + 1000));
   if (isSavedPhotoKey(user.selfieUrl)) await deletePersonalPhoto(user.selfieUrl);
   await clearCurrentLook(userId);

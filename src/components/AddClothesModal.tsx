@@ -4,6 +4,8 @@ import { useEffect, useRef, useState } from "react";
 import { CATEGORIES, FORMALITIES, SEASONS, LAYERING_ROLES, type ClothingAttributes } from "@/lib/clothingTaxonomy";
 import { LAYER_LABELS } from "@/lib/layering";
 import { Tips, type Tip } from "@/components/Tips";
+import { warmUpCutout } from "@/lib/cutout";
+import { removeBackgroundPreferred, setRemoveBackgroundPreferred } from "@/lib/cutoutClient";
 
 const ADD_TIPS: Tip[] = [
   { target: '[data-tip="add-photo"]', text: "Each number marks a piece Virm found." },
@@ -163,7 +165,14 @@ function newManualItem(): ReviewItem {
   };
 }
 
-export function AddClothesModal({ onClose, onAdded }: { onClose: () => void; onAdded: (count: number) => void }) {
+export function AddClothesModal<T extends { id: string; imageUrl: string }>({
+  onClose,
+  onAdded,
+}: {
+  onClose: () => void;
+  /** The new pieces come back too, so their backgrounds can be removed (if the person chose that). */
+  onAdded: (count: number, items: T[]) => void;
+}) {
   const [step, setStep] = useState<Step>("upload");
   const [dragActive, setDragActive] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -179,6 +188,19 @@ export function AddClothesModal({ onClose, onAdded }: { onClose: () => void; onA
   const [dragBox, setDragBox] = useState<BoundingBox | null>(null);
   const imgElRef = useRef<HTMLImageElement | null>(null);
   const overlayRef = useRef<HTMLDivElement | null>(null);
+  // Remove background (on by default) or keep it; remembered on this device.
+  const [removeBg, setRemoveBg] = useState(true);
+
+  useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect -- browser-only storage, read after the first render
+    setRemoveBg(removeBackgroundPreferred());
+    warmUpCutout();
+  }, []);
+
+  function chooseRemoveBg(on: boolean) {
+    setRemoveBg(on);
+    setRemoveBackgroundPreferred(on);
+  }
 
   // Each step starts at the top of the popup (the photo), even after scrolling down on the previous one.
   useEffect(() => {
@@ -366,14 +388,14 @@ export function AddClothesModal({ onClose, onAdded }: { onClose: () => void; onA
       formData.append("items", JSON.stringify(metadata));
 
       const res = await fetch("/api/closet/items/bulk", { method: "POST", body: formData });
-      const data = (await res.json().catch(() => ({}))) as { error?: string };
+      const data = (await res.json().catch(() => ({}))) as { error?: string; items?: T[] };
       if (!res.ok) {
         throw new Error(
           data.error ?? (res.status === 413 ? "Those photos are too large to upload. Try fewer items at once." : "Couldn't add those items.")
         );
       }
 
-      onAdded(metadata.length);
+      onAdded(metadata.length, data.items ?? []);
       onClose();
     } catch (err) {
       setError(err instanceof Error ? err.message : "Couldn't add those items.");
@@ -682,6 +704,23 @@ export function AddClothesModal({ onClose, onAdded }: { onClose: () => void; onA
                   <p className="text-sm text-[#5d6874]">
                     {items.length} item{items.length === 1 ? "" : "s"} ready to add
                   </p>
+                </div>
+
+                <div role="radiogroup" aria-label="Background" className="mb-4 grid grid-cols-2 gap-1 rounded-full bg-[#f1f3f3] p-1 text-[12.5px] font-semibold">
+                  {([
+                    [true, "Remove background"],
+                    [false, "Keep background"],
+                  ] as const).map(([on, label]) => (
+                    <button
+                      key={label}
+                      role="radio"
+                      aria-checked={removeBg === on}
+                      onClick={() => chooseRemoveBg(on)}
+                      className={`rounded-full px-3 py-2 transition ${removeBg === on ? "bg-white text-[#121821] shadow-[0_1px_3px_rgba(18,24,33,0.12)]" : "text-[#5d6874] hover:text-[#121821]"}`}
+                    >
+                      {label}
+                    </button>
+                  ))}
                 </div>
 
                 <Tips id="add-clothes" tips={ADD_TIPS} />

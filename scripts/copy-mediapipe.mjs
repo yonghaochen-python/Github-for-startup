@@ -9,3 +9,10 @@ for (const name of ["vision_wasm_internal.js", "vision_wasm_internal.wasm", "vis
   copyFileSync(`${from}/${name}`, `${to}/${name}`);
 }
 console.log("Copied MediaPipe files to", to);
+
+// The background-removal runtime (onnxruntime-web), served by the site as well. See src/lib/cutout.ts.
+const ortFrom = "node_modules/onnxruntime-web/dist";
+const ortTo = "public/ort";
+mkdirSync(ortTo, { recursive: true });
+copyFileSync(`${ortFrom}/ort-wasm-simd-threaded.wasm`, `${ortTo}/ort-wasm-simd-threaded.wasm`);
+console.log("Copied onnxruntime-web files to", ortTo);

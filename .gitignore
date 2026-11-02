@@ -59,3 +59,6 @@ next-env.d.ts
 
 # MediaPipe browser files, copied from node_modules on install (scripts/copy-mediapipe.mjs)
 /public/mediapipe/wasm
+
+# onnxruntime-web browser files, copied from node_modules on install (scripts/copy-mediapipe.mjs)
+/public/ort

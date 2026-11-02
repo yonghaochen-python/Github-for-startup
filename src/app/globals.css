@@ -366,3 +366,33 @@ html[data-period="night"] .site-tabbar [aria-current="page"] > span {
     transform: none;
   }
 }
+
+/* My Closet's shelf: clothes sit straight on a soft yellow by day and a deep blue at night. */
+.closet-shelf {
+  background-color: #fbf3d5;
+  transition: background-color 4s ease;
+}
+html[data-period="night"] .closet-shelf {
+  background-color: #1d2f52;
+}
+.closet-row {
+  scrollbar-width: none;
+}
+.closet-row::-webkit-scrollbar {
+  display: none;
+}
+/* Edit mode: pieces wiggle a little, like rearranging apps. */
+@keyframes wiggle {
+  0%,
+  100% {
+    transform: rotate(-1deg);
+  }
+  50% {
+    transform: rotate(1deg);
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .closet-row * {
+    animation: none !important;
+  }
+}
