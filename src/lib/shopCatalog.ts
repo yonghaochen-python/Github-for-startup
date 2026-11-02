@@ -101,6 +101,12 @@ const SEARCH_IDEAS = [
 ];
 export const SUGGESTED_SEARCHES = SEARCH_IDEAS.filter((idea) => SHOP_PRODUCTS.some((p) => matchesSearch(p, idea)));
 
+/**
+ * Pieces from Virm's old demo catalog (taken out of Shopping). People may still have them saved on their device, in
+ * Your outfit or the wishlist; they're dropped when read back.
+ */
+export const isRetiredDemo = (key: string) => key.startsWith("demo-") || key.startsWith("shop-demo-");
+
 /** A price in its own currency, or null when it isn't known. */
 export function priceLabel(price: number | null, currency: string | null): string | null {
   if (price === null) return null;

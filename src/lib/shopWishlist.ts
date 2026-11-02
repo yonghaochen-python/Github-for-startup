@@ -1,6 +1,6 @@
 "use client";
 
-import type { TrayItem } from "@/lib/shopCatalog";
+import { isRetiredDemo, type TrayItem } from "@/lib/shopCatalog";
 
 /**
  * The Shopping wishlist: store finds saved on this device only (browser storage), with a small picture so they can
@@ -13,7 +13,7 @@ const MAX = 12;
 export function readWishlist(): TrayItem[] {
   try {
     const list = JSON.parse(localStorage.getItem(KEY) ?? "[]");
-    return Array.isArray(list) ? list.filter((x) => x && typeof x.key === "string") : [];
+    return Array.isArray(list) ? list.filter((x) => x && typeof x.key === "string" && !isRetiredDemo(x.key)) : [];
   } catch {
     return [];
   }

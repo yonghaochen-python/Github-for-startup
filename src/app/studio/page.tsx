@@ -16,7 +16,7 @@ import { EmptyState, ErrorNote, PageShell, btnPrimary, mirrorFrame } from "@/com
 import { TRY_ON_CAVEAT, requestShopTryOn, requestTryOn, type TryOnResult } from "@/lib/tryOnClient";
 import { LiveTryOn, type ShopPick } from "@/components/LiveTryOn";
 import { CreditsLine, refreshCredits } from "@/components/Credits";
-import { LIVE_SHOP_KEY, SHOP_OUTFIT_KEY, shopPiece, type TrayItem } from "@/lib/shopCatalog";
+import { LIVE_SHOP_KEY, SHOP_OUTFIT_KEY, isRetiredDemo, shopPiece, type TrayItem } from "@/lib/shopCatalog";
 import { readShopTryOns } from "@/lib/shopWishlist";
 import { Tips, type Tip } from "@/components/Tips";
 
@@ -214,12 +214,12 @@ export default function StudioPage() {
     let sent: ShopPick[] = [];
     try {
       const kept = JSON.parse(localStorage.getItem(SHOP_OUTFIT_KEY) ?? "[]") as TrayItem[];
-      if (Array.isArray(kept)) outfit = kept.filter((x) => x && typeof x.key === "string" && typeof x.imageUrl === "string").map(shopPiece);
+      if (Array.isArray(kept)) outfit = kept.filter((x) => x && typeof x.key === "string" && typeof x.imageUrl === "string" && !isRetiredDemo(x.key)).map(shopPiece);
     } catch {}
     if (fromShop) {
       try {
         const picks = JSON.parse(sessionStorage.getItem(LIVE_SHOP_KEY) ?? "[]") as ShopPick[];
-        if (Array.isArray(picks)) sent = picks;
+        if (Array.isArray(picks)) sent = picks.filter((p) => !isRetiredDemo(p.id));
       } catch {}
     }
     const all = [...outfit, ...sent.filter((p) => !outfit.some((o) => o.id === p.id))];

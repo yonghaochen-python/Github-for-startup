@@ -6,6 +6,7 @@ import { useRouter } from "next/navigation";
 import {
   LIVE_SHOP_KEY,
   SHOP_OUTFIT_KEY,
+  isRetiredDemo,
   SHOP_PRODUCTS,
   SUGGESTED_SEARCHES,
   isVerified,
@@ -132,7 +133,7 @@ export function Shop() {
     try {
       const outfit = JSON.parse(localStorage.getItem(OUTFIT_KEY) ?? "[]");
       if (Array.isArray(outfit)) {
-        setTray(outfit.filter((x) => x && typeof x.key === "string" && typeof x.imageUrl === "string").slice(0, MAX_TRAY));
+        setTray(outfit.filter((x) => x && typeof x.key === "string" && typeof x.imageUrl === "string" && !isRetiredDemo(x.key)).slice(0, MAX_TRAY));
       }
     } catch {}
   }, []);
