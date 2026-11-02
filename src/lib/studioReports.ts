@@ -1,5 +1,7 @@
 import { prisma } from "@/lib/prisma";
-import { portraitInfo } from "@/lib/portrait";
+import { loadPortrait } from "@/lib/portrait";
+import { CreditError, withCredit } from "@/lib/credits";
+import { PortraitUnusableError, analyzeColor, type Analysis } from "@/lib/studioAnalysis";
 import { type ReportSummary, type StudioModuleId, type StudioReportData } from "@/lib/studioModules";
 
 /**
@@ -7,8 +9,8 @@ import { type ReportSummary, type StudioModuleId, type StudioReportData } from "
  * A request id makes a repeated tap answer once, and a module that's already being made can't be started again
  * until it finishes (or is clearly stuck).
  *
- * Stage 1: every module returns practice data (no AI, no cost). The real analyses replace `makeReport` one module
- * at a time.
+ * A real analysis uses one photo credit, counted only when a real report comes back (a failure gives it back).
+ * Modules not built yet return practice data (no AI, no cost).
  */
 
 /** Earlier reports kept per module, so people can look back. Older ones are deleted. */
@@ -18,14 +20,13 @@ const STUCK_MS = 3 * 60 * 1000;
 
 export class ReportError extends Error {
   constructor(
-    public code: "no_portrait" | "busy" | "failed",
+    public code: "no_portrait" | "unusable" | "no_credits" | "busy" | "failed",
     message: string
   ) {
     super(message);
   }
 }
 
-type Made = { data: StudioReportData; practice: boolean; inputTokens?: number; outputTokens?: number; costMicros?: number };
 
 const parse = (json: string | null): StudioReportData | null => {
   try {
@@ -77,7 +78,8 @@ export async function moduleReports(userId: string, module: StudioModuleId, id?:
 }
 
 /** Makes a new report for one module. A repeat of the same request returns the same report instead of a new one. */
-export async function generateReport(userId: string, module: StudioModuleId, requestId: string): Promise<StoredReport> {
+export async function generateReport(account: { id: string; role: string }, module: StudioModuleId, requestId: string): Promise<StoredReport> {
+  const userId = account.id;
   const repeat = await prisma.studioReport.findUnique({ where: { userId_requestId: { userId, requestId } } });
   if (repeat) {
     const stored = repeat.status === "ready" ? toStored(repeat) : null;
@@ -85,7 +87,7 @@ export async function generateReport(userId: string, module: StudioModuleId, req
     throw new ReportError("busy", "This analysis is already being made. It'll be ready in a moment.");
   }
 
-  const portrait = await portraitInfo(userId);
+  const portrait = await loadPortrait(userId);
   if (!portrait) throw new ReportError("no_portrait", "Add your portrait first.");
 
   // Clear anything stuck, then make sure this module isn't already being made.
@@ -102,7 +104,8 @@ export async function generateReport(userId: string, module: StudioModuleId, req
   if (!row) throw new ReportError("busy", "This analysis is already being made. It'll be ready in a moment.");
 
   try {
-    const made = await makeReport(module);
+    // One photo credit for a real analysis, counted only when a real report comes back.
+    const made = await withCredit(account, "photo", `studio-${requestId}`, () => makeReport(module, portrait), (r) => !r.practice);
     const done = await prisma.studioReport.update({
       where: { id: row.id },
       data: {
@@ -120,6 +123,8 @@ export async function generateReport(userId: string, module: StudioModuleId, req
   } catch (err) {
     await prisma.studioReport.update({ where: { id: row.id }, data: { status: "failed", finishedAt: new Date() } }).catch(() => {});
     if (err instanceof ReportError) throw err;
+    if (err instanceof PortraitUnusableError) throw new ReportError("unusable", err.message);
+    if (err instanceof CreditError && err.code === "no_credits") throw new ReportError("no_credits", "You've used this month's photo credits.");
     console.error(`Studio ${module} report failed:`, err instanceof Error ? err.message : "unknown");
     throw new ReportError("failed", "This analysis couldn't be made right now. Please try again in a moment.");
   }
@@ -143,26 +148,7 @@ export async function deleteReport(userId: string, id: string): Promise<boolean>
 
 /* ---------- Practice data (Stage 1: no AI, no cost) ---------- */
 
-const PRACTICE: Record<StudioModuleId, StudioReportData> = {
-  color: {
-    headline: "Soft, warm and quietly golden",
-    summary: "Practice report. The real analysis reads your skin, hair and eye coloring from your portrait and explains which season suits you best.",
-    keywords: ["Warm", "Muted", "Earthy", "Gentle contrast"],
-    palette: [
-      { name: "Camel", hex: "#C19A6B" },
-      { name: "Terracotta", hex: "#C8603F" },
-      { name: "Olive", hex: "#708238" },
-      { name: "Cream", hex: "#F3EBD3" },
-      { name: "Teal", hex: "#0F7C7C" },
-      { name: "Chocolate", hex: "#5C3A21" },
-    ],
-    sections: [
-      { title: "Why this season", body: "Practice text. Here you'll read what in your coloring points to the recommended season." },
-      { title: "Colors to wear near your face", body: "Practice text. Clothing, neutral and accent colors, each with its HEX code." },
-    ],
-    confidence: "medium",
-    limits: "Practice data: no photo was read.",
-  },
+const PRACTICE: Record<Exclude<StudioModuleId, "color">, StudioReportData> = {
   makeup: {
     headline: "Fresh, rosy and softly defined",
     summary: "Practice report. The real guide describes your features respectfully and suggests shades and finishes that suit them.",
@@ -219,8 +205,9 @@ const PRACTICE: Record<StudioModuleId, StudioReportData> = {
   },
 };
 
-async function makeReport(module: StudioModuleId): Promise<Made> {
-  // A short pause so the loading state can be seen and tested.
+async function makeReport(module: StudioModuleId, portrait: { bytes: Uint8Array; mediaType: string }): Promise<Analysis> {
+  if (module === "color") return analyzeColor(portrait);
+  // Not built yet: practice data, after a short pause so the loading state can be seen.
   await new Promise((resolve) => setTimeout(resolve, 1200));
   return { data: PRACTICE[module], practice: true };
 }

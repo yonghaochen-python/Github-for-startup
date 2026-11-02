@@ -4,7 +4,9 @@ import { useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import { useParams } from "next/navigation";
 import { ArrowLeftIcon, CheckIcon } from "@/components/Icons";
+import { CreditsLine, refreshCredits } from "@/components/Credits";
 import { ErrorNote, PageShell, btnPrimary, btnSecondary, btnText } from "@/components/ui";
+import { ColorReport } from "@/components/studio/ColorReport";
 import { ModuleVisual } from "@/components/studio/ModuleVisual";
 import { drawReportCard } from "@/components/studio/reportCard";
 import { portraitUrl, useStudio } from "@/components/studio/useStudio";
@@ -161,6 +163,7 @@ export default function StudioModulePage() {
       const data = (await res.json().catch(() => ({}))) as { report?: Report; error?: string };
       if (!res.ok || !data.report) throw new Error(data.error ?? "This analysis couldn't be made. Please try again.");
       requestId.current = null;
+      refreshCredits();
       await load();
       window.scrollTo({ top: 0, behavior: "smooth" });
     } catch (err) {
@@ -283,7 +286,14 @@ export default function StudioModulePage() {
                     <button onClick={analyze} disabled={!canAnalyze} className={btnPrimary}>
                       Analyze
                     </button>
-                    <p className="mt-3 text-[12px] leading-relaxed text-[#5d6874]">Practice mode for now: no AI is used and nothing is counted. Your report is saved to open again.</p>
+                    <div className="mt-3 max-w-sm">
+                      <CreditsLine kind="photo" />
+                    </div>
+                    <p className="mt-2 text-[12px] leading-relaxed text-[#5d6874]">
+                      {mod.id === "color"
+                        ? "Uses one photo credit, only if your report is made. Your portrait goes to our AI provider to read your coloring; the report is saved to open again for free."
+                        : "Practice mode for now: no AI is used and nothing is counted."}
+                    </p>
                   </>
                 )}
               </div>
@@ -306,7 +316,11 @@ export default function StudioModulePage() {
                 Share
               </button>
             </div>
-            <ReportView module={mod} report={report} portrait={reportPicture} />
+            {mod.id === "color" && report.data.extra ? (
+              <ColorReport module={mod} data={report.data} portrait={reportPicture} createdAt={report.createdAt} />
+            ) : (
+              <ReportView module={mod} report={report} portrait={reportPicture} />
+            )}
             <div className="mt-6 flex flex-wrap items-center gap-x-5 gap-y-3">
               {loaded.history.length > 1 && (
                 <label className="flex items-center gap-2 text-[13px] text-[#4f5b66]">

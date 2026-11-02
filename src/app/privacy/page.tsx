@@ -58,7 +58,9 @@ export default function PrivacyPage() {
         <li>
           <strong>Anthropic</strong> (Claude) recognises and describes clothes when you add a photo to your closet. It also
           suggests outfits, using the written descriptions of your clothes, not your photos. When you ask the Stylist for a
-          style reading, the photo you chose is sent to Anthropic so it can read your coloring and proportions.
+          style reading, the photo you chose is sent to Anthropic so it can read your coloring and proportions. When you
+          press Analyze in Virm Studio, your Studio portrait is sent to Anthropic for that analysis; only the written
+          report is kept.
         </li>
         <li>
           <strong>Decart</strong> powers live try-on. When you start an AI live session, your camera video and the outfit&apos;s

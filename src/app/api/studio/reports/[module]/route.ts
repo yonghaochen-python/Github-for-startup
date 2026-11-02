@@ -33,11 +33,11 @@ export async function POST(request: Request, ctx: Ctx) {
   if (!user) return res;
   const body = ((await request.json().catch(() => ({}))) ?? {}) as { requestId?: unknown };
   try {
-    const report = await generateReport(user.id, module, requestIdFrom(body.requestId));
+    const report = await generateReport(user, module, requestIdFrom(body.requestId));
     return NextResponse.json({ report }, { headers: noStore });
   } catch (err) {
     const e = err instanceof ReportError ? err : new ReportError("failed", "This analysis couldn't be made right now. Please try again.");
-    const status = e.code === "no_portrait" ? 400 : e.code === "busy" ? 409 : 502;
+    const status = { no_portrait: 400, unusable: 422, no_credits: 402, busy: 409, failed: 502 }[e.code];
     return NextResponse.json({ error: e.message, code: e.code }, { status, headers: noStore });
   }
 }
