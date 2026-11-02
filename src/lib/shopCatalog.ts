@@ -26,6 +26,8 @@ export type ShopProduct = {
   tags: string[];
   /** Our own image (in /public) or one we have permission to show. */
   imageUrl: string;
+  /** The same picture with its background removed, for the shelf (null when there isn't one). */
+  shelfImageUrl: string | null;
   price: number | null;
   currency: string | null;
   retailer: string | null;
@@ -54,6 +56,8 @@ const BEIGE = { name: "Beige", hex: "#d8c7ab" };
 
 const demo = (p: Pick<ShopProduct, "id" | "name" | "category" | "layeringRole" | "color" | "colors" | "style" | "tags" | "imageUrl">): ShopProduct => ({
   ...p,
+  // Cut out once with src/lib/cutout.ts and saved next to the photo.
+  shelfImageUrl: p.imageUrl.replace(/^\/sample\/(.+)\.\w+$/, "/sample/cut/$1.webp"),
   brand: null,
   price: null,
   currency: null,

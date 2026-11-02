@@ -136,10 +136,16 @@ export function Shop() {
     }
   }
 
+  /** Ends a swap: every row shows again. */
+  function stopSwap() {
+    setSwapping(null);
+    setTab("all");
+  }
+
   /** Adds a piece to the tray, or takes it out (up to MAX_TRAY pieces). */
   function toggleTray(item: TrayItem) {
     const replacing = swapping && swapping.key !== item.key ? swapping : null;
-    if (swapping) setSwapping(null);
+    if (swapping) stopSwap();
     setTray((list) => {
       const inList = list.some((p) => p.key === item.key);
       const next = replacing && !inList
@@ -226,7 +232,7 @@ export function Shop() {
               onClick={() => {
                 setTray([]);
                 keepOutfit([]);
-                setSwapping(null);
+                stopSwap();
               }}
               className="text-[11px] text-[#5d6874] underline-offset-4 hover:text-[#121821] hover:underline"
             >
@@ -378,19 +384,12 @@ export function Shop() {
           </div>
         )}
 
-        <div className="mt-5 flex items-center gap-4 border-b border-black/10">
-        <div className="flex min-w-0 flex-1 gap-6 overflow-x-auto pb-2">
-          {TABS.map((t) => (
-            <button
-              key={t.value}
-              onClick={() => setTab(t.value)}
-              aria-pressed={tab === t.value}
-              className={`shrink-0 pb-1 text-[12.5px] ${tab === t.value ? "border-b border-[#121821] font-semibold text-[#121821]" : "text-[#5d6874] hover:text-[#121821]"}`}
-            >
-              {t.label}
-            </button>
-          ))}
-        </div>
+        <div className="mt-5 flex items-center gap-4">
+          <p className="flex-1 text-[11.5px] text-[#5d6874]">
+            {shown.length} {allDemo ? "demo " : ""}
+            {shown.length === 1 ? "piece" : "pieces"}
+            {allDemo && " · not store listings"}
+          </p>
           <button
             onClick={() => setFiltersOpen((v) => !v)}
             aria-expanded={filtersOpen}
@@ -434,16 +433,11 @@ export function Shop() {
                 <span className="flex-1">
                   Pick a replacement for <b>{swapping.name}</b>.
                 </span>
-                <button onClick={() => setSwapping(null)} className="font-semibold underline underline-offset-4">
+                <button onClick={() => stopSwap()} className="font-semibold underline underline-offset-4">
                   Cancel
                 </button>
               </div>
             )}
-            <p className="mb-4 text-[11.5px] text-[#5d6874]">
-              {shown.length} {allDemo ? "demo " : ""}
-              {shown.length === 1 ? "piece" : "pieces"}
-              {allDemo && " · not store listings"}
-            </p>
             {shown.length === 0 ? (
               <div className="rounded-[6px] bg-white px-6 py-10 text-center text-[13px] text-[#5d6874]">
                 {query.trim() ? (
@@ -484,73 +478,67 @@ export function Shop() {
                 )}
               </div>
             ) : (
-              <ul className="grid grid-cols-2 gap-x-4 gap-y-8 md:grid-cols-3">
-                {shown.map((p) => {
-                  const selected = inTray.has(p.id);
-                  const saved = isSaved(p.id);
-                  // Price and store link only for verified real listings.
-                  const price = isVerified(p) ? priceLabel(p.price, p.currency) : null;
+              <div className="closet-shelf -mx-5 px-4 py-4 sm:mx-0 sm:rounded-[24px] sm:px-6 sm:py-5">
+                {TABS.filter((t) => t.value !== "all").map(({ value, label: rowLabel }) => {
+                  const row = shown.filter((p) => p.category === value);
+                  if (row.length === 0) return null;
                   return (
-                    <li key={p.id} className="flex flex-col">
-                      <div className="relative aspect-[3/4] overflow-hidden bg-[#f0eee9]">
-                        <button onClick={() => setOpen(p)} aria-label={`Open ${p.name}`} className="absolute inset-0">
-                          <Image src={p.imageUrl} alt={p.name} fill unoptimized className="p-5 transition duration-500 hover:scale-[1.03]" style={{ objectFit: "contain" }} />
-                        </button>
-                        <button
-                          onClick={() => toggleSaved(p)}
-                          aria-pressed={saved}
-                          aria-label={saved ? `Remove ${p.name} from wishlist` : `Save ${p.name} to wishlist`}
-                          className={`absolute right-3 top-3 flex h-9 w-9 items-center justify-center rounded-full bg-white/90 shadow-sm ${saved ? "text-[#c23a2c]" : "text-[#29343a]"}`}
-                        >
-                          <Heart filled={saved} />
-                        </button>
-                        {p.isDemo && (
-                          <span className="pointer-events-none absolute left-3 top-3 rounded-full bg-white/90 px-2 py-0.5 text-[9px] font-semibold uppercase tracking-[1.2px] text-[#4f5b66]">
-                            Demo
-                          </span>
-                        )}
-                        {selected && (
-                          <span className="pointer-events-none absolute bottom-3 left-3 inline-flex items-center gap-1.5 bg-[#121821]/85 px-2.5 py-1.5 text-[9.5px] font-medium uppercase tracking-[1.5px] text-white">
-                            ✓ In outfit
-                          </span>
-                        )}
-                      </div>
-                      <div className="mt-3 flex items-start justify-between gap-3">
-                        <button onClick={() => setOpen(p)} className="min-w-0 text-left">
-                          {!p.isDemo && <p className="text-[9.5px] uppercase tracking-[1.6px] text-[#5d6874]">{p.brand ?? p.retailer}</p>}
-                          <p className="mt-0.5 truncate text-[13.5px] font-medium text-[#121821] hover:underline">{p.name}</p>
-                        </button>
-                        {price && <p className="text-[13px] font-medium text-[#121821]">{price}</p>}
-                      </div>
-                      {isVerified(p) && p.productUrl && (
-                        <a href={p.productUrl} target="_blank" rel="noopener noreferrer" className="mt-1 self-start text-[11px] text-[#121821] underline underline-offset-2">
-                          Store ↗
-                        </a>
-                      )}
-                      <div className="mt-3 flex gap-2">
-                        <button
-                          onClick={() => setOpen(p)}
-                          className="inline-flex min-h-[42px] flex-1 items-center justify-center gap-2 rounded-[2px] bg-[#121821] text-[12px] font-medium text-white hover:bg-[#2a3542]"
-                        >
-                          <Spark className="hidden h-3.5 w-3.5 sm:block" /> Try on
-                        </button>
-                        <button
-                          onClick={() => toggleTray(trayItemFrom(p))}
-                          aria-pressed={selected}
-                          aria-label={selected ? `Take ${p.name} out of your outfit` : `Add ${p.name} to your outfit`}
-                          title={selected ? "In your outfit" : "Add to outfit"}
-                          disabled={!p.tryOnEligible || (!selected && !swapping && tray.length >= MAX_TRAY)}
-                          className={`inline-flex min-h-[42px] shrink-0 items-center justify-center rounded-[2px] border ${swapping && !selected ? "px-3" : "w-[42px]"} text-[12px] font-medium transition ${
-                            selected ? "border-[#121821] bg-[#eef1f2] text-[#121821]" : "border-black/15 bg-white text-[#121821] hover:border-[#121821] disabled:opacity-40"
-                          }`}
-                        >
-                          {selected ? "✓" : swapping ? "Swap in" : <span className="text-[18px] font-light leading-none">+</span>}
-                        </button>
-                      </div>
-                    </li>
+                    <section key={value} aria-label={rowLabel} className="py-2.5">
+                      <h2 className="mb-1.5 text-[10.5px] font-semibold uppercase tracking-[1.8px] opacity-70">
+                        {rowLabel} <span className="ml-1 font-normal">{row.length}</span>
+                      </h2>
+                      {/* Slides left and right; pieces snap into place. */}
+                      <ul className="closet-row -mx-4 flex snap-x snap-mandatory items-end gap-1.5 overflow-x-auto scroll-px-4 px-4 pb-1 pt-2 sm:-mx-6 sm:scroll-px-6 sm:px-6">
+                        {row.map((p) => {
+                          const selected = inTray.has(p.id);
+                          const saved = isSaved(p.id);
+                          // Price only for verified real listings.
+                          const price = isVerified(p) ? priceLabel(p.price, p.currency) : null;
+                          const cut = Boolean(p.shelfImageUrl);
+                          return (
+                            <li key={p.id} className="relative shrink-0 snap-start">
+                              <button onClick={() => setOpen(p)} aria-label={`Open ${p.name}`} className="group block">
+                                <span className={`relative block h-[124px] w-[96px] sm:h-[150px] sm:w-[116px] ${cut ? "" : "overflow-hidden rounded-[10px]"}`}>
+                                  <Image
+                                    src={p.shelfImageUrl ?? p.imageUrl}
+                                    alt=""
+                                    fill
+                                    unoptimized
+                                    className={`transition-transform duration-300 group-hover:scale-[1.04] ${
+                                      cut ? "object-contain drop-shadow-[0_6px_10px_rgba(18,24,33,0.14)]" : "object-cover"
+                                    }`}
+                                  />
+                                </span>
+                                {price && <span className="mt-1 block text-center text-[11px] font-medium">{price}</span>}
+                              </button>
+                              <button
+                                onClick={() => toggleSaved(p)}
+                                aria-pressed={saved}
+                                aria-label={saved ? `Remove ${p.name} from wishlist` : `Save ${p.name} to wishlist`}
+                                className={`absolute right-0 top-0 flex h-7 w-7 items-center justify-center rounded-full bg-white/90 shadow-sm [&_svg]:h-3.5 [&_svg]:w-3.5 ${saved ? "text-[#c23a2c]" : "text-[#29343a]"}`}
+                              >
+                                <Heart filled={saved} />
+                              </button>
+                              <button
+                                onClick={() => toggleTray(trayItemFrom(p))}
+                                aria-pressed={selected}
+                                aria-label={selected ? `Take ${p.name} out of your outfit` : swapping ? `Swap in ${p.name}` : `Add ${p.name} to your outfit`}
+                                title={selected ? "In your outfit" : swapping ? "Swap in" : "Add to outfit"}
+                                disabled={!p.tryOnEligible || (!selected && !swapping && tray.length >= MAX_TRAY)}
+                                className={`absolute bottom-0 right-0 flex h-7 w-7 items-center justify-center rounded-full text-[13px] shadow-sm disabled:opacity-40 ${
+                                  selected ? "bg-[#121821] text-white" : "bg-white/90 text-[#121821]"
+                                }`}
+                              >
+                                {selected ? "✓" : swapping ? "⇄" : <span className="text-[17px] font-light leading-none">+</span>}
+                              </button>
+                            </li>
+                          );
+                        })}
+                      </ul>
+                    </section>
                   );
                 })}
-              </ul>
+              </div>
             )}
           </div>
 
