@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { ArrowRightIcon, CameraIcon, CheckIcon, MirrorIcon } from "@/components/Icons";
-import { PageShell, surface } from "@/components/ui";
+import { PageShell, btnPrimary, surface } from "@/components/ui";
 import { ModuleVisual } from "@/components/studio/ModuleVisual";
 import { PortraitControls } from "@/components/studio/PortraitPanel";
 import { PickSwatches } from "@/components/studio/TopPicks";
@@ -46,6 +46,7 @@ export default function StylistPage() {
   const readiness = portraitReadiness(portrait?.checks ?? null);
   const anyDone = Object.keys(state?.reports ?? {}).length > 0;
   const step = !portrait || !readiness.ready ? 1 : anyDone ? 3 : 2;
+  const next = state ? STUDIO_MODULES.find((m) => !state.reports[m.id]) : undefined;
 
   return (
     <main className="flex-1 pb-20">
@@ -79,6 +80,12 @@ export default function StylistPage() {
               <>
                 <PortraitControls portrait={portrait} savePortrait={savePortrait} removePortrait={removePortrait} />
                 <Guide step={step} />
+                {/* The next analysis to do, one tap away (Seasonal Color first: the others build on its colors). */}
+                {next && readiness.ready && portrait && (
+                  <Link href={`/stylist/${next.id}`} className={`${btnPrimary} self-start`}>
+                    {anyDone ? `Next: ${next.title}` : `Start with ${next.title}`} <ArrowRightIcon className="h-4 w-4" />
+                  </Link>
+                )}
               </>
             )}
           </div>
@@ -133,8 +140,12 @@ export default function StylistPage() {
                       ) : (
                         <p className="mt-2 flex-1 text-[14px] leading-relaxed text-[#4f5b66]">{m.description}</p>
                       )}
-                      <span className="mt-5 inline-flex items-center gap-1.5 text-[13px] font-semibold text-[#121821]">
-                        {done ? "See your full report" : "Start this analysis"} <ArrowRightIcon className="h-4 w-4 transition-transform group-hover:translate-x-0.5" />
+                      <span
+                        className={`mt-5 inline-flex items-center gap-1.5 self-start rounded-full px-4 py-2 text-[13px] font-semibold ${
+                          done ? "bg-[#eef1f4] text-[#121821]" : "bg-[#121821] text-white"
+                        }`}
+                      >
+                        {done ? "See report" : "Start"} <ArrowRightIcon className="h-4 w-4 transition-transform group-hover:translate-x-0.5" />
                       </span>
                     </div>
                   </Link>
