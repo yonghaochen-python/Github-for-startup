@@ -24,6 +24,7 @@ import {
 import { addToWishlist, readWishlist, removeFromWishlist } from "@/lib/shopWishlist";
 import { StoreFinder } from "@/components/StoreFinder";
 import { ProductDetail } from "@/components/ProductDetail";
+import { btnPrimary, btnSecondary } from "@/components/ui";
 
 /**
  * Shopping: browse the catalog, open a piece to see it up close and try it on (live, or on your saved photo), or
@@ -108,6 +109,8 @@ export function Shop() {
   // Phones: the outfit sits in a slim bar at the bottom; this opens its list.
   const [outfitOpen, setOutfitOpen] = useState(false);
   const [searchFocused, setSearchFocused] = useState(false);
+  // Edit: shows the ♡ and + on every piece for quick changes; otherwise a tap opens the piece.
+  const [editMode, setEditMode] = useState(false);
   const [filtersOpen, setFiltersOpen] = useState(false);
 
   // The wishlist and "Your outfit" are remembered on this device only.
@@ -292,6 +295,15 @@ export function Shop() {
       <section id="collection" className={`mx-auto max-w-[1400px] scroll-mt-24 px-4 pt-8 sm:px-6 ${tray.length ? "pb-32 lg:pb-16" : "pb-16"}`}>
         <div className="flex flex-wrap items-end justify-between gap-4">
           <h1 className="font-display text-[44px] leading-none tracking-[-1px] text-[#121821] sm:text-[52px]">Shopping</h1>
+          <div className="flex items-center gap-2">
+            {/* Add: bring in a piece from any store. */}
+            <button onClick={() => setImporting((v) => !v)} aria-expanded={importing} className={btnPrimary}>
+              {importing ? "Close" : <><span className="text-[16px] font-light leading-none">+</span> Add</>}
+            </button>
+            <button onClick={() => setEditMode((v) => !v)} aria-pressed={editMode} className={btnSecondary}>
+              {editMode ? "Done" : "Edit"}
+            </button>
+          </div>
         </div>
 
         {wishlist.length > 0 && (
@@ -356,14 +368,6 @@ export function Shop() {
               </button>
             )}
           </label>
-          {/* Secondary to search: bring in a piece from any store. */}
-          <button
-            onClick={() => setImporting((v) => !v)}
-            aria-expanded={importing}
-            className="shrink-0 text-[12px] font-semibold text-[#4f5b66] underline-offset-4 hover:text-[#121821] hover:underline"
-          >
-            {importing ? "Close" : "+ Add a product"}
-          </button>
           </div>
           {!query && searchFocused && (
             <p className="mt-3 flex flex-wrap items-center gap-x-1.5 gap-y-1.5 text-[11.5px] text-[#5d6874]">
@@ -389,6 +393,7 @@ export function Shop() {
             {shown.length} {allDemo ? "demo " : ""}
             {shown.length === 1 ? "piece" : "pieces"}
             {allDemo && " · not store listings"}
+            {editMode && " · ♡ to save, + for your outfit"}
           </p>
           <button
             onClick={() => setFiltersOpen((v) => !v)}
@@ -497,7 +502,11 @@ export function Shop() {
                           const cut = Boolean(p.shelfImageUrl);
                           return (
                             <li key={p.id} className="relative shrink-0 snap-start">
-                              <button onClick={() => setOpen(p)} aria-label={`Open ${p.name}`} className="group block">
+                              <button
+                                onClick={() => (swapping && !selected ? toggleTray(trayItemFrom(p)) : setOpen(p))}
+                                aria-label={swapping && !selected ? `Swap in ${p.name}` : `Open ${p.name}`}
+                                className={`group block ${editMode ? "animate-[wiggle_0.6s_ease-in-out_infinite]" : ""}`}
+                              >
                                 <span className={`relative block h-[124px] w-[96px] sm:h-[150px] sm:w-[116px] ${cut ? "" : "overflow-hidden rounded-[10px]"}`}>
                                   <Image
                                     src={p.shelfImageUrl ?? p.imageUrl}
@@ -511,6 +520,8 @@ export function Shop() {
                                 </span>
                                 {price && <span className="mt-1 block text-center text-[11px] font-medium">{price}</span>}
                               </button>
+                              {editMode ? (
+                                <>
                               <button
                                 onClick={() => toggleSaved(p)}
                                 aria-pressed={saved}
@@ -531,6 +542,14 @@ export function Shop() {
                               >
                                 {selected ? "✓" : swapping ? "⇄" : <span className="text-[17px] font-light leading-none">+</span>}
                               </button>
+                                </>
+                              ) : (
+                                selected && (
+                                  <span aria-label="In your outfit" className="pointer-events-none absolute bottom-0 right-0 flex h-6 w-6 items-center justify-center rounded-full bg-[#121821] text-[11px] text-white shadow-sm">
+                                    ✓
+                                  </span>
+                                )
+                              )}
                             </li>
                           );
                         })}
