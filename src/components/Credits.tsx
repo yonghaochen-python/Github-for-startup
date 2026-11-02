@@ -88,3 +88,35 @@ export function CreditsLine({ kind }: { kind: "photo" | "live" }) {
     </p>
   );
 }
+
+/** Home: what uses a credit, in one line each, with what's left. */
+export function CreditGuide() {
+  const b = useCredits();
+  const items = [
+    { label: "AI Stylist analysis", cost: "1 photo credit" },
+    { label: "Outfit try-on", cost: "1 photo credit" },
+    { label: "Live try-on", cost: "1 live credit" },
+  ];
+  return (
+    <section aria-label="What uses a credit" className="mb-6 flex flex-col gap-3 rounded-[18px] bg-white px-5 py-4 shadow-[0_1px_0_rgba(18,24,33,0.03),0_10px_28px_rgba(18,30,45,0.05)] sm:flex-row sm:items-center sm:gap-6">
+      <ul className="flex flex-1 flex-wrap gap-x-6 gap-y-2">
+        {items.map((i) => (
+          <li key={i.label} className="text-[13px] text-[#4f5b66]">
+            <span className="font-semibold text-[#121821]">{i.label}</span> · {i.cost}
+          </li>
+        ))}
+      </ul>
+      {b && (
+        <p className="shrink-0 text-[12.5px] text-[#5d6874]">
+          {b.exempt ? (
+            "Admin · not limited"
+          ) : (
+            <>
+              <b className="font-semibold text-[#121821]">{b.photo.total}</b> photo · <b className="font-semibold text-[#121821]">{b.live.total}</b> live left · resets {day(b.period.end)}
+            </>
+          )}
+        </p>
+      )}
+    </section>
+  );
+}

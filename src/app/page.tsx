@@ -20,6 +20,7 @@ import {
   SparkleIcon,
 } from "@/components/Icons";
 import { Tips, type Tip } from "@/components/Tips";
+import { CreditGuide } from "@/components/Credits";
 
 const HOME_TIPS: Tip[] = [
   { target: "#mirror", text: "Your latest try-on shows here." },
@@ -210,6 +211,7 @@ function Dashboard({ closet, outfits }: { closet: ClothingItem[]; outfits: Outfi
       </section>
 
       <PageShell className="pt-8">
+        <CreditGuide />
         <WhatsNewCard />
 
         {/* Your Virtual Mirror */}
