@@ -32,6 +32,7 @@ model User {
   resets   PasswordReset[]
   picks    Pick[]
   credits  CreditEntry[]
+  style    StyleProfile?
 }
 
 /// The credit history: one row per grant, adjustment or use, never deleted. A use is "reserved" while its try-on
@@ -62,6 +63,23 @@ model CreditEntry {
   @@unique([userId, requestId])
   @@index([userId, kind, createdAt])
   @@index([status, createdAt])
+}
+
+/// The Stylist's reading of one person (from a photo they chose): undertone, colors, body shape notes, fits and
+/// materials, plus the look it styled from their closet. Only the written results are kept, never the photo. The
+/// person's own corrections (e.g. "I'm cool-toned") are kept apart and win over the AI's reading.
+model StyleProfile {
+  userId      String   @id
+  /// The AI's reading, as JSON (lib/stylist StyleReading).
+  reading     String
+  /// The person's corrections, as JSON ({ undertone?, bodyShape? }).
+  corrections String   @default("{}")
+  /// The latest styled look, as JSON (lib/stylist StyledLook).
+  look        String?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
 }
 
 /// One usage event for the owner's analytics dashboard: what happened, never any content.

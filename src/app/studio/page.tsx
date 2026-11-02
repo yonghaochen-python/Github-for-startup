@@ -92,7 +92,9 @@ export default function StudioPage() {
   const [pieces, setPieces] = useState<ClothingItem[]>([]);
   const [look, setLook] = useState<Look>(EMPTY_LOOK);
   // Which look to start from: the one asked for, else the latest try-on.
-  const [startId] = useState(() => (fromShop ? null : searchParams.get("outfit") || user?.look?.outfitId || null));
+  // A look sent from the Stylist (?items=id,id,…): those closet pieces are worn to start with.
+  const [startItems] = useState(() => (fromShop ? [] : (searchParams.get("items") ?? "").split(",").filter(Boolean).slice(0, 8)));
+  const [startId] = useState(() => (fromShop || startItems.length ? null : searchParams.get("outfit") || user?.look?.outfitId || null));
   const [loadingLook, setLoadingLook] = useState(Boolean(startId));
   const [tab, setTab] = useState(TABS[0].value);
 
@@ -206,6 +208,16 @@ export default function StudioPage() {
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps -- load once per visit
   }, []);
+
+  // Wear the Stylist's look once the closet has loaded.
+  const wornStart = useRef(false);
+  useEffect(() => {
+    if (wornStart.current || !closet || !startItems.length) return;
+    wornStart.current = true;
+    const chosen = startItems.flatMap((id) => closet.find((item) => item.id === id) ?? []);
+    // eslint-disable-next-line react-hooks/set-state-in-effect -- applied once, after the closet loads
+    if (chosen.length) setPieces(chosen.reduce<ClothingItem[]>((worn, piece) => withPiece(worn, piece), []));
+  }, [closet, startItems]);
 
   // Shopping's "Your outfit" (kept on this device) is listed first in the Shop panel on every visit. Arriving from
   // Shopping (?shop=1), the pieces sent over are also worn to start with.

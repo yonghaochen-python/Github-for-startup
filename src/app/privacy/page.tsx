@@ -21,6 +21,12 @@ export default function PrivacyPage() {
           about each piece, the outfits you make, and the try-on pictures we create for you.
         </li>
         <li>
+          <strong>Your style reading (only if you use the Stylist):</strong> what the Stylist wrote about the photo you chose:
+          your undertone, color palette, body shape and the cuts and fabrics that suit you, plus any corrections you make. We
+          keep only these written results, not another copy of that photo. You can delete the reading any time on the Stylist
+          page.
+        </li>
+        <li>
           <strong>Usage data:</strong> which pages you open, which features you use, when you were last active, and whether
           try-ons and outfit suggestions worked and how long they took. This is linked to your account. The owner&apos;s
           dashboard shows totals and partly hidden emails only, never your photos, clothes or password.
@@ -46,7 +52,8 @@ export default function PrivacyPage() {
         </li>
         <li>
           <strong>Anthropic</strong> (Claude) recognises and describes clothes when you add a photo to your closet. It also
-          suggests outfits, using the written descriptions of your clothes, not your photos.
+          suggests outfits, using the written descriptions of your clothes, not your photos. When you ask the Stylist for a
+          style reading, the photo you chose is sent to Anthropic so it can read your coloring and proportions.
         </li>
         <li>
           <strong>Decart</strong> powers live try-on. When you start an AI live session, your camera video and the outfit&apos;s

@@ -18,6 +18,8 @@ export type EventName =
   | "pick_opened"
   | "pick_vote"
   | "signup_from_pick"
+  | "style_reading"
+  | "style_look"
   | `visit_${"home" | "shop" | "closet" | "studio" | "stylist" | "tryon" | "saved" | "profile"}`;
 
 export async function track(
