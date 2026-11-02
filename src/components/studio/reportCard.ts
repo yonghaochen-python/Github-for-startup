@@ -68,7 +68,7 @@ export async function drawReportCard(module: StudioModule, data: StudioReportDat
   ctx.fillStyle = module.accent;
   ctx.font = `500 22px ${sans}`;
   ctx.letterSpacing = "5px";
-  ctx.fillText(`VIRM STUDIO · ${module.label.toUpperCase()}`, 80, 110);
+  ctx.fillText(`VIRM AI STYLIST · ${module.label.toUpperCase()}`, 80, 110);
   ctx.fillStyle = MUTED;
   ctx.textAlign = "right";
   ctx.fillText(date.toUpperCase(), W - 80, 110);

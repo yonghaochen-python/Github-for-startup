@@ -21,7 +21,7 @@ export default function PrivacyPage() {
           about each piece, the outfits you make, and the try-on pictures we create for you.
         </li>
         <li>
-          <strong>Your Studio portrait and reports (only if you use Virm Studio):</strong> the head-and-shoulders portrait
+          <strong>Your AI Stylist portrait and reports (only if you use the AI Stylist):</strong> the head-and-shoulders portrait
           you add, kept privately and apart from your try-on photo, and the reports made from it. You can remove the
           portrait or delete any report at any time.
         </li>
@@ -52,7 +52,7 @@ export default function PrivacyPage() {
         <li>
           <strong>Anthropic</strong> (Claude) recognises and describes clothes when you add a photo to your closet. It also
           suggests outfits, using the written descriptions of your clothes, not your photos. When you press Analyze in
-          Virm Studio, your Studio portrait is sent to Anthropic for that analysis; only the written
+          the AI Stylist, your portrait is sent to Anthropic for that analysis; only the written
           report is kept.
         </li>
         <li>

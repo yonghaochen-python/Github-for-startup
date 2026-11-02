@@ -65,7 +65,7 @@ model CreditEntry {
   @@index([status, createdAt])
 }
 
-/// One Virm Studio analysis (color, makeup, hair or style) of the person's portrait. Each module keeps its latest
+/// One AI Stylist analysis (color, makeup, hair or style) of the person's portrait. Each module keeps its latest
 /// reports so people can look back; regenerating adds a new row and never overwrites. "generating" rows also stop
 /// a second request for the same module from running at the same time. Token counts and the estimated cost are
 /// kept per report for the owner's cost tracking.

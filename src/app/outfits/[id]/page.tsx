@@ -246,7 +246,7 @@ export default function OutfitDetailPage() {
       <main className="mx-auto w-full max-w-5xl flex-1 px-6 py-12">
         <p className="text-sm text-[#5d6874]">
           Outfit not found. Back to{" "}
-          <Link href="/studio/mirror" className="text-[#26313a] hover:underline">
+          <Link href="/studio" className="text-[#26313a] hover:underline">
             outfits
           </Link>
           .
@@ -267,7 +267,7 @@ export default function OutfitDetailPage() {
     <main className="mx-auto w-full max-w-[1280px] flex-1 px-5 pb-16 pt-7 sm:px-8 sm:pt-10">
       <div className="mb-6">
       <Link
-        href={backToSaved ? "/outfits/saved" : "/studio/mirror"}
+        href={backToSaved ? "/outfits/saved" : "/studio"}
         className="btn-tactile inline-flex min-h-[40px] items-center gap-2 rounded-full bg-white px-4 py-2 text-[12.5px] font-semibold text-[#121821] shadow-[inset_0_0_0_1px_rgba(18,24,33,0.12)] hover:bg-[#eef2f5]"
       >
         <ArrowLeftIcon className="h-4 w-4" /> {backToSaved ? "Back to Saved Looks" : "Back to Studio"}
@@ -307,7 +307,7 @@ export default function OutfitDetailPage() {
           <p className="max-w-[460px] text-[13.5px] leading-[1.8] text-[#4f5b66]">{outfit.rationale}</p>
 
           <div className="mt-6 flex flex-wrap items-center gap-3">
-            <Link href={`/studio/mirror?outfit=${outfit.id}&start=1`} className={btnPrimary}>
+            <Link href={`/studio?outfit=${outfit.id}&start=1`} className={btnPrimary}>
               <MirrorIcon className="h-4 w-4" /> Try On
             </Link>
             <SaveToggle saved={outfit.isFavorite} busy={saving} onToggle={toggleFavorite} />

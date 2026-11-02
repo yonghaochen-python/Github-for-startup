@@ -8,7 +8,7 @@ export type StudioState = { portrait: PortraitInfo | null; reports: Partial<Reco
 
 export const portraitUrl = (p: PortraitInfo | null) => (p ? `/api/studio/portrait?v=${p.version}` : null);
 
-/** The Studio home's data (portrait and newest reports), and saving or removing the portrait. Nothing is generated here. */
+/** The AI Stylist page's data (portrait and newest reports), and saving or removing the portrait. Nothing is generated here. */
 export function useStudio() {
   const [state, setState] = useState<StudioState | null>(null);
   const [failed, setFailed] = useState(false);

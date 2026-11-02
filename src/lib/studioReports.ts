@@ -6,7 +6,7 @@ import type { StyledLook, StyledPiece } from "@/lib/closetLook";
 import { type ReportSummary, type StudioModuleId, type StudioReportData } from "@/lib/studioModules";
 
 /**
- * Virm Studio reports: made one module at a time, only when the person asks, and kept so opening one again is free.
+ * AI Stylist reports: made one module at a time, only when the person asks, and kept so opening one again is free.
  * A request id makes a repeated tap answer once, and a module that's already being made can't be started again
  * until it finishes (or is clearly stuck).
  *

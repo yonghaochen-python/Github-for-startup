@@ -39,7 +39,7 @@ function ReportView({ module, report, portrait }: { module: StudioModule; report
       <div className="grid gap-10 p-7 sm:p-12 lg:grid-cols-[minmax(0,1fr)_360px]">
         <div>
           <p className="text-[11px] font-medium uppercase tracking-[2.6px]" style={{ color: module.accent }}>
-            Virm Studio · {module.label} · {longDay(report.createdAt)}
+            AI Stylist · {module.label} · {longDay(report.createdAt)}
           </p>
           <h2 className="mt-6 font-display text-[46px] font-normal leading-[1] tracking-[-1px] text-[#121821] sm:text-[64px]">{d.headline}</h2>
           {d.keywords.length > 0 && (
@@ -136,8 +136,8 @@ export default function StudioModulePage() {
         <PageShell className="pt-12">
           <p className="text-[14px] text-[#4f5b66]">
             This analysis doesn&apos;t exist.{" "}
-            <Link href="/studio" className="font-semibold text-[#121821] underline underline-offset-4">
-              Back to Studio
+            <Link href="/stylist" className="font-semibold text-[#121821] underline underline-offset-4">
+              Back to AI Stylist
             </Link>
           </p>
         </PageShell>
@@ -242,8 +242,8 @@ export default function StudioModulePage() {
   return (
     <main className="flex-1 pb-20">
       <PageShell className="pt-6 sm:pt-8">
-        <Link href="/studio" className="mb-6 inline-flex items-center gap-1.5 text-[12px] font-semibold text-[#4f5b66] hover:text-[#121821]">
-          <ArrowLeftIcon className="h-4 w-4" /> Virm Studio
+        <Link href="/stylist" className="mb-6 inline-flex items-center gap-1.5 text-[12px] font-semibold text-[#4f5b66] hover:text-[#121821]">
+          <ArrowLeftIcon className="h-4 w-4" /> AI Stylist
         </Link>
 
         {error && (
@@ -279,7 +279,7 @@ export default function StudioModulePage() {
             <ModuleVisual module={mod} portrait={picture} className="aspect-[4/3] w-full md:aspect-auto md:min-h-[460px]" />
             <div className="flex flex-col p-7 sm:p-10">
               <p className="text-[11px] font-medium uppercase tracking-[2.6px]" style={{ color: mod.accent }}>
-                Virm Studio · {mod.label}
+                AI Stylist · {mod.label}
               </p>
               <h1 className="mt-3 font-display text-[42px] leading-[1] tracking-[-1px] text-[#121821] sm:text-[52px]">{mod.title}</h1>
               <p className="mt-4 text-[15px] leading-relaxed text-[#4f5b66]">{mod.description}</p>
@@ -294,10 +294,10 @@ export default function StudioModulePage() {
               <div className="mt-auto pt-8">
                 {!portrait ? (
                   <p className="text-[13.5px] text-[#4f5b66]">
-                    <Link href="/studio" className="font-semibold text-[#121821] underline underline-offset-4">
+                    <Link href="/stylist" className="font-semibold text-[#121821] underline underline-offset-4">
                       Add your portrait
                     </Link>{" "}
-                    in Studio first.
+                    on the AI Stylist page first.
                   </p>
                 ) : (
                   <>

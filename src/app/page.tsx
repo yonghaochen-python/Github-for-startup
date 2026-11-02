@@ -148,7 +148,7 @@ export default function Home() {
 function nextStep(hasPhoto: boolean, closetCount: number, outfitCount: number) {
   if (closetCount === 0) return { text: "Add a few clothes to get started.", href: "/closet?add=1", cta: "Add Clothes" };
   if (!hasPhoto) return { text: "Save a full-body photo to try outfits on.", href: "#mirror", cta: "Upload My Photo" };
-  if (outfitCount === 0) return { text: "Create your first outfit.", href: "/studio/mirror", cta: "Open Studio" };
+  if (outfitCount === 0) return { text: "Create your first outfit.", href: "/studio", cta: "Open Studio" };
   return null;
 }
 
@@ -247,7 +247,7 @@ function Dashboard({ closet, outfits }: { closet: ClothingItem[]; outfits: Outfi
                       <p className="max-w-md text-[14px] leading-relaxed text-[#4f5b66]">Pick any outfit to try on.</p>
                     )}
                     <div className="flex flex-wrap items-center gap-3">
-                      <Link href="/studio/mirror" className={btnPrimary}>
+                      <Link href="/studio" className={btnPrimary}>
                         <MirrorIcon className="h-4 w-4" /> Try On an Outfit
                       </Link>
                       <button onClick={() => setSettingUpPhoto(true)} className={btnSecondary}>

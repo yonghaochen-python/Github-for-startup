@@ -116,7 +116,7 @@ export function MakeupReport({ module, data, portrait, createdAt }: { module: St
       <header className="grid gap-10 p-7 sm:p-12 lg:grid-cols-[minmax(0,1fr)_340px]" style={{ background: module.tint }}>
         <div>
           <p className="text-[11px] font-medium uppercase tracking-[2.6px]" style={{ color: module.accent }}>
-            Virm Studio · {module.label} · {longDay(createdAt)}
+            AI Stylist · {module.label} · {longDay(createdAt)}
           </p>
           {x.styles[0] && <p className="mt-8 font-display text-[22px] italic text-[#4f5b66]">{x.styles[0].name}</p>}
           <h2 className="mt-1 font-display text-[46px] font-normal leading-[1] tracking-[-1px] text-[#121821] sm:text-[64px]">{data.headline}</h2>

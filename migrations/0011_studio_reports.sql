@@ -1,4 +1,4 @@
--- Virm Studio analyses: one row per report (color, makeup, hair or style), with its JSON results, the portrait it
+-- AI Stylist analyses: one row per report (color, makeup, hair or style), with its JSON results, the portrait it
 -- used, and token counts / estimated cost for the owner's cost tracking. Additive only: one new table, deleted along
 -- with its account. No existing data changes.
 

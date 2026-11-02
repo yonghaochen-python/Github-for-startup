@@ -3,7 +3,7 @@ import { env } from "cloudflare:workers";
 import type { PortraitChecks, PortraitInfo } from "@/lib/studioModules";
 
 /**
- * The person's Studio portrait (head and shoulders), used for the Studio analyses. It's kept apart from the
+ * The person's AI Stylist portrait (head and shoulders), used for its analyses. It's kept apart from the
  * full-body try-on photo, so changing one never affects the other. One per person, at a fixed private key that
  * only the owner can read (through /api/studio/portrait); its version and the device's quality checks live in the
  * object's metadata, so no database column is needed.

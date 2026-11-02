@@ -101,7 +101,7 @@ export default function ProfilePage() {
                     Every try-on uses this photo. Only you can see it.
                   </p>
                   <div className="mt-auto flex flex-wrap gap-3 pt-6">
-                    <Link href="/studio/mirror" className={btnPrimary}>Try On</Link>
+                    <Link href="/studio" className={btnPrimary}>Open Studio</Link>
                     <button onClick={() => setChanging(true)} className={btnSecondary}>Change Photo</button>
                   </div>
                   <div className="mt-4 flex flex-wrap items-center gap-x-3 gap-y-1 text-[12px]">

@@ -279,7 +279,7 @@ export default function ClosetPage() {
               <button onClick={() => setShowAddClothes(true)} className={btnSecondary}>
                 Add Another Item
               </button>
-              <Link href="/studio/mirror" className={btnPrimary}>
+              <Link href="/studio" className={btnPrimary}>
                 <SparkleIcon className="h-4 w-4" /> Start Styling
               </Link>
               <button onClick={() => setJustAdded(null)} aria-label="Dismiss" className="px-2 text-[12px] font-semibold text-[#5d6874] hover:text-[#121821]">
@@ -653,7 +653,7 @@ function ItemDetail({
                 ))}
               </dl>
               <div className="mt-auto flex flex-wrap items-center gap-3 pt-8">
-                <Link href="/studio/mirror" className={btnPrimary}>
+                <Link href="/studio" className={btnPrimary}>
                   <SparkleIcon className="h-4 w-4" /> Style an Outfit
                 </Link>
                 <button onClick={() => setEditing(true)} className={btnSecondary}>

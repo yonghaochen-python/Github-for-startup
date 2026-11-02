@@ -1,5 +1,5 @@
 /**
- * Virm Studio's four analyses, shared by the pages and the server. Each one is generated on its own, only when the
+ * The AI Stylist's four analyses, shared by the pages and the server. Each one is generated on its own, only when the
  * person asks, and kept so it can be opened again for free.
  */
 

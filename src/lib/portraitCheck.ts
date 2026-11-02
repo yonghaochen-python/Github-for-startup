@@ -4,7 +4,7 @@ import { loadLandmarker } from "@/lib/autoFrame";
 import type { PortraitChecks } from "@/lib/studioModules";
 
 /**
- * Checks a Studio portrait on the device before it's saved (the photo isn't sent anywhere for this): size,
+ * Checks an AI Stylist portrait on the device before it's saved (the photo isn't sent anywhere for this): size,
  * brightness, and whether a face is visible and big enough to read, using the same MediaPipe body model as the
  * try-on photo's auto-framing. It can also cut a head-and-shoulders portrait out of the full-body try-on photo.
  */
