@@ -26,12 +26,45 @@ function ActionBar({ children }: { children: React.ReactNode }) {
 /** Photo frame: 3:4, as large as fits above the action bar and tab bar on a phone. */
 const frameStyle = { height: "min(56dvh, calc((100vw - 2.5rem) * 4 / 3), 640px)", aspectRatio: "3 / 4" } as const;
 
-const PHOTO_TIPS = [
-  "Your whole body, head to feet, in the frame",
-  "Facing the camera, arms relaxed at your sides",
-  "Good, even light and a plain background",
-  "Fitted, simple clothes work best",
-];
+/**
+ * The pose to aim for, drawn inside the photo box: a person standing straight and facing forward, arms down at the
+ * sides and a little apart, in fitted, shorter clothes (so the body's shape shows), with "head" and "feet" lines and
+ * the tips placed around them.
+ */
+function PoseGuide({ label }: { label: string }) {
+  const tip = "absolute flex items-center gap-1 whitespace-nowrap rounded-full bg-white/95 px-2 py-0.5 text-[10.5px] font-medium text-[#2b3540] shadow-[0_1px_4px_rgba(18,24,33,0.12)]";
+  const check = <span aria-hidden className="text-[9px] text-emerald-600">✓</span>;
+  return (
+    <>
+      {/* Head and feet lines: the whole body fits between them. */}
+      <span aria-hidden className="absolute inset-x-5 top-[9%] border-t border-dashed border-[#9aa6ad]" />
+      <span aria-hidden className="absolute inset-x-5 top-[83%] border-t border-dashed border-[#9aa6ad]" />
+      <svg viewBox="0 0 120 300" aria-hidden className="absolute left-1/2 top-[9%] h-[74%] -translate-x-1/2">
+        {/* Arms, down at the sides and a little apart */}
+        <path d="M37 64 L29 112 L26 160" fill="none" stroke="#c9d2d8" strokeWidth="10" strokeLinecap="round" strokeLinejoin="round" />
+        <path d="M83 64 L91 112 L94 160" fill="none" stroke="#c9d2d8" strokeWidth="10" strokeLinecap="round" strokeLinejoin="round" />
+        {/* Legs */}
+        <path d="M50 150 L49 278" fill="none" stroke="#c9d2d8" strokeWidth="15" strokeLinecap="round" />
+        <path d="M70 150 L71 278" fill="none" stroke="#c9d2d8" strokeWidth="15" strokeLinecap="round" />
+        <ellipse cx="46" cy="290" rx="9" ry="5" fill="#9aa6ad" />
+        <ellipse cx="74" cy="290" rx="9" ry="5" fill="#9aa6ad" />
+        {/* Head, facing forward */}
+        <rect x="54" y="44" width="12" height="14" rx="4" fill="#c9d2d8" />
+        <ellipse cx="60" cy="28" rx="15" ry="18" fill="#c9d2d8" />
+        <path d="M54 26 h0.1 M66 26 h0.1" stroke="#7e8a91" strokeWidth="3" strokeLinecap="round" />
+        {/* A fitted top and fitted shorts, so the shape shows */}
+        <path d="M34 60 Q60 54 86 60 L80 98 Q76 120 77 140 L43 140 Q44 120 40 98 Z" fill="#7e8a91" />
+        <path d="M42 138 L78 138 L80 186 L63 186 L60 160 L57 186 L40 186 Z" fill="#5d6874" />
+      </svg>
+      <span className={`${tip} left-1/2 top-[2.5%] -translate-x-1/2`}>{check} Head to feet in the photo</span>
+      <span className={`${tip} left-[4%] top-[17%]`}>{check} Face forward</span>
+      <span className={`${tip} right-[4%] top-[38%]`}>{check} Arms down</span>
+      <span className={`${tip} left-[4%] top-[52%]`}>{check} Fitted or shorter clothes</span>
+      <span className={`${tip} left-1/2 top-[86%] -translate-x-1/2`}>{check} Even light, plain background</span>
+      <span className="absolute inset-x-0 bottom-[3%] text-center text-[12px] font-semibold text-[#121821] underline-offset-4 group-hover:underline">{label}</span>
+    </>
+  );
+}
 
 function cameraErrorMessage(err: unknown): string {
   const name = err instanceof DOMException ? err.name : "";
@@ -271,32 +304,24 @@ export function TryOnPhotoStep({
       )}
 
       {mode === "choose" && (
-        <div className="grid gap-6 overflow-hidden rounded-[18px] bg-white shadow-[0_1px_0_rgba(18,24,33,0.03),0_10px_28px_rgba(18,30,45,0.05)]/70 p-5 sm:p-8 md:grid-cols-[minmax(0,240px)_1fr] md:gap-10">
+        <div className="@container overflow-hidden rounded-[18px] bg-white shadow-[0_1px_0_rgba(18,24,33,0.03),0_10px_28px_rgba(18,30,45,0.05)]/70 p-5 sm:p-8">
+        {/* Side by side only when there's room for the guide at full size; otherwise the guide sits on top. */}
+        <div className="grid gap-6 @2xl:grid-cols-[300px_1fr] @2xl:items-center @2xl:gap-10">
           <button
             type="button"
             onClick={() => fileInputRef.current?.click()}
             disabled={starting || busy}
-            className="group flex aspect-[3/4] w-full max-w-[240px] flex-col items-center justify-center gap-3 justify-self-center rounded-[22px] border border-dashed border-[#aab6bc] bg-[#f4f7f8] text-[#5b676d] transition-colors hover:border-[#121821] hover:bg-white md:justify-self-start"
+            aria-label="Choose a full-body photo: head to feet, facing forward, arms down, fitted or shorter clothes, even light and a plain background"
+            className="group relative aspect-[3/4] w-full max-w-[300px] justify-self-center overflow-hidden rounded-[22px] border border-dashed border-[#aab6bc] bg-[#f4f7f8] transition-colors hover:border-[#121821] hover:bg-white @2xl:justify-self-start"
           >
-            <svg viewBox="0 0 24 24" className="h-9 w-9" fill="none" stroke="currentColor" strokeWidth={1.2} aria-hidden>
-              <circle cx="12" cy="5.5" r="2.5" />
-              <path d="M8 21v-6.5L6.5 10a1.5 1.5 0 0 1 1.4-2h8.2a1.5 1.5 0 0 1 1.4 2L16 14.5V21M12 14v7" />
-            </svg>
-            <span className="text-[12px] font-semibold">{busy ? "Preparing photo…" : "Choose a full-body photo"}</span>
+            <PoseGuide label={busy ? "Preparing photo…" : "Choose a full-body photo"} />
           </button>
           <div>
             <h2 className="font-display mb-2 text-[30px] font-normal leading-tight text-[#121821]">Your personal try-on photo</h2>
             <p className="mb-5 max-w-md text-[13.5px] leading-relaxed text-[#4f5b66]">
-              A clear, full-body photo. You&apos;ll use it for every try-on.
+              A clear, full-body photo, posed like the guide. You&apos;ll use it for every try-on, and the closer the fit of your
+              clothes, the better your body&apos;s shape comes through.
             </p>
-            <ul className="mb-6 grid gap-2 text-[12.5px] text-[#4f5a60]">
-              {PHOTO_TIPS.map((tip) => (
-                <li key={tip} className="flex items-start gap-2">
-                  <span aria-hidden className="mt-[7px] h-1 w-1 shrink-0 rounded-full bg-[#7e888e]" />
-                  {tip}
-                </li>
-              ))}
-            </ul>
             <div className="flex flex-col gap-3 sm:flex-row">
               <button
                 onClick={() => fileInputRef.current?.click()}
@@ -318,6 +343,7 @@ export function TryOnPhotoStep({
               Your photo is saved as soon as you pick it. Only you can see it, and you can change it anytime.
             </p>
           </div>
+        </div>
         </div>
       )}
 
