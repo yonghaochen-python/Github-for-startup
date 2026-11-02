@@ -85,7 +85,13 @@ export type StudioReportData = {
   extra?: Record<string, unknown>;
 };
 
-export type ReportSummary = { id: string; createdAt: string; practice: boolean };
+export type ReportSummary = {
+  id: string;
+  createdAt: string;
+  practice: boolean;
+  /** The report's first top picks, for the AI Stylist page's cards (lib/studioPicks). */
+  picks?: { label: string; value?: string; swatches?: Swatch[]; skip?: boolean }[];
+};
 
 /** The portrait's quality checks, made on the device before it's saved. */
 export type PortraitChecks = {

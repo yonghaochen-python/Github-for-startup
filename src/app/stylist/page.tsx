@@ -1,136 +1,95 @@
 "use client";
 
-import { useRef, useState } from "react";
 import Link from "next/link";
-import { useAuth } from "@/components/AuthProvider";
 import { ArrowRightIcon, CameraIcon, CheckIcon, MirrorIcon } from "@/components/Icons";
-import { ErrorNote, PageShell, btnPrimary, btnSecondary, btnText, surface } from "@/components/ui";
+import { PageShell, surface } from "@/components/ui";
 import { ModuleVisual } from "@/components/studio/ModuleVisual";
+import { PortraitControls } from "@/components/studio/PortraitPanel";
+import { PickSwatches } from "@/components/studio/TopPicks";
 import { portraitUrl, useStudio } from "@/components/studio/useStudio";
 import { STUDIO_MODULES, portraitReadiness } from "@/lib/studioModules";
 
-
 const day = (iso: string) => new Date(iso).toLocaleDateString(undefined, { month: "short", day: "numeric" });
 
+/** The three steps, with the one the person is on lit up. */
+function Guide({ step }: { step: 1 | 2 | 3 }) {
+  const steps = ["Add a clear photo of you", "Pick an analysis and press Analyze", "Read your top picks first"];
+  return (
+    <ol className="grid gap-3 sm:grid-cols-3" aria-label="How it works">
+      {steps.map((s, i) => {
+        const n = i + 1;
+        const done = n < step;
+        const now = n === step;
+        return (
+          <li key={s} className={`flex items-center gap-3 rounded-[16px] px-4 py-3 ${now ? "bg-white shadow-[0_8px_22px_rgba(18,30,45,0.08)]" : "bg-white/50"}`}>
+            <span
+              className={`flex h-7 w-7 shrink-0 items-center justify-center rounded-full text-[12px] font-semibold ${done ? "bg-emerald-500 text-white" : now ? "bg-[#121821] text-white" : "bg-[#e3e7eb] text-[#5d6874]"}`}
+            >
+              {done ? <CheckIcon className="h-3.5 w-3.5" /> : n}
+            </span>
+            <span className={`text-[13px] ${now ? "font-semibold text-[#121821]" : "text-[#4f5b66]"}`}>{s}</span>
+          </li>
+        );
+      })}
+    </ol>
+  );
+}
+
 /**
- * AI Stylist: the person's portrait, and four analyses made from it (color, makeup, hair, style), each generated
- * only when asked and kept to reopen for free. Trying clothes on is one tap away, in Studio.
+ * AI Stylist: the person's photo, and four analyses made from it (color, makeup, hair, style), each generated only
+ * when asked and kept to reopen for free. A guide shows the next step; finished cards show their main picks.
  */
 export default function StylistPage() {
-  const { user } = useAuth();
   const { state, failed, reload, savePortrait, removePortrait } = useStudio();
-  const [saving, setSaving] = useState(false);
-  const [error, setError] = useState<string | null>(null);
-  const fileInput = useRef<HTMLInputElement | null>(null);
-
-  async function save(photo: Blob, fromTryOnPhoto = false) {
-    setSaving(true);
-    setError(null);
-    try {
-      await savePortrait(photo, fromTryOnPhoto);
-    } catch (err) {
-      setError(err instanceof Error && err.message !== "photo" ? err.message : "That photo couldn't be used. Try a JPG or PNG.");
-    } finally {
-      setSaving(false);
-    }
-  }
-
-  async function useTryOnPhoto() {
-    const photo = await fetch(`/api/me/photo?v=${user?.photoVersion}`).then((r) => (r.ok ? r.blob() : null)).catch(() => null);
-    if (photo) await save(photo, true);
-    else setError("Couldn't open your try-on photo. Upload a portrait instead.");
-  }
-
-  async function remove() {
-    if (!confirm("Remove your portrait? Your finished reports stay.")) return;
-    try {
-      await removePortrait();
-    } catch (err) {
-      setError(err instanceof Error ? err.message : "Couldn't remove it. Please try again.");
-    }
-  }
-
   const portrait = state?.portrait ?? null;
   const picture = portraitUrl(portrait);
   const readiness = portraitReadiness(portrait?.checks ?? null);
+  const anyDone = Object.keys(state?.reports ?? {}).length > 0;
+  const step = !portrait || !readiness.ready ? 1 : anyDone ? 3 : 2;
 
   return (
     <main className="flex-1 pb-20">
       <PageShell className="pt-8 sm:pt-12">
-        <input
-          ref={fileInput}
-          type="file"
-          accept="image/jpeg,image/png,image/webp"
-          hidden
-          onChange={(e) => {
-            const file = e.target.files?.[0];
-            e.target.value = "";
-            if (file) save(file);
-          }}
-        />
-
-        {/* The portrait, and the studio's title beside it. */}
+        {/* The photo, and the page's title beside it. */}
         <section className="grid items-center gap-8 md:grid-cols-[minmax(0,1fr)_300px] lg:grid-cols-[minmax(0,1fr)_340px]">
           <div>
             <h1 className="font-display text-[48px] font-normal leading-[0.98] tracking-[-1.5px] text-[#121821] sm:text-[68px]">AI Stylist</h1>
             <p className="mt-4 max-w-md text-[16px] leading-relaxed text-[#4f5b66]">Discover your colors, beauty preferences, and personal style.</p>
-
-            <div className="mt-7 flex flex-col gap-3">
+            <div className="mt-7">
               {state === null && !failed && <p className="text-[13px] text-[#5d6874]">Loading…</p>}
               {failed && (
                 <p className="text-[13px] text-[#5d6874]">
-                  Studio didn&apos;t load.{" "}
+                  This page didn&apos;t load.{" "}
                   <button onClick={reload} className="font-semibold text-[#121821] underline underline-offset-4">
                     Try again
                   </button>
                 </p>
               )}
-              {state && (
-                <>
-                  <p className="flex items-center gap-2 text-[13.5px] font-medium text-[#121821]">
-                    <span className={`h-2 w-2 rounded-full ${!portrait ? "bg-[#c3cad1]" : readiness.ready ? "bg-emerald-500" : "bg-amber-500"}`} />
-                    {!portrait ? "Add a portrait to begin" : readiness.note}
-                  </p>
-                  <div className="flex flex-wrap items-center gap-3">
-                    <button onClick={() => fileInput.current?.click()} disabled={saving} className={portrait ? btnSecondary : btnPrimary}>
-                      <CameraIcon className="h-4 w-4" /> {saving ? "Checking your photo…" : portrait ? "Replace portrait" : "Upload portrait"}
-                    </button>
-                    {!portrait && user?.photoVersion && (
-                      <button onClick={useTryOnPhoto} disabled={saving} className={btnText}>
-                        Use my try-on photo
-                      </button>
-                    )}
-                    {portrait && (
-                      <button onClick={remove} className={`${btnText} text-[#5d6874]`}>
-                        Remove
-                      </button>
-                    )}
-                  </div>
-                  <p className="max-w-md text-[12px] leading-relaxed text-[#5d6874]">
-                    Best: head and shoulders, facing the camera, in daylight, without filters. It&apos;s checked on your device first and kept private. Your
-                    try-on photo isn&apos;t changed.
-                  </p>
-                  {error && <ErrorNote message={error} />}
-                </>
-              )}
+              {state && <PortraitControls portrait={portrait} savePortrait={savePortrait} removePortrait={removePortrait} />}
             </div>
           </div>
 
-          <div className="mx-auto aspect-[4/5] w-full max-w-[300px] overflow-hidden rounded-t-full rounded-b-[28px] bg-[#e9edf1] shadow-[0_24px_60px_rgba(18,30,45,0.14)] md:max-w-none">
+          <div className="mx-auto aspect-[4/5] w-full max-w-[300px] overflow-hidden rounded-b-[28px] rounded-t-full bg-[#e9edf1] shadow-[0_24px_60px_rgba(18,30,45,0.14)]">
             {picture ? (
               // eslint-disable-next-line @next/next/no-img-element
-              <img src={picture} alt="Your portrait" className="h-full w-full object-cover" />
+              <img src={picture} alt="Your photo" className="h-full w-full object-cover" />
             ) : (
-              <button onClick={() => fileInput.current?.click()} className="flex h-full w-full flex-col items-center justify-center gap-2 text-[13px] text-[#4f5b66]">
+              <div className="flex h-full w-full flex-col items-center justify-center gap-2 text-[13px] text-[#4f5b66]">
                 <CameraIcon className="h-6 w-6" />
-                Your portrait
-              </button>
+                Your photo
+              </div>
             )}
           </div>
         </section>
 
+        {state && (
+          <div className="mt-10">
+            <Guide step={step} />
+          </div>
+        )}
+
         {/* The four analyses. */}
-        <section className="mt-14" aria-label="Analyses">
+        <section className="mt-10" aria-label="Analyses">
           <div className="mb-5 flex items-end justify-between gap-4">
             <h2 className="font-display text-[32px] leading-none text-[#121821] sm:text-[38px]">Your analyses</h2>
             <p className="hidden text-[12.5px] text-[#5d6874] sm:block">Each one is made only when you ask, and saved for you.</p>
@@ -160,9 +119,26 @@ export default function StylistPage() {
                         </span>
                       </div>
                       <h3 className="mt-3 font-display text-[28px] leading-tight text-[#121821]">{m.title}</h3>
-                      <p className="mt-2 flex-1 text-[14px] leading-relaxed text-[#4f5b66]">{m.description}</p>
+                      {done?.picks?.length ? (
+                        // The report's main picks, so this page reads as a summary.
+                        <dl className="mt-3 flex flex-1 flex-col gap-3">
+                          {done.picks.map((p) => (
+                            <div key={p.label}>
+                              <dt className="text-[11px] font-semibold uppercase tracking-[1.4px] text-[#5d6874]">{p.label}</dt>
+                              {p.value && <dd className="mt-0.5 text-[15px] font-medium text-[#121821]">{p.value}</dd>}
+                              {p.swatches?.length ? (
+                                <dd className="mt-1.5">
+                                  <PickSwatches pick={p} size="sm" />
+                                </dd>
+                              ) : null}
+                            </div>
+                          ))}
+                        </dl>
+                      ) : (
+                        <p className="mt-2 flex-1 text-[14px] leading-relaxed text-[#4f5b66]">{m.description}</p>
+                      )}
                       <span className="mt-5 inline-flex items-center gap-1.5 text-[13px] font-semibold text-[#121821]">
-                        {done ? "View report" : "Analyze"} <ArrowRightIcon className="h-4 w-4 transition-transform group-hover:translate-x-0.5" />
+                        {done ? "See your full report" : "Start this analysis"} <ArrowRightIcon className="h-4 w-4 transition-transform group-hover:translate-x-0.5" />
                       </span>
                     </div>
                   </Link>
@@ -172,7 +148,7 @@ export default function StylistPage() {
           </ul>
         </section>
 
-        {/* Trying clothes on: the mirror, one tap away. */}
+        {/* Trying clothes on: Studio, one tap away. */}
         <Link href="/studio" className={`${surface} group mt-5 flex items-center gap-5 p-6 transition-transform hover:-translate-y-0.5`}>
           <span className="flex h-12 w-12 shrink-0 items-center justify-center rounded-full bg-[#121821] text-white">
             <MirrorIcon className="h-5 w-5" />

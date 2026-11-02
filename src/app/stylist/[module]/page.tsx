@@ -10,6 +10,9 @@ import { ColorReport } from "@/components/studio/ColorReport";
 import { HairReport } from "@/components/studio/HairReport";
 import { MakeupReport } from "@/components/studio/MakeupReport";
 import { ModuleVisual } from "@/components/studio/ModuleVisual";
+import { PortraitControls } from "@/components/studio/PortraitPanel";
+import { TopPicks } from "@/components/studio/TopPicks";
+import { topPicks } from "@/lib/studioPicks";
 import { StyleReport } from "@/components/studio/StyleReport";
 import type { StyledPiece } from "@/lib/closetLook";
 import { drawReportCard } from "@/components/studio/reportCard";
@@ -104,7 +107,11 @@ export default function StudioModulePage() {
   const id = params.module;
   const valid = isStudioModule(id);
   const mod = valid ? studioModule(id) : null;
-  const { state } = useStudio();
+  const { state, savePortrait } = useStudio();
+  // The photo can be changed right here (opened from the report, or when the AI couldn't read it).
+  const [changingPhoto, setChangingPhoto] = useState(false);
+  const [photoProblem, setPhotoProblem] = useState(false);
+  const details = useRef<HTMLDivElement | null>(null);
   const [loaded, setLoaded] = useState<Loaded | null>(null);
   const [busy, setBusy] = useState(false);
   const [step, setStep] = useState(0);
@@ -150,13 +157,17 @@ export default function StudioModulePage() {
   const picture = portraitUrl(portrait);
   const readiness = portraitReadiness(portrait?.checks ?? null);
   const report = loaded?.report ?? null;
-  const reportPicture = report ? (report.portraitVersion === portrait?.version ? picture : null) : picture;
+  const reportPicture = picture;
+  // A report made from an earlier photo still opens; it says so and offers a new one.
+  const fromEarlierPhoto = Boolean(report && portrait && report.portraitVersion && report.portraitVersion !== portrait.version);
 
   async function analyze() {
     if (busy) return;
     setBusy(true);
     setStep(0);
     setError(null);
+    setPhotoProblem(false);
+    setChangingPhoto(false);
     requestId.current ??= crypto.randomUUID();
     try {
       const res = await fetch(`/api/studio/reports/${id}`, {
@@ -164,7 +175,8 @@ export default function StudioModulePage() {
         headers: { "content-type": "application/json" },
         body: JSON.stringify({ requestId: requestId.current }),
       });
-      const data = (await res.json().catch(() => ({}))) as { report?: Report; error?: string };
+      const data = (await res.json().catch(() => ({}))) as { report?: Report; error?: string; code?: string };
+      setPhotoProblem(data.code === "unusable");
       if (!res.ok || !data.report) throw new Error(data.error ?? "This analysis couldn't be made. Please try again.");
       requestId.current = null;
       refreshCredits();
@@ -250,6 +262,13 @@ export default function StudioModulePage() {
         {error && (
           <div className="mb-6">
             <ErrorNote message={error} />
+            {photoProblem && (
+              // The AI couldn't read this photo: change it right here, then press Analyze again.
+              <div className="mt-4 rounded-[18px] bg-white p-5 shadow-[0_8px_22px_rgba(18,30,45,0.06)]">
+                <p className="mb-3 text-[14px] font-semibold text-[#121821]">Try a different photo</p>
+                <PortraitControls portrait={portrait} savePortrait={savePortrait} />
+              </div>
+            )}
           </div>
         )}
 
@@ -293,16 +312,20 @@ export default function StudioModulePage() {
                 ))}
               </ul>
               <div className="mt-auto pt-8">
-                {!portrait ? (
-                  <p className="text-[13.5px] text-[#4f5b66]">
-                    <Link href="/stylist" className="font-semibold text-[#121821] underline underline-offset-4">
-                      Add your portrait
-                    </Link>{" "}
-                    on the AI Stylist page first.
-                  </p>
-                ) : (
+                {/* The photo it will use, and a way to change it before analyzing. */}
+                <div className="mb-6 flex gap-4">
+                  <div className="h-24 w-[76px] shrink-0 overflow-hidden rounded-[12px] bg-[#e9edf1]">
+                    {picture && (
+                      // eslint-disable-next-line @next/next/no-img-element
+                      <img src={picture} alt="The photo this analysis will use" className="h-full w-full object-cover" />
+                    )}
+                  </div>
+                  <div className="min-w-0 flex-1">
+                    <PortraitControls portrait={portrait} savePortrait={savePortrait} showTips={!portrait || !readiness.ready} />
+                  </div>
+                </div>
+                {portrait && (
                   <>
-                    {!readiness.ready && <p className="mb-3 text-[13px] text-amber-700">{readiness.note} You can still analyze it.</p>}
                     <button onClick={analyze} disabled={!canAnalyze} className={btnPrimary}>
                       Analyze
                     </button>
@@ -328,6 +351,9 @@ export default function StudioModulePage() {
             )}
             <div className="mb-5 flex flex-wrap items-center gap-3">
               <h1 className="mr-auto font-display text-[30px] leading-none text-[#121821] sm:text-[36px]">{mod.title}</h1>
+              <button onClick={() => setChangingPhoto((v) => !v)} className={btnSecondary}>
+                {changingPhoto ? "Close" : "Change photo"}
+              </button>
               <button onClick={download} disabled={cardBusy} className={btnSecondary}>
                 Download image
               </button>
@@ -335,6 +361,22 @@ export default function StudioModulePage() {
                 Share
               </button>
             </div>
+            {(changingPhoto || fromEarlierPhoto) && (
+              <div className="mb-5 rounded-[18px] bg-white p-5 shadow-[0_8px_22px_rgba(18,30,45,0.06)]">
+                {fromEarlierPhoto && (
+                  <p className="mb-3 text-[13.5px] text-[#2b3540]">
+                    This report was made from an earlier photo.{" "}
+                    <button onClick={analyze} disabled={!canAnalyze} className="font-semibold text-[#121821] underline underline-offset-4">
+                      Make a new one with your current photo
+                    </button>{" "}
+                    (one photo credit).
+                  </p>
+                )}
+                {changingPhoto && <PortraitControls portrait={portrait} savePortrait={savePortrait} />}
+              </div>
+            )}
+            <TopPicks module={mod} picks={topPicks(mod.id, report.data)} onDetails={() => details.current?.scrollIntoView({ behavior: "smooth", block: "start" })} />
+            <div ref={details} className="scroll-mt-24">
             {mod.id === "color" && report.data.extra ? (
               <ColorReport module={mod} data={report.data} portrait={reportPicture} createdAt={report.createdAt} />
             ) : mod.id === "hair" && report.data.extra ? (
@@ -346,6 +388,7 @@ export default function StudioModulePage() {
             ) : (
               <ReportView module={mod} report={report} portrait={reportPicture} />
             )}
+            </div>
             <div className="mt-6 flex flex-wrap items-center gap-x-5 gap-y-3">
               {loaded.history.length > 1 && (
                 <label className="flex items-center gap-2 text-[13px] text-[#4f5b66]">

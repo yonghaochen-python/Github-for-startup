@@ -1,0 +1,112 @@
+"use client";
+
+import { useRef, useState } from "react";
+import { useAuth } from "@/components/AuthProvider";
+import { CameraIcon } from "@/components/Icons";
+import { ErrorNote, btnPrimary, btnSecondary, btnText } from "@/components/ui";
+import { portraitReadiness, type PortraitInfo } from "@/lib/studioModules";
+
+export const PHOTO_TIPS = ["Head and shoulders, facing the camera", "Daylight, like near a window", "No filters, hair out of your face"];
+
+/**
+ * Adding or changing the AI Stylist portrait, with whether it's good enough and what to change if not. Used on the
+ * AI Stylist page and on each analysis, so a photo that doesn't work can be swapped right there.
+ */
+export function PortraitControls({
+  portrait,
+  savePortrait,
+  removePortrait,
+  showTips = true,
+}: {
+  portrait: PortraitInfo | null;
+  savePortrait: (photo: Blob, fromTryOnPhoto?: boolean) => Promise<void>;
+  removePortrait?: () => Promise<void>;
+  showTips?: boolean;
+}) {
+  const { user } = useAuth();
+  const [saving, setSaving] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const fileInput = useRef<HTMLInputElement | null>(null);
+  const readiness = portraitReadiness(portrait?.checks ?? null);
+
+  async function save(photo: Blob, fromTryOnPhoto = false) {
+    setSaving(true);
+    setError(null);
+    try {
+      await savePortrait(photo, fromTryOnPhoto);
+    } catch (err) {
+      setError(err instanceof Error && err.message !== "photo" ? err.message : "That photo couldn't be used. Try a JPG or PNG.");
+    } finally {
+      setSaving(false);
+    }
+  }
+
+  async function useTryOnPhoto() {
+    const photo = await fetch(`/api/me/photo?v=${user?.photoVersion}`)
+      .then((r) => (r.ok ? r.blob() : null))
+      .catch(() => null);
+    if (photo) await save(photo, true);
+    else setError("Couldn't open your try-on photo. Upload a portrait instead.");
+  }
+
+  async function remove() {
+    if (!removePortrait || !confirm("Remove your photo? Your finished reports stay.")) return;
+    try {
+      await removePortrait();
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Couldn't remove it. Please try again.");
+    }
+  }
+
+  return (
+    <div className="flex flex-col gap-3">
+      <input
+        ref={fileInput}
+        type="file"
+        accept="image/jpeg,image/png,image/webp"
+        hidden
+        onChange={(e) => {
+          const file = e.target.files?.[0];
+          e.target.value = "";
+          if (file) save(file);
+        }}
+      />
+      {portrait && !readiness.ready ? (
+        <div className="rounded-[14px] bg-amber-50 px-4 py-3 text-[13px] text-amber-900">
+          <p className="font-semibold">This photo may not give good results.</p>
+          <p className="mt-0.5">{readiness.note}</p>
+        </div>
+      ) : (
+        <p className="flex items-center gap-2 text-[13.5px] font-medium text-[#121821]">
+          <span className={`h-2 w-2 rounded-full ${portrait ? "bg-emerald-500" : "bg-[#c3cad1]"}`} />
+          {portrait ? "Your photo is ready" : "Add a photo to begin"}
+        </p>
+      )}
+      <div className="flex flex-wrap items-center gap-3">
+        <button onClick={() => fileInput.current?.click()} disabled={saving} className={portrait && readiness.ready ? btnSecondary : btnPrimary}>
+          <CameraIcon className="h-4 w-4" /> {saving ? "Checking your photo…" : portrait ? "Change photo" : "Upload a photo"}
+        </button>
+        {user?.photoVersion && !saving && (
+          <button onClick={useTryOnPhoto} className={btnText}>
+            {portrait ? "Use my try-on photo" : "Use my try-on photo instead"}
+          </button>
+        )}
+        {portrait && removePortrait && (
+          <button onClick={remove} className={`${btnText} text-[#5d6874]`}>
+            Remove
+          </button>
+        )}
+      </div>
+      {showTips && (
+        <ul className="flex flex-wrap gap-x-4 gap-y-1 text-[12px] text-[#5d6874]">
+          {PHOTO_TIPS.map((t) => (
+            <li key={t} className="flex items-center gap-1.5">
+              <span className="h-1 w-1 rounded-full bg-[#9aa4ad]" /> {t}
+            </li>
+          ))}
+        </ul>
+      )}
+      {error && <ErrorNote message={error} />}
+    </div>
+  );
+}

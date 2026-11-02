@@ -3,6 +3,7 @@ import { loadPortrait } from "@/lib/portrait";
 import { CreditError, withCredit } from "@/lib/credits";
 import { PortraitUnusableError, analyzeColor, analyzeHair, analyzeMakeup, analyzeStyle, type Analysis } from "@/lib/studioAnalysis";
 import type { StyledLook, StyledPiece } from "@/lib/closetLook";
+import { topPicks } from "@/lib/studioPicks";
 import { type ReportSummary, type StudioModuleId, type StudioReportData } from "@/lib/studioModules";
 
 /**
@@ -54,6 +55,12 @@ export async function latestReports(userId: string): Promise<Partial<Record<Stud
   for (const r of rows) {
     const m = r.module as StudioModuleId;
     if (!out[m]) out[m] = { id: r.id, createdAt: r.createdAt.toISOString(), practice: r.practice };
+  }
+  // Only the newest of each module needs its data, for the first top picks on its card.
+  const newest = await prisma.studioReport.findMany({ where: { id: { in: Object.values(out).map((r) => r!.id) } }, select: { id: true, module: true, data: true } });
+  for (const r of newest) {
+    const data = parse(r.data);
+    if (data) out[r.module as StudioModuleId]!.picks = topPicks(r.module as StudioModuleId, data).slice(0, 2);
   }
   return out;
 }
