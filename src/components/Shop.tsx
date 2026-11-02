@@ -27,6 +27,7 @@ import { ProductDetail } from "@/components/ProductDetail";
 import { btnPrimary, btnSecondary } from "@/components/ui";
 import { useAuth } from "@/components/AuthProvider";
 import type { StoreShelf } from "@/lib/storeFeeds";
+import { ShelfRow } from "@/components/ShelfRow";
 
 /**
  * Shopping: browse the catalog, open a piece to see it up close and try it on (live, or on your saved photo), or
@@ -509,7 +510,7 @@ export function Shop() {
           </div>
         )}
 
-        <div id="collection-grid" className="mt-6 grid scroll-mt-24 gap-6 lg:grid-cols-[minmax(0,1fr)_280px]">
+        <div id="collection-grid" className="mt-6 grid scroll-mt-24 grid-cols-[minmax(0,1fr)] gap-6 lg:grid-cols-[minmax(0,1fr)_280px]">
           <div>
             {swapping && (
               <div className="mb-4 flex items-center gap-3 rounded-[6px] bg-[#121821] px-4 py-3 text-[12.5px] text-white">
@@ -561,20 +562,14 @@ export function Shop() {
                 )}
               </div>
             ) : (
-              <div className="closet-shelf -mx-5 px-4 py-4 sm:mx-0 sm:rounded-[24px] sm:px-6 sm:py-5">
+              <div className="closet-shelf rounded-[20px] px-4 py-3 sm:rounded-[24px] sm:px-6 sm:py-4">
                 {TABS.filter((t) => t.value !== "all").map(({ value, label: rowLabel }) => {
                   const row = shown.filter((p) => p.category === value);
                   if (row.length === 0) return null;
                   return (
-                    <section key={value} aria-label={rowLabel} className="py-2.5">
-                      <h2 className="mb-1.5 text-[10.5px] font-semibold uppercase tracking-[1.8px] opacity-70">
-                        {rowLabel} <span className="ml-1 font-normal">{row.length}</span>
-                      </h2>
-                      {/* Slides left and right; pieces snap into place. */}
-                      <ul className="closet-row -mx-4 flex snap-x snap-mandatory items-end gap-1.5 overflow-x-auto scroll-px-4 px-4 pb-1 pt-2 sm:-mx-6 sm:scroll-px-6 sm:px-6">
-                        {row.map(renderPiece)}
-                      </ul>
-                    </section>
+                    <ShelfRow key={value} label={rowLabel} count={row.length}>
+                      {row.map(renderPiece)}
+                    </ShelfRow>
                   );
                 })}
               </div>
@@ -586,19 +581,14 @@ export function Shop() {
                 <p className="mb-3 text-[11.5px] text-[#5d6874]">
                   From stores · preview, only admins see this. These stores haven&apos;t joined Virm.
                 </p>
-                <div className="closet-shelf -mx-5 px-4 py-4 sm:mx-0 sm:rounded-[24px] sm:px-6 sm:py-5">
+                <div className="closet-shelf rounded-[20px] px-4 py-3 sm:rounded-[24px] sm:px-6 sm:py-4">
                   {stores.map((store) => {
                     const row = store.products.filter((p) => (tab === "all" || p.category === tab) && matchesSearch(p, query));
                     if (row.length === 0) return null;
                     return (
-                      <section key={store.id} aria-label={store.name} className="py-2.5">
-                        <h2 className="mb-1.5 text-[10.5px] font-semibold uppercase tracking-[1.8px] opacity-70">
-                          {store.name} <span className="ml-1 font-normal">{row.length}</span>
-                        </h2>
-                        <ul className="closet-row -mx-4 flex snap-x snap-mandatory items-end gap-1.5 overflow-x-auto scroll-px-4 px-4 pb-1 pt-2 sm:-mx-6 sm:scroll-px-6 sm:px-6">
-                          {row.map(renderPiece)}
-                        </ul>
-                      </section>
+                      <ShelfRow key={store.id} label={store.name} count={row.length}>
+                        {row.map(renderPiece)}
+                      </ShelfRow>
                     );
                   })}
                 </div>

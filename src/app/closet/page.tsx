@@ -13,6 +13,7 @@ import { CheckIcon, PlusIcon, SparkleIcon } from "@/components/Icons";
 import { EmptyState, ErrorNote, PageHeader, PageShell, btnPrimary, btnSecondary, btnText } from "@/components/ui";
 import { Tips, type Tip } from "@/components/Tips";
 import { keepItemBackground, removeBackgroundsAfterAdding, removeItemBackground } from "@/lib/cutoutClient";
+import { ShelfRow } from "@/components/ShelfRow";
 
 const CLOSET_TIPS: Tip[] = [
   { target: '[data-tip="closet-add"]', text: "Add a photo of one piece, or a few laid out together." },
@@ -387,17 +388,12 @@ export default function ClosetPage() {
                 }
               />
             ) : (
-              <div className="closet-shelf -mx-5 px-4 py-4 sm:mx-0 sm:rounded-[24px] sm:px-6 sm:py-5">
+              <div className="closet-shelf rounded-[20px] px-4 py-3 sm:rounded-[24px] sm:px-6 sm:py-4">
                 {SHELVES.map(({ value, label }) => {
                   const row = filteredItems.filter((i) => i.category === value);
                   if (row.length === 0) return null;
                   return (
-                    <section key={value} aria-label={label} className="py-2.5">
-                      <h2 className="mb-1.5 text-[10.5px] font-semibold uppercase tracking-[1.8px] opacity-70">
-                        {label} <span className="ml-1 font-normal">{row.length}</span>
-                      </h2>
-                      {/* Slides left and right; pieces snap into place. */}
-                      <ul className="closet-row -mx-4 flex snap-x snap-mandatory items-end gap-1.5 overflow-x-auto scroll-px-4 px-4 pb-1 pt-2 sm:-mx-6 sm:scroll-px-6 sm:px-6">
+                    <ShelfRow key={value} label={label} count={row.length}>
                         {row.map((item) => {
                           const cut = isCutout(item);
                           return (
@@ -438,8 +434,7 @@ export default function ClosetPage() {
                             </li>
                           );
                         })}
-                      </ul>
-                    </section>
+                    </ShelfRow>
                   );
                 })}
               </div>
