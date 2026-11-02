@@ -21,6 +21,11 @@ export default function PrivacyPage() {
           about each piece, the outfits you make, and the try-on pictures we create for you.
         </li>
         <li>
+          <strong>Your Studio portrait and reports (only if you use Virm Studio):</strong> the head-and-shoulders portrait
+          you add, kept privately and apart from your try-on photo, and the reports made from it. You can remove the
+          portrait or delete any report at any time.
+        </li>
+        <li>
           <strong>Your style reading (only if you use the Stylist):</strong> what the Stylist wrote about the photo you chose:
           your undertone, color palette, body shape and the cuts and fabrics that suit you, plus any corrections you make. We
           keep only these written results, not another copy of that photo. You can delete the reading any time on the Stylist

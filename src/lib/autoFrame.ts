@@ -31,7 +31,7 @@ const TOES = [31, 32];
 
 let landmarkerPromise: Promise<PoseLandmarker> | null = null;
 
-function loadLandmarker(): Promise<PoseLandmarker> {
+export function loadLandmarker(): Promise<PoseLandmarker> {
   landmarkerPromise ??= (async () => {
     const { FilesetResolver, PoseLandmarker } = await import("@mediapipe/tasks-vision");
     const files = await FilesetResolver.forVisionTasks(WASM_PATH);

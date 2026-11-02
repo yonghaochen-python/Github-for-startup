@@ -192,7 +192,7 @@ export function Shop() {
     try {
       sessionStorage.setItem(LIVE_SHOP_KEY, JSON.stringify(pieces.map(shopPiece)));
     } catch {}
-    router.push(`/studio?shop=1${mode === "live" ? "&mode=live" : ""}`);
+    router.push(`/studio/mirror?shop=1${mode === "live" ? "&mode=live" : ""}`);
   }
 
   /** Saves a store find to this device's wishlist (with a smaller picture so a dozen fit). */

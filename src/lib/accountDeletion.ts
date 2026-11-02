@@ -5,10 +5,11 @@ import { clearCurrentLook, deleteAllOutfitTryOns, deletePersonalPhoto, isSavedPh
 import { deleteAllPicks } from "@/lib/picks";
 import { clearTryOnCache } from "@/lib/tryOnCache";
 import { deleteAllLiveVideos } from "@/lib/liveVideos";
+import { deletePortrait } from "@/lib/portrait";
 
 /**
  * Permanently deletes an account and everything in it: the saved photo, the current look, every outfit's try-on
- * picture, remembered try-ons, shared picks and their pictures, saved live videos, the person's own clothing photos, and (through the database's
+ * picture, remembered try-ons, shared picks and their pictures, saved live videos, the Studio portrait, the person's own clothing photos, and (through the database's
  * cascades) their closet, outfits, sessions, reset links and usage events. Starter-closet pictures are shared files and stay.
  */
 export async function deleteAccount(userId: string): Promise<void> {
@@ -28,6 +29,7 @@ export async function deleteAccount(userId: string): Promise<void> {
   await deleteAllPicks(userId);
   await clearTryOnCache(userId);
   await deleteAllLiveVideos(userId);
+  await deletePortrait(userId);
 
   await prisma.user.delete({ where: { id: userId } });
 }

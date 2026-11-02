@@ -10,7 +10,7 @@ export default function OutfitTryOnRedirect() {
   const searchParams = useSearchParams();
   useEffect(() => {
     const start = searchParams.get("start") === "1" ? "&start=1" : "";
-    router.replace(`/studio?outfit=${encodeURIComponent(params.id)}${start}`);
+    router.replace(`/studio/mirror?outfit=${encodeURIComponent(params.id)}${start}`);
   }, [router, params.id, searchParams]);
   return <main className="flex-1" />;
 }

@@ -33,6 +33,7 @@ model User {
   picks    Pick[]
   credits  CreditEntry[]
   style    StyleProfile?
+  reports  StudioReport[]
 }
 
 /// The credit history: one row per grant, adjustment or use, never deleted. A use is "reserved" while its try-on
@@ -80,6 +81,38 @@ model StyleProfile {
   updatedAt   DateTime @updatedAt
 
   user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+/// One Virm Studio analysis (color, makeup, hair or style) of the person's portrait. Each module keeps its latest
+/// reports so people can look back; regenerating adds a new row and never overwrites. "generating" rows also stop
+/// a second request for the same module from running at the same time. Token counts and the estimated cost are
+/// kept per report for the owner's cost tracking.
+model StudioReport {
+  id              String    @id @default(cuid())
+  userId          String
+  /// color | makeup | hair | style (lib/studioModules)
+  module          String
+  /// generating | ready | failed
+  status          String
+  /// The report, as JSON (lib/studioModules StudioReportData). Empty until it's ready.
+  data            String?
+  /// Which portrait it was made from (a short token that changes when the portrait is replaced).
+  portraitVersion String?
+  /// One per user: a repeated request with the same id is answered once.
+  requestId       String
+  /// Practice data (no AI, nothing charged).
+  practice        Boolean   @default(false)
+  inputTokens     Int?
+  outputTokens    Int?
+  /// Estimated AI cost, in millionths of a US dollar.
+  costMicros      Int?
+  createdAt       DateTime  @default(now())
+  finishedAt      DateTime?
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, requestId])
+  @@index([userId, module, createdAt])
 }
 
 /// One usage event for the owner's analytics dashboard: what happened, never any content.

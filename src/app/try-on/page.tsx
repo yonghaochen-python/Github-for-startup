@@ -7,6 +7,6 @@ import { useRouter, useSearchParams } from "next/navigation";
 export default function TryOnRedirect() {
   const router = useRouter();
   const searchParams = useSearchParams();
-  useEffect(() => router.replace(searchParams.get("change") === "1" ? "/studio?change=1" : "/studio"), [router, searchParams]);
+  useEffect(() => router.replace(searchParams.get("change") === "1" ? "/studio/mirror?change=1" : "/studio/mirror"), [router, searchParams]);
   return <main className="flex-1" />;
 }

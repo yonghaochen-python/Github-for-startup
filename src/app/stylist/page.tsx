@@ -360,10 +360,10 @@ export default function StylistPage() {
                     })}
                   </ul>
                   <div className="mt-6 flex flex-wrap gap-3">
-                    <Link href={`/studio?items=${lookIds.join(",")}`} className={btnPrimary}>
+                    <Link href={`/studio/mirror?items=${lookIds.join(",")}`} className={btnPrimary}>
                       Try it on
                     </Link>
-                    <Link href={`/studio?items=${lookIds.join(",")}&mode=live`} className={btnSecondary}>
+                    <Link href={`/studio/mirror?items=${lookIds.join(",")}&mode=live`} className={btnSecondary}>
                       <MirrorIcon className="h-4 w-4" /> See it live
                     </Link>
                   </div>
