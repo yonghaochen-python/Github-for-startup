@@ -16,7 +16,8 @@ import { EmptyState, ErrorNote, PageShell, btnPrimary, mirrorFrame } from "@/com
 import { TRY_ON_CAVEAT, requestShopTryOn, requestTryOn, type TryOnResult } from "@/lib/tryOnClient";
 import { LiveTryOn, type ShopPick } from "@/components/LiveTryOn";
 import { CreditsLine, refreshCredits } from "@/components/Credits";
-import { LIVE_SHOP_KEY, SHOP_OUTFIT_KEY, SHOP_PRODUCTS, shopPiece, trayItemFrom, type TrayItem } from "@/lib/shopCatalog";
+import { LIVE_SHOP_KEY, SHOP_OUTFIT_KEY, shopPiece, type TrayItem } from "@/lib/shopCatalog";
+import { readShopTryOns } from "@/lib/shopWishlist";
 import { Tips, type Tip } from "@/components/Tips";
 
 const STUDIO_TIPS: Tip[] = [
@@ -37,7 +38,6 @@ const TABS = [
 ];
 
 /** The Shopping catalog as Studio pieces (only pieces whose picture works for try-on). */
-const CATALOG = SHOP_PRODUCTS.filter((p) => p.tryOnEligible).map((p) => shopPiece(trayItemFrom(p)));
 
 const MAX_THEME = 120;
 
@@ -77,6 +77,12 @@ export default function StudioPage() {
   // Photo (try-on on the saved photo) or Live (the camera mirror); either way it's the same look.
   const [mode, setModeState] = useState<"photo" | "live">(searchParams.get("mode") === "live" ? "live" : "photo");
   const [shopPicks, setShopPicks] = useState<ShopPick[]>([]);
+  // The person's shopping try-ons (pieces added from other stores, kept on this device), after Your outfit.
+  const [shopTryOns, setShopTryOns] = useState<ShopPick[]>([]);
+  useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect -- browser-only storage, read after the first render
+    setShopTryOns(readShopTryOns().filter((t) => t.category !== "outfit").map(shopPiece) as ShopPick[]);
+  }, []);
   // The panel beside the mirror: your own closet, or the Shopping catalog (plus picks brought from Shopping).
   const [source, setSource] = useState<"closet" | "shop">(fromShop ? "shop" : "closet");
   // A photo try-on of a look with Shopping pieces: not a saved outfit, so it's kept here only, for those pieces.
@@ -396,8 +402,8 @@ export default function StudioPage() {
     source === "shop"
       ? activeTab === "picks"
         ? shopPicks
-        : // Your outfit's pieces of this kind first, then the rest of the catalog.
-          [...shopPicks.filter((p) => p.category === activeTab), ...CATALOG.filter((c) => c.category === activeTab && !shopPicks.some((p) => p.id === c.id))]
+        : // Your outfit's pieces of this kind first, then the rest of your shopping try-ons.
+          [...shopPicks.filter((p) => p.category === activeTab), ...shopTryOns.filter((c) => c.category === activeTab && !shopPicks.some((p) => p.id === c.id))]
       : (closet ?? []).filter((item) => item.category === activeTab);
   const countIn = (value: string) =>
     source === "shop"

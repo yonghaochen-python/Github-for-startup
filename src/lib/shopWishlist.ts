@@ -38,3 +38,44 @@ export function removeFromWishlist(key: string): TrayItem[] {
   } catch {}
   return list;
 }
+
+/* ---------- Your shopping try-ons ---------- */
+
+/**
+ * Pieces the person added from another store (a link, or a photo when the link couldn't be read), kept on this
+ * device so they're one tap from a try-on. Like the wishlist, nothing is sent to Virm's server.
+ */
+const TRY_ONS_KEY = "virm-shop-tryons";
+
+export function readShopTryOns(): TrayItem[] {
+  try {
+    const list = JSON.parse(localStorage.getItem(TRY_ONS_KEY) ?? "[]");
+    return Array.isArray(list) ? list.filter((x) => x && typeof x.key === "string" && typeof x.imageUrl === "string") : [];
+  } catch {
+    return [];
+  }
+}
+
+/** Keeps an added piece (newest first; the same piece once). Returns the new list. */
+export function keepShopTryOn(item: TrayItem): TrayItem[] {
+  const same = (x: TrayItem) => x.key === item.key || (item.productUrl !== null && x.productUrl === item.productUrl);
+  let list = [item, ...readShopTryOns().filter((x) => !same(x))].slice(0, MAX);
+  // Pictures are stored with the list; if the device runs out of room, keep fewer.
+  while (list.length) {
+    try {
+      localStorage.setItem(TRY_ONS_KEY, JSON.stringify(list));
+      return list;
+    } catch {
+      list = list.slice(0, -1);
+    }
+  }
+  return list;
+}
+
+export function removeShopTryOn(key: string): TrayItem[] {
+  const list = readShopTryOns().filter((x) => x.key !== key);
+  try {
+    localStorage.setItem(TRY_ONS_KEY, JSON.stringify(list));
+  } catch {}
+  return list;
+}

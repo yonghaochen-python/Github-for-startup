@@ -1,17 +1,12 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useState } from "react";
 import Image from "next/image";
 import { useRouter } from "next/navigation";
 import {
-  HAS_PRICES,
   LIVE_SHOP_KEY,
-  PRICE_BANDS,
-  SHOP_BRANDS,
   SHOP_OUTFIT_KEY,
-  SHOP_COLORS,
   SHOP_PRODUCTS,
-  SHOP_STYLES,
   SUGGESTED_SEARCHES,
   isVerified,
   matchesSearch,
@@ -21,7 +16,7 @@ import {
   type ShopProduct,
   type TrayItem,
 } from "@/lib/shopCatalog";
-import { addToWishlist, readWishlist, removeFromWishlist } from "@/lib/shopWishlist";
+import { addToWishlist, keepShopTryOn, readShopTryOns, readWishlist, removeFromWishlist, removeShopTryOn } from "@/lib/shopWishlist";
 import { StoreFinder } from "@/components/StoreFinder";
 import { ProductDetail } from "@/components/ProductDetail";
 import { btnPrimary, btnSecondary } from "@/components/ui";
@@ -92,16 +87,10 @@ function Heart({ filled }: { filled: boolean }) {
 }
 
 const label = "text-[10.5px] font-medium uppercase tracking-[2px] text-[#5d6874]";
-const underlineSelect =
-  "w-full appearance-none border-b border-black/15 bg-transparent py-1.5 pr-6 text-[13px] text-[#121821] outline-none focus:border-[#121821]";
 
 export function Shop() {
   const router = useRouter();
   const [query, setQuery] = useState("");
-  const [color, setColor] = useState("all");
-  const [style, setStyle] = useState("all");
-  const [price, setPrice] = useState("all");
-  const [brand, setBrand] = useState("all");
   const [tab, setTab] = useState("all");
   const [tray, setTray] = useState<TrayItem[]>([]);
   const [wishlist, setWishlist] = useState<TrayItem[]>([]);
@@ -114,6 +103,8 @@ export function Shop() {
   const [searchFocused, setSearchFocused] = useState(false);
   // Edit: shows the ♡ and + on every piece for quick changes; otherwise a tap opens the piece.
   const [editMode, setEditMode] = useState(false);
+  // Pieces added from other stores, kept on this device.
+  const [myTryOns, setMyTryOns] = useState<TrayItem[]>([]);
   // Admin-only preview of real store shelves.
   const { user } = useAuth();
   const [stores, setStores] = useState<StoreShelf[]>([]);
@@ -129,7 +120,6 @@ export function Shop() {
       ignore = true;
     };
   }, [user?.isAdmin]);
-  const [filtersOpen, setFiltersOpen] = useState(false);
 
   // The wishlist and "Your outfit" are remembered on this device only.
   useEffect(() => {
@@ -138,6 +128,7 @@ export function Shop() {
     } catch {}
     // eslint-disable-next-line react-hooks/set-state-in-effect -- browser-only storage, read after the first render
     setWishlist(readWishlist());
+    setMyTryOns(readShopTryOns());
     try {
       const outfit = JSON.parse(localStorage.getItem(OUTFIT_KEY) ?? "[]");
       if (Array.isArray(outfit)) {
@@ -209,29 +200,6 @@ export function Shop() {
     setWishlist(readWishlist());
     return ok;
   }
-
-  const shown = useMemo(() => {
-    const band = PRICE_BANDS.find((b) => b.value === price);
-    return SHOP_PRODUCTS.filter(
-      (p) =>
-        (tab === "all" || p.category === tab) &&
-        (color === "all" || p.colors.some((c) => c.name === color)) &&
-        (style === "all" || p.style === style) &&
-        (!band || (p.price !== null && band.test(p.price))) &&
-        (brand === "all" || p.brand === brand) &&
-        matchesSearch(p, query)
-    );
-  }, [query, color, style, price, brand, tab]);
-
-  // Only filters that have something to choose from (demo items have no brand or price).
-  const filters = [
-    ["Color", color, setColor, SHOP_COLORS.map((c) => [c, c])],
-    ["Style", style, setStyle, SHOP_STYLES.map((c) => [c, c])],
-    ...(SHOP_BRANDS.length ? [["Brand", brand, setBrand, SHOP_BRANDS.map((b) => [b, b])]] : []),
-    ...(HAS_PRICES ? [["Price", price, setPrice, PRICE_BANDS.map((b) => [b.value, b.label])]] : []),
-  ] as [string, string, (v: string) => void, string[][]][];
-  const activeFilters = [color, style, price, brand].filter((v) => v !== "all").length;
-  const allDemo = shown.length > 0 && shown.every((p) => p.isDemo);
 
   const inTray = new Set(tray.map((p) => p.key));
 
@@ -308,7 +276,61 @@ export function Shop() {
     );
   }
 
-  /** One piece on the shelf (demo or store). */
+  const keepTryOn = (item: TrayItem) => setMyTryOns(keepShopTryOn(item));
+  const searchWords = query.toLowerCase().split(/[\s,]+/).filter(Boolean);
+  const myTryOnsShown = myTryOns.filter((t) => {
+    const text = `${t.name} ${t.label} ${t.color} ${t.category}`.toLowerCase();
+    return searchWords.every((w) => text.includes(w.replace(/s$/, "")));
+  });
+
+  /** One of "Your shopping try-ons": a tap tries it on (or swaps it in); Edit shows remove and add-to-outfit. */
+  function renderTryOn(t: TrayItem) {
+    const selected = inTray.has(t.key);
+    return (
+      <li key={t.key} className="relative shrink-0 snap-start">
+        <button
+          onClick={() => (swapping && !selected ? toggleTray(t) : tryInStudio(t))}
+          aria-label={swapping && !selected ? `Swap in ${t.name}` : `Try on ${t.name}`}
+          className={`group block ${editMode ? "animate-[wiggle_0.6s_ease-in-out_infinite]" : ""}`}
+        >
+          <span className="relative block h-[124px] w-[96px] overflow-hidden rounded-[10px] sm:h-[150px] sm:w-[116px]">
+            <Image src={t.imageUrl} alt="" fill unoptimized className="bg-white object-contain p-1 transition-transform duration-300 group-hover:scale-[1.04]" />
+          </span>
+          <span className="mt-1 block w-[96px] truncate text-center text-[11px] sm:w-[116px]">{t.name}</span>
+        </button>
+        {editMode ? (
+          <>
+            <button
+              onClick={() => setMyTryOns(removeShopTryOn(t.key))}
+              aria-label={`Remove ${t.name}`}
+              className="absolute right-0 top-0 flex h-6 w-6 items-center justify-center rounded-full bg-[#121821] text-[11px] text-white shadow"
+            >
+              ✕
+            </button>
+            <button
+              onClick={() => toggleTray(t)}
+              aria-pressed={selected}
+              aria-label={selected ? `Take ${t.name} out of your outfit` : `Add ${t.name} to your outfit`}
+              disabled={!selected && tray.length >= MAX_TRAY}
+              className={`absolute bottom-6 right-0 flex h-7 w-7 items-center justify-center rounded-full text-[13px] shadow-sm disabled:opacity-40 ${
+                selected ? "bg-[#121821] text-white" : "bg-white/90 text-[#121821]"
+              }`}
+            >
+              {selected ? "✓" : <span className="text-[17px] font-light leading-none">+</span>}
+            </button>
+          </>
+        ) : (
+          selected && (
+            <span aria-label="In your outfit" className="pointer-events-none absolute bottom-6 right-0 flex h-6 w-6 items-center justify-center rounded-full bg-[#121821] text-[11px] text-white shadow-sm">
+              ✓
+            </span>
+          )
+        )}
+      </li>
+    );
+  }
+
+  /** One piece on the shelf (a store's). */
   function renderPiece(p: ShopProduct) {
     const selected = inTray.has(p.id);
     const saved = isSaved(p.id);
@@ -448,7 +470,7 @@ export function Shop() {
             )}
           </label>
           </div>
-          {!query && searchFocused && (
+          {!query && searchFocused && SUGGESTED_SEARCHES.length > 0 && (
             <p className="mt-3 flex flex-wrap items-center gap-x-1.5 gap-y-1.5 text-[11.5px] text-[#5d6874]">
               <span className="mr-1">Try</span>
               {SUGGESTED_SEARCHES.slice(0, 4).map((s) => (
@@ -463,52 +485,26 @@ export function Shop() {
 
         {importing && (
           <div className="mt-5">
-            <StoreFinder onTryNow={(item) => tryInStudio(item)} onAdd={toggleTray} onSave={saveFind} trayFull={tray.length >= MAX_TRAY} />
+            {/* Whatever is done with an added piece, it's also kept in "Your shopping try-ons". */}
+            <StoreFinder
+              onTryNow={(item) => {
+                keepTryOn(item);
+                tryInStudio(item);
+              }}
+              onAdd={(item) => {
+                keepTryOn(item);
+                toggleTray(item);
+              }}
+              onSave={(item) => {
+                keepTryOn(item);
+                return saveFind(item);
+              }}
+              trayFull={tray.length >= MAX_TRAY}
+            />
           </div>
         )}
 
-        <div className="mt-5 flex items-center gap-4">
-          <p className="flex-1 text-[11.5px] text-[#5d6874]">
-            {shown.length} {allDemo ? "demo " : ""}
-            {shown.length === 1 ? "piece" : "pieces"}
-            {allDemo && " · not store listings"}
-            {editMode && " · ♡ to save, + for your outfit"}
-          </p>
-          <button
-            onClick={() => setFiltersOpen((v) => !v)}
-            aria-expanded={filtersOpen}
-            aria-label={activeFilters ? `Filters (${activeFilters} on)` : "Filters"}
-            title="Filters"
-            className={`relative mb-2 flex h-8 w-8 shrink-0 items-center justify-center rounded-full ${filtersOpen ? "bg-[#121821] text-white" : "text-[#26313a] hover:bg-black/5"}`}
-          >
-            <svg viewBox="0 0 24 24" className="h-4 w-4" fill="none" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" aria-hidden>
-              <path d="M4 7h10M18 7h2M4 17h4M12 17h8" />
-              <circle cx="16" cy="7" r="2" />
-              <circle cx="10" cy="17" r="2" />
-            </svg>
-            {activeFilters > 0 && <span className="absolute right-0.5 top-0.5 h-2 w-2 rounded-full bg-[#c23a2c]" />}
-          </button>
-        </div>
-        {filtersOpen && (
-          <div className="mt-4 grid max-w-[480px] gap-4" style={{ gridTemplateColumns: `repeat(${filters.length}, minmax(0, 1fr))` }}>
-            {filters.map(([name, value, set, options]) => (
-              <label key={name} className="relative block">
-                <span className={`${label} text-[9.5px]`}>{name}</span>
-                <select value={value} onChange={(e) => set(e.target.value)} className={underlineSelect}>
-                  <option value="all">All</option>
-                  {options.map(([v, l]) => (
-                    <option key={v} value={v}>
-                      {l}
-                    </option>
-                  ))}
-                </select>
-                <span aria-hidden className="pointer-events-none absolute bottom-2 right-1 text-[10px] text-[#5d6874]">
-                  ▾
-                </span>
-              </label>
-            ))}
-          </div>
-        )}
+        {editMode && <p className="mt-5 text-[11.5px] text-[#5d6874]">✕ removes a try-on, + adds it to your outfit.</p>}
 
         <div id="collection-grid" className="mt-6 grid scroll-mt-24 grid-cols-[minmax(0,1fr)] gap-6 lg:grid-cols-[minmax(0,1fr)_280px]">
           <div>
@@ -522,58 +518,23 @@ export function Shop() {
                 </button>
               </div>
             )}
-            {shown.length === 0 ? (
-              <div className="rounded-[6px] bg-white px-6 py-10 text-center text-[13px] text-[#5d6874]">
-                {query.trim() ? (
-                  <>
-                    <p className="text-[14px] text-[#121821]">No pieces match &ldquo;{query.trim()}&rdquo;.</p>
-                    <p className="mt-1">Try one of these:</p>
-                    <div className="mt-3 flex flex-wrap justify-center gap-2">
-                      {SUGGESTED_SEARCHES.map((s) => (
-                        <button key={s} onClick={() => setQuery(s)} className="rounded-full px-3 py-1.5 text-[12px] text-[#26313a] shadow-[inset_0_0_0_1px_rgba(18,24,33,0.14)] hover:shadow-[inset_0_0_0_1px_rgba(18,24,33,0.3)]">
-                          {s}
-                        </button>
-                      ))}
-                    </div>
-                    <p className="mt-4 text-[12px]">
-                      Saw it somewhere else?{" "}
-                      <button onClick={() => setImporting(true)} className="font-semibold text-[#121821] underline underline-offset-4">
-                        Add a product
-                      </button>{" "}
-                      from any store.
-                    </p>
-                  </>
-                ) : (
-                  <>
-                    <p>Nothing matches these filters.</p>
-                    <button
-                      onClick={() => {
-                        setTab("all");
-                        setColor("all");
-                        setStyle("all");
-                        setPrice("all");
-                        setBrand("all");
-                      }}
-                      className="mt-3 font-semibold text-[#121821] underline underline-offset-4"
-                    >
-                      Clear filters
-                    </button>
-                  </>
-                )}
-              </div>
-            ) : (
-              <div className="closet-shelf rounded-[20px] px-4 py-3 sm:rounded-[24px] sm:px-6 sm:py-4">
-                {TABS.filter((t) => t.value !== "all").map(({ value, label: rowLabel }) => {
-                  const row = shown.filter((p) => p.category === value);
-                  if (row.length === 0) return null;
-                  return (
-                    <ShelfRow key={value} label={rowLabel} count={row.length}>
-                      {row.map(renderPiece)}
-                    </ShelfRow>
-                  );
-                })}
-              </div>
-            )}
+            <div className="closet-shelf rounded-[20px] px-4 py-3 sm:rounded-[24px] sm:px-6 sm:py-4">
+              <ShelfRow label="Your shopping try-ons" count={myTryOnsShown.length}>
+                <li className="shrink-0 snap-start">
+                  <button
+                    onClick={() => setImporting(true)}
+                    className="flex h-[124px] w-[96px] flex-col items-center justify-center gap-1 rounded-[12px] border border-dashed border-black/20 text-[11px] opacity-80 hover:opacity-100 sm:h-[150px] sm:w-[116px]"
+                  >
+                    <span className="text-[24px] font-light leading-none">+</span>
+                    Add a piece
+                  </button>
+                </li>
+                {myTryOnsShown.map(renderTryOn)}
+              </ShelfRow>
+              {myTryOns.length === 0 && (
+                <p className="pb-2 text-[11.5px] opacity-70">Add a piece from any store&apos;s link or photo, and it waits here, one tap from a try-on.</p>
+              )}
+            </div>
 
             {/* PREVIEW, admin only: real products from stores that haven't joined Virm (see lib/storeFeeds). */}
             {stores.length > 0 && (

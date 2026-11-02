@@ -4,8 +4,7 @@ import type { LayeringRole } from "@/lib/layering";
  * The Shopping catalog. Every field a real listing can have is here, so demo items can be swapped for properly
  * sourced products later (from a store's feed or partner programme) without changing the page.
  *
- * For now it holds only demo items: Virm's own product photos, clearly labelled, with no brand, store, price or
- * sizes (none are invented). Unknown fields are null and simply aren't shown.
+ * It's empty for now: no store has joined yet. Unknown fields are null and simply aren't shown.
  */
 
 export type ShopColor = { name: string; hex: string };
@@ -45,59 +44,11 @@ export type ShopProduct = {
 /** How demo items are labelled wherever a brand would show. */
 export const DEMO_LABEL = "Virm demo";
 
-const WHITE = { name: "White", hex: "#f4f2ec" };
-const BLACK = { name: "Black", hex: "#1c1d20" };
-const CAMEL = { name: "Camel", hex: "#c19a6b" };
-const CREAM = { name: "Cream", hex: "#efe6d4" };
-const BLUE = { name: "Blue", hex: "#8fa9c7" };
-const BROWN = { name: "Brown", hex: "#8a5f3c" };
-const GREY = { name: "Grey", hex: "#a5a8ab" };
-const BEIGE = { name: "Beige", hex: "#d8c7ab" };
-
-const demo = (p: Pick<ShopProduct, "id" | "name" | "category" | "layeringRole" | "color" | "colors" | "style" | "tags" | "imageUrl">): ShopProduct => ({
-  ...p,
-  // Cut out once with src/lib/cutout.ts and saved next to the photo.
-  shelfImageUrl: p.imageUrl.replace(/^\/sample\/(.+)\.\w+$/, "/sample/cut/$1.webp"),
-  brand: null,
-  price: null,
-  currency: null,
-  retailer: null,
-  productUrl: null,
-  availability: null,
-  updatedAt: null,
-  tryOnEligible: true,
-  isDemo: true,
-});
-
-// Every tag below describes what the photo shows; nothing is added just to make a search match.
-export const SHOP_PRODUCTS: ShopProduct[] = [
-  // Tops
-  demo({ id: "demo-linen-shirt", name: "Linen shirt", category: "top", layeringRole: "mid_layer", color: "light blue", colors: [BLUE], style: "Casual", tags: ["short sleeve", "button-up", "linen"], imageUrl: "/sample/linen-shirt.jpg" }),
-  demo({ id: "demo-eyelet-blouse", name: "Eyelet blouse", category: "top", layeringRole: "mid_layer", color: "white", colors: [WHITE], style: "Summer", tags: ["short sleeve", "button-up", "eyelet", "cotton"], imageUrl: "/sample/eyelet-blouse.jpg" }),
-  demo({ id: "demo-white-tshirt", name: "White T-shirt", category: "top", layeringRole: "base_layer", color: "white", colors: [WHITE], style: "Casual", tags: ["crewneck", "short sleeve", "tee", "minimalist", "everyday"], imageUrl: "/sample/white-tshirt.jpg" }),
-  demo({ id: "demo-turtleneck", name: "Rib turtleneck", category: "top", layeringRole: "mid_layer", color: "black", colors: [BLACK], style: "Classic", tags: ["ribbed", "knit", "sweater", "long sleeve"], imageUrl: "/sample/turtleneck.jpg" }),
-  demo({ id: "demo-cable-sweater", name: "Cable-knit sweater", category: "top", layeringRole: "mid_layer", color: "cream", colors: [CREAM], style: "Cozy", tags: ["crewneck", "knit", "long sleeve"], imageUrl: "/sample/cable-sweater.jpg" }),
-  // Bottoms
-  demo({ id: "demo-light-jeans", name: "Light-wash jeans", category: "bottom", layeringRole: "bottom", color: "light blue denim", colors: [BLUE], style: "Casual", tags: ["straight-leg", "denim", "five-pocket", "everyday"], imageUrl: "/sample/light-jeans.jpg" }),
-  demo({ id: "demo-grey-trousers", name: "Tailored trousers", category: "bottom", layeringRole: "bottom", color: "grey", colors: [GREY], style: "Classic", tags: ["tailored", "straight-leg", "cuffed", "pants"], imageUrl: "/sample/wool-trousers.jpg" }),
-  demo({ id: "demo-plaid-skirt", name: "Pleated plaid skirt", category: "bottom", layeringRole: "bottom", color: "grey plaid", colors: [GREY], style: "Classic", tags: ["pleated", "plaid"], imageUrl: "/sample/plaid-skirt.jpg" }),
-  demo({ id: "demo-chino-shorts", name: "Chino shorts", category: "bottom", layeringRole: "bottom", color: "beige", colors: [BEIGE], style: "Summer", tags: ["chino", "shorts"], imageUrl: "/sample/chino-shorts.jpg" }),
-  demo({ id: "demo-denim-shorts", name: "Denim shorts", category: "bottom", layeringRole: "bottom", color: "light blue denim", colors: [BLUE], style: "Summer", tags: ["denim", "shorts", "five-pocket"], imageUrl: "/sample/denim-shorts.jpg" }),
-  // Dresses
-  demo({ id: "demo-floral-sundress", name: "Floral sundress", category: "dress", layeringRole: "one_piece", color: "cream floral", colors: [CREAM], style: "Summer", tags: ["sleeveless", "floral"], imageUrl: "/sample/floral-sundress.jpg" }),
-  // Outerwear
-  demo({ id: "demo-camel-coat", name: "Camel coat", category: "outerwear", layeringRole: "outer_layer", color: "camel", colors: [CAMEL], style: "Classic", tags: ["single-breasted", "tailored", "minimalist"], imageUrl: "/sample/camel-coat.jpg" }),
-  demo({ id: "demo-wrap-coat", name: "Belted wrap coat", category: "outerwear", layeringRole: "outer_layer", color: "beige", colors: [BEIGE], style: "Classic", tags: ["belted", "wrap"], imageUrl: "/sample/wrap-coat.jpg" }),
-  demo({ id: "demo-puffer", name: "Quilted puffer jacket", category: "outerwear", layeringRole: "outer_layer", color: "black", colors: [BLACK], style: "Cozy", tags: ["quilted", "zip-up"], imageUrl: "/sample/puffer-jacket.jpg" }),
-  // Shoes
-  demo({ id: "demo-white-sneakers", name: "White sneakers", category: "shoes", layeringRole: "shoes", color: "white", colors: [WHITE], style: "Casual", tags: ["low-top", "leather", "minimalist", "everyday"], imageUrl: "/sample/white-sneakers.jpg" }),
-  demo({ id: "demo-chelsea-boots", name: "Chelsea boots", category: "shoes", layeringRole: "shoes", color: "brown leather", colors: [BROWN], style: "Classic", tags: ["ankle boots", "leather"], imageUrl: "/sample/chelsea-boots.jpg" }),
-  demo({ id: "demo-knee-boots", name: "Knee-high boots", category: "shoes", layeringRole: "shoes", color: "black leather", colors: [BLACK], style: "Classic", tags: ["knee-high", "leather", "side zip"], imageUrl: "/sample/knee-boots.jpg" }),
-  demo({ id: "demo-slide-sandals", name: "Leather slide sandals", category: "shoes", layeringRole: "shoes", color: "brown leather", colors: [BROWN], style: "Summer", tags: ["slides", "double strap", "leather"], imageUrl: "/sample/leather-sandals.jpg" }),
-  demo({ id: "demo-strappy-sandals", name: "Strappy sandals", category: "shoes", layeringRole: "shoes", color: "tan leather", colors: [CAMEL], style: "Summer", tags: ["strappy", "buckle", "flat", "leather"], imageUrl: "/sample/strappy-sandals.jpg" }),
-  // Accessories
-  demo({ id: "demo-straw-hat", name: "Straw hat", category: "accessory", layeringRole: "accessory", color: "natural straw", colors: [BEIGE], style: "Summer", tags: ["straw"], imageUrl: "/sample/straw-hat.jpg" }),
-];
+/**
+ * Real, properly sourced listings go here (from a store's own feed, with permission). Virm's own demo pieces were
+ * taken out: Shopping shows the person's own added pieces, and (for admins) a preview of real store shelves.
+ */
+export const SHOP_PRODUCTS: ShopProduct[] = [];
 
 const unique = (values: (string | null)[]) => [...new Set(values.filter((v): v is string => Boolean(v)))].sort();
 
