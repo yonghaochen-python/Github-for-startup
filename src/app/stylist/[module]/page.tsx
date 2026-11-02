@@ -11,8 +11,6 @@ import { HairReport } from "@/components/studio/HairReport";
 import { MakeupReport } from "@/components/studio/MakeupReport";
 import { ModuleVisual } from "@/components/studio/ModuleVisual";
 import { PortraitControls } from "@/components/studio/PortraitPanel";
-import { TopPicks } from "@/components/studio/TopPicks";
-import { topPicks } from "@/lib/studioPicks";
 import { StyleReport } from "@/components/studio/StyleReport";
 import type { StyledPiece } from "@/lib/closetLook";
 import { drawReportCard } from "@/components/studio/reportCard";
@@ -111,7 +109,6 @@ export default function StudioModulePage() {
   // The photo can be changed right here (opened from the report, or when the AI couldn't read it).
   const [changingPhoto, setChangingPhoto] = useState(false);
   const [photoProblem, setPhotoProblem] = useState(false);
-  const details = useRef<HTMLDivElement | null>(null);
   const [loaded, setLoaded] = useState<Loaded | null>(null);
   const [busy, setBusy] = useState(false);
   const [step, setStep] = useState(0);
@@ -375,8 +372,6 @@ export default function StudioModulePage() {
                 {changingPhoto && <PortraitControls portrait={portrait} savePortrait={savePortrait} />}
               </div>
             )}
-            <TopPicks module={mod} picks={topPicks(mod.id, report.data)} onDetails={() => details.current?.scrollIntoView({ behavior: "smooth", block: "start" })} />
-            <div ref={details} className="scroll-mt-24">
             {mod.id === "color" && report.data.extra ? (
               <ColorReport module={mod} data={report.data} portrait={reportPicture} createdAt={report.createdAt} />
             ) : mod.id === "hair" && report.data.extra ? (
@@ -388,7 +383,6 @@ export default function StudioModulePage() {
             ) : (
               <ReportView module={mod} report={report} portrait={reportPicture} />
             )}
-            </div>
             <div className="mt-6 flex flex-wrap items-center gap-x-5 gap-y-3">
               {loaded.history.length > 1 && (
                 <label className="flex items-center gap-2 text-[13px] text-[#4f5b66]">
