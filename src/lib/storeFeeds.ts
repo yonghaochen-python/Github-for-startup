@@ -96,6 +96,23 @@ function toProduct(store: (typeof STORES)[number], p: ShopifyProduct): ShopProdu
   };
 }
 
+/**
+ * The style name without the color: "Canvas Runner NZ - Deep Navy" is "canvas runner nz", "The Jack in Merlot Plaid"
+ * is "the jack". Men's and women's versions keep their own names, so both can show.
+ */
+function styleName(name: string): string {
+  return name
+    .split(/\s+in\s+|\s+[-–|]\s+/)[0]
+    .trim()
+    .toLowerCase();
+}
+
+/** A picture's file name without the random code a store adds when it saves the same picture again. */
+function pictureKey(url: string): string {
+  const file = url.split("?")[0].split("/").pop() ?? url;
+  return file.replace(/\.\w+$/, "").replace(/_[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i, "").toLowerCase();
+}
+
 async function readStore(store: (typeof STORES)[number]): Promise<ShopProduct[]> {
   const res = await fetch(`https://${store.domain}/products.json?limit=60`, {
     headers: { "user-agent": "Mozilla/5.0 (compatible; Virm store preview)", accept: "application/json" },
@@ -104,16 +121,24 @@ async function readStore(store: (typeof STORES)[number]): Promise<ShopProduct[]>
   if (!res.ok) throw new Error(`${store.name}: ${res.status}`);
   const data = (await res.json()) as { products?: ShopifyProduct[] };
   const products = (data.products ?? []).flatMap((p) => toProduct(store, p) ?? []);
+  // The very same picture listed twice (a store saving it again under a new name): shown once. Men's and women's
+  // pieces with their own pictures both stay.
+  const seenPicture = new Set<string>();
+  const unique = products.filter((p) => {
+    const key = pictureKey(p.imageUrl);
+    if (seenPicture.has(key)) return false;
+    seenPicture.add(key);
+    return true;
+  });
   // A mix of kinds rather than sixteen of the same shoe in different colors: one per style name first.
   const seen = new Set<string>();
-  const firstOfEach = products.filter((p) => {
-    // "The Jack in Merlot Plaid", "Canvas Runner - Deep Navy": the style name, without the color.
-    const base = p.name.split(/\s+in\s+|\s+[-–|]\s+/)[0].trim().toLowerCase();
+  const firstOfEach = unique.filter((p) => {
+    const base = styleName(p.name);
     if (seen.has(base)) return false;
     seen.add(base);
     return true;
   });
-  return (firstOfEach.length >= 6 ? firstOfEach : products).slice(0, PER_STORE);
+  return (firstOfEach.length >= 6 ? firstOfEach : unique).slice(0, PER_STORE);
 }
 
 /**
