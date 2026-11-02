@@ -135,7 +135,15 @@ export async function computeAdminStats(from: Date, to: Date) {
   }
   const visitDays = [...daysPerPerson.values()].map((s) => s.size);
 
+  // Good / Bad ratings in the range, per kind of result, and how many gave the month's thank-you credits.
+  const ratings = await prisma.feedback.findMany({ where: { updatedAt: { gte: from, lte: to } }, select: { kind: true, rating: true, rewardPeriod: true } });
+  const feedback = (["photo", "live", "outfit", "stylist"] as const).map((kind) => {
+    const of = ratings.filter((r) => r.kind === kind);
+    return { kind, good: of.filter((r) => r.rating === "good").length, bad: of.filter((r) => r.rating === "bad").length, rewarded: of.filter((r) => r.rewardPeriod).length };
+  });
+
   return {
+    feedback,
     range: { from: from.toISOString(), to: to.toISOString(), days },
     trackingSince: firstEvent?.createdAt.toISOString() ?? null,
     users: {

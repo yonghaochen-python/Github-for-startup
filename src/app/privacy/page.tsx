@@ -27,7 +27,7 @@ export default function PrivacyPage() {
         </li>
         <li>
           <strong>Usage data:</strong> which pages you open, which features you use, when you were last active, and whether
-          try-ons and outfit suggestions worked and how long they took. This is linked to your account. The owner&apos;s
+          try-ons and outfit suggestions worked and how long they took, and any Good / Bad ratings you give. This is linked to your account. The owner&apos;s
           dashboard shows totals and partly hidden emails only, never your photos, clothes or password.
         </li>
       </ul>

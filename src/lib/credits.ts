@@ -71,7 +71,7 @@ export type Balances = {
 
 type Account = { id: string; role: string };
 
-async function accountPlan(userId: string) {
+export async function accountPlan(userId: string) {
   const user = await prisma.user.findUnique({ where: { id: userId }, select: { plan: true, periodAnchor: true, createdAt: true, role: true } });
   if (!user) throw new Error("No such account.");
   const plan: PlanKey = isPlanKey(user.plan) ? user.plan : "free";

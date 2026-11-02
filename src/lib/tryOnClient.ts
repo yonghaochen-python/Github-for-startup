@@ -6,7 +6,15 @@ export const TRY_ON_CAVEAT = "Virtual try-ons are AI previews. They can't show e
 
 type Piece = { id: string; imageUrl: string };
 type NotShown = { role: LayeringRole; description: string; reason: string };
-export type TryOnResult = { isMock: boolean; provider: string; imageDataUrl: string | null; notShown?: NotShown[]; reused?: boolean };
+export type TryOnResult = {
+  isMock: boolean;
+  provider: string;
+  imageDataUrl: string | null;
+  notShown?: NotShown[];
+  reused?: boolean;
+  /** This try-on's request id (added here), so feedback can point at it. */
+  requestId?: string;
+};
 
 /**
  * Runs a try-on of a saved outfit on the person's saved photo (the server reads the photo; nothing is re-uploaded).
@@ -15,7 +23,8 @@ export type TryOnResult = { isMock: boolean; provider: string; imageDataUrl: str
 export async function requestTryOn(outfitId: string, pieces: Piece[], liveProvider: boolean, fresh = false): Promise<TryOnResult> {
   const formData = new FormData();
   // One id per Try On press, so a repeated request is never counted twice.
-  formData.append("requestId", crypto.randomUUID());
+  const requestId = crypto.randomUUID();
+  formData.append("requestId", requestId);
   // By default a picture already made of this photo and these pieces is shown again for free; fresh asks for a new one.
   if (fresh) formData.append("fresh", "1");
   if (liveProvider) {
@@ -38,7 +47,7 @@ export async function requestTryOn(outfitId: string, pieces: Piece[], liveProvid
   const res = await fetch(`/api/outfits/${outfitId}/try-on`, { method: "POST", body: formData });
   const data = (await res.json().catch(() => ({}))) as { error?: string; result?: TryOnResult };
   if (!res.ok || !data.result) throw new Error(data.error ?? "Couldn't run the try-on right now.");
-  return data.result;
+  return { ...data.result, requestId };
 }
 
 type ShopPiece = { imageUrl: string; description: string; color?: string; layeringRole: LayeringRole };
@@ -56,7 +65,8 @@ export async function requestShopTryOn(pieces: ShopPiece[]): Promise<TryOnResult
     })
   );
   const formData = new FormData();
-  formData.append("requestId", crypto.randomUUID());
+  const requestId = crypto.randomUUID();
+  formData.append("requestId", requestId);
   formData.append("pieces", JSON.stringify(pieces.map((p) => ({ description: p.description, color: p.color ?? "", layeringRole: p.layeringRole }))));
   photos.forEach((photo, i) => formData.append(`garment:${i}`, photo, `${i}.jpg`));
   if (photos.length > 1) {
@@ -66,5 +76,5 @@ export async function requestShopTryOn(pieces: ShopPiece[]): Promise<TryOnResult
   const res = await fetch("/api/shop/try-on", { method: "POST", body: formData });
   const data = (await res.json().catch(() => ({}))) as { error?: string; result?: TryOnResult };
   if (!res.ok || !data.result) throw new Error(data.error ?? "Couldn't run the try-on right now.");
-  return data.result;
+  return { ...data.result, requestId };
 }

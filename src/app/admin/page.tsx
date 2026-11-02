@@ -345,6 +345,23 @@ export default function AdminPage() {
           </p>
         </Section>
 
+        <Section title="Feedback" description="Good / Bad ratings people gave in this range. The first Bad in a person's month (on a real result) adds 2 photo and 1 live extra credits.">
+          <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
+            {s.feedback.map((f) => (
+              <Stat
+                key={f.kind}
+                label={{ photo: "Photo try-ons", live: "Live try-ons", outfit: "Style it outfits", stylist: "AI Stylist reports" }[f.kind]}
+                value={
+                  <>
+                    👍 {f.good} <span className="text-[#5d6874]">·</span> 👎 {f.bad}
+                  </>
+                }
+                hint={f.good + f.bad ? `${Math.round((f.good / (f.good + f.bad)) * 100)}% good · ${f.rewarded} thank-you credits` : "No ratings yet"}
+              />
+            ))}
+          </div>
+        </Section>
+
         <Section title="Credits" description="Photo and live try-on credits. Limits are counted but not applied yet. Admin tests are shown apart from real users.">
           <CreditsAdmin />
         </Section>

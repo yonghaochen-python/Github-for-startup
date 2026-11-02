@@ -19,6 +19,7 @@ import { CreditsLine, refreshCredits } from "@/components/Credits";
 import { LIVE_SHOP_KEY, SHOP_OUTFIT_KEY, isRetiredDemo, shopPiece, type TrayItem } from "@/lib/shopCatalog";
 import { readShopTryOns } from "@/lib/shopWishlist";
 import { Tips, type Tip } from "@/components/Tips";
+import { Feedback } from "@/components/Feedback";
 
 const STUDIO_TIPS: Tip[] = [
   { target: '[data-tip="studio-theme"]', text: "Type a theme for outfit ideas, or pick clothes yourself." },
@@ -433,6 +434,8 @@ export default function StudioPage() {
       : !changed && look.tryOn && look.outfitId
         ? `/api/outfits/${look.outfitId}/try-on/image?v=${look.tryOn}`
         : null;
+  // The try-on on show right now (made in this visit), for its Good / Bad feedback.
+  const shownTryOnId = !picture ? undefined : hasShopPieces ? shopShown?.requestId : !changed ? result?.requestId : undefined;
 
   return (
     <main className="flex-1 pb-16">
@@ -599,6 +602,7 @@ export default function StudioPage() {
                   {trying ? "Trying on…" : "Try On"}
                 </button>
               </div>
+              <Feedback kind="photo" targetId={shownTryOnId} className="mt-3 justify-center" />
               <CreditsLine kind="photo" />
               {hasShopPieces && (
                 <p className="mt-2 text-center text-[11.5px] text-[#5d6874]">Looks with Shopping pieces aren&apos;t saved: the picture shows here only.</p>
@@ -644,6 +648,8 @@ export default function StudioPage() {
                     </button>
                   )}
                 </div>
+                {/* A Style it outfit on show: its Good / Bad feedback. */}
+                {ideas.some((idea) => idea.id === look.outfitId) && <Feedback kind="outfit" targetId={look.outfitId} className="mb-3" />}
 
                 {loadingLook ? (
                   <div className="h-20 animate-pulse rounded-[14px] bg-[#f4f5f6]" />

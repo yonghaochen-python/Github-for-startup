@@ -9,6 +9,7 @@ import { ErrorNote, PageShell, btnPrimary, btnSecondary, btnText } from "@/compo
 import { ColorReport } from "@/components/studio/ColorReport";
 import { HairReport } from "@/components/studio/HairReport";
 import { MakeupReport } from "@/components/studio/MakeupReport";
+import { Feedback } from "@/components/Feedback";
 import { ModuleVisual } from "@/components/studio/ModuleVisual";
 import { PortraitControls } from "@/components/studio/PortraitPanel";
 import { StyleReport } from "@/components/studio/StyleReport";
@@ -383,6 +384,7 @@ export default function StudioModulePage() {
             ) : (
               <ReportView module={mod} report={report} portrait={reportPicture} />
             )}
+            <Feedback kind="stylist" targetId={report.id} className="mt-5 justify-center rounded-[16px] bg-white px-4 py-3" />
             <div className="mt-6 flex flex-wrap items-center gap-x-5 gap-y-3">
               {loaded.history.length > 1 && (
                 <label className="flex items-center gap-2 text-[13px] text-[#4f5b66]">

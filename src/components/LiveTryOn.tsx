@@ -1,6 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useRef, useState } from "react";
+import { Feedback } from "@/components/Feedback";
 import Link from "next/link";
 import type { ClothingItem } from "@/components/OutfitCard";
 import { mirrorFrame } from "@/components/ui";
@@ -129,6 +130,8 @@ export function LiveTryOn({
   const replayVideoRef = useRef<HTMLVideoElement | null>(null);
   const [shareNote, setShareNote] = useState<string | null>(null);
   // "Save to Virm": only on an explicit click; the video is stored privately for this person.
+  // The last live session that really connected, for its Good / Bad feedback.
+  const [ratedSession, setRatedSession] = useState<string | null>(null);
   const [saveState, setSaveState] = useState<"idle" | "saving" | "saved" | { error: string }>("idle");
 
   /** Ends the recording: keep it for the replay (a session that ended), or throw it away. */
@@ -290,6 +293,7 @@ export function LiveTryOn({
       // The stream connected: this session's live credit counts.
       reportSession(sessionId, "connected");
       connected = true;
+      setRatedSession(sessionId);
       rt.on("sessionEnded", () => endAi());
       rt.on("error", (err) => endAi(err.message || "Live try-on stopped."));
       // Our own stop at the limit (Decart ends it too).
@@ -570,6 +574,8 @@ export function LiveTryOn({
             )}
           </div>
         )}
+
+        {ai === "off" && ratedSession && <Feedback kind="live" targetId={ratedSession} className="px-1" />}
 
         {/* After a session: replay and what to do with it. Nothing leaves this page unless chosen. */}
         {replay && (
