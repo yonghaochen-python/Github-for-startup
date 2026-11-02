@@ -15,13 +15,13 @@ const day = (iso: string) => new Date(iso).toLocaleDateString(undefined, { month
 function Guide({ step }: { step: 1 | 2 | 3 }) {
   const steps = ["Add a clear photo of you", "Pick an analysis and press Analyze", "Read your top picks first"];
   return (
-    <ol className="grid gap-3 sm:grid-cols-3" aria-label="How it works">
+    <ol className="flex max-w-md flex-col gap-2" aria-label="How it works">
       {steps.map((s, i) => {
         const n = i + 1;
         const done = n < step;
         const now = n === step;
         return (
-          <li key={s} className={`flex items-center gap-3 rounded-[16px] px-4 py-3 ${now ? "bg-white shadow-[0_8px_22px_rgba(18,30,45,0.08)]" : "bg-white/50"}`}>
+          <li key={s} className={`flex items-center gap-3 rounded-[14px] px-3.5 py-2.5 ${now ? "bg-white shadow-[0_8px_22px_rgba(18,30,45,0.08)]" : ""}`}>
             <span
               className={`flex h-7 w-7 shrink-0 items-center justify-center rounded-full text-[12px] font-semibold ${done ? "bg-emerald-500 text-white" : now ? "bg-[#121821] text-white" : "bg-[#e3e7eb] text-[#5d6874]"}`}
             >
@@ -50,26 +50,11 @@ export default function StylistPage() {
   return (
     <main className="flex-1 pb-20">
       <PageShell className="pt-8 sm:pt-12">
-        {/* The photo, and the page's title beside it. */}
-        <section className="grid items-center gap-8 md:grid-cols-[minmax(0,1fr)_300px] lg:grid-cols-[minmax(0,1fr)_340px]">
-          <div>
-            <h1 className="font-display text-[48px] font-normal leading-[0.98] tracking-[-1.5px] text-[#121821] sm:text-[68px]">AI Stylist</h1>
-            <p className="mt-4 max-w-md text-[16px] leading-relaxed text-[#4f5b66]">Discover your colors, beauty preferences, and personal style.</p>
-            <div className="mt-7">
-              {state === null && !failed && <p className="text-[13px] text-[#5d6874]">Loading…</p>}
-              {failed && (
-                <p className="text-[13px] text-[#5d6874]">
-                  This page didn&apos;t load.{" "}
-                  <button onClick={reload} className="font-semibold text-[#121821] underline underline-offset-4">
-                    Try again
-                  </button>
-                </p>
-              )}
-              {state && <PortraitControls portrait={portrait} savePortrait={savePortrait} removePortrait={removePortrait} />}
-            </div>
-          </div>
+        <h1 className="mb-6 font-display text-[44px] font-normal leading-[1] tracking-[-1.4px] text-[#121821] sm:text-[60px]">AI Stylist</h1>
 
-          <div className="mx-auto aspect-[4/5] w-full max-w-[300px] overflow-hidden rounded-b-[28px] rounded-t-full bg-[#e9edf1] shadow-[0_24px_60px_rgba(18,30,45,0.14)]">
+        {/* The photo on the left; everything about it (its warning, changing it) and the steps right beside it. */}
+        <section className="grid items-center gap-6 sm:grid-cols-[200px_minmax(0,1fr)] sm:gap-8 lg:grid-cols-[240px_minmax(0,1fr)]">
+          <div className="mx-auto aspect-[4/5] w-full max-w-[240px] overflow-hidden rounded-b-[24px] rounded-t-full bg-[#e9edf1] shadow-[0_18px_44px_rgba(18,30,45,0.12)]">
             {picture ? (
               // eslint-disable-next-line @next/next/no-img-element
               <img src={picture} alt="Your photo" className="h-full w-full object-cover" />
@@ -80,16 +65,27 @@ export default function StylistPage() {
               </div>
             )}
           </div>
+          <div className="flex min-w-0 flex-col gap-6">
+            {state === null && !failed && <p className="text-[13px] text-[#5d6874]">Loading…</p>}
+            {failed && (
+              <p className="text-[13px] text-[#5d6874]">
+                This page didn&apos;t load.{" "}
+                <button onClick={reload} className="font-semibold text-[#121821] underline underline-offset-4">
+                  Try again
+                </button>
+              </p>
+            )}
+            {state && (
+              <>
+                <PortraitControls portrait={portrait} savePortrait={savePortrait} removePortrait={removePortrait} />
+                <Guide step={step} />
+              </>
+            )}
+          </div>
         </section>
 
-        {state && (
-          <div className="mt-10">
-            <Guide step={step} />
-          </div>
-        )}
-
         {/* The four analyses. */}
-        <section className="mt-10" aria-label="Analyses">
+        <section className="mt-12" aria-label="Analyses">
           <div className="mb-5 flex items-end justify-between gap-4">
             <h2 className="font-display text-[32px] leading-none text-[#121821] sm:text-[38px]">Your analyses</h2>
             <p className="hidden text-[12.5px] text-[#5d6874] sm:block">Each one is made only when you ask, and saved for you.</p>
