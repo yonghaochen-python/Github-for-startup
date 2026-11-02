@@ -7,6 +7,7 @@ import { ArrowLeftIcon, CheckIcon } from "@/components/Icons";
 import { CreditsLine, refreshCredits } from "@/components/Credits";
 import { ErrorNote, PageShell, btnPrimary, btnSecondary, btnText } from "@/components/ui";
 import { ColorReport } from "@/components/studio/ColorReport";
+import { MakeupReport } from "@/components/studio/MakeupReport";
 import { ModuleVisual } from "@/components/studio/ModuleVisual";
 import { StyleReport } from "@/components/studio/StyleReport";
 import type { StyledPiece } from "@/lib/closetLook";
@@ -308,7 +309,7 @@ export default function StudioModulePage() {
                       <CreditsLine kind="photo" />
                     </div>
                     <p className="mt-2 text-[12px] leading-relaxed text-[#5d6874]">
-                      {mod.id === "color" || mod.id === "style"
+                      {mod.id !== "hair"
                         ? "Uses one photo credit, only if your report is made. Your portrait goes to our AI provider for this analysis; the report is saved to open again for free."
                         : "Practice mode for now: no AI is used and nothing is counted."}
                     </p>
@@ -336,6 +337,8 @@ export default function StudioModulePage() {
             </div>
             {mod.id === "color" && report.data.extra ? (
               <ColorReport module={mod} data={report.data} portrait={reportPicture} createdAt={report.createdAt} />
+            ) : mod.id === "makeup" && report.data.extra ? (
+              <MakeupReport module={mod} data={report.data} portrait={reportPicture} createdAt={report.createdAt} />
             ) : mod.id === "style" && report.data.extra ? (
               <StyleReport module={mod} data={report.data} portrait={reportPicture} createdAt={report.createdAt} onLookChange={changeLook} />
             ) : (

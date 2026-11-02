@@ -1,7 +1,7 @@
 import { prisma } from "@/lib/prisma";
 import { loadPortrait } from "@/lib/portrait";
 import { CreditError, withCredit } from "@/lib/credits";
-import { PortraitUnusableError, analyzeColor, analyzeStyle, type Analysis } from "@/lib/studioAnalysis";
+import { PortraitUnusableError, analyzeColor, analyzeMakeup, analyzeStyle, type Analysis } from "@/lib/studioAnalysis";
 import type { StyledLook, StyledPiece } from "@/lib/closetLook";
 import { type ReportSummary, type StudioModuleId, type StudioReportData } from "@/lib/studioModules";
 
@@ -149,25 +149,7 @@ export async function deleteReport(userId: string, id: string): Promise<boolean>
 
 /* ---------- Practice data (Stage 1: no AI, no cost) ---------- */
 
-const PRACTICE: Record<"makeup" | "hair", StudioReportData> = {
-  makeup: {
-    headline: "Fresh, rosy and softly defined",
-    summary: "Practice report. The real guide describes your features respectfully and suggests shades and finishes that suit them.",
-    keywords: ["Soft glam", "Natural", "Rosy"],
-    palette: [
-      { name: "Soft rose", hex: "#D99A9A" },
-      { name: "Peach blush", hex: "#F0A98C" },
-      { name: "Taupe shadow", hex: "#8B7D6B" },
-      { name: "Berry lip", hex: "#8E3A59" },
-      { name: "Ash brow", hex: "#6B5B4E" },
-    ],
-    sections: [
-      { title: "Your features", body: "Practice text. Eye, brow and lip shape, described without judgment." },
-      { title: "How to wear it", body: "Practice text. Brows, eyes, liner, blush, lips and base." },
-    ],
-    confidence: "medium",
-    limits: "Practice data: no photo was read.",
-  },
+const PRACTICE: Record<"hair", StudioReportData> = {
   hair: {
     headline: "Long layers with soft movement",
     summary: "Practice report. The real guide compares lengths, textures, bangs and colors, and explains how each frames your face.",
@@ -190,13 +172,14 @@ const PRACTICE: Record<"makeup" | "hair", StudioReportData> = {
 
 async function makeReport(userId: string, module: StudioModuleId, portrait: { bytes: Uint8Array; mediaType: string }): Promise<Analysis> {
   if (module === "color") return analyzeColor(portrait);
+  if (module === "makeup") return analyzeMakeup(portrait);
   if (module === "style") {
     const closet = await prisma.clothingItem.findMany({ where: { userId }, orderBy: { createdAt: "desc" } });
     return analyzeStyle(portrait, closet);
   }
   // Not built yet: practice data, after a short pause so the loading state can be seen.
   await new Promise((resolve) => setTimeout(resolve, 1200));
-  return { data: PRACTICE[module as "makeup" | "hair"], practice: true };
+  return { data: PRACTICE.hair, practice: true };
 }
 
 /**

@@ -2,6 +2,7 @@ import { anthropic, OUTFIT_MODEL, firstText } from "@/lib/anthropic";
 import { isDevMode } from "@/lib/auth";
 import { SEASONS, isHex, type ColorExtra, type NotedSwatch, type Season } from "@/lib/studioColor";
 import type { StudioReportData } from "@/lib/studioModules";
+import type { MakeupExtra } from "@/lib/studioMakeup";
 import { JEWELRY, type Jewelry, type JewelryRating, type StyleExtra } from "@/lib/studioStyle";
 import { LOOK_PROPERTIES, LOOK_RULES, cleanLook, inventoryOf, practiceLook, type StyledLook, type StyledPiece } from "@/lib/closetLook";
 import type { ClothingItem } from "@/generated/prisma/client";
@@ -471,4 +472,219 @@ export async function analyzeStyle(portrait: { bytes: Uint8Array; mediaType: str
   const look = closet.length >= 2 ? cleanLook(answer.look, closet, null) : null;
   const { input_tokens, output_tokens } = message.usage;
   return { data: styleReport(answer, look), practice: false, inputTokens: input_tokens, outputTokens: output_tokens, costMicros: costMicros(input_tokens, output_tokens) };
+}
+
+/* ---------- Personal Makeup Guide ---------- */
+
+const MAKEUP_SCHEMA = {
+  type: "object",
+  properties: {
+    photoUsable: { type: "boolean", description: "False if the face isn't clearly visible" },
+    photoIssue: { type: "string", description: "When not usable: what to change, kindly (else empty)" },
+    headline: { type: "string", description: "A short editorial headline for their makeup direction, 3-6 words" },
+    summary: { type: "string", description: "Two or three sentences: the recommended overall look and why" },
+    keywords: { type: "array", items: { type: "string" }, description: "4 to 6 makeup aesthetic keywords" },
+    features: {
+      type: "object",
+      description: "Neutral, respectful observations of what is visible; never a flaw, never something to fix",
+      properties: {
+        eyes: { type: "string", description: "Eye shape and appearance, one sentence" },
+        brows: { type: "string", description: "Natural brow shape, one sentence" },
+        lips: { type: "string", description: "Lip shape and natural lip color, one sentence" },
+        proportions: { type: "string", description: "Overall facial proportions, one neutral sentence" },
+        undertone: { type: "string", description: "Visible skin undertone where reasonably assessable, one sentence" },
+      },
+      required: ["eyes", "brows", "lips", "proportions", "undertone"],
+      additionalProperties: false,
+    },
+    recommendations: {
+      type: "object",
+      properties: {
+        brows: { type: "string" },
+        eyes: { type: "string" },
+        eyeliner: { type: "string" },
+        blush: { type: "string", description: "Shade family and placement" },
+        lips: { type: "string" },
+        base: { type: "string", description: "Base makeup and finish (e.g. satin, dewy, matte)" },
+      },
+      required: ["brows", "eyes", "eyeliner", "blush", "lips", "base"],
+      additionalProperties: false,
+    },
+    styles: {
+      type: "array",
+      description: "3 to 5 makeup styles that suit them (e.g. Clean girl, Soft glam, Natural, Korean-inspired, Classic, Editorial), best first",
+      items: {
+        type: "object",
+        properties: { name: { type: "string" }, why: { type: "string", description: "One or two sentences" } },
+        required: ["name", "why"],
+        additionalProperties: false,
+      },
+    },
+    eyeshadow: { type: "array", items: swatchSchema, description: "4 eyeshadow shades" },
+    blush: { type: "array", items: swatchSchema, description: "3 blush shades" },
+    lipstick: { type: "array", items: swatchSchema, description: "4 lip shades, from everyday to evening" },
+    brow: { type: "array", items: swatchSchema, description: "2 brow product shades" },
+    direction: { type: "string", description: "Two or three sentences: the personalized overall makeup direction" },
+    confidence: { type: "string", enum: ["high", "medium", "low"] },
+    limits: { type: "string", description: "What may have affected the reading (lighting, existing makeup, filters), or empty" },
+  },
+  required: [
+    "photoUsable",
+    "photoIssue",
+    "headline",
+    "summary",
+    "keywords",
+    "features",
+    "recommendations",
+    "styles",
+    "eyeshadow",
+    "blush",
+    "lipstick",
+    "brow",
+    "direction",
+    "confidence",
+    "limits",
+  ],
+  additionalProperties: false,
+};
+
+type MakeupAnswer = {
+  photoUsable: boolean;
+  photoIssue: string;
+  headline: string;
+  summary: string;
+  keywords: string[];
+  features: MakeupExtra["features"];
+  recommendations: MakeupExtra["recommendations"];
+  styles: { name: string; why: string }[];
+  eyeshadow: NotedSwatch[];
+  blush: NotedSwatch[];
+  lipstick: NotedSwatch[];
+  brow: NotedSwatch[];
+  direction: string;
+  confidence: "high" | "medium" | "low";
+  limits: string;
+};
+
+const short = (v: string, max = 300) => v.slice(0, max);
+
+function makeupReport(a: MakeupAnswer): StudioReportData {
+  const extra: MakeupExtra = {
+    features: { eyes: short(a.features.eyes), brows: short(a.features.brows), lips: short(a.features.lips), proportions: short(a.features.proportions), undertone: short(a.features.undertone) },
+    recommendations: {
+      brows: short(a.recommendations.brows, 400),
+      eyes: short(a.recommendations.eyes, 400),
+      eyeliner: short(a.recommendations.eyeliner, 400),
+      blush: short(a.recommendations.blush, 400),
+      lips: short(a.recommendations.lips, 400),
+      base: short(a.recommendations.base, 400),
+    },
+    styles: a.styles.slice(0, 5).map((s, i) => ({ name: s.name.slice(0, 30), best: i === 0, why: short(s.why) })),
+    shades: { eyeshadow: clean(a.eyeshadow, 5), blush: clean(a.blush, 4), lipstick: clean(a.lipstick, 5), brow: clean(a.brow, 3) },
+    direction: short(a.direction, 600),
+  };
+  return {
+    headline: a.headline.slice(0, 80),
+    summary: a.summary.slice(0, 600),
+    keywords: a.keywords.slice(0, 6).map((k) => k.slice(0, 30)),
+    palette: [...extra.shades.lipstick.slice(0, 3), ...extra.shades.blush.slice(0, 2), ...extra.shades.eyeshadow.slice(0, 3)],
+    sections: [{ title: "Your makeup direction", body: extra.direction }],
+    confidence: a.confidence,
+    limits: a.limits.slice(0, 300),
+    extra,
+  };
+}
+
+const PRACTICE_MAKEUP: MakeupAnswer = {
+  photoUsable: true,
+  photoIssue: "",
+  headline: "Fresh, rosy and softly defined",
+  summary: "Practice report: no photo was read. With the real guide, this explains the overall makeup look that suits your features.",
+  keywords: ["Soft", "Rosy", "Luminous", "Natural"],
+  features: {
+    eyes: "Practice text: your eye shape, described neutrally.",
+    brows: "Practice text: your natural brow shape.",
+    lips: "Practice text: your lip shape and natural lip color.",
+    proportions: "Practice text: your facial proportions, described neutrally.",
+    undertone: "Practice text: your visible undertone.",
+  },
+  recommendations: {
+    brows: "Practice text.",
+    eyes: "Practice text.",
+    eyeliner: "Practice text.",
+    blush: "Practice text.",
+    lips: "Practice text.",
+    base: "Practice text.",
+  },
+  styles: [
+    { name: "Soft glam", why: "Practice text." },
+    { name: "Natural", why: "Practice text." },
+    { name: "Korean-inspired", why: "Practice text." },
+  ],
+  eyeshadow: [
+    { name: "Champagne", hex: "#E8CFA9", note: "Practice" },
+    { name: "Soft taupe", hex: "#9C8573", note: "Practice" },
+    { name: "Bronze", hex: "#9A6A3E", note: "Practice" },
+    { name: "Plum smoke", hex: "#6A4A5A", note: "Practice" },
+  ],
+  blush: [
+    { name: "Peach", hex: "#F0A98C", note: "Practice" },
+    { name: "Soft rose", hex: "#D99A9A", note: "Practice" },
+    { name: "Apricot", hex: "#E89A6E", note: "Practice" },
+  ],
+  lipstick: [
+    { name: "Rosewood", hex: "#A8636B", note: "Practice" },
+    { name: "Coral nude", hex: "#D27D6B", note: "Practice" },
+    { name: "Brick", hex: "#9B3A2E", note: "Practice" },
+    { name: "Berry", hex: "#8E3A59", note: "Practice" },
+  ],
+  brow: [
+    { name: "Soft brown", hex: "#6B5444", note: "Practice" },
+    { name: "Ash brown", hex: "#5B5048", note: "Practice" },
+  ],
+  direction: "Practice text: your personalized overall makeup direction.",
+  confidence: "medium",
+  limits: "Practice data: no photo was read.",
+};
+
+/** Personal Makeup Guide of the portrait. */
+export async function analyzeMakeup(portrait: { bytes: Uint8Array; mediaType: string }): Promise<Analysis> {
+  if (inPracticeMode()) {
+    await new Promise((resolve) => setTimeout(resolve, 1200));
+    return { data: makeupReport(PRACTICE_MAKEUP), practice: true };
+  }
+
+  const message = await anthropic.messages.create({
+    model: OUTFIT_MODEL,
+    max_tokens: 8000,
+    output_config: { format: { type: "json_schema", schema: MAKEUP_SCHEMA } },
+    messages: [
+      {
+        role: "user",
+        content: [
+          {
+            type: "image",
+            source: { type: "base64", media_type: portrait.mediaType as "image/jpeg", data: Buffer.from(portrait.bytes).toString("base64") },
+          },
+          {
+            type: "text",
+            text: [
+              RESPECT,
+              "You are writing as a makeup artist. Describe features neutrally and never as something to correct, hide,",
+              "slim or make smaller; makeup here is about enhancing and expressing, not changing anyone's natural look.",
+              "",
+              "Write a personal makeup guide from this portrait: feature observations, recommendations for brows, eyes,",
+              "eyeliner, blush, lips and base, makeup styles that suit them and why, and real product-style shade names",
+              "with accurate HEX codes for eyeshadow, blush, lipstick and brows.",
+            ].join("\n"),
+          },
+        ],
+      },
+    ],
+  });
+
+  const answer = JSON.parse(firstText(message)) as MakeupAnswer;
+  if (!answer.photoUsable) throw new PortraitUnusableError(answer.photoIssue || "Your face isn't clear enough in this portrait. Try a front-facing photo in daylight.");
+  const { input_tokens, output_tokens } = message.usage;
+  return { data: makeupReport(answer), practice: false, inputTokens: input_tokens, outputTokens: output_tokens, costMicros: costMicros(input_tokens, output_tokens) };
 }
