@@ -283,16 +283,71 @@ function Dashboard({ closet, outfits }: { closet: ClothingItem[]; outfits: Outfi
           )}
         </section>
 
+        {/* Saved Looks: right under the mirror. A look opens in the Studio (with its try-on, if it has one). */}
+        <section aria-labelledby="saved-title" className="overflow-hidden rounded-[22px] bg-white shadow-[0_1px_0_rgba(18,24,33,0.03),0_14px_36px_rgba(18,30,45,0.06)] mb-6">
+          <FeatureHead
+            Icon={BookmarkIcon}
+            id="saved-title"
+            title="Saved Looks"
+          />
+          {saved.length > 0 ? (
+            <div className="grid grid-cols-2 gap-4 px-6 sm:grid-cols-4 sm:px-8">
+              {saved.slice(0, 4).map((outfit, i) => (
+                <Link
+                  key={outfit.id}
+                  href={`/studio?outfit=${outfit.id}`}
+                  className={`group block overflow-hidden rounded-[18px] bg-white shadow-[0_1px_0_rgba(18,24,33,0.03),0_10px_28px_rgba(18,30,45,0.05)] ${i >= 2 ? "hidden sm:block" : ""}`}
+                >
+                  {outfit.tryOn ? (
+                    <div className="relative aspect-[3/4] bg-white">
+                      {/* eslint-disable-next-line @next/next/no-img-element -- private, owner-only image */}
+                      <img
+                        src={`/api/outfits/${outfit.id}/try-on/image?v=${outfit.tryOn}`}
+                        alt="You wearing this look"
+                        loading="lazy"
+                        className="absolute inset-0 h-full w-full object-contain"
+                      />
+                    </div>
+                  ) : (
+                    <div className="grid grid-cols-2 gap-px bg-[#e5eaec]">
+                      {outfit.layers.flatMap((l) => l.items).slice(0, 4).map((item) => (
+                        <div key={item.id} className="relative aspect-square bg-[#f6f7f7]">
+                          <Image src={item.imageUrl} alt={item.description} fill unoptimized className="object-cover" />
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                  <p className="truncate px-3 py-2 text-[11.5px] font-semibold capitalize text-[#3b4850] group-hover:underline">
+                    {outfit.occasion ?? "Saved look"}
+                  </p>
+                </Link>
+              ))}
+            </div>
+          ) : (
+            <div className="mx-6 rounded-[16px] bg-[#f4f5f6] px-5 py-8 text-[13.5px] text-[#4f5b66] sm:mx-8">
+              Nothing saved yet. Press Save Look on any outfit to keep it here.
+            </div>
+          )}
+          {/* Saved AI Stylist reports, next to the saved looks. */}
+          <SavedStylistStrip />
+          <FeatureActions>
+            <Link href="/outfits/saved" className={btnPrimary}>View Saved Looks</Link>
+            {saved.length === 0 && (
+              <Link href="/studio" className={btnSecondary}>Open Studio</Link>
+            )}
+          </FeatureActions>
+        </section>
+
         <div className="grid gap-6 lg:grid-cols-12">
           {/* My Closet */}
-          <section aria-labelledby="closet-title" className="overflow-hidden rounded-[22px] bg-white shadow-[0_1px_0_rgba(18,24,33,0.03),0_14px_36px_rgba(18,30,45,0.06)] lg:col-span-5">
+          <section aria-labelledby="closet-title" className="overflow-hidden rounded-[22px] bg-white shadow-[0_1px_0_rgba(18,24,33,0.03),0_14px_36px_rgba(18,30,45,0.06)] lg:col-span-12">
             <FeatureHead
               Icon={ClosetIcon}
               id="closet-title"
               title="My Closet"
             />
             {closet.length > 0 ? (
-              <div className="grid grid-cols-3 gap-2 px-6 sm:grid-cols-4 sm:px-8">
+              <div className="grid grid-cols-3 gap-2 px-6 sm:grid-cols-4 sm:px-8 lg:grid-cols-8">
                 {closet.slice(0, 8).map((item, i) => (
                   <div key={item.id} className={`relative aspect-square overflow-hidden rounded-[14px] bg-[#f4f5f6] ${i >= 6 ? "hidden sm:block" : ""}`}>
                     <Image src={item.imageUrl} alt={item.description} fill unoptimized className="object-cover" />
@@ -312,60 +367,6 @@ function Dashboard({ closet, outfits }: { closet: ClothingItem[]; outfits: Outfi
             </FeatureActions>
           </section>
 
-          {/* Saved Looks */}
-          <section aria-labelledby="saved-title" className="overflow-hidden rounded-[22px] bg-white shadow-[0_1px_0_rgba(18,24,33,0.03),0_14px_36px_rgba(18,30,45,0.06)] lg:col-span-7">
-            <FeatureHead
-              Icon={BookmarkIcon}
-              id="saved-title"
-              title="Saved Looks"
-            />
-            {saved.length > 0 ? (
-              <div className="grid grid-cols-2 gap-4 px-6 sm:grid-cols-3 sm:px-8">
-                {saved.slice(0, 3).map((outfit, i) => (
-                  <Link
-                    key={outfit.id}
-                    href={`/outfits/${outfit.id}`}
-                    className={`group block overflow-hidden rounded-[18px] bg-white shadow-[0_1px_0_rgba(18,24,33,0.03),0_10px_28px_rgba(18,30,45,0.05)] ${i === 2 ? "hidden sm:block" : ""}`}
-                  >
-                    {outfit.tryOn ? (
-                      <div className="relative aspect-[3/4] bg-white">
-                        {/* eslint-disable-next-line @next/next/no-img-element -- private, owner-only image */}
-                        <img
-                          src={`/api/outfits/${outfit.id}/try-on/image?v=${outfit.tryOn}`}
-                          alt="You wearing this look"
-                          loading="lazy"
-                          className="absolute inset-0 h-full w-full object-contain"
-                        />
-                      </div>
-                    ) : (
-                      <div className="grid grid-cols-2 gap-px bg-[#e5eaec]">
-                        {outfit.layers.flatMap((l) => l.items).slice(0, 4).map((item) => (
-                          <div key={item.id} className="relative aspect-square bg-[#f6f7f7]">
-                            <Image src={item.imageUrl} alt={item.description} fill unoptimized className="object-cover" />
-                          </div>
-                        ))}
-                      </div>
-                    )}
-                    <p className="truncate px-3 py-2 text-[11.5px] font-semibold capitalize text-[#3b4850] group-hover:underline">
-                      {outfit.occasion ?? "Saved look"}
-                    </p>
-                  </Link>
-                ))}
-              </div>
-            ) : (
-              <div className="mx-6 rounded-[16px] bg-[#f4f5f6] px-5 py-8 text-[13.5px] text-[#4f5b66] sm:mx-8">
-                Nothing saved yet. Press Save Look on any outfit to keep it here.
-              </div>
-            )}
-            {/* Saved AI Stylist reports, next to the saved looks. */}
-            <SavedStylistStrip />
-            <FeatureActions>
-              <Link href="/outfits/saved" className={btnPrimary}>View Saved Looks</Link>
-              {saved.length === 0 && (
-                <Link href="/studio" className={btnSecondary}>Open Studio</Link>
-              )}
-            </FeatureActions>
-          </section>
         </div>
       </PageShell>
     </main>
