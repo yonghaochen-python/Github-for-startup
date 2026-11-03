@@ -445,6 +445,7 @@ export default function StudioPage() {
   }
 
   function startOver() {
+    setLastPicture(null);
     rememberShown(null);
     setPieces([]);
     setLook(EMPTY_LOOK);
@@ -478,6 +479,34 @@ export default function StudioPage() {
       : !changed && look.tryOn && look.outfitId
         ? `/api/outfits/${look.outfitId}/try-on/image?v=${look.tryOn}`
         : null;
+  // The last try-on picture shown: kept on screen (faded) while the look is being changed, instead of jumping back to
+  // the plain photo. Cleared with a new photo or Start over.
+  const [lastPicture, setLastPicture] = useState<string | null>(null);
+  useEffect(() => {
+    if (picture) setLastPicture(picture);
+  }, [picture]);
+  const stalePicture = !picture && changed && pieces.length > 0 && hasPhoto && !trying ? lastPicture : null;
+
+  // A piece added or taken away: if this exact combination was tried on before, show that picture again (free).
+  const checkedCombos = useRef(new Set<string>());
+  useEffect(() => {
+    if (!changed || !hasPhoto || trying || hasShopPieces || pieces.length === 0 || mode !== "photo") return;
+    if (checkedCombos.current.has(piecesKey)) return;
+    const timer = setTimeout(async () => {
+      checkedCombos.current.add(piecesKey);
+      const res = await fetch("/api/closet/tryon-remembered", {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({ pieceIds: pieces.map((p) => p.id) }),
+      }).catch(() => null);
+      const data = (await res?.json().catch(() => null)) as { remembered?: boolean } | null;
+      // Remembered pictures are shown again without the AI and without a credit.
+      if (data?.remembered) tryOn();
+    }, 500);
+    return () => clearTimeout(timer);
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- runs when the combination changes
+  }, [piecesKey, changed, hasPhoto, mode]);
+
   // The try-on on show right now (made in this visit), for its Good / Bad feedback.
   const shownTryOnId = !picture ? undefined : hasShopPieces ? shopShown?.requestId : !changed ? result?.requestId : undefined;
 
@@ -582,6 +611,10 @@ export default function StudioPage() {
                 {picture ? (
                   // eslint-disable-next-line @next/next/no-img-element -- private, owner-only image
                   <img src={picture} alt="You wearing this look" className="absolute inset-0 h-full w-full object-contain" />
+                ) : stalePicture ? (
+                  // The look was changed: the last try-on stays (faded) until the picture is updated.
+                  // eslint-disable-next-line @next/next/no-img-element -- private, owner-only image
+                  <img src={stalePicture} alt="Your previous try-on" className="absolute inset-0 h-full w-full object-contain opacity-55" />
                 ) : (
                   <SavedPhotoImage className="absolute inset-0 h-full w-full object-contain" />
                 )}
@@ -591,9 +624,21 @@ export default function StudioPage() {
                     <span className="rounded-full bg-[#121821]/80 px-4 py-1.5 text-[12px] text-white">{STATUS_STEPS[statusIndex]}</span>
                   </div>
                 )}
-                {!picture && !trying && pieces.length > 0 && (
+                {!picture && !trying && pieces.length > 0 && !stalePicture && (
                   <span className="absolute left-4 top-4 rounded-full bg-white/90 px-3 py-1 text-[11px] font-semibold text-[#4f5b66]">
                     Press Try On to see it on you
+                  </span>
+                )}
+                {stalePicture && (
+                  <span className="absolute left-4 top-4 flex items-center gap-2 rounded-full bg-white/95 py-1 pl-3 pr-1 text-[11px] font-semibold text-[#4f5b66] shadow-sm">
+                    Look changed
+                    <button
+                      onClick={() => tryOn()}
+                      className="rounded-full bg-[#121821] px-2.5 py-1 text-[11px] font-semibold text-white hover:bg-[#2a3542]"
+                      title="Make a picture of the look as it is now (uses a photo try-on)"
+                    >
+                      Update picture
+                    </button>
                   </span>
                 )}
                 {!changed && result?.reused && !trying && (
