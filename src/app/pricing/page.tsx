@@ -22,7 +22,7 @@ export default function PricingPage() {
               Choose your <em>mirror</em>
             </h1>
             <p className="mt-4 max-w-md text-[15px] leading-relaxed text-[#4f5b66]">
-              Start free with your own closet. Upgrade for more photo try-ons, more live sessions and, soon, styling that&apos;s personal to you.
+              Start free with your own closet and the AI Stylist. Upgrade for more photo try-ons and live sessions.
             </p>
           </div>
           <div className="grid grid-cols-4 gap-2" aria-hidden>
