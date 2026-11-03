@@ -1,4 +1,6 @@
+import { randomUUID } from "node:crypto";
 import { NextResponse } from "next/server";
+import { withRetry } from "@/lib/dbRetry";
 import { track } from "@/lib/analytics";
 import { prisma } from "@/lib/prisma";
 import { saveUploadedImage } from "@/lib/images";
@@ -71,11 +73,16 @@ export async function POST(request: Request) {
 
   const results = await Promise.allSettled(
     files.map(async (file, i) => {
-      const image = await saveUploadedImage(file);
+      const image = await withRetry(() => saveUploadedImage(file));
       const isolatedUrl = await removeBackground(image.url);
       const attributes = parsedItems[i] as ClothingAttributes;
-      return prisma.clothingItem.create({
-        data: { userId: user.id, imageUrl: isolatedUrl, ...attributes, brand: cleanBrand(attributes.brand) },
+      // The id is chosen here, so retrying through a database hiccup can never save the piece twice: if an earlier
+      // try did land, it's found instead of created again.
+      const id = randomUUID();
+      const data = { id, userId: user.id, imageUrl: isolatedUrl, ...attributes, brand: cleanBrand(attributes.brand) };
+      return withRetry(async () => {
+        const existing = await prisma.clothingItem.findUnique({ where: { id } });
+        return existing ?? (await prisma.clothingItem.create({ data }));
       });
     })
   );

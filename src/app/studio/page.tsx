@@ -93,6 +93,27 @@ export default function StudioPage() {
   const [shopTry, setShopTry] = useState<{ key: string; result: TryOnResult } | null>(null);
 
   const [closet, setCloset] = useState<ClothingItem[] | null>(null);
+  // The closet couldn't load (a connection hiccup): say so with Try again, never show it as empty.
+  const [closetFailed, setClosetFailed] = useState(false);
+
+  function loadCloset(stale: () => boolean = () => false) {
+    setClosetFailed(false);
+    fetchWithRetry("/api/closet/items")
+      .then(async (res) => {
+        if (!res.ok) throw new Error("closet");
+        return ((await res.json()) as { items?: ClothingItem[] }).items ?? [];
+      })
+      .then((items) => !stale() && setCloset(items))
+      .catch(() => !stale() && setClosetFailed(true));
+  }
+
+  // Try again by itself when the connection comes back.
+  useEffect(() => {
+    if (!closetFailed) return;
+    const retry = () => loadCloset();
+    window.addEventListener("online", retry);
+    return () => window.removeEventListener("online", retry);
+  }, [closetFailed]);
   const [pieces, setPieces] = useState<ClothingItem[]>([]);
   const [look, setLook] = useState<Look>(EMPTY_LOOK);
   // Which look to start from: the one asked for, else the latest try-on.
@@ -194,10 +215,8 @@ export default function StudioPage() {
   // The closet, the try-on settings, and the starting look.
   useEffect(() => {
     let ignore = false;
-    fetchWithRetry("/api/closet/items")
-      .then(async (res) => (res.ok ? (((await res.json()) as { items?: ClothingItem[] }).items ?? []) : []))
-      .then((items) => !ignore && setCloset(items))
-      .catch(() => !ignore && setCloset([]));
+    // eslint-disable-next-line react-hooks/set-state-in-effect -- loads the closet once per visit
+    loadCloset(() => ignore);
     fetch("/api/config")
       .then((res) => res.json() as Promise<{ tryOnLive?: boolean }>)
       .then((data) => !ignore && setLiveProvider(Boolean(data.tryOnLive)))
@@ -795,7 +814,14 @@ export default function StudioPage() {
                 })}
               </div>
               <div className="max-h-[calc(100vh-220px)] min-h-[240px] overflow-y-auto p-3 sm:p-4 lg:max-h-[calc(100vh-260px)]">
-                {closet === null && source === "closet" ? (
+                {closetFailed && source === "closet" ? (
+                  <p className="px-1 py-6 text-[13px] text-[#5d6874]">
+                    Your closet didn&apos;t load. Check your connection.{" "}
+                    <button onClick={() => loadCloset()} className="font-semibold text-[#121821] underline-offset-4 hover:underline">
+                      Try again
+                    </button>
+                  </p>
+                ) : closet === null && source === "closet" ? (
                   <div className="grid grid-cols-3 gap-3">
                     {[0, 1, 2, 3, 4, 5].map((i) => (
                       <div key={i} className="aspect-square animate-pulse rounded-[14px] bg-[#f4f5f6]" />
