@@ -1,12 +1,17 @@
 "use client";
 
 import type { InferenceSession } from "onnxruntime-web";
+import { loadSegmenter } from "@/lib/recolor";
 
 /**
  * Background removal for clothing photos, run on the person's own device (no service, no cost, the photo isn't sent
  * anywhere for this). Uses U²-Net-p (Apache-2.0, from the rembg project), served by this site from /models, with
  * Microsoft's onnxruntime-web (MIT) served from /ort. Returns a PNG with a transparent background, trimmed to the
  * piece, or null when the result doesn't look like a clean cut-out (then the original photo is kept).
+ *
+ * U²-Net keeps whatever stands out most, which in a photo of clothes being worn can be an arm instead of the top. So
+ * MediaPipe's multiclass selfie model (already on the site for the Stylist) also looks at the photo: when a person is
+ * in it, only what it sees as clothes is kept, and a cut-out that is still mostly skin is refused.
  */
 
 const MODEL_PATH = "/models/u2netp.onnx";
@@ -65,23 +70,88 @@ async function predictMask(bitmap: ImageBitmap): Promise<Float32Array> {
   return mask;
 }
 
+/**
+ * Of a person in the photo, per pixel at 320×320: how sure the model is that it's skin or hair, and that it's clothes; and
+ * how much of the photo is hair, face, body skin, and clothes.
+ */
+type PersonParts = { skin: Float32Array; clothes: Float32Array; hair: number; face: number; body: number; clothing: number };
+
+/** The multiclass selfie model's view of the photo (null if it can't run here: then U²-Net works alone). */
+async function personParts(bitmap: ImageBitmap): Promise<PersonParts | null> {
+  try {
+    const segmenter = await loadSegmenter();
+    const result = segmenter.segment(bitmap);
+    // Classes: 0 background, 1 hair, 2 body skin, 3 face skin, 4 clothes, 5 others (e.g. bags, hats).
+    const masks = result.confidenceMasks;
+    if (!masks || masks.length < 6) {
+      result.close();
+      return null;
+    }
+    const [, hair, body, face, cloth, other] = masks.map((m) => m.getAsFloat32Array());
+    const mw = masks[0].width;
+    const mh = masks[0].height;
+    result.close();
+    const skin = new Float32Array(SIZE * SIZE);
+    const clothes = new Float32Array(SIZE * SIZE);
+    let hairs = 0;
+    let faces = 0;
+    let bodySkin = 0;
+    let clothing = 0;
+    for (let y = 0; y < SIZE; y++) {
+      const my = Math.min(mh - 1, Math.floor((y * mh) / SIZE));
+      for (let x = 0; x < SIZE; x++) {
+        const j = my * mw + Math.min(mw - 1, Math.floor((x * mw) / SIZE));
+        const i = y * SIZE + x;
+        skin[i] = body[j] + face[j] + hair[j];
+        clothes[i] = cloth[j] + other[j];
+        if (hair[j] > 0.5) hairs++;
+        if (face[j] > 0.5) faces++;
+        if (body[j] > 0.5) bodySkin++;
+        if (clothes[i] > 0.5) clothing++;
+      }
+    }
+    const n = SIZE * SIZE;
+    return { skin, clothes, hair: hairs / n, face: faces / n, body: bodySkin / n, clothing: clothing / n };
+  } catch {
+    return null;
+  }
+}
+
 /** Cuts the background out of a clothing picture. Null means "keep the original" (nothing clear was found). */
 export async function cutOut(image: Blob): Promise<Blob | null> {
   const bitmap = await createImageBitmap(image);
   try {
-    const mask = await predictMask(bitmap);
+    const [mask, parts] = await Promise.all([predictMask(bitmap), personParts(bitmap)]);
+    // Hair, a face with some skin, or plenty of skin, with clothes on: someone is wearing it, so keep only their
+    // clothes (not their arms, face or hair). A little "skin" or "face" alone isn't enough: brown leather can look
+    // like either.
+    const worn =
+      parts !== null &&
+      parts.clothing > 0.05 &&
+      (parts.hair > 0.003 || (parts.face > 0.003 && parts.body > 0.01) || parts.body > 0.08);
+    // More skin than clothes (e.g. arms folded over a top): no clean cut-out is possible, so keep the photo.
+    if (worn && parts.body > parts.clothing * 0.6) return null;
+    // Real hair in the photo (e.g. sunglasses on a head) means a cut-out could keep the person instead of the piece.
+    const person = worn || (parts !== null && parts.hair > 0.02);
+    if (worn) for (let i = 0; i < mask.length; i++) mask[i] = Math.max(0, Math.min(1, parts.clothes[i]) - parts.skin[i]);
 
     // Sharpen the soft edges a little, and find how much of the picture is the piece.
     const alpha = new Uint8ClampedArray(SIZE * SIZE * 4);
     let kept = 0;
+    let skinKept = 0;
     for (let i = 0; i < mask.length; i++) {
       const a = Math.min(1, Math.max(0, (mask[i] - 0.15) / 0.7));
       alpha[i * 4 + 3] = Math.round(a * 255);
-      if (a > 0.5) kept++;
+      if (a > 0.5) {
+        kept++;
+        if (person && parts !== null && parts.skin[i] > 0.5) skinKept++;
+      }
     }
     const share = kept / mask.length;
     // Almost nothing, or almost everything: not a believable cut-out.
     if (share < 0.03 || share > 0.97) return null;
+    // Mostly skin or hair (an arm, a hand, a face): that's not the piece.
+    if (skinKept > kept * 0.25) return null;
 
     const scale = Math.min(1, MAX_SIDE / Math.max(bitmap.width, bitmap.height));
     const w = Math.max(1, Math.round(bitmap.width * scale));

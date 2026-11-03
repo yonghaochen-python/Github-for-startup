@@ -20,7 +20,8 @@ const MAX_SIDE = 720;
 
 let segmenterPromise: Promise<ImageSegmenter> | null = null;
 
-function loadSegmenter(): Promise<ImageSegmenter> {
+/** The multiclass selfie model, loaded once (also used by the closet's cut-outs to tell clothes from skin). */
+export function loadSegmenter(): Promise<ImageSegmenter> {
   segmenterPromise ??= (async () => {
     const { FilesetResolver, ImageSegmenter } = await import("@mediapipe/tasks-vision");
     const files = await FilesetResolver.forVisionTasks(WASM_PATH);
