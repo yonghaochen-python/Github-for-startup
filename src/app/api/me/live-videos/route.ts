@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { asResponse, requireAdmin, requireUser } from "@/lib/auth";
+import { asResponse, requireUser } from "@/lib/auth";
 import { MAX_VIDEOS, MAX_VIDEO_BYTES, VIDEO_TYPES, listLiveVideos, looksLikeVideo, saveLiveVideo } from "@/lib/liveVideos";
 
 const noStore = { "cache-control": "private, no-store" };
@@ -17,12 +17,11 @@ export async function GET(request: Request) {
 
 /**
  * "Save to Virm" for a live try-on replay: stores the video privately for its owner. Only on an explicit click.
- * Admin-only for now, like Live itself.
  */
 export async function POST(request: Request) {
   let user;
   try {
-    user = await requireAdmin(request);
+    user = await requireUser(request);
   } catch (res) {
     return asResponse(res);
   }

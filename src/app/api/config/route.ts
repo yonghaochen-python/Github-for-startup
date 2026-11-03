@@ -7,7 +7,7 @@ export async function GET(request: Request) {
     aiEnabled: Boolean(process.env.ANTHROPIC_API_KEY),
     devLogin: isDevMode(),
     tryOnLive: (process.env.TRYON_PROVIDER ?? "mock") !== "mock",
-    // Live Try On's real-time preview (Decart): only where a Decart key is set, and only for admin accounts.
-    liveTryOn: Boolean(process.env.DECART_API_KEY) && user?.role === "admin",
+    // Live Try On's real-time AI (Decart): only where a Decart key is set, for anyone signed in.
+    liveTryOn: Boolean(process.env.DECART_API_KEY) && Boolean(user),
   });
 }

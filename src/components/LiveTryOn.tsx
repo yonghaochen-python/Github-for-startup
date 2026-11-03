@@ -17,7 +17,7 @@ import type { RealTimeClient } from "@decartai/sdk";
 /**
  * Live Try On — preview. A live camera mirror beside the closet, where pieces can be picked
  * and swapped without restarting anything. On its own nothing is recorded or sent and no clothes are drawn on the
- * person (the page says so). For admin accounts where a Decart key is set, "AI try-on" can run Decart's real-time
+ * person (the page says so). For signed-in people where a Decart key is set, "AI try-on" can run Decart's real-time
  * try-on on the camera with the whole outfit (all pieces on one reference picture), after a tap on Start, for at
  * most 20 seconds a session (Decart also ends it then), stopping too when the tab is hidden or the page is left.
  *
@@ -113,6 +113,8 @@ export function LiveTryOn({
   const [savedKeys, setSavedKeys] = useState<string[]>([]);
   // Real-time AI preview (Decart), only where it's connected.
   const [liveAvailable, setLiveAvailable] = useState(false);
+  // Live sessions left this month, checked when AI try-on is tapped ("admin" for admins, who have no limit).
+  const [liveLeft, setLiveLeft] = useState<number | "admin" | null>(null);
   const [ai, setAi] = useState<Ai>("off");
   const [secondsLeft, setSecondsLeft] = useState(0);
   const [aiStream, setAiStream] = useState<MediaStream | null>(null);
@@ -534,7 +536,14 @@ export function LiveTryOn({
                   {outfit.length ? `AI try-on shows your whole outfit (${outfit.length} ${outfit.length === 1 ? "piece" : "pieces"}).` : "Pick pieces to try with AI."}
                 </span>
                 <button
-                  onClick={() => setAi("confirm")}
+                  onClick={() => {
+                    setLiveLeft(null);
+                    setAi("confirm");
+                    fetch("/api/me/credits")
+                      .then((res) => res.json() as Promise<{ balances?: { exempt: boolean; live: { total: number } } }>)
+                      .then((data) => data.balances && setLiveLeft(data.balances.exempt ? "admin" : data.balances.live.total))
+                      .catch(() => {});
+                  }}
                   disabled={outfit.length === 0}
                   className="rounded-full bg-[#121821] px-4 py-2 text-[12.5px] font-semibold text-white transition hover:bg-[#2a3542] disabled:opacity-40"
                 >
@@ -544,8 +553,18 @@ export function LiveTryOn({
             )}
             {ai === "confirm" && (
               <>
-                <span className="min-w-0 flex-1">Uses Decart credits, about $0.02 a second. Runs up to 20 seconds, then stops.</span>
-                <button onClick={beginCountdown} className="rounded-full bg-[#121821] px-4 py-2 text-[12.5px] font-semibold text-white hover:bg-[#2a3542]">
+                <span className="min-w-0 flex-1">
+                  {liveLeft === "admin"
+                    ? "Uses Decart credits, about $0.02 a second. Runs up to 20 seconds, then stops."
+                    : liveLeft === 0
+                      ? "No live sessions left this month."
+                      : `Uses 1 live session${liveLeft === null ? "" : ` (${liveLeft} left this month)`}. Runs up to 20 seconds, then stops.`}
+                </span>
+                <button
+                  onClick={beginCountdown}
+                  disabled={liveLeft === 0}
+                  className="rounded-full bg-[#121821] px-4 py-2 text-[12.5px] font-semibold text-white hover:bg-[#2a3542] disabled:opacity-40"
+                >
                   Start
                 </button>
                 <button onClick={() => setAi("off")} className="text-[12.5px] font-medium text-[#121821] underline-offset-4 hover:underline">

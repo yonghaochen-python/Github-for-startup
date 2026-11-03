@@ -1,17 +1,17 @@
 import { NextResponse } from "next/server";
-import { asResponse, requireAdmin } from "@/lib/auth";
+import { asResponse, requireUser } from "@/lib/auth";
 import { settleCredit } from "@/lib/credits";
 
 const noStore = { "cache-control": "private, no-store" };
 
 /**
  * The page reports how a live session went: "connected" counts its reserved credit, "failed" (before connecting)
- * gives it back. Only a still-reserved credit changes, so repeated or late reports do nothing. Admin-only, like Live.
+ * gives it back. Only a still-reserved credit changes, so repeated or late reports do nothing. For signed-in people, like Live.
  */
 export async function POST(request: Request) {
   let user;
   try {
-    user = await requireAdmin(request);
+    user = await requireUser(request);
   } catch (res) {
     return asResponse(res);
   }

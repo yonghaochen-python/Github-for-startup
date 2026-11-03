@@ -114,15 +114,17 @@ export type Reservation = { ok: true; duplicate: boolean } | { ok: false; reason
  * database statement, so two requests at once can't both take the last credit, and a request id already used is
  * never counted again (duplicate: true).
  */
-export async function reserveCredit(account: Account, kind: CreditKind, requestId: string): Promise<Reservation> {
+export async function reserveCredit(account: Account, kind: CreditKind, requestId: string, options: { block?: boolean } = {}): Promise<Reservation> {
   const userId = account.id;
+  // Live sessions always stop at the limit (each one is billed by the second), whatever CREDIT_ENFORCEMENT says.
+  const block = options.block || enforcement() === "block";
   const existing = await prisma.creditEntry.findUnique({ where: { userId_requestId: { userId, requestId } }, select: { id: true } });
   if (existing) return { ok: true, duplicate: true };
 
   const { plan, period } = await accountPlan(userId);
   const balance = await kindBalance(userId, kind, plan, period);
   const source = account.role === "admin" ? "admin" : balance.planLeft > 0 ? "plan" : balance.extraLeft > 0 ? "extra" : "over";
-  if (source === "over" && enforcement() === "block") return { ok: false, reason: "no_credits" };
+  if (source === "over" && block) return { ok: false, reason: "no_credits" };
 
   const start = dbDate(period.start);
   const end = dbDate(period.end);
@@ -149,12 +151,24 @@ export async function reserveCredit(account: Account, kind: CreditKind, requestI
   // Not inserted: either the same request already landed, or the last credit was just taken by another request.
   const raced = await prisma.creditEntry.findUnique({ where: { userId_requestId: { userId, requestId } }, select: { id: true } });
   if (raced) return { ok: true, duplicate: true };
-  if (enforcement() === "block") return { ok: false, reason: "no_credits" };
+  if (block) return { ok: false, reason: "no_credits" };
   // Count-only: record it as over the limit rather than losing the record.
   await prisma.creditEntry
     .create({ data: { userId, kind, type: "use", source: "over", amount: -1, status: "reserved", requestId } })
     .catch(() => {});
   return { ok: true, duplicate: false };
+}
+
+/**
+ * Live sessions started since midnight (UTC) that weren't given back: one person's, or everyone's but admins'.
+ * Worked out from CreditEntry, so it holds across Workers (unlike a count kept in memory).
+ */
+export async function liveUsesToday(userId?: string): Promise<number> {
+  const now = new Date();
+  const midnight = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate()));
+  return prisma.creditEntry.count({
+    where: { kind: "live", type: "use", status: { not: "released" }, createdAt: { gte: midnight }, ...(userId ? { userId } : { source: { not: "admin" } }) },
+  });
 }
 
 /**
