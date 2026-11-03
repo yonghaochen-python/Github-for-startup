@@ -15,6 +15,7 @@ import { useToast } from "@/components/Toast";
 import { MirrorIcon, SearchIcon } from "@/components/Icons";
 import { ErrorNote, PageShell, btnPrimary, btnSecondary, mirrorFrame } from "@/components/ui";
 import { OutfitFlatLay } from "@/components/OutfitFlatLay";
+import { shuffleOutfit } from "@/lib/shuffleOutfit";
 import { TRY_ON_CAVEAT, requestShopTryOn, requestTryOn, type TryOnResult } from "@/lib/tryOnClient";
 import { LiveTryOn, type ShopPick } from "@/components/LiveTryOn";
 import { CreditsLine, refreshCredits } from "@/components/Credits";
@@ -405,6 +406,19 @@ export default function StudioPage() {
     }
   }
 
+  /** A random outfit from the closet, made on the device: free, instant, unlimited. */
+  function shuffle() {
+    if (!closet?.length) return setError("Add a few pieces to your closet first.");
+    const next = shuffleOutfit(closet, pieces);
+    if (!next.length) return setError("Add a few more pieces to shuffle outfits.");
+    setError(null);
+    rememberShown(null);
+    setPieces(next);
+    setLook(EMPTY_LOOK);
+    setResult(null);
+    setIdeas([]);
+  }
+
   function startOver() {
     rememberShown(null);
     setPieces([]);
@@ -487,6 +501,20 @@ export default function StudioPage() {
             placeholder="Type a theme: old money, rainy day in Paris, first date…"
             className="min-w-0 flex-1 bg-transparent py-2.5 text-[14px] text-[#121821] outline-none placeholder:text-[#8a96a1]"
           />
+          <button
+            type="button"
+            onClick={shuffle}
+            aria-label="Shuffle: a random outfit from your closet"
+            title="Shuffle: a random outfit from your closet"
+            className="flex h-10 shrink-0 items-center gap-1.5 rounded-full px-3 text-[13px] font-semibold text-[#121821] hover:bg-[#eef1f4]"
+          >
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" className="h-[18px] w-[18px]" aria-hidden>
+              <path d="M3 7h3.5c2.5 0 4 1.5 5.5 4.5S15 16 17.5 16H21" />
+              <path d="M3 16h3.5c1.4 0 2.5-.5 3.4-1.4M14.1 8.4C15 7.5 16.1 7 17.5 7H21" />
+              <path d="m18 4 3 3-3 3M18 13l3 3-3 3" />
+            </svg>
+            <span className="hidden sm:inline">Shuffle</span>
+          </button>
           <button type="submit" disabled={styling} className={`${btnPrimary} shrink-0`}>
             {styling ? "Styling…" : "Style it"}
           </button>
@@ -508,7 +536,7 @@ export default function StudioPage() {
             {outfitOnly ? (
               <div className={`${mirrorFrame} bg-[#f1ede7]`}>
                 <span className="absolute left-4 top-4 rounded-full bg-white/90 px-3 py-1 text-[11px] font-semibold text-[#4f5b66]">Your outfit</span>
-                <OutfitFlatLay pieces={pieces} emptyText="Type a theme above for outfit ideas, or tap pieces in your closet." />
+                <OutfitFlatLay pieces={pieces} emptyText="Type a theme and press Style it, tap Shuffle for a random outfit, or pick pieces from your closet." />
                 {pieces.length > 0 && !hasShopPieces && (
                   <div className="absolute right-4 top-4">
                     <SaveToggle
