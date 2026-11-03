@@ -64,7 +64,7 @@ export function CreditsCard() {
           </div>
           <p className="mt-1 text-[11.5px] leading-snug text-[#5d6874]">
             The monthly allowance resets each period; extra credits don&apos;t expire.
-            {b.exempt ? " Admin account: not limited." : b.enforcement === "count" ? " Limits aren't applied yet." : ""}
+            {b.exempt ? " Admin account: not limited." : b.enforcement === "count" ? " Photo limits aren't applied yet." : ""}
           </p>
         </>
       )}

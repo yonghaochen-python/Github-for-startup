@@ -8,8 +8,8 @@ import { eyebrow } from "@/components/ui";
 import { PLAN_ALLOWANCES } from "@/lib/plans";
 
 /**
- * The planned pricing, shown for feedback only. Nothing here charges, subscribes, or limits anyone: plans, credits and
- * plan limits aren't active, and every paid button says "Coming soon". Features that aren't built are marked
+ * The planned pricing, shown for feedback only. Nothing here charges or subscribes anyone, and every paid button says
+ * "Coming soon". Live try-on sessions are limited per plan today (each one is billed); the other limits only count. Features that aren't built are marked
  * "Coming soon" and described in the future tense. To change a price, limit or feature, edit the lists below.
  */
 
@@ -40,6 +40,7 @@ const PLANS: Plan[] = [
       { text: "Outfit ideas from your closet" },
       { text: "AI Stylist: colors, makeup, hair and style" },
       { text: "Shopping catalog" },
+      { text: "Live AI try-on on camera" },
       { text: "Up to 5 saved looks" },
     ],
   },
@@ -56,6 +57,7 @@ const PLANS: Plan[] = [
       { text: "Outfit ideas, planned by occasion" },
       { text: "AI Stylist: colors, makeup, hair and style" },
       { text: "Shopping catalog, and import any product" },
+      { text: "Live AI try-on on camera" },
       { text: "Unlimited saved looks" },
     ],
     bestValue: true,
@@ -73,6 +75,7 @@ const PLANS: Plan[] = [
       { text: "Outfit ideas, planned by occasion" },
       { text: "AI Stylist: colors, makeup, hair and style" },
       { text: "Shopping catalog, and import any product" },
+      { text: "Live AI try-on on camera" },
       { text: "Unlimited saved looks" },
       { text: "Wardrobe Insights", soon: "Will show pieces you never wear, your go-to colors, and what your closet is missing." },
     ],
@@ -82,7 +85,7 @@ const PLANS: Plan[] = [
 /** The comparison table. "soon" cells are features that aren't built yet. */
 const COMPARE: { label: string; cells: [string, string, string] }[] = [
   { label: "Photo try-ons / month", cells: [String(PLAN_ALLOWANCES.free.photo), String(PLAN_ALLOWANCES.plus.photo), String(PLAN_ALLOWANCES.pro.photo)] },
-  { label: "Live try-on sessions / month", cells: [String(PLAN_ALLOWANCES.free.live), String(PLAN_ALLOWANCES.plus.live), String(PLAN_ALLOWANCES.pro.live)] },
+  { label: "Live AI try-on sessions / month (20 s each)", cells: [String(PLAN_ALLOWANCES.free.live), String(PLAN_ALLOWANCES.plus.live), String(PLAN_ALLOWANCES.pro.live)] },
   { label: "Personal digital closet", cells: ["yes", "yes", "yes"] },
   { label: "Browse the shopping catalog", cells: ["yes", "yes", "yes"] },
   { label: "Product importing", cells: ["no", "yes", "yes"] },
@@ -150,7 +153,7 @@ export function Pricing({ compact = false, onCompare }: { compact?: boolean; onC
         <span className="mr-2 inline-block rounded-full bg-[#121821] px-2 py-[1px] align-middle text-[9px] font-semibold uppercase tracking-[1.4px] text-white">
           Preview
         </span>
-        Paid plans, credits and plan limits aren&apos;t active yet, so nothing can be bought.
+        Paid plans aren&apos;t active yet, so nothing can be bought. Everyone is on Free for now.
       </p>
 
       {/* The plans: one sheet, columns divided by hairlines; Plus is the inked column. */}
@@ -291,7 +294,7 @@ export function Pricing({ compact = false, onCompare }: { compact?: boolean; onC
                 </tbody>
               </table>
             </div>
-            <p className="mt-3 text-[12px] text-[#5d6874]">Coming soon features aren&apos;t available yet. Limits are part of the preview and aren&apos;t applied today.</p>
+            <p className="mt-3 text-[12px] text-[#5d6874]">Coming soon features aren&apos;t available yet. Live sessions run up to 20 seconds, at most 3 a day; their monthly limit applies today. The other limits are part of the preview.</p>
           </section>
         </>
       )}
