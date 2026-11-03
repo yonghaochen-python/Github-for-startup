@@ -17,15 +17,15 @@ import {
   ClosetIcon,
   MirrorIcon,
   PlusIcon,
-  SparkleIcon,
 } from "@/components/Icons";
+import { SavedStylistStrip } from "@/components/studio/SavedStylist";
 import { Tips, type Tip } from "@/components/Tips";
 import { CreditGuide } from "@/components/Credits";
 
 const HOME_TIPS: Tip[] = [
-  { target: "#mirror", text: "Your latest try-on shows here." },
+  { target: "#mirror", text: "Your mirror: your latest try-on. Open Studio to try on more." },
   { target: '.site-nav a[href="/closet"], .site-tabbar a[href="/closet"]', text: "Your clothes live in My Closet." },
-  { target: '.site-nav a[href="/studio"], .site-tabbar a[href="/studio"]', text: "Put outfits together in the Studio." },
+  { target: '.site-nav a[href="/studio"], .site-tabbar a[href="/studio"]', text: "Studio is your mirror: try outfits on here." },
 ];
 
 
@@ -159,7 +159,6 @@ function Dashboard({ closet, outfits }: { closet: ClothingItem[]; outfits: Outfi
   const [settingUpPhoto, setSettingUpPhoto] = useState(false);
   const name = user?.displayName?.trim() || "";
   const saved = outfits.filter((o) => o.isFavorite).sort(byLatestTryOn);
-  const latest = outfits[0];
   const step = nextStep(hasPhoto, closet.length, outfits.length);
 
   const hour = new Date().getHours();
@@ -238,6 +237,9 @@ function Dashboard({ closet, outfits }: { closet: ClothingItem[]; outfits: Outfi
                 </span>
               </div>
               <div className="flex flex-col justify-center gap-5 p-6 sm:p-10">
+                <p className={`${eyebrow} flex items-center gap-2`}>
+                  <MirrorIcon className="h-4 w-4" /> Studio
+                </p>
                 {hasPhoto ? (
                   <>
                     <h2 id="mirror-title" className="font-display text-[38px] font-normal leading-[1.05] text-[#121821] sm:text-[46px]">
@@ -250,7 +252,7 @@ function Dashboard({ closet, outfits }: { closet: ClothingItem[]; outfits: Outfi
                     )}
                     <div className="flex flex-wrap items-center gap-3">
                       <Link href="/studio" className={btnPrimary}>
-                        <MirrorIcon className="h-4 w-4" /> Try On an Outfit
+                        <MirrorIcon className="h-4 w-4" /> Open Studio
                       </Link>
                       <button onClick={() => setSettingUpPhoto(true)} className={btnSecondary}>
                         Change Photo
@@ -269,6 +271,9 @@ function Dashboard({ closet, outfits }: { closet: ClothingItem[]; outfits: Outfi
                       <button onClick={() => setSettingUpPhoto(true)} className={btnPrimary}>
                         <CameraIcon className="h-4 w-4" /> Upload My Photo
                       </button>
+                      <Link href="/studio" className={btnSecondary}>
+                        Open Studio
+                      </Link>
                     </div>
                     <p className="text-[11.5px] text-[#5d6874]">Only you can see it.</p>
                   </>
@@ -280,7 +285,7 @@ function Dashboard({ closet, outfits }: { closet: ClothingItem[]; outfits: Outfi
 
         <div className="grid gap-6 lg:grid-cols-12">
           {/* My Closet */}
-          <section aria-labelledby="closet-title" className="overflow-hidden rounded-[22px] bg-white shadow-[0_1px_0_rgba(18,24,33,0.03),0_14px_36px_rgba(18,30,45,0.06)] lg:col-span-7">
+          <section aria-labelledby="closet-title" className="overflow-hidden rounded-[22px] bg-white shadow-[0_1px_0_rgba(18,24,33,0.03),0_14px_36px_rgba(18,30,45,0.06)] lg:col-span-5">
             <FeatureHead
               Icon={ClosetIcon}
               id="closet-title"
@@ -307,45 +312,8 @@ function Dashboard({ closet, outfits }: { closet: ClothingItem[]; outfits: Outfi
             </FeatureActions>
           </section>
 
-          {/* Studio */}
-          <section aria-labelledby="stylist-title" className="flex flex-col overflow-hidden rounded-[22px] bg-[#121821] text-white lg:col-span-5">
-            <div className="flex-1 p-6 sm:p-8">
-              <p className="mb-4 flex items-center gap-2 text-[10px] font-bold uppercase tracking-[2.6px] text-[#a9b6bc]">
-                <SparkleIcon className="h-4 w-4" /> Studio
-              </p>
-              <h2 id="stylist-title" className="font-display text-[34px] font-normal leading-[1.05] sm:text-[40px]">
-                Outfits from what you <em>already own</em>.
-              </h2>
-              <p className="mt-3 max-w-sm text-[13.5px] leading-relaxed text-[#c3cdd2]">
-                Type a theme or pick pieces, then try it on.
-              </p>
-              {latest && (
-                <div className="mt-6 flex gap-2" aria-label="Your latest outfit">
-                  {latest.layers.flatMap((l) => l.items).slice(0, 4).map((item) => (
-                    <div key={item.id} className="relative h-20 w-16 overflow-hidden bg-[#f3f5f5] sm:h-24 sm:w-20">
-                      <Image src={item.imageUrl} alt={item.description} fill unoptimized className="object-cover" />
-                    </div>
-                  ))}
-                </div>
-              )}
-            </div>
-            <div className="flex flex-wrap items-center gap-3 border-t border-white/10 px-6 py-5 sm:px-8">
-              <Link
-                href="/studio"
-                className="btn-tactile inline-flex min-h-[46px] items-center gap-2 rounded-full bg-white px-6 py-2.5 text-[13.5px] font-medium text-[#121821] hover:bg-[#e9eef3]"
-              >
-                Open Studio <ArrowRightIcon className="h-4 w-4" />
-              </Link>
-              {latest && (
-                <Link href={`/outfits/${latest.id}`} className="text-[12px] font-semibold text-[#c3cdd2] underline-offset-4 hover:text-white hover:underline">
-                  View latest look
-                </Link>
-              )}
-            </div>
-          </section>
-
           {/* Saved Looks */}
-          <section aria-labelledby="saved-title" className="overflow-hidden rounded-[22px] bg-white shadow-[0_1px_0_rgba(18,24,33,0.03),0_14px_36px_rgba(18,30,45,0.06)] lg:col-span-12">
+          <section aria-labelledby="saved-title" className="overflow-hidden rounded-[22px] bg-white shadow-[0_1px_0_rgba(18,24,33,0.03),0_14px_36px_rgba(18,30,45,0.06)] lg:col-span-7">
             <FeatureHead
               Icon={BookmarkIcon}
               id="saved-title"
@@ -389,6 +357,8 @@ function Dashboard({ closet, outfits }: { closet: ClothingItem[]; outfits: Outfi
                 Nothing saved yet. Press Save Look on any outfit to keep it here.
               </div>
             )}
+            {/* Saved AI Stylist reports, next to the saved looks. */}
+            <SavedStylistStrip />
             <FeatureActions>
               <Link href="/outfits/saved" className={btnPrimary}>View Saved Looks</Link>
               {saved.length === 0 && (

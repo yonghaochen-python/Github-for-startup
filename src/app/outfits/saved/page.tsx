@@ -7,7 +7,7 @@ import Link from "next/link";
 import { byLatestTryOn, type Outfit } from "@/components/OutfitCard";
 import { OutfitBoard } from "@/components/OutfitBoard";
 import { InlineLoading } from "@/components/InlineLoading";
-import { SparkleIcon } from "@/components/Icons";
+import { MirrorIcon } from "@/components/Icons";
 import { EmptyState, ErrorNote, PageHeader, PageShell, btnPrimary, btnSecondary } from "@/components/ui";
 import { Tips, type Tip } from "@/components/Tips";
 import { OpenPicks, ShareLooksButton } from "@/components/ShareLooks";
@@ -68,7 +68,7 @@ export default function SavedLooksPage() {
               <>
                 <ShareLooksButton looks={saved.filter((o) => o.isFavorite)} onShared={() => setPicksVersion((v) => v + 1)} />
                 <Link href="/studio" className={btnSecondary}>
-                  <SparkleIcon className="h-4 w-4" /> Open Studio
+                  <MirrorIcon className="h-4 w-4" /> Open Studio
                 </Link>
               </>
             ) : undefined
@@ -118,7 +118,7 @@ export default function SavedLooksPage() {
             body="Press Save Look on any outfit to keep it here."
             action={
               <Link href="/studio" className={btnPrimary}>
-                <SparkleIcon className="h-4 w-4" /> Open Studio
+                <MirrorIcon className="h-4 w-4" /> Open Studio
               </Link>
             }
           />

@@ -8,6 +8,13 @@ import { PortraitControls } from "@/components/studio/PortraitPanel";
 import { PickSwatches } from "@/components/studio/TopPicks";
 import { portraitUrl, useStudio } from "@/components/studio/useStudio";
 import { STUDIO_MODULES, portraitReadiness } from "@/lib/studioModules";
+import { Tips, type Tip } from "@/components/Tips";
+
+const STYLIST_TIPS: Tip[] = [
+  { target: '[data-tip="stylist-photo"]', text: "Use a clear photo of your face and shoulders. Change it here." },
+  { target: 'section[aria-label="Analyses"] li', text: "Pick an analysis. Each one uses 1 photo credit." },
+  { target: '.site-nav a[href="/outfits/saved"], .site-tabbar a[href="/outfits/saved"]', text: "Your reports are saved in Saved Looks." },
+];
 
 const day = (iso: string) => new Date(iso).toLocaleDateString(undefined, { month: "short", day: "numeric" });
 
@@ -50,6 +57,7 @@ export default function StylistPage() {
 
   return (
     <main className="flex-1 pb-20">
+      <Tips id="stylist" tips={STYLIST_TIPS} delay={1200} />
       <PageShell className="pt-8 sm:pt-12">
         <h1 className="mb-6 font-display text-[44px] font-normal leading-[1] tracking-[-1.4px] text-[#121821] sm:text-[60px]">AI Stylist</h1>
 
@@ -78,7 +86,9 @@ export default function StylistPage() {
             )}
             {state && (
               <>
-                <PortraitControls portrait={portrait} savePortrait={savePortrait} removePortrait={removePortrait} />
+                <div data-tip="stylist-photo" className="self-start">
+                  <PortraitControls portrait={portrait} savePortrait={savePortrait} removePortrait={removePortrait} />
+                </div>
                 <Guide step={step} />
                 {/* The next analysis to do, one tap away (Seasonal Color first: the others build on its colors). */}
                 {next && readiness.ready && portrait && (

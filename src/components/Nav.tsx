@@ -4,7 +4,7 @@ import { useEffect, useState } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useAuth } from "@/components/AuthProvider";
-import { BagIcon, BookmarkIcon, ClosetIcon, HomeIcon, PaletteIcon, SparkleIcon, UserIcon } from "@/components/Icons";
+import { BagIcon, BookmarkIcon, ClosetIcon, HomeIcon, MirrorIcon, PaletteIcon, UserIcon } from "@/components/Icons";
 import { PricingSheet } from "@/components/Pricing";
 
 type Section = "home" | "shop" | "closet" | "studio" | "stylist" | "saved" | "profile";
@@ -13,7 +13,7 @@ const LINKS: { section: Section; href: string; label: string; short: string; Ico
   { section: "home", href: "/", label: "Home", short: "Home", Icon: HomeIcon },
   { section: "shop", href: "/shop", label: "Shopping", short: "Shop", Icon: BagIcon },
   { section: "closet", href: "/closet", label: "My Closet", short: "Closet", Icon: ClosetIcon },
-  { section: "studio", href: "/studio", label: "Studio", short: "Studio", Icon: SparkleIcon },
+  { section: "studio", href: "/studio", label: "Studio", short: "Studio", Icon: MirrorIcon },
   { section: "stylist", href: "/stylist", label: "AI Stylist", short: "Stylist", Icon: PaletteIcon },
   { section: "saved", href: "/outfits/saved", label: "Saved Looks", short: "Saved", Icon: BookmarkIcon },
   { section: "profile", href: "/profile", label: "Profile", short: "Profile", Icon: UserIcon },

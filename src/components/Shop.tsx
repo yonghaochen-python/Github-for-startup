@@ -24,6 +24,14 @@ import { btnPrimary, btnSecondary } from "@/components/ui";
 import { useAuth } from "@/components/AuthProvider";
 import type { StoreShelf } from "@/lib/storeFeeds";
 import { ShelfRow } from "@/components/ShelfRow";
+import { Tips, type Tip } from "@/components/Tips";
+
+const SHOP_TIPS: Tip[] = [
+  { target: 'input[aria-label="Search the collection"]', text: "Search clothes, brands or styles." },
+  { target: "#collection li button[aria-pressed]", text: "Tap pieces to build an outfit." },
+  { target: '[data-tip="shop-add"]', text: "Add a piece from any store." },
+  { target: '[data-tip="shop-edit"]', text: "Edit to save pieces to your wishlist." },
+];
 
 /**
  * Shopping: browse the catalog, open a piece to see it up close and try it on (live, or on your saved photo), or
@@ -383,15 +391,16 @@ export function Shop() {
 
   return (
     <>
+      <Tips id="shop" tips={SHOP_TIPS} delay={1200} />
       <section id="collection" className={`mx-auto max-w-[1400px] scroll-mt-24 px-4 pt-8 sm:px-6 ${tray.length ? "pb-32 lg:pb-16" : "pb-16"}`}>
         <div className="flex flex-wrap items-end justify-between gap-4">
           <h1 className="font-display text-[44px] leading-none tracking-[-1px] text-[#121821] sm:text-[52px]">Shopping</h1>
           <div className="flex items-center gap-2">
             {/* Add: bring in a piece from any store. */}
-            <button onClick={() => setImporting((v) => !v)} aria-expanded={importing} className={btnPrimary}>
+            <button onClick={() => setImporting((v) => !v)} aria-expanded={importing} data-tip="shop-add" className={btnPrimary}>
               {importing ? "Close" : <><span className="text-[16px] font-light leading-none">+</span> Add</>}
             </button>
-            <button onClick={() => setEditMode((v) => !v)} aria-pressed={editMode} className={btnSecondary}>
+            <button onClick={() => setEditMode((v) => !v)} aria-pressed={editMode} data-tip="shop-edit" className={btnSecondary}>
               {editMode ? "Done" : "Edit"}
             </button>
           </div>
