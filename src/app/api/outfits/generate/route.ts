@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { trackTimed } from "@/lib/analytics";
+import { track, trackTimed } from "@/lib/analytics";
 import { prisma } from "@/lib/prisma";
 import { generateOutfitsFromCloset, type OutfitRequest } from "@/lib/generateOutfits";
 import { requireUser } from "@/lib/auth";
@@ -11,6 +11,10 @@ function str(value: unknown, maxLength = 200): string | undefined {
 }
 
 const MAX_THEME_LENGTH = 120;
+
+/** Style it is free, but each search is a paid AI call: at most this many per person in any 24 hours (Shuffle is unlimited). */
+const DAILY_LIMIT = 50;
+const DAY_MS = 24 * 60 * 60 * 1000;
 
 export async function POST(request: Request) {
   let user;
@@ -33,6 +37,28 @@ export async function POST(request: Request) {
     prompt: str(b.prompt),
   };
 
+  // The limit: searches started in the last 24 hours (counted at the start, so a burst can't slip past it).
+  if (user.role !== "admin") {
+    const since = new Date(Date.now() - DAY_MS);
+    const recent = await prisma.analyticsEvent.findMany({
+      where: { userId: user.id, name: "outfit_request", createdAt: { gte: since } },
+      orderBy: { createdAt: "asc" },
+      select: { createdAt: true },
+      take: DAILY_LIMIT,
+    });
+    if (recent.length >= DAILY_LIMIT) {
+      // When the oldest of them is a day old, there's room again.
+      const hours = Math.max(1, Math.ceil((recent[0].createdAt.getTime() + DAY_MS - Date.now()) / 3_600_000));
+      return NextResponse.json(
+        {
+          error: `That's ${DAILY_LIMIT} Style it searches in 24 hours. Try again in about ${hours} ${hours === 1 ? "hour" : "hours"}; Shuffle still works anytime.`,
+          code: "daily_limit",
+        },
+        { status: 429 }
+      );
+    }
+  }
+
   const closet = await prisma.clothingItem.findMany({ where: { userId: user.id } });
   if (closet.length < 2) {
     return NextResponse.json(
@@ -41,6 +67,7 @@ export async function POST(request: Request) {
     );
   }
 
+  await track(user.id, "outfit_request");
   let generated;
   try {
     generated = await trackTimed(user.id, "outfit_generate", () => generateOutfitsFromCloset(closet, outfitRequest));

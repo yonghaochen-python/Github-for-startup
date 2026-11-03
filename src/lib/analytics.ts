@@ -9,6 +9,8 @@ export type EventName =
   | "signup"
   | "login"
   | "outfit_generate"
+  /** A Style it search was started (counted for the daily limit). */
+  | "outfit_request"
   | "tryon"
   | "tryon_reused"
   | "clothes_detect"
