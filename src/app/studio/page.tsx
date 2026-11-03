@@ -13,7 +13,8 @@ import { ShareArrowButton, ShareTray } from "@/components/ShareLooks";
 import { SaveToggle } from "@/components/SaveToggle";
 import { useToast } from "@/components/Toast";
 import { MirrorIcon, SearchIcon } from "@/components/Icons";
-import { ErrorNote, PageShell, btnPrimary, mirrorFrame } from "@/components/ui";
+import { ErrorNote, PageShell, btnPrimary, btnSecondary, mirrorFrame } from "@/components/ui";
+import { OutfitFlatLay } from "@/components/OutfitFlatLay";
 import { TRY_ON_CAVEAT, requestShopTryOn, requestTryOn, type TryOnResult } from "@/lib/tryOnClient";
 import { LiveTryOn, type ShopPick } from "@/components/LiveTryOn";
 import { CreditsLine, refreshCredits } from "@/components/Credits";
@@ -111,6 +112,9 @@ export default function StudioPage() {
   const [result, setResult] = useState<TryOnResult | null>(null);
   const [saving, setSaving] = useState(false);
   const [changingPhoto, setChangingPhoto] = useState(searchParams.get("change") === "1");
+  // No full-body photo: Studio shows the outfit itself; the photo setup opens only if they ask to try it on.
+  const [addingPhoto, setAddingPhoto] = useState(false);
+  const outfitOnly = !hasPhoto && !addingPhoto && !changingPhoto;
   /** A photo chosen in the photo step but not saved yet; Try On saves it first. */
   const [chosenPhoto, setChosenPhoto] = useState<Blob | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -501,7 +505,22 @@ export default function StudioPage() {
             <LiveTryOn outfit={pieces} picks={pieces.filter((p) => p.id.startsWith("shop-")) as ShopPick[]} />
           ) : (
           <section aria-label="Your look" className="min-w-0 self-start overflow-hidden rounded-[22px] bg-white shadow-[0_1px_0_rgba(18,24,33,0.03),0_14px_36px_rgba(18,30,45,0.06)]">
-            {changingPhoto || !hasPhoto ? (
+            {outfitOnly ? (
+              <div className={`${mirrorFrame} bg-[#f1ede7]`}>
+                <span className="absolute left-4 top-4 rounded-full bg-white/90 px-3 py-1 text-[11px] font-semibold text-[#4f5b66]">Your outfit</span>
+                <OutfitFlatLay pieces={pieces} emptyText="Type a theme above for outfit ideas, or tap pieces in your closet." />
+                {pieces.length > 0 && !hasShopPieces && (
+                  <div className="absolute right-4 top-4">
+                    <SaveToggle
+                      saved={!changed && look.isFavorite}
+                      busy={saving}
+                      onToggle={toggleSaved}
+                      className={`h-11 w-11 ${!changed && look.isFavorite ? "" : "!bg-white/90 !shadow-sm hover:!bg-white"}`}
+                    />
+                  </div>
+                )}
+              </div>
+            ) : changingPhoto || !hasPhoto ? (
               <div className="p-4 sm:p-6">
                 <SavedPhotoSetup
                   onSaved={photoSaved}
@@ -511,7 +530,10 @@ export default function StudioPage() {
                           setChangingPhoto(false);
                           setChosenPhoto(null);
                         }
-                      : undefined
+                      : () => {
+                          setAddingPhoto(false);
+                          setChosenPhoto(null);
+                        }
                   }
                   onPendingChange={setChosenPhoto}
                 />
@@ -597,18 +619,28 @@ export default function StudioPage() {
 
             <div className="border-t border-black/[0.06] p-4 sm:p-5">
               <ShareTray />
+              {outfitOnly ? (
+                // No photo: the outfit is the result. Trying it on is there for anyone who changes their mind.
+                <div className="flex flex-col items-center gap-2">
+                  <button onClick={() => setAddingPhoto(true)} className={`${btnSecondary} min-h-[48px] w-full`}>
+                    <MirrorIcon className="h-4 w-4" /> Add a photo to try it on
+                  </button>
+                  <p className="text-center text-[11.5px] text-[#5d6874]">Outfit ideas are free. A try-on on your photo uses 1 photo credit.</p>
+                </div>
+              ) : (
               <div data-tip="studio-tryon" className="flex items-center gap-3">
                 <button onClick={() => tryOn()} disabled={trying || pieces.length === 0 || (!hasPhoto && !chosenPhoto)} className={`${btnPrimary} min-h-[48px] flex-1`}>
                   <MirrorIcon className="h-4 w-4" />
                   {trying ? "Trying on…" : "Try On"}
                 </button>
               </div>
+              )}
               <Feedback kind="photo" targetId={shownTryOnId} className="mt-3 justify-center" />
-              <CreditsLine kind="photo" />
+              {!outfitOnly && <CreditsLine kind="photo" />}
               {hasShopPieces && (
                 <p className="mt-2 text-center text-[11.5px] text-[#5d6874]">Looks with Shopping pieces aren&apos;t saved: the picture shows here only.</p>
               )}
-              <p className="mt-2 text-center text-[11.5px] leading-snug text-[#5d6874]">{TRY_ON_CAVEAT}</p>
+              {!outfitOnly && <p className="mt-2 text-center text-[11.5px] leading-snug text-[#5d6874]">{TRY_ON_CAVEAT}</p>}
             </div>
           </section>
           )}
