@@ -169,6 +169,19 @@ async function touchActivity(userId: string, lastActiveAt: Date | null): Promise
 }
 
 /**
+ * What a route returns from its sign-in check's catch: the Response that was thrown ("not signed in", "not found"),
+ * or, for anything unexpected (a database error), a clean "try again" instead of crashing the whole request.
+ */
+export function asResponse(thrown: unknown): Response {
+  if (thrown instanceof Response) return thrown;
+  console.error("Request failed:", thrown instanceof Error ? thrown.message : thrown);
+  return new Response(JSON.stringify({ error: "Virm is having trouble connecting. Please try again in a moment.", code: "unavailable" }), {
+    status: 503,
+    headers: { "content-type": "application/json", "cache-control": "no-store", "retry-after": "2" },
+  });
+}
+
+/**
  * The signed-in user, or a clean "try again" Response (503) when the database can't be reached even after retries,
  * so a database hiccup never looks like being signed out or crashes the request.
  */

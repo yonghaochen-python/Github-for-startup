@@ -2,7 +2,7 @@ import { NextResponse } from "next/server";
 import { track } from "@/lib/analytics";
 import { clearCurrentLook, deleteOutfitTryOns, getCurrentLook, outfitTryOnVersion } from "@/lib/personalPhoto";
 import { prisma } from "@/lib/prisma";
-import { requireUser } from "@/lib/auth";
+import { asResponse, requireUser } from "@/lib/auth";
 import { ownedPieces, serializeOutfit } from "@/lib/outfits";
 import { explainOutfit } from "@/lib/generateOutfits";
 import { withRetry } from "@/lib/dbRetry";
@@ -23,7 +23,7 @@ export async function GET(request: Request, ctx: RouteContext<"/api/outfits/[id]
   try {
     user = await requireUser(request);
   } catch (res) {
-    return res as Response;
+    return asResponse(res);
   }
 
   const { id } = await ctx.params;
@@ -42,7 +42,7 @@ export async function PATCH(request: Request, ctx: RouteContext<"/api/outfits/[i
   try {
     user = await requireUser(request);
   } catch (res) {
-    return res as Response;
+    return asResponse(res);
   }
 
   const { id } = await ctx.params;

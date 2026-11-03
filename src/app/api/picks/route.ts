@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { track } from "@/lib/analytics";
-import { requireUser } from "@/lib/auth";
+import { asResponse, requireUser } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { loadOutfitTryOn } from "@/lib/personalPhoto";
 import {
@@ -27,7 +27,7 @@ export async function GET(request: Request) {
   try {
     user = await requireUser(request);
   } catch (res) {
-    return res as Response;
+    return asResponse(res);
   }
   await deleteEndedPicks();
   const picks = await prisma.pick.findMany({
@@ -53,7 +53,7 @@ export async function POST(request: Request) {
   try {
     user = await requireUser(request);
   } catch (res) {
-    return res as Response;
+    return asResponse(res);
   }
 
   const formData = await request.formData().catch(() => null);

@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { requireUser } from "@/lib/auth";
+import { asResponse, requireUser } from "@/lib/auth";
 import { getBalances } from "@/lib/credits";
 
 /** The signed-in person's plan, monthly period and photo/live balances (the same numbers the server uses). */
@@ -8,7 +8,7 @@ export async function GET(request: Request) {
   try {
     user = await requireUser(request);
   } catch (res) {
-    return res as Response;
+    return asResponse(res);
   }
   return NextResponse.json({ balances: await getBalances(user.id) }, { headers: { "cache-control": "private, no-store" } });
 }

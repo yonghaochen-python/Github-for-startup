@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import { checkDetectedItems, type CheckCrop } from "@/lib/detectItems";
 import type { SavedImage } from "@/lib/images";
-import { requireUser } from "@/lib/auth";
+import { asResponse, requireUser } from "@/lib/auth";
 
 const MAX_CROPS = 15;
 const MAX_CROP_BYTES = 3 * 1024 * 1024;
@@ -15,7 +15,7 @@ export async function POST(request: Request) {
   try {
     await requireUser(request);
   } catch (res) {
-    return res as Response;
+    return asResponse(res);
   }
 
   const formData = await request.formData();

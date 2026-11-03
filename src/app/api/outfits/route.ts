@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
-import { requireUser } from "@/lib/auth";
+import { asResponse, requireUser } from "@/lib/auth";
 import { ownedPieces, serializeOutfit } from "@/lib/outfits";
 import { withRetry } from "@/lib/dbRetry";
 import { explainOutfit } from "@/lib/generateOutfits";
@@ -11,7 +11,7 @@ export async function GET(request: Request) {
   try {
     user = await requireUser(request);
   } catch (res) {
-    return res as Response;
+    return asResponse(res);
   }
 
   try {
@@ -38,7 +38,7 @@ export async function POST(request: Request) {
   try {
     user = await requireUser(request);
   } catch (res) {
-    return res as Response;
+    return asResponse(res);
   }
 
   const body = (await request.json().catch(() => ({}))) as { itemIds?: unknown; occasion?: unknown };

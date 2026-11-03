@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { requireUser } from "@/lib/auth";
+import { asResponse, requireUser } from "@/lib/auth";
 import { FEEDBACK_KINDS, FeedbackError, submitFeedback, type FeedbackKind } from "@/lib/feedback";
 
 const noStore = { "cache-control": "no-store" };
@@ -10,7 +10,7 @@ export async function POST(request: Request) {
   try {
     user = await requireUser(request);
   } catch (res) {
-    return res as Response;
+    return asResponse(res);
   }
   const body = ((await request.json().catch(() => ({}))) ?? {}) as { kind?: unknown; targetId?: unknown; rating?: unknown };
   const kind = (FEEDBACK_KINDS as readonly unknown[]).includes(body.kind) ? (body.kind as FeedbackKind) : null;

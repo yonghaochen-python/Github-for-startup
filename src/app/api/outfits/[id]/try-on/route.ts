@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import { track, trackTimed } from "@/lib/analytics";
 import { prisma } from "@/lib/prisma";
-import { requireUser } from "@/lib/auth";
+import { asResponse, requireUser } from "@/lib/auth";
 import { withRetry } from "@/lib/dbRetry";
 import { loadSavedImage } from "@/lib/images";
 import { orderedLayerEntries, type LayeringRole } from "@/lib/layering";
@@ -32,7 +32,7 @@ export async function POST(request: Request, ctx: RouteContext<"/api/outfits/[id
   try {
     user = await requireUser(request);
   } catch (res) {
-    return res as Response;
+    return asResponse(res);
   }
 
   const formData = await request.formData().catch(() => null);

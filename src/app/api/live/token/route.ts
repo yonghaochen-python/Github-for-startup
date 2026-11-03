@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import { createDecartClient } from "@decartai/sdk";
 import { randomUUID } from "node:crypto";
-import { requireAdmin } from "@/lib/auth";
+import { asResponse, requireAdmin } from "@/lib/auth";
 import { reserveCredit, settleCredit } from "@/lib/credits";
 
 /**
@@ -24,7 +24,7 @@ export async function POST(request: Request) {
   try {
     user = await requireAdmin(request);
   } catch (res) {
-    return res as Response;
+    return asResponse(res);
   }
   const apiKey = process.env.DECART_API_KEY;
   if (!apiKey) return NextResponse.json({ error: "Live try-on isn't connected." }, { status: 503, headers: noStore });

@@ -1,4 +1,4 @@
-import { requireUser } from "@/lib/auth";
+import { asResponse, requireUser } from "@/lib/auth";
 import { loadOutfitTryOn } from "@/lib/personalPhoto";
 
 /** This outfit's latest try-on picture. Owner-only: pictures are stored under the signed-in person's own id. */
@@ -7,7 +7,7 @@ export async function GET(request: Request, ctx: RouteContext<"/api/outfits/[id]
   try {
     user = await requireUser(request);
   } catch (res) {
-    return res as Response;
+    return asResponse(res);
   }
   const { id } = await ctx.params;
   const image = await loadOutfitTryOn(user.id, id);

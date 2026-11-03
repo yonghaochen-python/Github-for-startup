@@ -4,7 +4,7 @@ import { withRetry } from "@/lib/dbRetry";
 import { track } from "@/lib/analytics";
 import { prisma } from "@/lib/prisma";
 import { saveUploadedImage } from "@/lib/images";
-import { requireUser } from "@/lib/auth";
+import { asResponse, requireUser } from "@/lib/auth";
 import { CATEGORIES, FORMALITIES, SEASONS, LAYERING_ROLES, WARMTH_LEVELS, cleanBrand, type ClothingAttributes } from "@/lib/clothingTaxonomy";
 import { removeBackground } from "@/lib/visualAssets";
 
@@ -43,7 +43,7 @@ export async function POST(request: Request) {
   try {
     user = await requireUser(request);
   } catch (res) {
-    return res as Response;
+    return asResponse(res);
   }
 
   const formData = await request.formData();

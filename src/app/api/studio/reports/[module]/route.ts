@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { requireUser } from "@/lib/auth";
+import { asResponse, requireUser } from "@/lib/auth";
 import { requestIdFrom } from "@/lib/credits";
 import { isStudioModule } from "@/lib/studioModules";
 import { ReportError, deleteReport, generateReport, moduleReports, updateStyleLook } from "@/lib/studioReports";
@@ -12,7 +12,7 @@ async function setUp(request: Request, ctx: Ctx) {
   try {
     user = await requireUser(request);
   } catch (res) {
-    return { res: res as Response };
+    return { res: asResponse(res) };
   }
   const { module } = await ctx.params;
   if (!isStudioModule(module)) return { res: NextResponse.json({ error: "Not found" }, { status: 404, headers: noStore }) };

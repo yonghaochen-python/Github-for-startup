@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { requireAdmin } from "@/lib/auth";
+import { asResponse, requireAdmin } from "@/lib/auth";
 import { settleCredit } from "@/lib/credits";
 
 const noStore = { "cache-control": "private, no-store" };
@@ -13,7 +13,7 @@ export async function POST(request: Request) {
   try {
     user = await requireAdmin(request);
   } catch (res) {
-    return res as Response;
+    return asResponse(res);
   }
   const body = (await request.json().catch(() => ({}))) as { sessionId?: unknown; outcome?: unknown };
   if (typeof body.sessionId !== "string" || !/^live-[0-9a-f-]{36}$/.test(body.sessionId) || (body.outcome !== "connected" && body.outcome !== "failed")) {

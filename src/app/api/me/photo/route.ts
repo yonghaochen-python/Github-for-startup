@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
-import { requireUser } from "@/lib/auth";
+import { asResponse, requireUser } from "@/lib/auth";
 import {
   MAX_PHOTO_BYTES,
   PHOTO_TYPES,
@@ -22,7 +22,7 @@ export async function GET(request: Request) {
   try {
     user = await requireUser(request);
   } catch (res) {
-    return res as Response;
+    return asResponse(res);
   }
   if (!isSavedPhotoKey(user.selfieUrl)) return new Response("Not found", { status: 404, headers: noStore });
 
@@ -39,7 +39,7 @@ export async function PUT(request: Request) {
   try {
     user = await requireUser(request);
   } catch (res) {
-    return res as Response;
+    return asResponse(res);
   }
 
   const formData = await request.formData().catch(() => null);
@@ -74,7 +74,7 @@ export async function DELETE(request: Request) {
   try {
     user = await requireUser(request);
   } catch (res) {
-    return res as Response;
+    return asResponse(res);
   }
   try {
     await prisma.user.update({ where: { id: user.id }, data: { selfieUrl: null } });

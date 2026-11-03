@@ -2,7 +2,7 @@ import { NextResponse } from "next/server";
 import { trackTimed } from "@/lib/analytics";
 import { saveUploadedImage } from "@/lib/images";
 import { detectClothingItems } from "@/lib/detectItems";
-import { requireUser } from "@/lib/auth";
+import { asResponse, requireUser } from "@/lib/auth";
 
 const MAX_BYTES = 20 * 1024 * 1024; // 20MB
 
@@ -16,7 +16,7 @@ export async function POST(request: Request) {
   try {
     user = await requireUser(request);
   } catch (res) {
-    return res as Response;
+    return asResponse(res);
   }
 
   const formData = await request.formData();

@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
-import { requireUser } from "@/lib/auth";
+import { asResponse, requireUser } from "@/lib/auth";
 import { deleteOutfitTryOns } from "@/lib/personalPhoto";
 import { CATEGORIES, FORMALITIES, SEASONS, LAYERING_ROLES, WARMTH_LEVELS } from "@/lib/classify";
 import { cleanBrand } from "@/lib/clothingTaxonomy";
@@ -12,7 +12,7 @@ export async function PATCH(request: Request, ctx: RouteContext<"/api/closet/ite
   try {
     user = await requireUser(request);
   } catch (res) {
-    return res as Response;
+    return asResponse(res);
   }
 
   const { id } = await ctx.params;
@@ -84,7 +84,7 @@ export async function DELETE(request: Request, ctx: RouteContext<"/api/closet/it
   try {
     user = await requireUser(request);
   } catch (res) {
-    return res as Response;
+    return asResponse(res);
   }
 
   const { id } = await ctx.params;

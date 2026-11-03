@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { requireAdmin } from "@/lib/auth";
+import { asResponse, requireAdmin } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { adjustExtraCredits, getBalances, setPlan } from "@/lib/credits";
 import { isPlanKey } from "@/lib/plans";
@@ -16,7 +16,7 @@ export async function GET(request: Request) {
   try {
     await requireAdmin(request);
   } catch (res) {
-    return res as Response;
+    return asResponse(res);
   }
   const email = new URL(request.url).searchParams.get("email")?.trim().toLowerCase();
   if (email) {
@@ -59,7 +59,7 @@ export async function POST(request: Request) {
   try {
     await requireAdmin(request);
   } catch (res) {
-    return res as Response;
+    return asResponse(res);
   }
   const body = (await request.json().catch(() => ({}))) as { email?: unknown; action?: unknown; plan?: unknown; kind?: unknown; amount?: unknown; note?: unknown };
   const email = typeof body.email === "string" ? body.email.trim().toLowerCase() : "";

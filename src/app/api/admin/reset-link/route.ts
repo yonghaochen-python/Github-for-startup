@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
-import { requireAdmin } from "@/lib/auth";
+import { asResponse, requireAdmin } from "@/lib/auth";
 import { createResetToken } from "@/lib/passwordReset";
 
 const noStore = { "cache-control": "private, no-store" };
@@ -13,7 +13,7 @@ export async function POST(request: Request) {
   try {
     await requireAdmin(request);
   } catch (res) {
-    return res as Response;
+    return asResponse(res);
   }
   const body = (await request.json().catch(() => ({}))) as { email?: unknown };
   const email = typeof body.email === "string" ? body.email.trim().toLowerCase() : "";

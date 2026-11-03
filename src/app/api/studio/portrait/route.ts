@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { requireUser } from "@/lib/auth";
+import { asResponse, requireUser } from "@/lib/auth";
 import { MAX_PORTRAIT_BYTES, PORTRAIT_TYPES, deletePortrait, loadPortrait, savePortrait } from "@/lib/portrait";
 import type { PortraitChecks } from "@/lib/studioModules";
 
@@ -9,7 +9,7 @@ async function signedIn(request: Request) {
   try {
     return { user: await requireUser(request) };
   } catch (res) {
-    return { res: res as Response };
+    return { res: asResponse(res) };
   }
 }
 

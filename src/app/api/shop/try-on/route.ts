@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { requireUser } from "@/lib/auth";
+import { asResponse, requireUser } from "@/lib/auth";
 import { LAYERING_ROLES } from "@/lib/clothingTaxonomy";
 import { orderedLayerEntries, type LayeringRole } from "@/lib/layering";
 import { isSavedPhotoKey, loadPersonalPhoto } from "@/lib/personalPhoto";
@@ -45,7 +45,7 @@ export async function POST(request: Request) {
   try {
     user = await requireUser(request);
   } catch (res) {
-    return res as Response;
+    return asResponse(res);
   }
 
   const formData = await request.formData().catch(() => null);

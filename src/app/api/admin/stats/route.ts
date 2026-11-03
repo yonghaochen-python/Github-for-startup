@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { requireAdmin } from "@/lib/auth";
+import { asResponse, requireAdmin } from "@/lib/auth";
 import { computeAdminStats } from "@/lib/adminStats";
 
 const noStore = { "cache-control": "private, no-store" };
@@ -10,7 +10,7 @@ export async function GET(request: Request) {
   try {
     await requireAdmin(request);
   } catch (res) {
-    return res as Response;
+    return asResponse(res);
   }
 
   const params = new URL(request.url).searchParams;

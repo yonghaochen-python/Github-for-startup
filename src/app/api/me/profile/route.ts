@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
-import { requireUser } from "@/lib/auth";
+import { asResponse, requireUser } from "@/lib/auth";
 import { cleanDisplayName } from "@/lib/displayName";
 
 const noStore = { "cache-control": "private, no-store" };
@@ -14,7 +14,7 @@ export async function PATCH(request: Request) {
   try {
     user = await requireUser(request);
   } catch (res) {
-    return res as Response;
+    return asResponse(res);
   }
   const body = (await request.json().catch(() => ({}))) as { displayName?: unknown };
   const displayName = cleanDisplayName(body.displayName);

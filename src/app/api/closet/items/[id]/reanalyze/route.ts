@@ -2,14 +2,14 @@ import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { loadSavedImage } from "@/lib/images";
 import { classifyClothingImage } from "@/lib/classify";
-import { requireUser } from "@/lib/auth";
+import { asResponse, requireUser } from "@/lib/auth";
 
 export async function POST(request: Request, ctx: RouteContext<"/api/closet/items/[id]/reanalyze">) {
   let user;
   try {
     user = await requireUser(request);
   } catch (res) {
-    return res as Response;
+    return asResponse(res);
   }
 
   if (!process.env.ANTHROPIC_API_KEY) {

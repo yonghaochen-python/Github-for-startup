@@ -3,7 +3,7 @@ import { track } from "@/lib/analytics";
 import { prisma } from "@/lib/prisma";
 import { saveUploadedImage } from "@/lib/images";
 import { classifyClothingImage } from "@/lib/classify";
-import { requireUser } from "@/lib/auth";
+import { asResponse, requireUser } from "@/lib/auth";
 import { withRetry } from "@/lib/dbRetry";
 import { removeBackground } from "@/lib/visualAssets";
 
@@ -12,7 +12,7 @@ export async function GET(request: Request) {
   try {
     user = await requireUser(request);
   } catch (res) {
-    return res as Response;
+    return asResponse(res);
   }
 
   try {
@@ -34,7 +34,7 @@ export async function POST(request: Request) {
   try {
     user = await requireUser(request);
   } catch (res) {
-    return res as Response;
+    return asResponse(res);
   }
 
   const formData = await request.formData();

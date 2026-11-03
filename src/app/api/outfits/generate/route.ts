@@ -2,7 +2,7 @@ import { NextResponse } from "next/server";
 import { track, trackTimed } from "@/lib/analytics";
 import { prisma } from "@/lib/prisma";
 import { generateOutfitsFromCloset, type OutfitRequest } from "@/lib/generateOutfits";
-import { requireUser } from "@/lib/auth";
+import { asResponse, requireUser } from "@/lib/auth";
 import { serializeOutfit } from "@/lib/outfits";
 import { sanitizeLayeredOutfit } from "@/lib/layering";
 import { readSavedSearch, saveSearch, searchKey } from "@/lib/styleSearchCache";
@@ -22,7 +22,7 @@ export async function POST(request: Request) {
   try {
     user = await requireUser(request);
   } catch (res) {
-    return res as Response;
+    return asResponse(res);
   }
 
   const body: unknown = await request.json().catch(() => ({}));

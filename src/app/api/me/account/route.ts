@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
-import { clearSessionCookieHeader, requireUser, verifyPassword } from "@/lib/auth";
+import { asResponse, clearSessionCookieHeader, requireUser, verifyPassword } from "@/lib/auth";
 import { deleteAccount } from "@/lib/accountDeletion";
 
 const noStore = { "cache-control": "private, no-store" };
@@ -11,7 +11,7 @@ export async function DELETE(request: Request) {
   try {
     user = await requireUser(request);
   } catch (res) {
-    return res as Response;
+    return asResponse(res);
   }
   const body = (await request.json().catch(() => ({}))) as { password?: unknown };
   const password = typeof body.password === "string" ? body.password : "";

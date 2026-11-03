@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { requireUser } from "@/lib/auth";
+import { asResponse, requireUser } from "@/lib/auth";
 import { ImportError, importProduct } from "@/lib/productImport";
 
 const noStore = { "cache-control": "private, no-store" };
@@ -10,7 +10,7 @@ export async function POST(request: Request) {
   try {
     await requireUser(request);
   } catch (res) {
-    return res as Response;
+    return asResponse(res);
   }
   const body = (await request.json().catch(() => ({}))) as { url?: unknown };
   if (typeof body.url !== "string" || body.url.length > 2048) {

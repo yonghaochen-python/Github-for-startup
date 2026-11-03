@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
-import { requireUser } from "@/lib/auth";
+import { asResponse, requireUser } from "@/lib/auth";
 import { cutoutOriginal, isCutout, saveCutout } from "@/lib/images";
 import { env } from "cloudflare:workers";
 
@@ -21,7 +21,7 @@ export async function POST(request: Request, ctx: RouteContext<"/api/closet/item
   try {
     item = await ownItem(request, ctx);
   } catch (res) {
-    return res as Response;
+    return asResponse(res);
   }
   if (!item) return NextResponse.json({ error: "Item not found." }, { status: 404 });
 
@@ -48,7 +48,7 @@ export async function DELETE(request: Request, ctx: RouteContext<"/api/closet/it
   try {
     item = await ownItem(request, ctx);
   } catch (res) {
-    return res as Response;
+    return asResponse(res);
   }
   if (!item) return NextResponse.json({ error: "Item not found." }, { status: 404 });
   if (!isCutout(item.imageUrl)) return NextResponse.json({ item });

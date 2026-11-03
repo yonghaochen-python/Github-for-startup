@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { requireUser } from "@/lib/auth";
+import { asResponse, requireUser } from "@/lib/auth";
 import { portraitInfo } from "@/lib/portrait";
 import { latestReports } from "@/lib/studioReports";
 
@@ -9,7 +9,7 @@ export async function GET(request: Request) {
   try {
     user = await requireUser(request);
   } catch (res) {
-    return res as Response;
+    return asResponse(res);
   }
   const [portrait, reports] = await Promise.all([portraitInfo(user.id), latestReports(user.id)]);
   return NextResponse.json({ portrait, reports }, { headers: { "cache-control": "no-store" } });

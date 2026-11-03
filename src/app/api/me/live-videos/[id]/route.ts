@@ -1,6 +1,6 @@
 import { env } from "cloudflare:workers";
 import { NextResponse } from "next/server";
-import { requireUser } from "@/lib/auth";
+import { asResponse, requireUser } from "@/lib/auth";
 import { deleteLiveVideo, isVideoId, liveVideoKey } from "@/lib/liveVideos";
 
 const noStore = { "cache-control": "private, no-store" };
@@ -15,7 +15,7 @@ export async function GET(request: Request, ctx: RouteContext<"/api/me/live-vide
   try {
     user = await requireUser(request);
   } catch (res) {
-    return res as Response;
+    return asResponse(res);
   }
   const { id } = await ctx.params;
   if (!isVideoId(id)) return notFound();
@@ -59,7 +59,7 @@ export async function DELETE(request: Request, ctx: RouteContext<"/api/me/live-v
   try {
     user = await requireUser(request);
   } catch (res) {
-    return res as Response;
+    return asResponse(res);
   }
   const { id } = await ctx.params;
   if (!isVideoId(id)) return notFound();

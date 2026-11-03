@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { requireAdmin, requireUser } from "@/lib/auth";
+import { asResponse, requireAdmin, requireUser } from "@/lib/auth";
 import { MAX_VIDEOS, MAX_VIDEO_BYTES, VIDEO_TYPES, listLiveVideos, looksLikeVideo, saveLiveVideo } from "@/lib/liveVideos";
 
 const noStore = { "cache-control": "private, no-store" };
@@ -10,7 +10,7 @@ export async function GET(request: Request) {
   try {
     user = await requireUser(request);
   } catch (res) {
-    return res as Response;
+    return asResponse(res);
   }
   return NextResponse.json({ videos: await listLiveVideos(user.id) }, { headers: noStore });
 }
@@ -24,7 +24,7 @@ export async function POST(request: Request) {
   try {
     user = await requireAdmin(request);
   } catch (res) {
-    return res as Response;
+    return asResponse(res);
   }
   const form = await request.formData().catch(() => null);
   const file = form?.get("video");
