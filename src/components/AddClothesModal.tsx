@@ -18,9 +18,17 @@ type BoundingBox = { x: number; y: number; width: number; height: number };
 
 type ReviewItem = ClothingAttributes & {
   localId: string;
+  /** Which of the chosen photos the piece is in. */
+  photoIndex: number;
   boundingBox: BoundingBox;
   previewUrl: string;
 };
+
+/** A chosen photo, as the server saved it, and loaded for cropping. */
+type ChosenPhoto = { url: string; img: HTMLImageElement };
+
+/** Photos read in one go. Each is one AI read, the same as adding them one at a time. */
+const MAX_PHOTOS = 10;
 
 type Step = "upload" | "analyzing" | "review" | "confirming";
 
@@ -147,9 +155,10 @@ function loadImage(url: string): Promise<HTMLImageElement> {
   });
 }
 
-function newManualItem(): ReviewItem {
+function newManualItem(photoIndex: number): ReviewItem {
   return {
     localId: crypto.randomUUID(),
+    photoIndex,
     category: "top",
     layeringRole: "mid_layer",
     warmth: "medium",
@@ -176,7 +185,11 @@ export function AddClothesModal<T extends { id: string; imageUrl: string }>({
   const [step, setStep] = useState<Step>("upload");
   const [dragActive, setDragActive] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [imageUrl, setImageUrl] = useState<string | null>(null);
+  const [photos, setPhotos] = useState<ChosenPhoto[]>([]);
+  /** The photo shown large in the review (its pieces' boxes are drawn on it). */
+  const [activePhoto, setActivePhoto] = useState(0);
+  const [progress, setProgress] = useState<{ done: number; total: number } | null>(null);
+  const [skipped, setSkipped] = useState(0);
   const [items, setItems] = useState<ReviewItem[]>([]);
   const [confirming, setConfirming] = useState(false);
   const [checking, setChecking] = useState(false);
@@ -186,7 +199,6 @@ export function AddClothesModal<T extends { id: string; imageUrl: string }>({
   const photoRef = useRef<HTMLDivElement | null>(null);
   const dragRef = useRef<{ x: number; y: number; moved: boolean } | null>(null);
   const [dragBox, setDragBox] = useState<BoundingBox | null>(null);
-  const imgElRef = useRef<HTMLImageElement | null>(null);
   const overlayRef = useRef<HTMLDivElement | null>(null);
   // Remove background (on by default) or keep it; remembered on this device.
   const [removeBg, setRemoveBg] = useState(true);
@@ -207,77 +219,106 @@ export function AddClothesModal<T extends { id: string; imageUrl: string }>({
     overlayRef.current?.scrollTo({ top: 0 });
   }, [step]);
 
-  async function handleFile(file: File) {
+  /** Reads one photo: the server finds the pieces, then each is checked against a close-up. */
+  async function readPhoto(file: File, photoIndex: number): Promise<{ photo: ChosenPhoto; items: ReviewItem[]; leftOut: number }> {
+    const prepared = await preparePhoto(file);
+    const formData = new FormData();
+    if (prepared) {
+      formData.append("photo", prepared.blob, "photo.jpg");
+      formData.append("width", String(prepared.width));
+      formData.append("height", String(prepared.height));
+    } else {
+      formData.append("photo", file);
+    }
+    const res = await fetch("/api/closet/detect", { method: "POST", body: formData });
+    const data = (await res.json().catch(() => ({}))) as { error?: string; imageUrl?: string; items?: DetectedPiece[] };
+    if (!res.ok || !data.imageUrl) throw new Error(data.error ?? "Couldn't analyze that photo.");
+
+    const img = await loadImage(data.imageUrl);
+    const found = data.items ?? [];
+    const detected = await checkPieces(img, found);
+    const items = await Promise.all(
+      detected.map(async (item) => {
+        let previewUrl = data.imageUrl!;
+        try {
+          previewUrl = URL.createObjectURL(await cropToBlob(img, item.boundingBox));
+        } catch {
+          // fall back to the full photo if cropping fails for this item
+        }
+        const { name: _name, boundingBox, ...attrs } = item;
+        void _name;
+        return { ...attrs, localId: crypto.randomUUID(), photoIndex, boundingBox, previewUrl } as ReviewItem;
+      })
+    );
+    return { photo: { url: data.imageUrl, img }, items, leftOut: found.length - detected.length };
+  }
+
+  /** Reads one or more photos in turn; all their pieces land in one review list (added to any already there). */
+  async function handleFiles(chosen: File[]) {
     setError(null);
-    if (!ACCEPTED_TYPES.includes(file.type)) {
-      setError("Unsupported file type. Use a JPG, PNG, GIF, or WebP photo.");
-      return;
-    }
-    if (file.size > MAX_BYTES) {
-      setError("That photo is too large. Please use one under 20MB.");
-      return;
-    }
-
-    setStep("analyzing");
-    setChecking(false);
-    setLeftOut(0);
-    setEditingId(null);
-    try {
-      const prepared = await preparePhoto(file);
-      const formData = new FormData();
-      if (prepared) {
-        formData.append("photo", prepared.blob, "photo.jpg");
-        formData.append("width", String(prepared.width));
-        formData.append("height", String(prepared.height));
-      } else {
-        formData.append("photo", file);
-      }
-      const res = await fetch("/api/closet/detect", { method: "POST", body: formData });
-      const data = (await res.json().catch(() => ({}))) as { error?: string; imageUrl?: string; items?: DetectedPiece[] };
-      if (!res.ok || !data.imageUrl) throw new Error(data.error ?? "Couldn't analyze that photo.");
-
-      const img = await loadImage(data.imageUrl);
-      imgElRef.current = img;
-
-      setChecking(true);
-      const found = data.items ?? [];
-      const detected = await checkPieces(img, found);
-      setLeftOut(found.length - detected.length);
-      const withPreviews = await Promise.all(
-        detected.map(async (item) => {
-          let previewUrl = data.imageUrl!;
-          try {
-            const blob = await cropToBlob(img, item.boundingBox);
-            previewUrl = URL.createObjectURL(blob);
-          } catch {
-            // fall back to the full photo if cropping fails for this item
-          }
-          const { name: _name, boundingBox, ...attrs } = item;
-          void _name;
-          return { ...attrs, localId: crypto.randomUUID(), boundingBox, previewUrl } as ReviewItem;
-        })
+    const usable = chosen.filter((f) => ACCEPTED_TYPES.includes(f.type) && f.size <= MAX_BYTES);
+    const room = MAX_PHOTOS - photos.length;
+    const files = usable.slice(0, Math.max(0, room));
+    if (!files.length) {
+      setError(
+        room <= 0
+          ? `That's ${MAX_PHOTOS} photos. Add these first, then the rest.`
+          : "Use JPG, PNG, GIF, or WebP photos under 20MB."
       );
-
-      setImageUrl(data.imageUrl);
-      setItems(withPreviews);
-      setStep("review");
-    } catch (err) {
-      setError(err instanceof Error ? err.message : "Couldn't analyze that photo.");
-      setStep("upload");
+      return;
     }
+    const notes = [
+      usable.length < chosen.length ? `${chosen.length - usable.length} weren't JPG, PNG, GIF or WebP under 20MB` : "",
+      usable.length > files.length ? `only the first ${files.length} were read (up to ${MAX_PHOTOS} at once)` : "",
+    ].filter(Boolean);
+
+    const firstNew = photos.length;
+    setStep("analyzing");
+    setEditingId(null);
+    setChecking(false);
+    setProgress({ done: 0, total: files.length });
+    const newPhotos: ChosenPhoto[] = [];
+    const newItems: ReviewItem[] = [];
+    let newLeftOut = 0;
+    let failed = 0;
+    for (const [n, file] of files.entries()) {
+      setProgress({ done: n, total: files.length });
+      try {
+        const read = await readPhoto(file, firstNew + newPhotos.length);
+        newPhotos.push(read.photo);
+        newItems.push(...read.items);
+        newLeftOut += read.leftOut;
+      } catch {
+        failed++;
+      }
+    }
+    setProgress(null);
+
+    if (!newPhotos.length) {
+      setError(files.length === 1 ? "Couldn't analyze that photo." : "Couldn't analyze those photos.");
+      setStep(photos.length ? "review" : "upload");
+      return;
+    }
+    setPhotos((prev) => [...prev, ...newPhotos]);
+    setItems((prev) => [...prev, ...newItems]);
+    setLeftOut((prev) => prev + newLeftOut);
+    setSkipped((prev) => prev + failed);
+    setActivePhoto(firstNew);
+    if (notes.length) setError(`Note: ${notes.join("; ")}.`);
+    setStep("review");
   }
 
   function handleInputChange(e: React.ChangeEvent<HTMLInputElement>) {
-    const file = e.target.files?.[0];
+    const files = Array.from(e.target.files ?? []);
     e.target.value = "";
-    if (file) handleFile(file);
+    if (files.length) handleFiles(files);
   }
 
   function handleDrop(e: React.DragEvent) {
     e.preventDefault();
     setDragActive(false);
-    const file = e.dataTransfer.files?.[0];
-    if (file) handleFile(file);
+    const files = Array.from(e.dataTransfer.files ?? []);
+    if (files.length) handleFiles(files);
   }
 
   function updateItem(localId: string, patch: Partial<ClothingAttributes>) {
@@ -292,7 +333,7 @@ export function AddClothesModal<T extends { id: string; imageUrl: string }>({
 
   /** Gives a piece a new box on the photo and remakes its picture from it. */
   async function setItemBox(localId: string, box: BoundingBox) {
-    const img = imgElRef.current;
+    const img = photos[items.find((it) => it.localId === localId)?.photoIndex ?? -1]?.img;
     if (!img) return;
     let previewUrl = "";
     try {
@@ -351,6 +392,9 @@ export function AddClothesModal<T extends { id: string; imageUrl: string }>({
 
   function startEditing(localId: string) {
     setEditingId(localId);
+    // Fixing a piece's picture shows the photo it's in.
+    const item = items.find((it) => it.localId === localId);
+    if (item) setActivePhoto(item.photoIndex);
     overlayRef.current?.scrollTo({ top: 0, behavior: "smooth" });
   }
 
@@ -360,17 +404,17 @@ export function AddClothesModal<T extends { id: string; imageUrl: string }>({
   }
 
   function addManualItem() {
-    setItems((prev) => [...prev, newManualItem()]);
+    setItems((prev) => [...prev, newManualItem(activePhoto)]);
   }
 
   async function handleConfirm() {
-    if (items.length === 0 || !imgElRef.current) return;
+    if (items.length === 0 || !photos.length) return;
     setConfirming(true);
     setError(null);
     try {
       const formData = new FormData();
       for (const item of items) {
-        const blob = await cropToBlob(imgElRef.current, item.boundingBox);
+        const blob = await cropToBlob(photos[item.photoIndex].img, item.boundingBox);
         formData.append("images", blob, `${item.localId}.png`);
       }
       const metadata = items.map(({ category, layeringRole, warmth, color, pattern, material, formality, season, description, brand }) => ({
@@ -434,7 +478,7 @@ export function AddClothesModal<T extends { id: string; imageUrl: string }>({
         {step === "upload" && (
           <div>
             <div className="mb-5 inline-flex rounded-full bg-white p-1 shadow-[inset_0_0_0_1px_rgba(18,24,33,0.08)]">
-              <span className="rounded-full bg-[#121821] px-4 py-2 text-xs font-semibold text-white">Upload a photo</span>
+              <span className="rounded-full bg-[#121821] px-4 py-2 text-xs font-semibold text-white">Upload photos</span>
               <button
                 type="button"
                 disabled
@@ -449,7 +493,7 @@ export function AddClothesModal<T extends { id: string; imageUrl: string }>({
               Add clothes
             </h2>
             <p className="mb-5 text-sm text-[#445159]">
-              Upload a photo of one item or several. Virm finds each piece and labels it.
+              Choose one photo or several. Virm finds each piece and labels it.
             </p>
             <label
               onDragOver={(e) => {
@@ -462,11 +506,11 @@ export function AddClothesModal<T extends { id: string; imageUrl: string }>({
                 dragActive ? "border-[#121821] bg-[#f3f6f8]" : "border-black/[0.07] hover:border-[#89949a]"
               }`}
             >
-              <span className="text-sm font-medium text-[#29343a]">Drop a photo here, or click to choose one</span>
+              <span className="text-sm font-medium text-[#29343a]">Drop photos here, or click to choose</span>
               <span className="rounded-full bg-[#121821] px-5 py-2.5 text-xs font-semibold text-white shadow-[inset_0_1px_0_#ffffff35,0_3px_10px_#222d3418] hover:bg-[#2a3542]">
-                Choose photo
+                Choose photos
               </span>
-              <input type="file" accept={ACCEPTED_TYPES.join(",")} className="hidden" onChange={handleInputChange} />
+              <input type="file" multiple accept={ACCEPTED_TYPES.join(",")} className="hidden" onChange={handleInputChange} />
             </label>
             <p className="mt-4 text-xs text-[#5d6874]">
               Lay pieces out separately so each one is clearly visible.
@@ -477,12 +521,42 @@ export function AddClothesModal<T extends { id: string; imageUrl: string }>({
         {step === "analyzing" && (
           <div className="flex flex-col items-center gap-4 py-16">
             <div className="h-8 w-8 animate-spin rounded-full border-2 border-black/[0.07] border-t-[#29343a]" />
-            <p className="text-sm text-[#445159]">{checking ? "Checking each piece…" : "Analyzing your photo…"}</p>
+            <p className="text-sm text-[#445159]">
+              {progress && progress.total > 1
+                ? `Reading photo ${progress.done + 1} of ${progress.total}…`
+                : checking
+                  ? "Checking each piece…"
+                  : "Analyzing your photo…"}
+            </p>
           </div>
         )}
 
-        {(step === "review" || step === "confirming") && imageUrl && (
+        {(step === "review" || step === "confirming") && photos[activePhoto] && (
           <div>
+            {/* Several photos: pick which one is shown large (its pieces' boxes are drawn on it). */}
+            {photos.length > 1 && (
+              <div className="mb-3 flex gap-2 overflow-x-auto pb-1" role="tablist" aria-label="Your photos">
+                {photos.map((p, n) => (
+                  <button
+                    key={p.url}
+                    role="tab"
+                    aria-selected={n === activePhoto}
+                    aria-label={`Photo ${n + 1}`}
+                    onClick={() => {
+                      setActivePhoto(n);
+                      setEditingId(null);
+                    }}
+                    className={`relative h-14 w-14 shrink-0 overflow-hidden rounded-[10px] bg-[#faf9f7] ${n === activePhoto ? "ring-2 ring-[#29343a]" : "opacity-70 hover:opacity-100"}`}
+                  >
+                    {/* eslint-disable-next-line @next/next/no-img-element */}
+                    <img src={p.url} alt="" className="h-full w-full object-cover" />
+                    <span className="absolute bottom-0.5 right-0.5 rounded-full bg-white/90 px-1.5 text-[10px] font-semibold text-[#29343a]">
+                      {items.filter((it) => it.photoIndex === n).length}
+                    </span>
+                  </button>
+                ))}
+              </div>
+            )}
             {editingId && (
               <div className="mb-3 flex flex-wrap items-center justify-center gap-x-3 gap-y-2 text-center">
                 <p className="text-[13px] text-[#445159]">
@@ -511,9 +585,9 @@ export function AddClothesModal<T extends { id: string; imageUrl: string }>({
               }`}
             >
               {/* eslint-disable-next-line @next/next/no-img-element */}
-              <img src={imageUrl} alt="Uploaded photo" draggable={false} className="block max-h-[55vh] w-auto max-w-full" />
+              <img src={photos[activePhoto].url} alt="Uploaded photo" draggable={false} className="block max-h-[55vh] w-auto max-w-full" />
               {items.map((item, i) =>
-                item.boundingBox.width >= 0.999 && item.boundingBox.height >= 0.999 ? null : (
+                item.photoIndex !== activePhoto || (item.boundingBox.width >= 0.999 && item.boundingBox.height >= 0.999) ? null : (
                   <div
                     key={item.localId}
                     className={`pointer-events-none absolute border-2 border-white shadow-[0_0_0_1px_rgba(41,52,58,0.4)] ${
@@ -545,9 +619,10 @@ export function AddClothesModal<T extends { id: string; imageUrl: string }>({
               )}
             </div>
 
-            {leftOut > 0 && (
+            {(leftOut > 0 || skipped > 0) && (
               <p className="mb-4 text-center text-[13px] text-[#5b6870]">
-                Left out {leftOut === 1 ? "1 piece" : `${leftOut} pieces`} we couldn&apos;t match to the photo.
+                {leftOut > 0 && <>Left out {leftOut === 1 ? "1 piece" : `${leftOut} pieces`} we couldn&apos;t match to the photo. </>}
+                {skipped > 0 && <>{skipped === 1 ? "1 photo" : `${skipped} photos`} couldn&apos;t be read.</>}
               </p>
             )}
 
@@ -560,8 +635,9 @@ export function AddClothesModal<T extends { id: string; imageUrl: string }>({
                   <button
                     onClick={() => {
                       setStep("upload");
-                      setImageUrl(null);
+                      setPhotos([]);
                       setItems([]);
+                      setActivePhoto(0);
                     }}
                     className="rounded-full bg-white shadow-[inset_0_0_0_1px_rgba(18,24,33,0.12)] px-4 py-2 text-sm font-medium text-[#333f46] hover:bg-[#e9edef]"
                   >
@@ -698,9 +774,17 @@ export function AddClothesModal<T extends { id: string; imageUrl: string }>({
                 </div>
 
                 <div className="mb-5 flex flex-wrap items-center justify-between gap-3">
-                  <button onClick={addManualItem} className="text-sm font-medium text-[#445159] hover:underline">
-                    + Add item manually
-                  </button>
+                  <span className="flex flex-wrap gap-x-4 gap-y-1">
+                    {photos.length < MAX_PHOTOS && (
+                      <label className="cursor-pointer text-sm font-medium text-[#445159] hover:underline">
+                        + Add more photos
+                        <input type="file" multiple accept={ACCEPTED_TYPES.join(",")} className="hidden" onChange={handleInputChange} />
+                      </label>
+                    )}
+                    <button onClick={addManualItem} className="text-sm font-medium text-[#445159] hover:underline">
+                      + Add item manually
+                    </button>
+                  </span>
                   <p className="text-sm text-[#5d6874]">
                     {items.length} item{items.length === 1 ? "" : "s"} ready to add
                   </p>
