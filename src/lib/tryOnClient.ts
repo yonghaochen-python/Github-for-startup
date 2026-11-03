@@ -1,6 +1,9 @@
 import type { LayeringRole } from "@/lib/layering";
 import { garmentSheetJpeg, photoToJpeg } from "@/lib/clientImage";
 
+/** The width of the one picture holding every piece of an outfit, sent to the try-on AI. */
+const SHEET_SIDE = 1600;
+
 /** Shown with every try-on: what an AI preview can't promise. */
 export const TRY_ON_CAVEAT = "Virtual try-ons are AI previews. They can't show exactly how real fabric, fit, size or color will look.";
 
@@ -40,7 +43,8 @@ export async function requestTryOn(outfitId: string, pieces: Piece[], liveProvid
     });
     // Providers that dress a whole outfit in one call use every piece on a single sheet.
     if (photos.every((p) => p.status === "fulfilled")) {
-      const sheet = await garmentSheetJpeg(photos.map((p) => (p as PromiseFulfilledResult<Blob>).value)).catch(() => null);
+      // A larger sheet keeps small details (a side logo, a print) readable for the try-on AI.
+      const sheet = await garmentSheetJpeg(photos.map((p) => (p as PromiseFulfilledResult<Blob>).value), 0.9, SHEET_SIDE).catch(() => null);
       if (sheet) formData.append("garmentSheet", sheet, "garments.jpg");
     }
   }
@@ -70,7 +74,7 @@ export async function requestShopTryOn(pieces: ShopPiece[]): Promise<TryOnResult
   formData.append("pieces", JSON.stringify(pieces.map((p) => ({ description: p.description, color: p.color ?? "", layeringRole: p.layeringRole }))));
   photos.forEach((photo, i) => formData.append(`garment:${i}`, photo, `${i}.jpg`));
   if (photos.length > 1) {
-    const sheet = await garmentSheetJpeg(photos).catch(() => null);
+    const sheet = await garmentSheetJpeg(photos, 0.9, SHEET_SIDE).catch(() => null);
     if (sheet) formData.append("garmentSheet", sheet, "garments.jpg");
   }
   const res = await fetch("/api/shop/try-on", { method: "POST", body: formData });

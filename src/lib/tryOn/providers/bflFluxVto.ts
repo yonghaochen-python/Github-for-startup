@@ -23,6 +23,9 @@ const POLL_INTERVAL_MS = 1_000;
 const WORN_ORDER: LayeringRole[] = ["one_piece", "bottom", "base_layer", "mid_layer", "outer_layer", "shoes", "accessory"];
 
 const PREFIX = "The person of image 1, maintaining exactly their face and pose, wearing";
+/** Logos and prints are what try-on AI most often redraws (a small side logo turned into a big front one). */
+const KEEP_DETAILS =
+  " Keep every logo, print, text and graphic exactly as it is in image 2: the same size, position and color. Don't add, move or enlarge any logo.";
 
 /** One garment phrase per piece, phrased so layered tops stack the right way round. */
 function phraseFor(role: LayeringRole, description: string): string {
@@ -166,7 +169,7 @@ export function bflFluxVtoProvider(apiKey: string): TryOnProvider {
       if (garmentSheet || steps.length === 1) {
         // One call for the whole look: every piece is on the sheet (or there is only one piece).
         const garment = garmentSheet ?? (await steps[0].item.getImage());
-        const prompt = `${PREFIX} ${joinPhrases(steps.map((s) => phraseFor(s.role, garmentName(s.item))))} of image 2.`;
+        const prompt = `${PREFIX} ${joinPhrases(steps.map((s) => phraseFor(s.role, garmentName(s.item))))} of image 2.${KEEP_DETAILS}`;
         sampleUrl = await runJob(baseUrl, apiKey, {
           prompt,
           person: toBase64(person),
@@ -180,7 +183,7 @@ export function bflFluxVtoProvider(apiKey: string): TryOnProvider {
         for (const { role, item } of steps) {
           const garment = await item.getImage();
           sampleUrl = await runJob(baseUrl, apiKey, {
-            prompt: `${PREFIX} ${phraseFor(role, garmentName(item))} of image 2, keeping everything else they have on.`,
+            prompt: `${PREFIX} ${phraseFor(role, garmentName(item))} of image 2, keeping everything else they have on.${KEEP_DETAILS}`,
             person: current,
             garment: toBase64(garment),
             output_format: "jpeg",

@@ -1,13 +1,42 @@
 import type { LayeringRole } from "@/lib/layering";
 
-export type TryOnItemInfo = { id: string; imageUrl: string; description: string; layeringRole: LayeringRole; color?: string };
+export type TryOnItemInfo = {
+  id: string;
+  imageUrl: string;
+  description: string;
+  layeringRole: LayeringRole;
+  color?: string;
+  /** Left out of the name the AI reads: a brand word pulls it toward that brand's best-known logo instead of this one. */
+  brand?: string | null;
+};
+
+/** Accents ignored ("Stüssy" is "Stussy"), so a brand is found however it was typed. */
+const plain = (v: string) => v.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase();
+
+/** The description without the brand's name (and a leftover "'s"), e.g. "Stüssy logo hoodie" → "logo hoodie". */
+function withoutBrand(description: string, brand?: string | null): string {
+  const b = plain(brand?.trim() ?? "");
+  if (b.length < 2) return description;
+  const words = description.split(/\s+/);
+  const bWords = b.split(/\s+/);
+  const kept: string[] = [];
+  for (let i = 0; i < words.length; i++) {
+    const run = words.slice(i, i + bWords.length).map((w) => plain(w).replace(/('s|’s)?[^\p{L}\p{N}]*$/u, ""));
+    if (run.join(" ") === b) {
+      i += bWords.length - 1;
+      continue;
+    }
+    kept.push(words[i]);
+  }
+  return kept.join(" ");
+}
 
 /**
  * How a piece is named to the try-on AI: its description with its color in front when the description doesn't
  * already say it. Photos can make colors look off (a pale teal top in shade reads as white), so the words help.
  */
-export function garmentName(item: { description: string; color?: string }): string {
-  const description = item.description.trim() || "garment";
+export function garmentName(item: { description: string; color?: string; brand?: string | null }): string {
+  const description = withoutBrand(item.description, item.brand).trim() || "garment";
   const color = item.color?.trim().toLowerCase();
   if (!color || color === "unknown" || description.toLowerCase().includes(color)) return description;
   return `${color} ${description}`;

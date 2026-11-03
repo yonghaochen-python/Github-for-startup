@@ -76,6 +76,7 @@ export async function POST(request: Request, ctx: RouteContext<"/api/outfits/[id
         imageUrl: i.imageUrl,
         description: i.description,
         color: i.color,
+        brand: i.brand,
         layeringRole: i.layeringRole as LayeringRole,
         getImage: async () => {
           const supplied = formData.get(`garment:${i.id}`);
