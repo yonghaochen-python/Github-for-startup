@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useRef, useState } from "react";
+import { retryImage } from "@/lib/retryImage";
 import { fetchWithRetry } from "@/lib/fetchRetry";
 import Image from "next/image";
 import Link from "next/link";
@@ -746,7 +747,7 @@ export default function StudioPage() {
                           title={piece.description}
                           className="relative block h-20 w-20 overflow-hidden rounded-[14px] bg-[#f4f5f6] shadow-[inset_0_0_0_1px_rgba(18,24,33,0.06)]"
                         >
-                          <Image src={piece.imageUrl} alt={piece.description} fill unoptimized className="object-cover" />
+                          <Image src={piece.imageUrl} alt={piece.description} fill unoptimized onError={retryImage} className="object-cover" />
                           {/* Shopping pieces aren't owned: marked so they're never mistaken for closet clothes. */}
                           {piece.id.startsWith("shop-") && (
                             <span className="absolute bottom-1 left-1 rounded-full bg-white/95 px-1.5 py-[1px] text-[8.5px] font-semibold uppercase tracking-[1px] text-[#4f5b66]">
@@ -854,7 +855,7 @@ export default function StudioPage() {
                               chosen ? "shadow-[inset_0_0_0_2px_#121821]" : "hover:shadow-[inset_0_0_0_1px_rgba(18,24,33,0.2)]"
                             }`}
                           >
-                            <Image src={item.imageUrl} alt={item.description} fill unoptimized className="object-cover" />
+                            <Image src={item.imageUrl} alt={item.description} fill unoptimized onError={retryImage} className="object-cover" />
                             {chosen && (
                               <span className="absolute right-1.5 top-1.5 flex h-6 w-6 items-center justify-center rounded-full bg-[#121821] text-white">
                                 <svg viewBox="0 0 16 16" className="h-3.5 w-3.5" fill="none" aria-hidden>

@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useRef, useState } from "react";
+import { retryImage } from "@/lib/retryImage";
 import { fetchWithRetry } from "@/lib/fetchRetry";
 import Image from "next/image";
 import Link from "next/link";
@@ -424,6 +425,7 @@ export default function ClosetPage() {
                                     alt=""
                                     fill
                                     unoptimized
+                                    onError={retryImage}
                                     className={`transition-transform duration-300 group-hover:scale-[1.04] ${
                                       cut ? "object-contain drop-shadow-[0_6px_10px_rgba(18,24,33,0.14)]" : "object-cover"
                                     }`}
@@ -572,7 +574,7 @@ function ItemDetail({
     >
       <div className="max-h-[92dvh] w-full max-w-[860px] overflow-y-auto bg-[#f8fafb] sm:grid sm:grid-cols-[minmax(0,1fr)_minmax(0,1fr)]">
         <div className="closet-shelf relative aspect-square sm:aspect-auto sm:min-h-[460px]">
-          <Image src={item.imageUrl} alt={item.description} fill unoptimized className={`object-contain ${cut ? "p-8" : ""}`} />
+          <Image src={item.imageUrl} alt={item.description} fill unoptimized onError={retryImage} className={`object-contain ${cut ? "p-8" : ""}`} />
           {/* Remove background / Keep background: the original photo is always kept. */}
           <button
             onClick={onToggleBackground}

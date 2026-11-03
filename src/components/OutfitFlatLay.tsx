@@ -1,6 +1,7 @@
 "use client";
 
 import type { ClothingItem } from "@/components/OutfitCard";
+import { retryImage } from "@/lib/retryImage";
 import type { LayeringRole } from "@/lib/layering";
 
 /** Top layers first, then what's below them, the way an outfit is laid out on a bed. */
@@ -32,6 +33,7 @@ export function OutfitFlatLay({ pieces, emptyText }: { pieces: ClothingItem[]; e
               <img
                 src={p.imageUrl}
                 alt={p.description}
+                onError={retryImage}
                 className={`absolute inset-0 h-full w-full ${cutout ? "object-contain p-3 drop-shadow-[0_8px_12px_rgba(18,24,33,0.15)]" : "object-cover"}`}
               />
             </div>
