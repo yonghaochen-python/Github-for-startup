@@ -25,7 +25,7 @@ import { Tips, type Tip } from "@/components/Tips";
 import { Feedback } from "@/components/Feedback";
 
 const STUDIO_TIPS: Tip[] = [
-  { target: '[data-tip="studio-theme"]', text: "Type a theme for outfit ideas, or pick clothes yourself." },
+  { target: '[data-tip="studio-theme"]', text: "Type a theme for ideas, or press Style it for a random outfit." },
   { target: '[data-tip="studio-closet"]', text: "Tap to add. Tap again to take it off." },
   { target: '[data-tip="studio-tryon"]', text: "Try it on. The bookmark on the picture saves the look." },
   { target: '.site-nav a[href="/closet"], .site-tabbar a[href="/closet"]', text: "Add more clothes any time in My Closet." },
@@ -388,6 +388,8 @@ export default function StudioPage() {
   async function styleTheme(e?: React.FormEvent, fresh = false) {
     e?.preventDefault();
     if (styling) return;
+    // Nothing typed: a random outfit from the closet, made on the device (free, instant, unlimited).
+    if (!theme.trim() && !fresh) return shuffle();
     setError(null);
     setStyling(true);
     try {
@@ -501,23 +503,9 @@ export default function StudioPage() {
             id="studio-theme"
             value={theme}
             onChange={(e) => setTheme(e.target.value.slice(0, MAX_THEME))}
-            placeholder="Type a theme: old money, rainy day in Paris, first date…"
+            placeholder="Type a theme (old money, first date…) or leave empty for a random outfit"
             className="min-w-0 flex-1 bg-transparent py-2.5 text-[14px] text-[#121821] outline-none placeholder:text-[#8a96a1]"
           />
-          <button
-            type="button"
-            onClick={shuffle}
-            aria-label="Shuffle: a random outfit from your closet"
-            title="Shuffle: a random outfit from your closet"
-            className="flex h-10 shrink-0 items-center gap-1.5 rounded-full px-3 text-[13px] font-semibold text-[#121821] hover:bg-[#eef1f4]"
-          >
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" className="h-[18px] w-[18px]" aria-hidden>
-              <path d="M3 7h3.5c2.5 0 4 1.5 5.5 4.5S15 16 17.5 16H21" />
-              <path d="M3 16h3.5c1.4 0 2.5-.5 3.4-1.4M14.1 8.4C15 7.5 16.1 7 17.5 7H21" />
-              <path d="m18 4 3 3-3 3M18 13l3 3-3 3" />
-            </svg>
-            <span className="hidden sm:inline">Shuffle</span>
-          </button>
           <button type="submit" disabled={styling} className={`${btnPrimary} shrink-0`}>
             {styling ? "Styling…" : "Style it"}
           </button>
@@ -539,7 +527,7 @@ export default function StudioPage() {
             {outfitOnly ? (
               <div className={`${mirrorFrame} bg-[#f1ede7]`}>
                 <span className="absolute left-4 top-4 rounded-full bg-white/90 px-3 py-1 text-[11px] font-semibold text-[#4f5b66]">Your outfit</span>
-                <OutfitFlatLay pieces={pieces} emptyText="Type a theme and press Style it, tap Shuffle for a random outfit, or pick pieces from your closet." />
+                <OutfitFlatLay pieces={pieces} emptyText="Press Style it for a random outfit, type a theme first for ideas, or pick pieces from your closet." />
                 {pieces.length > 0 && !hasShopPieces && (
                   <div className="absolute right-4 top-4">
                     <SaveToggle
@@ -726,7 +714,7 @@ export default function StudioPage() {
                 {loadingLook ? (
                   <div className="h-20 animate-pulse rounded-[14px] bg-[#f4f5f6]" />
                 ) : pieces.length === 0 ? (
-                  <p className="rounded-[14px] bg-[#f4f5f6] px-4 py-5 text-[13px] text-[#4f5b66]">Type a theme above, or pick pieces from your closet.</p>
+                  <p className="rounded-[14px] bg-[#f4f5f6] px-4 py-5 text-[13px] text-[#4f5b66]">Press Style it for a random outfit, type a theme for ideas, or pick pieces below.</p>
                 ) : (
                   <ul className="flex gap-2 overflow-x-auto pb-1 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
                     {pieces.map((piece) => (
