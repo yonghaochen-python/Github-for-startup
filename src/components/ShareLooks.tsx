@@ -529,12 +529,13 @@ export function ShareIcon({ className = "" }: { className?: string }) {
 }
 
 /** Studio: the share arrow on a tried-on look. Adds it to (or takes it out of) the "to share" list. */
-export function ShareArrowButton({ look, className = "" }: { look: ShareLook; className?: string }) {
+export function ShareArrowButton({ look, className = "", ...rest }: { look: ShareLook; className?: string; "data-tip"?: string }) {
   const tray = useShareTray();
   const { showToast } = useToast();
   const at = tray.looks.findIndex((l) => l.id === look.id);
   return (
     <button
+      {...rest}
       onClick={() => {
         if (at < 0 && tray.looks.length >= MAX_LOOKS) return showToast(`You can share up to ${MAX_LOOKS} looks at once.`);
         tray.toggle(look);

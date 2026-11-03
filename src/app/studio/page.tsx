@@ -22,8 +22,13 @@ import { LiveTryOn, type ShopPick } from "@/components/LiveTryOn";
 import { CreditsLine, refreshCredits } from "@/components/Credits";
 import { LIVE_SHOP_KEY, SHOP_OUTFIT_KEY, isRetiredDemo, shopPiece, type TrayItem } from "@/lib/shopCatalog";
 import { readShopTryOns } from "@/lib/shopWishlist";
-import { Tips, type Tip } from "@/components/Tips";
+import { Tips, tipsSeen, type Tip } from "@/components/Tips";
 import { Feedback } from "@/components/Feedback";
+
+const SAVE_SHARE_TIPS: Tip[] = [
+  { target: '[data-tip="studio-save"] button', text: "Love it? Tap the bookmark to save this look. It'll be in Saved Looks." },
+  { target: '[data-tip="studio-share"]', text: "Tap the arrow to share. Pick up to 4 looks, then press Share and friends can vote." },
+];
 
 const STUDIO_TIPS: Tip[] = [
   { target: '[data-tip="studio-theme"]', text: "Type a theme for ideas, or press Style it for a random outfit." },
@@ -515,6 +520,10 @@ export default function StudioPage() {
       <PageShell className="max-w-[1440px]! pt-6 sm:pt-8">
         <h1 className="sr-only">Studio</h1>
         <Tips id="studio" tips={STUDIO_TIPS} />
+        {/* Save and Share only appear once there's a look, so their tips wait for it (shown once, like the others). */}
+        {pieces.length > 0 && !trying && (picture || outfitOnly) && tipsSeen("studio") && (
+          <Tips id="studio-save-share" tips={SAVE_SHARE_TIPS} delay={1200} />
+        )}
 
         {/* One row above the mirror (so it can be bigger): Photo | Live, the theme box, and the way back to Shopping. */}
         <div className="mb-4 flex flex-wrap items-center gap-3 lg:flex-nowrap">
@@ -578,7 +587,7 @@ export default function StudioPage() {
                 <span className="absolute left-4 top-4 rounded-full bg-white/90 px-3 py-1 text-[11px] font-semibold text-[#4f5b66]">Your outfit</span>
                 <OutfitFlatLay pieces={pieces} emptyText="Press Style it for a random outfit, type a theme first for ideas, or pick pieces from your closet." />
                 {pieces.length > 0 && !hasShopPieces && (
-                  <div className="absolute right-4 top-4">
+                  <div data-tip="studio-save" className="absolute right-4 top-4">
                     <SaveToggle
                       saved={!changed && look.isFavorite}
                       busy={saving}
@@ -668,15 +677,18 @@ export default function StudioPage() {
                 {!trying && (
                   <div className="absolute right-4 top-4 flex flex-col gap-2">
                     {pieces.length > 0 && !hasShopPieces && (
-                      <SaveToggle
-                        saved={!changed && look.isFavorite}
-                        busy={saving}
-                        onToggle={toggleSaved}
-                        className={`h-11 w-11 ${!changed && look.isFavorite ? "" : "!bg-white/90 !shadow-sm hover:!bg-white"}`}
-                      />
+                      <span data-tip="studio-save" className="contents">
+                        <SaveToggle
+                          saved={!changed && look.isFavorite}
+                          busy={saving}
+                          onToggle={toggleSaved}
+                          className={`h-11 w-11 ${!changed && look.isFavorite ? "" : "!bg-white/90 !shadow-sm hover:!bg-white"}`}
+                        />
+                      </span>
                     )}
                     {picture && look.outfitId && (
                       <ShareArrowButton
+                        data-tip="studio-share"
                         look={{
                           id: look.outfitId,
                           v: look.tryOn ?? String(result?.imageDataUrl?.length ?? 1),

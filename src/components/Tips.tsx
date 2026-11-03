@@ -28,6 +28,9 @@ function markSeen(id: string) {
   } catch {}
 }
 
+/** Whether a page's tips were already shown on this device (so a follow-up set can wait for them). */
+export const tipsSeen = (id: string) => seen(id);
+
 /** Clears every page's "seen" mark so the tips show again. */
 export function resetTips() {
   try {
