@@ -92,6 +92,8 @@ export function TryOnPhotoStep({
   const [starting, setStarting] = useState(false);
   const [busy, setBusy] = useState(false);
   const [cameraReady, setCameraReady] = useState(false);
+  // The self-timer: seconds left before the photo takes itself (null when it isn't running).
+  const [timer, setTimer] = useState<number | null>(null);
   const [pending, setPending] = useState<{ blob: Blob; url: string } | null>(null);
   // When the photo was cropped to fit the person, the uncropped version is kept so they can switch back.
   const [framing, setFraming] = useState<{ cropped: Blob; original: Blob; useCropped: boolean } | null>(null);
@@ -177,9 +179,11 @@ export function TryOnPhotoStep({
   }, [mode]);
 
   function cancelCamera() {
+    setTimer(null);
     stopCamera();
     setMode("choose");
   }
+
 
   async function capture() {
     const video = videoRef.current;
@@ -214,6 +218,21 @@ export function TryOnPhotoStep({
       setBusy(false);
     }
   }
+
+  /** 5, 4, 3, 2, 1, then the photo takes itself: time to prop the phone up and step back. */
+  const TIMER_SECONDS = 5;
+  useEffect(() => {
+    if (timer === null) return;
+    if (timer <= 0) {
+      // eslint-disable-next-line react-hooks/set-state-in-effect -- the timer ran out: take the photo
+      setTimer(null);
+      capture();
+      return;
+    }
+    const tick = setTimeout(() => setTimer((t) => (t === null ? null : t - 1)), 1000);
+    return () => clearTimeout(tick);
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- runs on each tick
+  }, [timer]);
 
   // Start fetching the body-detection model while the person picks a photo.
   useEffect(() => preloadAutoFrame(), []);
@@ -351,16 +370,31 @@ export function TryOnPhotoStep({
               className="h-full w-full -scale-x-100 object-cover"
               style={{ objectFit: "cover" }}
             />
+            {timer !== null && timer > 0 && (
+              <div className="absolute inset-0 flex items-center justify-center bg-[rgba(8,14,22,0.25)]" aria-live="assertive">
+                <span key={timer} className="font-display text-[128px] leading-none text-white animate-[piece-in_.3s_ease-out] motion-reduce:animate-none">
+                  {timer}
+                </span>
+              </div>
+            )}
           </div>
           <p className="mx-auto mt-3 max-w-[520px] text-xs text-[#5d6874]">
-            Step back so your whole body is in the frame, with good light on you.
+            {timer !== null
+              ? "Step back so your whole body is in the frame, facing the camera, arms down."
+              : "Prop your phone up, press Capture, and step back: it takes the photo after 5 seconds."}
           </p>
           <ActionBar>
-            <button onClick={capture} disabled={busy || !cameraReady} className={`${primaryButton} flex-1`}>
-              {busy ? "Capturing…" : cameraReady ? "Capture" : "Starting camera…"}
-            </button>
-            <button onClick={cancelCamera} disabled={busy} className={secondaryButton}>
-              Cancel
+            {timer === null ? (
+              <button onClick={() => setTimer(TIMER_SECONDS)} disabled={busy || !cameraReady} className={`${primaryButton} flex-1`}>
+                {busy ? "Capturing…" : cameraReady ? "Capture in 5s" : "Starting camera…"}
+              </button>
+            ) : (
+              <button onClick={() => { setTimer(null); capture(); }} disabled={busy} className={`${primaryButton} flex-1`}>
+                Capture now
+              </button>
+            )}
+            <button onClick={timer === null ? cancelCamera : () => setTimer(null)} disabled={busy} className={secondaryButton}>
+              {timer === null ? "Cancel" : "Stop timer"}
             </button>
           </ActionBar>
         </div>

@@ -215,12 +215,12 @@ export function LiveTryOn({
     };
   }, [stopAi, stopCamera, endAi, finishRecording]);
 
-  /** Start: a 3-2-1 first, then the session (the countdown isn't part of the 20 seconds). */
+  /** Start: a 5-second countdown first (time to step back), then the session (the countdown isn't part of the 20 seconds). */
   function beginCountdown() {
     setReplay(null);
     setShareNote(null);
     setSaveState("idle");
-    setCount(3);
+    setCount(5);
     setAi("countdown");
   }
 
@@ -312,7 +312,7 @@ export function LiveTryOn({
     }
   }
 
-  // The countdown ticks once a second (3, 2, 1); a second after "1" the session starts.
+  // The countdown ticks once a second (5 … 1); a second after "1" the session starts.
   useEffect(() => {
     if (ai !== "countdown") return;
     const tick = setTimeout(() => (count <= 1 ? startAi() : setCount((c) => c - 1)), 1000);
@@ -416,7 +416,7 @@ export function LiveTryOn({
               aria-label="AI try-on, live"
             />
           )}
-          {/* 3, 2, 1 over the camera before the session starts. */}
+          {/* 5, 4, 3, 2, 1 over the camera before the session starts. */}
           {ai === "countdown" && (
             <div className="absolute inset-0 flex items-center justify-center bg-[rgba(8,14,22,0.35)]" aria-live="assertive">
               <span key={count} className="font-display text-[128px] leading-none text-white animate-[piece-in_.3s_ease-out] motion-reduce:animate-none">
