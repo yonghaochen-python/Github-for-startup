@@ -3,8 +3,8 @@ import { accountPlan, adjustExtraCredits } from "@/lib/credits";
 
 /**
  * Good / Bad feedback on a result. Everyone can rate any result of their own once (and change their mind); the
- * first Bad in a monthly period, for a real result (one that was actually made, not a practice or reused one), adds
- * a one-time thank-you of extra credits. Later Bads that period are kept as feedback only.
+ * first Bad in a monthly period on a real try-on (photo or live, one that actually ran) adds a one-time thank-you of
+ * extra credits. Later Bads that period, and Bads on outfits or AI Stylist reports, are kept as feedback only.
  *
  * Everything is checked here, never by the page: the result must be the person's own, and the database's unique
  * index on (person, rewardPeriod) means two Bads at the same moment can't both be rewarded.
@@ -15,7 +15,10 @@ export type FeedbackKind = (typeof FEEDBACK_KINDS)[number];
 export type Rating = "good" | "bad";
 
 /** The thank-you for the first Bad of the period. */
-export const BAD_REWARD = { photo: 2, live: 1 } as const;
+export const BAD_REWARD = { photo: 2, live: 2 } as const;
+
+/** Only a Bad on a try-on (photo or live) earns the thank-you; Bads on other results are kept as feedback only. */
+const REWARDED_KINDS: FeedbackKind[] = ["photo", "live"];
 
 export class FeedbackError extends Error {}
 
@@ -44,7 +47,7 @@ export async function submitFeedback(userId: string, kind: FeedbackKind, targetI
     create: { userId, kind, targetId, rating },
     update: { rating },
   });
-  if (rating !== "bad" || !real || row.rewardPeriod) return { rewarded: false };
+  if (rating !== "bad" || !real || row.rewardPeriod || !REWARDED_KINDS.includes(kind)) return { rewarded: false };
 
   // Claim this period's one thank-you; the unique index refuses a second claim in the same period.
   const { period } = await accountPlan(userId);

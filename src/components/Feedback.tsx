@@ -39,7 +39,7 @@ export function Feedback({ kind, targetId, dark = false, className = "" }: { kin
     }
     setRating(next);
     if (data?.rewarded) {
-      setNote("Sorry it wasn't great. We added 2 photo try-ons and 1 live try-on to your account.");
+      setNote("Sorry it wasn't great. We added 2 photo try-ons and 2 live try-ons to your account.");
       refreshCredits();
     } else setNote(next === "good" ? "Thanks!" : "Thanks for telling us. We'll use it to improve.");
   }

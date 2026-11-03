@@ -99,8 +99,8 @@ model StudioReport {
 }
 
 /// A person's Good / Bad rating of one result: a photo try-on, a live session, a "Style it" outfit or an AI Stylist
-/// report. The first Bad in a monthly period (for a real, paid result) adds 2 photo and 1 live extra credits as a
-/// thank-you; later ones are kept as feedback only.
+/// report. The first Bad in a monthly period on a real try-on (photo or live) adds 2 photo and 2 live extra credits
+/// as a thank-you; later ones (and Bads on outfits or reports) are kept as feedback only.
 model Feedback {
   id           String   @id @default(cuid())
   userId       String

@@ -9,7 +9,8 @@ export type CreditKind = "photo" | "live";
 export const PLAN_KEYS: PlanKey[] = ["free", "plus", "pro"];
 
 export const PLAN_ALLOWANCES: Record<PlanKey, Record<CreditKind, number>> = {
-  free: { photo: 4, live: 1 },
+  // Free: room for a few that go wrong (and a Bad rating on a try-on adds more, once a month).
+  free: { photo: 10, live: 2 },
   plus: { photo: 60, live: 15 },
   pro: { photo: 100, live: 30 },
 };

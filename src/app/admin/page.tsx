@@ -345,7 +345,7 @@ export default function AdminPage() {
           </p>
         </Section>
 
-        <Section title="Feedback" description="Good / Bad ratings people gave in this range. The first Bad in a person's month (on a real result) adds 2 photo and 1 live extra credits.">
+        <Section title="Feedback" description="Good / Bad ratings people gave in this range. The first Bad in a person's month on a real try-on (photo or live) adds 2 photo and 2 live extra credits.">
           <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
             {s.feedback.map((f) => (
               <Stat
