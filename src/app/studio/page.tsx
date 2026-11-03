@@ -105,6 +105,8 @@ export default function StudioPage() {
   const [theme, setTheme] = useState("");
   const [styling, setStyling] = useState(false);
   const [ideas, setIdeas] = useState<Outfit[]>([]);
+  // The ideas came from a search made before (same search, same closet): shown free, with New ideas to ask again.
+  const [ideasSaved, setIdeasSaved] = useState(false);
 
   const [liveProvider, setLiveProvider] = useState(false);
   const [configLoaded, setConfigLoaded] = useState(false);
@@ -383,7 +385,7 @@ export default function StudioPage() {
     }
   }
 
-  async function styleTheme(e?: React.FormEvent) {
+  async function styleTheme(e?: React.FormEvent, fresh = false) {
     e?.preventDefault();
     if (styling) return;
     setError(null);
@@ -393,10 +395,11 @@ export default function StudioPage() {
       const res = await fetch("/api/outfits/generate", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ theme: typed || undefined, occasion: typed ? undefined : "Everyday" }),
+        body: JSON.stringify({ theme: typed || undefined, occasion: typed ? undefined : "Everyday", fresh }),
       });
-      const data = (await res.json().catch(() => ({}))) as { error?: string; outfits?: Outfit[] };
+      const data = (await res.json().catch(() => ({}))) as { error?: string; outfits?: Outfit[]; saved?: boolean };
       if (!res.ok || !data.outfits?.length) throw new Error(data.error ?? "Couldn't style that right now.");
+      setIdeasSaved(Boolean(data.saved));
       setIdeas(data.outfits);
       showOutfit(data.outfits[0]);
     } catch (err) {
@@ -709,6 +712,14 @@ export default function StudioPage() {
                     </button>
                   )}
                 </div>
+                {ideasSaved && ideas.some((idea) => idea.id === look.outfitId) && (
+                  <p className="mb-2 flex flex-wrap items-center gap-x-2 text-[12px] text-[#5d6874]">
+                    Saved ideas for this search
+                    <button onClick={() => styleTheme(undefined, true)} disabled={styling} className="font-semibold text-[#121821] underline underline-offset-4">
+                      {styling ? "Styling…" : "New ideas"}
+                    </button>
+                  </p>
+                )}
                 {/* A Style it outfit on show: its Good / Bad feedback. */}
                 {ideas.some((idea) => idea.id === look.outfitId) && <Feedback kind="outfit" targetId={look.outfitId} className="mb-3" />}
 

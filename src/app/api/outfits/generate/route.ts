@@ -5,6 +5,7 @@ import { generateOutfitsFromCloset, type OutfitRequest } from "@/lib/generateOut
 import { requireUser } from "@/lib/auth";
 import { serializeOutfit } from "@/lib/outfits";
 import { sanitizeLayeredOutfit } from "@/lib/layering";
+import { readSavedSearch, saveSearch, searchKey } from "@/lib/styleSearchCache";
 
 function str(value: unknown, maxLength = 200): string | undefined {
   return typeof value === "string" && value.trim() ? value.trim().slice(0, maxLength) : undefined;
@@ -27,6 +28,8 @@ export async function POST(request: Request) {
   const body: unknown = await request.json().catch(() => ({}));
   const b = body && typeof body === "object" ? (body as Record<string, unknown>) : {};
   const theme = str(b.theme, MAX_THEME_LENGTH);
+  // "New ideas": skip the saved result and ask the AI again.
+  const fresh = b.fresh === true;
   const outfitRequest: OutfitRequest = {
     theme,
     // A searched theme doubles as the outfit's label (shown as its occasion on cards).
@@ -36,6 +39,31 @@ export async function POST(request: Request) {
     colorPreference: str(b.colorPreference),
     prompt: str(b.prompt),
   };
+
+  const closet = await prisma.clothingItem.findMany({ where: { userId: user.id } });
+  if (closet.length < 2) {
+    return NextResponse.json(
+      { error: "Add at least 2 items to your closet before generating outfits." },
+      { status: 400 }
+    );
+  }
+
+  // The same search with the same closet: show the outfits already made for it (free, and not counted).
+  const key = await searchKey(user.id, outfitRequest, closet);
+  if (!fresh) {
+    const saved = await readSavedSearch(user.id, key);
+    if (saved) {
+      const outfits = await prisma.outfit.findMany({
+        where: { userId: user.id, id: { in: saved } },
+        include: { items: { include: { item: true } } },
+      });
+      // Only if every saved outfit is still there, whole, in its order.
+      if (outfits.length === saved.length && outfits.every((o) => o.items.length >= 2)) {
+        const byId = new Map(outfits.map((o) => [o.id, o]));
+        return NextResponse.json({ outfits: saved.map((id) => serializeOutfit(byId.get(id)!)), saved: true });
+      }
+    }
+  }
 
   // The limit: searches started in the last 24 hours (counted at the start, so a burst can't slip past it).
   if (user.role !== "admin") {
@@ -57,14 +85,6 @@ export async function POST(request: Request) {
         { status: 429 }
       );
     }
-  }
-
-  const closet = await prisma.clothingItem.findMany({ where: { userId: user.id } });
-  if (closet.length < 2) {
-    return NextResponse.json(
-      { error: "Add at least 2 items to your closet before generating outfits." },
-      { status: 400 }
-    );
   }
 
   await track(user.id, "outfit_request");
@@ -117,5 +137,6 @@ export async function POST(request: Request) {
     )
   );
 
+  await saveSearch(user.id, key, outfits.map((o) => o.id)).catch(() => {});
   return NextResponse.json({ outfits: outfits.map(serializeOutfit) });
 }

@@ -6,6 +6,7 @@ import { deleteAllPicks } from "@/lib/picks";
 import { clearTryOnCache } from "@/lib/tryOnCache";
 import { deleteAllLiveVideos } from "@/lib/liveVideos";
 import { deletePortrait } from "@/lib/portrait";
+import { deleteSavedSearches } from "@/lib/styleSearchCache";
 
 /**
  * Permanently deletes an account and everything in it: the saved photo, the current look, every outfit's try-on
@@ -30,6 +31,7 @@ export async function deleteAccount(userId: string): Promise<void> {
   await clearTryOnCache(userId);
   await deleteAllLiveVideos(userId);
   await deletePortrait(userId);
+  await deleteSavedSearches(userId);
 
   await prisma.user.delete({ where: { id: userId } });
 }
