@@ -4,34 +4,47 @@ import { useCallback, useEffect, useState } from "react";
 import { createPortal } from "react-dom";
 
 /**
- * First-visit tips: a small bubble beside the thing to tap, with a soft ring around it. Each page's tips show once
- * per device (remembered in this browser); "Show tips again" in Profile brings them back. A step whose target
+ * First-visit tips: a small bubble beside the thing to tap, with a soft ring around it. Each page's tips show on at
+ * most two visits, and end for good once gone through (Got it) or skipped twice (remembered in this browser);
+ * "Show tips again" in Profile brings them back. A step whose target
  * isn't on the page (e.g. no saved looks yet) is skipped.
  */
 
 export type Tip = { target: string; text: string };
 
 const KEY_PREFIX = "virm-tips-seen:";
-const TIP_VERSION = "1";
 
-function seen(id: string): boolean {
+/** Each page's tips show on at most this many visits, and stop for good after this many Skips. */
+const MAX_SHOWS = 2;
+const MAX_SKIPS = 2;
+
+type TipsRecord = { shown: number; skips: number; done: boolean };
+
+function readRecord(id: string): TipsRecord {
   try {
-    return localStorage.getItem(KEY_PREFIX + id) === TIP_VERSION;
+    const raw = localStorage.getItem(KEY_PREFIX + id);
+    // Older visits stored "1": those tips were finished.
+    if (raw === "1") return { shown: 1, skips: 0, done: true };
+    const r = raw ? (JSON.parse(raw) as Partial<TipsRecord>) : {};
+    return { shown: Number(r.shown) || 0, skips: Number(r.skips) || 0, done: Boolean(r.done) };
   } catch {
-    return true; // No storage (private mode): don't nag on every visit.
+    return { shown: MAX_SHOWS, skips: 0, done: true }; // No storage (private mode): don't nag on every visit.
   }
 }
 
-function markSeen(id: string) {
+function writeRecord(id: string, record: TipsRecord) {
   try {
-    localStorage.setItem(KEY_PREFIX + id, TIP_VERSION);
+    localStorage.setItem(KEY_PREFIX + id, JSON.stringify(record));
   } catch {}
 }
 
-/** Whether a page's tips were already shown on this device (so a follow-up set can wait for them). */
-export const tipsSeen = (id: string) => seen(id);
+/** Whether a page's tips are finished with: gone through to the end, shown twice, or skipped twice. */
+function seen(id: string): boolean {
+  const r = readRecord(id);
+  return r.done || r.shown >= MAX_SHOWS || r.skips >= MAX_SKIPS;
+}
 
-/** Clears every page's "seen" mark so the tips show again. */
+/** Clears every page's tips record so they show again. */
 export function resetTips() {
   try {
     Object.keys(localStorage)
@@ -39,6 +52,12 @@ export function resetTips() {
       .forEach((k) => localStorage.removeItem(k));
   } catch {}
 }
+
+/** Whether a page's tips were already shown at least once on this device (so a follow-up set can wait for them). */
+export const tipsSeen = (id: string) => {
+  const r = readRecord(id);
+  return r.done || r.shown > 0;
+};
 
 const BUBBLE_W = 260;
 
@@ -78,7 +97,11 @@ export function Tips({ id, tips, delay = 900 }: { id: string; tips: Tip[]; delay
     let timer = setTimeout(function check() {
       const present = tips.filter((t) => findTarget(t.target));
       if (present.length === tips.length || Date.now() - started > delay + 6000) {
-        if (present.length) setSteps(present);
+        if (present.length) {
+          const r = readRecord(id);
+          writeRecord(id, { ...r, shown: r.shown + 1 });
+          setSteps(present);
+        }
         return;
       }
       timer = setTimeout(check, 300);
@@ -119,14 +142,19 @@ export function Tips({ id, tips, delay = 900 }: { id: string; tips: Tip[]; delay
     };
   }, [step, measure]);
 
-  const close = useCallback(() => {
-    markSeen(id);
-    setSteps(null);
-  }, [id]);
+  /** Finished (Got it): done for good. Skipped (Skip or Escape): counted; two Skips end them for good. */
+  const close = useCallback(
+    (how: "done" | "skip") => {
+      const r = readRecord(id);
+      writeRecord(id, how === "done" ? { ...r, done: true } : { ...r, skips: r.skips + 1 });
+      setSteps(null);
+    },
+    [id]
+  );
 
   useEffect(() => {
     if (!step) return;
-    const onKey = (e: KeyboardEvent) => e.key === "Escape" && close();
+    const onKey = (e: KeyboardEvent) => e.key === "Escape" && close("skip");
     window.addEventListener("keydown", onKey);
     return () => window.removeEventListener("keydown", onKey);
   }, [step, close]);
@@ -182,12 +210,12 @@ export function Tips({ id, tips, delay = 900 }: { id: string; tips: Tip[]; delay
             </span>
           )}
           {!last && (
-            <button onClick={close} className="tip-skip ml-auto text-[12.5px] font-semibold underline-offset-4 hover:underline">
+            <button onClick={() => close("skip")} className="tip-skip ml-auto text-[12.5px] font-semibold underline-offset-4 hover:underline">
               Skip
             </button>
           )}
           <button
-            onClick={() => (last ? close() : setIndex(index + 1))}
+            onClick={() => (last ? close("done") : setIndex(index + 1))}
             autoFocus
             className={`tip-next rounded-full px-4 py-1.5 text-[12.5px] font-semibold ${last ? "ml-auto" : ""}`}
           >
