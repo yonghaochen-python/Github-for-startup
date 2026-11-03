@@ -597,6 +597,7 @@ function ItemDetail({
               <label className="text-[11px] font-semibold text-[#4f5b66]">
                 Name
                 <input value={form.description} onChange={(e) => setForm({ ...form, description: e.target.value })} className={`${fieldClass} mt-1`} />
+                <span className="mt-1 block font-normal text-[#5d6874]">Try-ons follow the name, so include the fabric (e.g. &ldquo;linen shirt&rdquo;).</span>
               </label>
               <label className="text-[11px] font-semibold text-[#4f5b66]">
                 Brand
@@ -631,7 +632,12 @@ function ItemDetail({
                 </label>
                 <label className="text-[11px] font-semibold text-[#4f5b66]">
                   Material
-                  <input value={form.material} onChange={(e) => setForm({ ...form, material: e.target.value })} className={`${fieldClass} mt-1`} />
+                  <input
+                    value={form.material}
+                    onChange={(e) => setForm({ ...form, material: e.target.value })}
+                    placeholder="e.g. linen, wool knit, silk"
+                    className={`${fieldClass} mt-1`}
+                  />
                 </label>
                 <label className="text-[11px] font-semibold text-[#4f5b66]">
                   Occasion
@@ -665,6 +671,12 @@ function ItemDetail({
                   </div>
                 ))}
               </dl>
+              <p className="mt-4 text-[12px] text-[#5d6874]">
+                Material or color not quite right? Photos can be misleading.{" "}
+                <button onClick={() => setEditing(true)} className="font-semibold text-[#121821] underline underline-offset-4">
+                  Change it
+                </button>
+              </p>
               <div className="mt-auto flex flex-wrap items-center gap-3 pt-8">
                 <Link href="/studio" className={btnPrimary}>
                   <SparkleIcon className="h-4 w-4" /> Style an Outfit

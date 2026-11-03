@@ -653,8 +653,12 @@ export function AddClothesModal<T extends { id: string; imageUrl: string }>({
               </div>
             ) : (
               <>
-                <p className="mb-3 text-sm font-medium text-[#29343a]">
+                <p className="text-sm font-medium text-[#29343a]">
                   {items.length} item{items.length === 1 ? "" : "s"} detected
+                </p>
+                <p className="mb-3 mt-0.5 text-[12.5px] text-[#5d6874]">
+                  Photos can be misleading: change the material or color if it isn&apos;t right (and add the fabric to the name, like &ldquo;linen
+                  shirt&rdquo;, so try-ons show it).
                 </p>
                 <div className="mb-5 grid grid-cols-1 gap-4 sm:grid-cols-2">
                   {items.map((item, i) => (
