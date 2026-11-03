@@ -78,7 +78,7 @@ export async function POST(request: Request) {
       user,
       "photo",
       requestIdFrom(formData.get("requestId")),
-      () => runTryOn({ person, layers: orderedLayerEntries(items), garmentSheet }, user.id),
+      () => runTryOn({ person, layers: orderedLayerEntries(items), garmentSheet }, user.id, user.role),
       (r) => !r.isMock && Boolean(r.imageDataUrl)
     );
     return NextResponse.json({ result }, { headers: noStore });

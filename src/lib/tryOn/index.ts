@@ -1,7 +1,7 @@
 import { bflFluxVtoProvider } from "./providers/bflFluxVto";
 import { falFluxVtoProvider } from "./providers/falFluxVto";
 import { mockTryOnProvider } from "./mockProvider";
-import { takeTryOnSlot } from "./rateLimit";
+import { returnTryOnSlot, takeTryOnSlot } from "./rateLimit";
 import { TryOnError, type TryOnInput, type TryOnProvider, type TryOnResult } from "./types";
 
 export { TryOnError } from "./types";
@@ -36,10 +36,17 @@ function getTryOnProvider(): TryOnProvider {
  * The single entry point the API route uses. Picks the configured provider and, for real (paid) providers,
  * applies a per-user hourly cap so one person can't burn through the credits.
  */
-export async function runTryOn(input: TryOnInput, userId: string): Promise<TryOnResult> {
+export async function runTryOn(input: TryOnInput, userId: string, role = "user"): Promise<TryOnResult> {
   const provider = getTryOnProvider();
-  if (provider.name !== "mock" && !takeTryOnSlot(userId)) {
+  // Admins aren't limited (as with credits). Everyone else: a try-on that fails gives its slot back.
+  const counted = provider.name !== "mock" && role !== "admin";
+  if (counted && !takeTryOnSlot(userId)) {
     throw new TryOnError("rate_limited", "You've run a lot of try-ons in the last hour. Please try again a little later.");
   }
-  return provider.generate(input);
+  try {
+    return await provider.generate(input);
+  } catch (err) {
+    if (counted) returnTryOnSlot(userId);
+    throw err;
+  }
 }

@@ -17,3 +17,9 @@ export function takeTryOnSlot(userId: string): boolean {
   hits.set(userId, recent);
   return true;
 }
+
+/** Gives a slot back (the try-on failed, so it shouldn't count toward the hour). */
+export function returnTryOnSlot(userId: string): void {
+  const recent = hits.get(userId);
+  if (recent?.length) recent.pop();
+}

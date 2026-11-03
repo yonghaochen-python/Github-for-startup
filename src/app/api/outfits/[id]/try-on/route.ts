@@ -114,7 +114,7 @@ export async function POST(request: Request, ctx: RouteContext<"/api/outfits/[id
         user,
         "photo",
         requestIdFrom(formData.get("requestId")),
-        () => trackTimed(user.id, "tryon", () => runTryOn({ person: person!, layers, garmentSheet }, user.id)),
+        () => trackTimed(user.id, "tryon", () => runTryOn({ person: person!, layers, garmentSheet }, user.id, user.role)),
         (r) => !r.isMock && Boolean(r.imageDataUrl)
       );
       if (cacheKey && !result.isMock && result.imageDataUrl) await cacheTryOn(cacheKey, result.imageDataUrl).catch(() => {});
