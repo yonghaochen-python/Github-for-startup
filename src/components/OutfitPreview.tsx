@@ -1,0 +1,98 @@
+"use client";
+
+import type { ClothingItem, Outfit } from "@/components/OutfitCard";
+import type { LayeringRole } from "@/lib/layering";
+import { retryImage } from "@/lib/retryImage";
+
+/** Top layers first, then what's below them: the order the pieces are numbered in. */
+const ORDER: LayeringRole[] = ["outer_layer", "mid_layer", "base_layer", "one_piece", "bottom", "shoes", "accessory"];
+const TOPS: LayeringRole[] = ["outer_layer", "mid_layer", "base_layer", "one_piece"];
+
+const isCutout = (p: ClothingItem) => p.imageUrl.startsWith("/uploads/cut-");
+
+function Piece({ piece, className = "" }: { piece: ClothingItem; className?: string }) {
+  return (
+    // eslint-disable-next-line @next/next/no-img-element
+    <img
+      src={piece.imageUrl}
+      alt={piece.description}
+      onError={retryImage}
+      loading="lazy"
+      className={`h-full w-full object-contain ${isCutout(piece) ? "drop-shadow-[0_8px_12px_rgba(18,24,33,0.14)]" : "rounded-[10px]"} ${className}`}
+    />
+  );
+}
+
+/**
+ * The whole look standing up, top to bottom: the outer top (with what's under it peeking out), then the bottom,
+ * then the shoes. Made only from the outfit's own photos (no AI, no credit), so it never pretends to be a person.
+ */
+function Standing({ pieces }: { pieces: ClothingItem[] }) {
+  const tops = pieces.filter((p) => TOPS.includes(p.layeringRole));
+  const onePiece = tops.find((p) => p.layeringRole === "one_piece");
+  const bottom = pieces.find((p) => p.layeringRole === "bottom");
+  const shoes = pieces.find((p) => p.layeringRole === "shoes");
+  const [front, under] = tops; // tops are in ORDER: the outermost first
+  const long = Boolean(onePiece && !bottom);
+
+  return (
+    <div className="absolute inset-0 flex flex-col items-center px-[8%] pb-[4%] pt-[6%]">
+      {front && (
+        <div className={`relative w-full ${long ? "h-[78%]" : "h-[40%]"}`}>
+          {under && under !== front && (
+            <div className="absolute inset-0 translate-x-[14%] translate-y-[8%] scale-[0.86] opacity-95">
+              <Piece piece={under} />
+            </div>
+          )}
+          <div className="relative h-full">
+            <Piece piece={front} />
+          </div>
+        </div>
+      )}
+      {bottom && (
+        <div className={`relative w-[86%] ${front ? "-mt-[4%] h-[44%]" : "h-[80%]"}`}>
+          <Piece piece={bottom} />
+        </div>
+      )}
+      {shoes && (
+        <div className="relative mt-auto h-[13%] w-[52%]">
+          <Piece piece={shoes} />
+        </div>
+      )}
+    </div>
+  );
+}
+
+/**
+ * A recommended look before it's used: its pieces numbered down the left (01, 02, 03 …) and the whole look on the
+ * right — the person's own try-on of it when there is one, otherwise its pieces standing top to bottom.
+ */
+export function OutfitPreview({ outfit, className = "" }: { outfit: Outfit; className?: string }) {
+  const pieces = outfit.layers.flatMap((l) => l.items).sort((a, b) => ORDER.indexOf(a.layeringRole) - ORDER.indexOf(b.layeringRole));
+  const listed = pieces.slice(0, 4);
+  const more = pieces.length - listed.length;
+
+  return (
+    <div className={`grid grid-cols-[minmax(0,0.85fr)_minmax(0,1.15fr)] bg-white ${className}`}>
+      <ol className="flex min-h-0 flex-col gap-2 py-4 pl-4 pr-2">
+        {listed.map((p, i) => (
+          <li key={p.id} className="flex min-h-0 flex-1 flex-col">
+            <span className="text-[10.5px] font-semibold tracking-[1.2px] text-[#121821]">{String(i + 1).padStart(2, "0")}</span>
+            <div className="relative min-h-0 flex-1 p-1">
+              <Piece piece={p} />
+            </div>
+          </li>
+        ))}
+        {more > 0 && <li className="text-[10.5px] font-semibold tracking-[1px] text-[#5d6874]">+{more} more</li>}
+      </ol>
+      <div className="relative min-h-0 bg-[#f7f7f5]">
+        {outfit.tryOn ? (
+          // eslint-disable-next-line @next/next/no-img-element -- private, owner-only image
+          <img src={`/api/outfits/${outfit.id}/try-on/image?v=${outfit.tryOn}`} alt="You wearing this look" className="absolute inset-0 h-full w-full object-cover object-top" />
+        ) : (
+          <Standing pieces={pieces} />
+        )}
+      </div>
+    </div>
+  );
+}

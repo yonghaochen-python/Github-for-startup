@@ -16,6 +16,7 @@ import { useToast } from "@/components/Toast";
 import { MirrorIcon, SearchIcon } from "@/components/Icons";
 import { ErrorNote, PageShell, btnPrimary, btnSecondary, mirrorFrame } from "@/components/ui";
 import { OutfitFlatLay } from "@/components/OutfitFlatLay";
+import { IdeasPicker } from "@/components/IdeasPicker";
 import { shuffleOutfit } from "@/lib/shuffleOutfit";
 import { TRY_ON_CAVEAT, requestShopTryOn, requestTryOn, type TryOnResult } from "@/lib/tryOnClient";
 import { LiveTryOn, type ShopPick } from "@/components/LiveTryOn";
@@ -134,6 +135,8 @@ export default function StudioPage() {
   const [ideas, setIdeas] = useState<Outfit[]>([]);
   // The ideas came from a search made before (same search, same closet): shown free, with New ideas to ask again.
   const [ideasSaved, setIdeasSaved] = useState(false);
+  // The ideas shown side by side (pieces and the whole look) before one is used.
+  const [picking, setPicking] = useState(false);
 
   const [liveProvider, setLiveProvider] = useState(false);
   const [configLoaded, setConfigLoaded] = useState(false);
@@ -428,7 +431,7 @@ export default function StudioPage() {
       if (!res.ok || !data.outfits?.length) throw new Error(data.error ?? "Couldn't style that right now.");
       setIdeasSaved(Boolean(data.saved));
       setIdeas(data.outfits);
-      showOutfit(data.outfits[0]);
+      setPicking(true);
     } catch (err) {
       setError(err instanceof Error ? err.message : "Couldn't style that right now.");
     } finally {
@@ -751,8 +754,13 @@ export default function StudioPage() {
                       {pieces.length} {pieces.length === 1 ? "piece" : "pieces"}
                     </span>
                   </p>
-                  {ideas.length > 1 && (
-                    <div className="ml-auto flex items-center gap-1.5" aria-label="Outfit ideas">
+                  {ideas.length > 0 && (
+                    <button onClick={() => setPicking(true)} className="ml-auto text-[12px] font-semibold text-[#121821] underline-offset-4 hover:underline">
+                      See ideas
+                    </button>
+                  )}
+                  {ideas.length > 1 && ideas.some((idea) => idea.id === look.outfitId) && (
+                    <div className="flex items-center gap-1.5" aria-label="Outfit ideas">
                       {ideas.map((idea, i) => {
                         const active = idea.id === look.outfitId;
                         return (
@@ -932,6 +940,19 @@ export default function StudioPage() {
           </div>
         </div>
       </PageShell>
+      {picking && ideas.length > 0 && (
+        <IdeasPicker
+          ideas={ideas}
+          saved={ideasSaved}
+          styling={styling}
+          onPick={(idea) => {
+            showOutfit(idea);
+            setPicking(false);
+          }}
+          onNew={() => styleTheme(undefined, true)}
+          onClose={() => setPicking(false)}
+        />
+      )}
     </main>
   );
 }
