@@ -88,12 +88,12 @@ export function NumberedPieces({ pieces, max = 4, className = "" }: { pieces: Cl
  * A recommended look before it's used: its pieces numbered down the left (01, 02, 03 …) and the whole look on the
  * right — the person's own try-on of it when there is one, otherwise its pieces standing top to bottom.
  */
-export function OutfitPreview({ outfit, className = "" }: { outfit: Outfit; className?: string }) {
+export function OutfitPreview({ outfit, className = "", lookOnly = false }: { outfit: Outfit; className?: string; /** Only the whole look (small cards). */ lookOnly?: boolean }) {
   const pieces = outfit.layers.flatMap((l) => l.items).sort((a, b) => ORDER.indexOf(a.layeringRole) - ORDER.indexOf(b.layeringRole));
 
   return (
-    <div className={`grid grid-cols-[minmax(84px,32%)_minmax(0,1fr)] bg-white ${className}`}>
-      <NumberedPieces pieces={pieces} className="border-r border-black/[0.07] px-3 py-5" />
+    <div className={`grid bg-white ${lookOnly ? "grid-cols-1" : "grid-cols-[minmax(84px,32%)_minmax(0,1fr)]"} ${className}`}>
+      {!lookOnly && <NumberedPieces pieces={pieces} className="border-r border-black/[0.07] px-3 py-5" />}
       <div className="relative min-h-0 bg-[#f7f7f5]">
         {outfit.tryOn ? (
           <PersonPicture src={`/api/outfits/${outfit.id}/try-on/image?v=${outfit.tryOn}`} alt="You wearing this look" className="absolute inset-0 h-full w-full object-contain" />

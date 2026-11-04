@@ -568,6 +568,44 @@ export default function StudioPage() {
   // The try-on on show right now (made in this visit), for its Good / Bad feedback.
   const shownTryOnId = !picture ? undefined : hasShopPieces ? shopShown?.requestId : !changed ? result?.requestId : undefined;
 
+  // Save, Share and Undo: on the photo on wider screens, in a row under it on phones (so they never cover the face).
+  const mirrorActions = (
+    <>
+      {pieces.length > 0 && !hasShopPieces && (
+        <span data-tip="studio-save" className="contents">
+          <SaveToggle
+            saved={!changed && look.isFavorite}
+            busy={saving}
+            onToggle={toggleSaved}
+            className={`h-11 w-11 ${!changed && look.isFavorite ? "" : "!bg-white/90 !shadow-sm hover:!bg-white"}`}
+          />
+        </span>
+      )}
+      {picture && look.outfitId && (
+        <ShareArrowButton
+          data-tip="studio-share"
+          look={{
+            id: look.outfitId,
+            v: look.tryOn ?? String(result?.imageDataUrl?.length ?? 1),
+            label: look.occasion?.trim() || `${pieces.length}-piece look`,
+          }}
+        />
+      )}
+      <button
+        onClick={undo}
+        disabled={undoSteps.length === 0}
+        aria-label="Undo: back to the previous outfit"
+        title={undoSteps.length ? "Back to the previous outfit" : "Nothing to undo yet"}
+        className="flex h-11 w-11 items-center justify-center rounded-full bg-white/90 text-[#121821] shadow-sm hover:bg-white disabled:opacity-40 disabled:hover:bg-white/90"
+      >
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" className="h-5 w-5" aria-hidden>
+          <path d="M9 14 4 9l5-5" />
+          <path d="M4 9h10.5a5.5 5.5 0 0 1 0 11H11" />
+        </svg>
+      </button>
+    </>
+  );
+
   // On wider screens the picks sit beside the photo in the mirror; otherwise (phones, Live, no photo) below it.
   const sidePicks = mode !== "live" && !outfitOnly && !changingPhoto && hasPhoto;
   // The top 3 picks: the last Style it ideas, or three free outfits (Style it with no theme makes new ones).
@@ -695,9 +733,9 @@ export default function StudioPage() {
             ) : (
               <div
                 ref={mirrorRef}
-                className={`${mirrorFrame} grid bg-white ${
+                className={`${mirrorFrame} grid bg-white max-md:max-h-[50vh] ${
                   pieces.length
-                    ? "grid-cols-[minmax(88px,24%)_minmax(0,1fr)] md:grid-cols-[minmax(88px,18%)_minmax(0,1fr)_minmax(150px,26%)]"
+                    ? "grid-cols-[minmax(88px,1fr)_auto] md:grid-cols-[minmax(88px,18%)_minmax(0,1fr)_minmax(150px,26%)]"
                     : "grid-cols-1 md:grid-cols-[minmax(0,1fr)_minmax(150px,26%)]"
                 }`}
               >
@@ -720,13 +758,13 @@ export default function StudioPage() {
                   </div>
                 )}
                 {!picture && !trying && pieces.length > 0 && !stalePicture && (
-                  <span className="absolute bottom-14 left-1/2 -translate-x-1/2 whitespace-nowrap rounded-full bg-white/90 px-3 py-1 text-[11px] font-semibold text-[#4f5b66]">
+                  <span className="absolute bottom-3 left-1/2 -translate-x-1/2 whitespace-nowrap md:bottom-14 rounded-full bg-white/90 px-3 py-1 text-[11px] font-semibold text-[#4f5b66]">
                     Press Try On to see it on you
                   </span>
                 )}
                 {stalePicture && (
-                  <span className="absolute bottom-14 left-1/2 -translate-x-1/2 whitespace-nowrap flex items-center gap-2 rounded-full bg-white/95 py-1 pl-3 pr-1 text-[11px] font-semibold text-[#4f5b66] shadow-sm">
-                    Look changed
+                  <span className="absolute bottom-3 left-1/2 -translate-x-1/2 whitespace-nowrap md:bottom-14 flex items-center gap-2 rounded-full bg-white/95 py-1 pl-1 pr-1 md:pl-3 text-[11px] font-semibold text-[#4f5b66] shadow-sm">
+                    <span className="max-md:hidden">Look changed</span>
                     <button
                       onClick={() => tryOn()}
                       className="rounded-full bg-[#121821] px-2.5 py-1 text-[11px] font-semibold text-white hover:bg-[#2a3542]"
@@ -737,8 +775,8 @@ export default function StudioPage() {
                   </span>
                 )}
                 {!changed && result?.reused && !trying && (
-                  <span className="absolute bottom-14 left-1/2 -translate-x-1/2 whitespace-nowrap flex items-center gap-2 rounded-full bg-white/90 py-1 pl-3 pr-1 text-[11px] font-semibold text-[#4f5b66] shadow-sm">
-                    Saved try-on
+                  <span className="absolute bottom-3 left-1/2 -translate-x-1/2 whitespace-nowrap md:bottom-14 flex items-center gap-2 rounded-full bg-white/90 py-1 pl-1 pr-1 md:pl-3 text-[11px] font-semibold text-[#4f5b66] shadow-sm">
+                    <span className="max-md:hidden">Saved try-on</span>
                     <button
                       onClick={() => tryOn(true)}
                       className="rounded-full bg-[#121821] px-2.5 py-1 text-[11px] font-semibold text-white hover:bg-[#2a3542]"
@@ -749,56 +787,33 @@ export default function StudioPage() {
                   </span>
                 )}
                 {((!changed && result?.isMock) || shopShown?.isMock) && (
-                  <span className="absolute bottom-14 left-1/2 -translate-x-1/2 whitespace-nowrap rounded-full bg-[#121821]/90 px-3 py-1 text-[10px] font-bold tracking-[1.4px] text-white">
+                  <span className="absolute bottom-3 left-1/2 -translate-x-1/2 whitespace-nowrap md:bottom-14 rounded-full bg-[#121821]/90 px-3 py-1 text-[10px] font-bold tracking-[1.4px] text-white">
                     PREVIEW (AI NOT CONNECTED)
                   </span>
                 )}
                 <button
                   onClick={() => setChangingPhoto(true)}
-                  className="absolute bottom-4 left-1/2 -translate-x-1/2 whitespace-nowrap rounded-full bg-white/90 px-3.5 py-1.5 text-[12px] font-semibold text-[#121821] shadow-sm hover:bg-white"
+                  className="absolute bottom-4 left-1/2 hidden -translate-x-1/2 whitespace-nowrap rounded-full bg-white/90 px-3.5 py-1.5 text-[12px] font-semibold text-[#121821] shadow-sm hover:bg-white md:block"
                 >
                   Change photo
                 </button>
-                {/* Top right: Save, the share arrow (adds this tried-on look to the "to share" list), and Undo. */}
-                {!trying && (
-                  <div className="absolute right-3 top-3 flex flex-col gap-2">
-                    {pieces.length > 0 && !hasShopPieces && (
-                      <span data-tip="studio-save" className="contents">
-                        <SaveToggle
-                          saved={!changed && look.isFavorite}
-                          busy={saving}
-                          onToggle={toggleSaved}
-                          className={`h-11 w-11 ${!changed && look.isFavorite ? "" : "!bg-white/90 !shadow-sm hover:!bg-white"}`}
-                        />
-                      </span>
-                    )}
-                    {picture && look.outfitId && (
-                      <ShareArrowButton
-                        data-tip="studio-share"
-                        look={{
-                          id: look.outfitId,
-                          v: look.tryOn ?? String(result?.imageDataUrl?.length ?? 1),
-                          label: look.occasion?.trim() || `${pieces.length}-piece look`,
-                        }}
-                      />
-                    )}
-                    <button
-                      onClick={undo}
-                      disabled={undoSteps.length === 0}
-                      aria-label="Undo: back to the previous outfit"
-                      title={undoSteps.length ? "Back to the previous outfit" : "Nothing to undo yet"}
-                      className="flex h-11 w-11 items-center justify-center rounded-full bg-white/90 text-[#121821] shadow-sm hover:bg-white disabled:opacity-40 disabled:hover:bg-white/90"
-                    >
-                      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" className="h-5 w-5" aria-hidden>
-                        <path d="M9 14 4 9l5-5" />
-                        <path d="M4 9h10.5a5.5 5.5 0 0 1 0 11H11" />
-                      </svg>
-                    </button>
-                  </div>
-                )}
+                {/* Top right on wider screens: Save, the share arrow (adds this tried-on look to the "to share" list), and Undo. */}
+                {!trying && <div className="absolute right-3 top-3 hidden flex-col gap-2 md:flex">{mirrorActions}</div>}
                 </div>
                 </div>
                 <OutfitPicks {...picksProps} layout="column" className="hidden min-h-0 border-l border-black/[0.07] p-3 md:flex" />
+              </div>
+            )}
+            {/* Phones: the photo's actions in one row under it. */}
+            {sidePicks && !trying && (
+              <div className="flex items-center gap-2 border-t border-black/[0.06] px-4 py-2.5 md:hidden">
+                <span className="flex items-center gap-2 [&_a]:!h-10 [&_a]:!w-10 [&_button]:!h-10 [&_button]:!w-10">{mirrorActions}</span>
+                <button
+                  onClick={() => setChangingPhoto(true)}
+                  className="ml-auto h-10 rounded-full bg-[#f4f5f6] px-3.5 text-[12px] font-semibold text-[#121821]"
+                >
+                  Change photo
+                </button>
               </div>
             )}
 
@@ -813,19 +828,28 @@ export default function StudioPage() {
                   <p className="text-center text-[11.5px] text-[#5d6874]">Outfit ideas are free. A try-on on your photo uses 1 photo credit.</p>
                 </div>
               ) : (
+              <>
+              {/* Phones: the top 3 picks just above Try On (one swipe, one tap, then Try On). */}
+              {sidePicks && <OutfitPicks {...picksProps} size="small" className="mb-4 md:hidden" />}
               <div data-tip="studio-tryon" className="flex items-center gap-3">
                 <button onClick={() => tryOn()} disabled={trying || pieces.length === 0 || (!hasPhoto && !chosenPhoto)} className={`${btnPrimary} min-h-[48px] flex-1`}>
                   <MirrorIcon className="h-4 w-4" />
                   {trying ? "Trying on…" : "Try On"}
                 </button>
               </div>
+              </>
               )}
               <Feedback kind="photo" targetId={shownTryOnId} className="mt-3 justify-center" />
               {!outfitOnly && <CreditsLine kind="photo" />}
               {hasShopPieces && (
                 <p className="mt-2 text-center text-[11.5px] text-[#5d6874]">Looks with Shopping pieces aren&apos;t saved: the picture shows here only.</p>
               )}
-              {!outfitOnly && <p className="mt-2 text-center text-[11.5px] leading-snug text-[#5d6874]">{TRY_ON_CAVEAT}</p>}
+              {!outfitOnly && (
+                <p className="mt-2 text-center text-[11.5px] leading-snug text-[#5d6874]">
+                  <span className="md:hidden">AI preview · real fit and color may differ</span>
+                  <span className="hidden md:inline">{TRY_ON_CAVEAT}</span>
+                </p>
+              )}
             </div>
           </section>
           )}
@@ -1020,7 +1044,7 @@ export default function StudioPage() {
             </section>
           </div>
         </div>
-        <div className={`mt-8 ${sidePicks ? "md:hidden" : ""}`}>
+        <div className={`mt-8 ${sidePicks ? "hidden" : ""}`}>
           {/* The top 3 picks, below the mirror on phones: the last Style it ideas, or three free outfits (Style it with no theme makes new ones). */}
           <OutfitPicks {...picksProps} />
         </div>

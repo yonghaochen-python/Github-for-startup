@@ -73,6 +73,12 @@ export default function ProfilePage() {
               <button onClick={logout} className={btnSecondary}>
                 Log out of Virm
               </button>
+              {/* Phones: Admin isn't in the top bar there. */}
+              {user?.isAdmin && (
+                <Link href="/admin" className={`${btnSecondary} md:hidden`}>
+                  Admin
+                </Link>
+              )}
               <button
                 onClick={() => {
                   resetTips();

@@ -109,7 +109,7 @@ export function Nav() {
             <Link
               href="/admin"
               aria-current={pathname?.startsWith("/admin") ? "page" : undefined}
-              className={`rounded-full px-4 py-2 text-[12px] font-medium ${
+              className={`hidden rounded-full px-4 py-2 text-[12px] font-medium md:inline-block ${
                 pathname?.startsWith("/admin")
                   ? "bg-[#121821] text-white"
                   : "bg-white text-[#121821] shadow-[inset_0_0_0_1px_rgba(18,24,33,0.12)] hover:shadow-[inset_0_0_0_1px_rgba(18,24,33,0.28)]"
@@ -119,9 +119,10 @@ export function Nav() {
             </Link>
           )}
           {user ? (
+            // On phones, Log out and Admin are in Profile (one tap in the bottom bar), so the top stays clear.
             <button
               onClick={logout}
-              className="rounded-full bg-white px-4 py-2 text-[12px] font-medium text-[#121821] shadow-[inset_0_0_0_1px_rgba(18,24,33,0.12)] hover:shadow-[inset_0_0_0_1px_rgba(18,24,33,0.28)]"
+              className="hidden rounded-full bg-white px-4 py-2 md:inline-block text-[12px] font-medium text-[#121821] shadow-[inset_0_0_0_1px_rgba(18,24,33,0.12)] hover:shadow-[inset_0_0_0_1px_rgba(18,24,33,0.28)]"
             >
               Log out
             </button>
