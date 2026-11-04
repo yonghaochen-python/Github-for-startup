@@ -24,7 +24,7 @@ export function OutfitPicks({
 }) {
   if (!picks.length) return null;
   return (
-    <section aria-label="Top picks" className="mb-5">
+    <section aria-label="Top picks">
       <div className="mb-3 flex flex-wrap items-baseline gap-x-3 gap-y-1">
         <h2 className="font-display text-[26px] leading-tight text-[#121821]">{title}</h2>
         {note}

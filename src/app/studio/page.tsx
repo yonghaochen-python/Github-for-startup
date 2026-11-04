@@ -34,7 +34,7 @@ const SAVE_SHARE_TIPS: Tip[] = [
 ];
 
 const STUDIO_TIPS: Tip[] = [
-  { target: '[data-tip="studio-theme"]', text: "Type a theme for ideas, or press Style it for a random outfit." },
+  { target: '[data-tip="studio-theme"]', text: "Type a theme for ideas, or press Style it for 3 new picks below." },
   { target: '[data-tip="studio-closet"]', text: "Tap to add. Tap again to take it off." },
   { target: '[data-tip="studio-tryon"]', text: "Try it on. The bookmark on the picture saves the look." },
   { target: '.site-nav a[href="/closet"], .site-tabbar a[href="/closet"]', text: "Add more clothes any time in My Closet." },
@@ -463,7 +463,7 @@ export default function StudioPage() {
   async function styleTheme(e?: React.FormEvent, fresh = false) {
     e?.preventDefault();
     if (styling) return;
-    // Nothing typed: a random outfit from the closet, made on the device (free, instant, unlimited).
+    // Nothing typed: three new free picks from the closet, made on the device (instant, unlimited).
     if (!theme.trim() && !fresh) return shuffle();
     setError(null);
     setStyling(true);
@@ -489,16 +489,18 @@ export default function StudioPage() {
     }
   }
 
-  /** A random outfit from the closet, made on the device: free, instant, unlimited. */
+  /** Style it with no theme: three new free picks from the closet, made on the device (instant, unlimited). */
   function shuffle() {
     if (!closet?.length) return setError("Add a few pieces to your closet first.");
-    const next = shuffleOutfit(closet, pieces);
-    if (!next.length) return setError("Add a few more pieces to shuffle outfits.");
+    const next = freePicks(closet);
+    if (!next.length) return setError("Add a few more pieces to make outfits.");
     setError(null);
-    rememberShown(null);
-    setPieces(next);
-    setLook(EMPTY_LOOK);
-    setResult(null);
+    setIdeas([]);
+    setShuffled(next);
+    try {
+      localStorage.removeItem(PICKS_KEY);
+    } catch {}
+    requestAnimationFrame(() => document.querySelector('[aria-label="Top picks"]')?.scrollIntoView({ block: "nearest", behavior: "smooth" }));
   }
 
   function startOver() {
@@ -612,7 +614,7 @@ export default function StudioPage() {
             id="studio-theme"
             value={theme}
             onChange={(e) => setTheme(e.target.value.slice(0, MAX_THEME))}
-            placeholder="Type a theme (old money, first date…) or leave empty for a random outfit"
+            placeholder="Type a theme (old money, first date…) or leave empty for new picks"
             className="min-w-0 flex-1 bg-transparent py-2.5 text-[14px] text-[#121821] outline-none placeholder:text-[#8a96a1]"
           />
           <button type="submit" disabled={styling} className={`${btnPrimary} shrink-0`}>
@@ -627,35 +629,6 @@ export default function StudioPage() {
           </div>
         )}
 
-        {/* The top 3 picks: the last Style it ideas, or three free outfits from the closet. */}
-        <OutfitPicks
-          picks={ideas.length ? ideas : shuffled}
-          activeId={ideas.length ? look.outfitId : (shuffled.find((p) => sameIds(p.layers.flatMap((l) => l.items).map((i) => i.id), pieces.map((i) => i.id)))?.id ?? null)}
-          title={ideas.length ? "Top picks for you" : "Picks from your closet"}
-          note={
-            ideas.length ? (
-              ideasSaved ? (
-                <button onClick={() => styleTheme(undefined, true)} disabled={styling} className="text-[12px] font-semibold text-[#121821] underline underline-offset-4">
-                  {styling ? "Styling…" : "New ideas"}
-                </button>
-              ) : null
-            ) : (
-              <button onClick={() => closet && setShuffled(freePicks(closet))} className="text-[12px] font-semibold text-[#121821] underline underline-offset-4">
-                Shuffle
-              </button>
-            )
-          }
-          onPick={(pick) => {
-            if (pick.id.startsWith("pick-")) {
-              rememberShown(null);
-              setPieces(pick.layers.flatMap((l) => l.items));
-              setLook(EMPTY_LOOK);
-              setResult(null);
-            } else showOutfit(pick);
-            showMirror();
-          }}
-        />
-
         <div className="grid gap-6 lg:grid-cols-[minmax(0,1fr)_minmax(0,400px)] xl:grid-cols-[minmax(0,1fr)_minmax(0,430px)]">
           {/* The mirror: Live (the camera) or Photo (the saved photo or its try-on), in the same frame. */}
           {mode === "live" ? (
@@ -665,7 +638,7 @@ export default function StudioPage() {
             {outfitOnly ? (
               <div className={`${mirrorFrame} bg-[#f1ede7]`}>
                 <span className="absolute left-4 top-4 rounded-full bg-white/90 px-3 py-1 text-[11px] font-semibold text-[#4f5b66]">Your outfit</span>
-                <OutfitFlatLay pieces={pieces} emptyText="Press Style it for a random outfit, type a theme first for ideas, or pick pieces from your closet." />
+                <OutfitFlatLay pieces={pieces} emptyText="Tap a pick below, press Style it for new ones, or pick pieces from your closet." />
                 {pieces.length > 0 && !hasShopPieces && (
                   <div data-tip="studio-save" className="absolute right-4 top-4">
                     <SaveToggle
@@ -876,7 +849,7 @@ export default function StudioPage() {
                 {loadingLook ? (
                   <div className="h-20 animate-pulse rounded-[14px] bg-[#f4f5f6]" />
                 ) : pieces.length === 0 ? (
-                  <p className="rounded-[14px] bg-[#f4f5f6] px-4 py-5 text-[13px] text-[#4f5b66]">Press Style it for a random outfit, type a theme for ideas, or pick pieces below.</p>
+                  <p className="rounded-[14px] bg-[#f4f5f6] px-4 py-5 text-[13px] text-[#4f5b66]">Tap a pick, press Style it for new ones, or pick pieces below.</p>
                 ) : (
                   <ul className="flex gap-2 overflow-x-auto pb-1 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
                     {pieces.map((piece) => (
@@ -1015,6 +988,32 @@ export default function StudioPage() {
               </div>
             </section>
           </div>
+        </div>
+        <div className="mt-8">
+          {/* The top 3 picks, below the mirror: the last Style it ideas, or three free outfits (Style it with no theme makes new ones). */}
+          <OutfitPicks
+            picks={ideas.length ? ideas : shuffled}
+            activeId={ideas.length ? look.outfitId : (shuffled.find((p) => sameIds(p.layers.flatMap((l) => l.items).map((i) => i.id), pieces.map((i) => i.id)))?.id ?? null)}
+            title={ideas.length ? "Top picks for you" : "Picks from your closet"}
+            note={
+              ideas.length ? (
+                ideasSaved ? (
+                  <button onClick={() => styleTheme(undefined, true)} disabled={styling} className="text-[12px] font-semibold text-[#121821] underline underline-offset-4">
+                    {styling ? "Styling…" : "New ideas"}
+                  </button>
+                ) : null
+              ) : null
+            }
+            onPick={(pick) => {
+              if (pick.id.startsWith("pick-")) {
+                rememberShown(null);
+                setPieces(pick.layers.flatMap((l) => l.items));
+                setLook(EMPTY_LOOK);
+                setResult(null);
+              } else showOutfit(pick);
+              showMirror();
+            }}
+          />
         </div>
       </PageShell>
     </main>
