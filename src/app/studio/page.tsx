@@ -18,7 +18,7 @@ import { ErrorNote, PageShell, btnPrimary, btnSecondary, mirrorFrame } from "@/c
 import { OutfitFlatLay } from "@/components/OutfitFlatLay";
 import { NumberedPieces } from "@/components/OutfitPreview";
 import { PersonPicture } from "@/components/PersonPicture";
-import { IdeasPicker } from "@/components/IdeasPicker";
+import { OutfitPicks } from "@/components/OutfitPicks";
 import { shuffleOutfit } from "@/lib/shuffleOutfit";
 import { TRY_ON_CAVEAT, requestShopTryOn, requestTryOn, type TryOnResult } from "@/lib/tryOnClient";
 import { LiveTryOn, type ShopPick } from "@/components/LiveTryOn";
@@ -64,6 +64,25 @@ const UNDO_KEY = "virm-studio-undo";
 type Look = { outfitId: string | null; occasion: string | null; isFavorite: boolean; tryOn: string | null; savedIds: string[] };
 
 const EMPTY_LOOK: Look = { outfitId: null, occasion: null, isFavorite: false, tryOn: null, savedIds: [] };
+
+/** The last Style it ideas (their outfit ids), so they're still the top picks on the next visit. */
+const PICKS_KEY = "virm-studio-picks";
+
+const sameIds = (a: string[], b: string[]) => a.length === b.length && [...a].sort().join() === [...b].sort().join();
+
+/** Free picks made on the device from the closet (not saved outfits; ids start with "pick-"). */
+function freePicks(closet: ClothingItem[]): Outfit[] {
+  const picks: Outfit[] = [];
+  const seen = new Set<string>();
+  for (let tries = 0; picks.length < 3 && tries < 12; tries++) {
+    const items = shuffleOutfit(closet, []);
+    const key = items.map((i) => i.id).sort().join();
+    if (items.length < 2 || seen.has(key)) continue;
+    seen.add(key);
+    picks.push({ id: `pick-${tries}-${key}`, rationale: "", isFavorite: false, occasion: null, layers: items.map((i) => ({ role: i.layeringRole, items: [i] })) });
+  }
+  return picks;
+}
 
 const lookFrom = (outfit: Outfit): Look => ({
   outfitId: outfit.id,
@@ -137,8 +156,8 @@ export default function StudioPage() {
   const [ideas, setIdeas] = useState<Outfit[]>([]);
   // The ideas came from a search made before (same search, same closet): shown free, with New ideas to ask again.
   const [ideasSaved, setIdeasSaved] = useState(false);
-  // The ideas shown side by side (pieces and the whole look) before one is used.
-  const [picking, setPicking] = useState(false);
+  // When there are no Style it ideas: three free outfits from the closet, shown as the top picks.
+  const [shuffled, setShuffled] = useState<Outfit[]>([]);
 
   const [liveProvider, setLiveProvider] = useState(false);
   const [configLoaded, setConfigLoaded] = useState(false);
@@ -222,6 +241,32 @@ export default function StudioPage() {
     setLook(lookFrom(outfit));
     setResult(null);
   }
+
+  // The top picks once the closet is in: last visit's Style it ideas if they're all still there, else free ones.
+  useEffect(() => {
+    if (!closet || ideas.length || shuffled.length) return;
+    let ignore = false;
+    let ids: string[] = [];
+    try {
+      ids = JSON.parse(localStorage.getItem(PICKS_KEY) ?? "[]");
+    } catch {}
+    Promise.all(
+      (Array.isArray(ids) ? ids.slice(0, 3) : []).map((id) =>
+        fetch(`/api/outfits/${encodeURIComponent(String(id))}`).then(async (res) => (res.ok ? ((await res.json()) as { outfit: Outfit }).outfit : null))
+      )
+    )
+      .catch((): (Outfit | null)[] => [])
+      .then((found: (Outfit | null)[]) => {
+        if (ignore) return;
+        const kept: Outfit[] = found.filter((o): o is Outfit => Boolean(o));
+        if (kept.length && kept.length === ids.length) setIdeas(kept);
+        else setShuffled(freePicks(closet));
+      });
+    return () => {
+      ignore = true;
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- once, when the closet first loads
+  }, [closet]);
 
   // The closet, the try-on settings, and the starting look.
   useEffect(() => {
@@ -433,7 +478,10 @@ export default function StudioPage() {
       if (!res.ok || !data.outfits?.length) throw new Error(data.error ?? "Couldn't style that right now.");
       setIdeasSaved(Boolean(data.saved));
       setIdeas(data.outfits);
-      setPicking(true);
+      try {
+        localStorage.setItem(PICKS_KEY, JSON.stringify(data.outfits.slice(0, 3).map((o) => o.id)));
+      } catch {}
+      document.querySelector('[aria-label="Top picks"]')?.scrollIntoView({ block: "nearest", behavior: "smooth" });
     } catch (err) {
       setError(err instanceof Error ? err.message : "Couldn't style that right now.");
     } finally {
@@ -451,7 +499,6 @@ export default function StudioPage() {
     setPieces(next);
     setLook(EMPTY_LOOK);
     setResult(null);
-    setIdeas([]);
   }
 
   function startOver() {
@@ -460,7 +507,6 @@ export default function StudioPage() {
     setPieces([]);
     setLook(EMPTY_LOOK);
     setResult(null);
-    setIdeas([]);
   }
 
   const tabs = source === "shop" && shopPicks.length ? [{ value: "picks", label: "Your outfit" }, ...TABS] : TABS;
@@ -581,6 +627,35 @@ export default function StudioPage() {
           </div>
         )}
 
+        {/* The top 3 picks: the last Style it ideas, or three free outfits from the closet. */}
+        <OutfitPicks
+          picks={ideas.length ? ideas : shuffled}
+          activeId={ideas.length ? look.outfitId : (shuffled.find((p) => sameIds(p.layers.flatMap((l) => l.items).map((i) => i.id), pieces.map((i) => i.id)))?.id ?? null)}
+          title={ideas.length ? "Top picks for you" : "Picks from your closet"}
+          note={
+            ideas.length ? (
+              ideasSaved ? (
+                <button onClick={() => styleTheme(undefined, true)} disabled={styling} className="text-[12px] font-semibold text-[#121821] underline underline-offset-4">
+                  {styling ? "Styling…" : "New ideas"}
+                </button>
+              ) : null
+            ) : (
+              <button onClick={() => closet && setShuffled(freePicks(closet))} className="text-[12px] font-semibold text-[#121821] underline underline-offset-4">
+                Shuffle
+              </button>
+            )
+          }
+          onPick={(pick) => {
+            if (pick.id.startsWith("pick-")) {
+              rememberShown(null);
+              setPieces(pick.layers.flatMap((l) => l.items));
+              setLook(EMPTY_LOOK);
+              setResult(null);
+            } else showOutfit(pick);
+            showMirror();
+          }}
+        />
+
         <div className="grid gap-6 lg:grid-cols-[minmax(0,1fr)_minmax(0,400px)] xl:grid-cols-[minmax(0,1fr)_minmax(0,430px)]">
           {/* The mirror: Live (the camera) or Photo (the saved photo or its try-on), in the same frame. */}
           {mode === "live" ? (
@@ -684,9 +759,8 @@ export default function StudioPage() {
                   Change photo
                 </button>
                 {/* Top right: Save, the share arrow (adds this tried-on look to the "to share" list), and Undo. */}
-                {/* On phones they sit low, by Change photo, so they don't cover the face. */}
                 {!trying && (
-                  <div className="absolute bottom-16 right-3 flex flex-col gap-2 sm:bottom-auto sm:right-4 sm:top-4">
+                  <div className="absolute right-4 top-4 flex flex-col gap-2">
                     {pieces.length > 0 && !hasShopPieces && (
                       <span data-tip="studio-save" className="contents">
                         <SaveToggle
@@ -763,13 +837,8 @@ export default function StudioPage() {
                       {pieces.length} {pieces.length === 1 ? "piece" : "pieces"}
                     </span>
                   </p>
-                  {ideas.length > 0 && (
-                    <button onClick={() => setPicking(true)} className="ml-auto text-[12px] font-semibold text-[#121821] underline-offset-4 hover:underline">
-                      See ideas
-                    </button>
-                  )}
                   {ideas.length > 1 && ideas.some((idea) => idea.id === look.outfitId) && (
-                    <div className="flex items-center gap-1.5" aria-label="Outfit ideas">
+                    <div className="ml-auto flex items-center gap-1.5" aria-label="Outfit ideas">
                       {ideas.map((idea, i) => {
                         const active = idea.id === look.outfitId;
                         return (
@@ -949,19 +1018,6 @@ export default function StudioPage() {
           </div>
         </div>
       </PageShell>
-      {picking && ideas.length > 0 && (
-        <IdeasPicker
-          ideas={ideas}
-          saved={ideasSaved}
-          styling={styling}
-          onPick={(idea) => {
-            showOutfit(idea);
-            setPicking(false);
-          }}
-          onNew={() => styleTheme(undefined, true)}
-          onClose={() => setPicking(false)}
-        />
-      )}
     </main>
   );
 }
