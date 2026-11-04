@@ -698,11 +698,10 @@ export default function StudioPage() {
             ) : (
               <div
                 ref={mirrorRef}
-                className={`${mirrorFrame} grid bg-white ${pieces.length ? "grid-cols-[minmax(96px,1fr)_minmax(46%,auto)]" : "grid-cols-1"}`}
+                className={`${mirrorFrame} grid bg-white ${pieces.length ? "grid-cols-[minmax(88px,24%)_minmax(0,1fr)]" : "grid-cols-1"}`}
               >
                 {/* The look's pieces, numbered down the left; the person on the right, head to toe. */}
-                {pieces.length > 0 && <NumberedPieces pieces={pieces} max={5} className="px-3 py-4 sm:px-6 sm:py-6" />}
-                {/* As wide as the trimmed picture, so the pieces get the rest of the frame. */}
+                {pieces.length > 0 && <NumberedPieces pieces={pieces} max={5} className="justify-center border-r border-black/[0.07] px-3 py-6 sm:px-4 sm:py-8 [&>li]:max-h-[150px]" />}
                 <div className="relative flex min-h-0 min-w-0 justify-center">
                 {picture ? (
                   <PersonPicture src={picture} alt="You wearing this look" className="block h-full w-auto max-w-full object-contain" />
