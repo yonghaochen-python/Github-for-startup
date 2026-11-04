@@ -9,13 +9,15 @@ import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { useAuth } from "@/components/AuthProvider";
 import type { ClothingItem, Outfit } from "@/components/OutfitCard";
 import { withPiece } from "@/lib/outfitPieces";
-import { SavedPhotoImage, SavedPhotoSetup, uploadSavedPhoto } from "@/components/SavedPhoto";
+import { SavedPhotoSetup, uploadSavedPhoto } from "@/components/SavedPhoto";
 import { ShareArrowButton, ShareTray } from "@/components/ShareLooks";
 import { SaveToggle } from "@/components/SaveToggle";
 import { useToast } from "@/components/Toast";
 import { MirrorIcon, SearchIcon } from "@/components/Icons";
 import { ErrorNote, PageShell, btnPrimary, btnSecondary, mirrorFrame } from "@/components/ui";
 import { OutfitFlatLay } from "@/components/OutfitFlatLay";
+import { NumberedPieces } from "@/components/OutfitPreview";
+import { PersonPicture } from "@/components/PersonPicture";
 import { IdeasPicker } from "@/components/IdeasPicker";
 import { shuffleOutfit } from "@/lib/shuffleOutfit";
 import { TRY_ON_CAVEAT, requestShopTryOn, requestTryOn, type TryOnResult } from "@/lib/tryOnClient";
@@ -619,17 +621,22 @@ export default function StudioPage() {
                 />
               </div>
             ) : (
-              <div ref={mirrorRef} className={`${mirrorFrame} bg-[#f4f5f6]`}>
+              <div
+                ref={mirrorRef}
+                className={`${mirrorFrame} grid bg-white ${pieces.length ? "grid-cols-[minmax(96px,1fr)_minmax(46%,auto)]" : "grid-cols-1"}`}
+              >
+                {/* The look's pieces, numbered down the left; the person on the right, head to toe. */}
+                {pieces.length > 0 && <NumberedPieces pieces={pieces} max={5} className="px-3 py-4 sm:px-6 sm:py-6" />}
+                {/* As wide as the trimmed picture, so the pieces get the rest of the frame. */}
+                <div className="relative flex min-h-0 min-w-0 justify-center">
                 {picture ? (
-                  // eslint-disable-next-line @next/next/no-img-element -- private, owner-only image
-                  <img src={picture} alt="You wearing this look" className="absolute inset-0 h-full w-full object-contain" />
+                  <PersonPicture src={picture} alt="You wearing this look" className="block h-full w-auto max-w-full object-contain" />
                 ) : stalePicture ? (
                   // The look was changed: the last try-on stays (faded) until the picture is updated.
-                  // eslint-disable-next-line @next/next/no-img-element -- private, owner-only image
-                  <img src={stalePicture} alt="Your previous try-on" className="absolute inset-0 h-full w-full object-contain opacity-55" />
-                ) : (
-                  <SavedPhotoImage className="absolute inset-0 h-full w-full object-contain" />
-                )}
+                  <PersonPicture src={stalePicture} alt="Your previous try-on" className="block h-full w-auto max-w-full object-contain opacity-55" />
+                ) : user?.photoVersion ? (
+                  <PersonPicture src={`/api/me/photo?v=${user.photoVersion}`} alt="Your saved try-on photo" className="block h-full w-auto max-w-full object-contain" />
+                ) : null}
                 {trying && (
                   <div className="absolute inset-0 flex flex-col items-center justify-center gap-3 bg-[#121821]/35 backdrop-blur-[1px]">
                     <span className="h-10 w-10 animate-spin rounded-full border-2 border-white/40 border-t-white" aria-hidden />
@@ -677,8 +684,9 @@ export default function StudioPage() {
                   Change photo
                 </button>
                 {/* Top right: Save, the share arrow (adds this tried-on look to the "to share" list), and Undo. */}
+                {/* On phones they sit low, by Change photo, so they don't cover the face. */}
                 {!trying && (
-                  <div className="absolute right-4 top-4 flex flex-col gap-2">
+                  <div className="absolute bottom-16 right-3 flex flex-col gap-2 sm:bottom-auto sm:right-4 sm:top-4">
                     {pieces.length > 0 && !hasShopPieces && (
                       <span data-tip="studio-save" className="contents">
                         <SaveToggle
@@ -713,6 +721,7 @@ export default function StudioPage() {
                     </button>
                   </div>
                 )}
+                </div>
               </div>
             )}
 
