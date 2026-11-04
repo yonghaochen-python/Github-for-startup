@@ -568,6 +568,30 @@ export default function StudioPage() {
   // The try-on on show right now (made in this visit), for its Good / Bad feedback.
   const shownTryOnId = !picture ? undefined : hasShopPieces ? shopShown?.requestId : !changed ? result?.requestId : undefined;
 
+  // On wider screens the picks sit beside the photo in the mirror; otherwise (phones, Live, no photo) below it.
+  const sidePicks = mode !== "live" && !outfitOnly && !changingPhoto && hasPhoto;
+  // The top 3 picks: the last Style it ideas, or three free outfits (Style it with no theme makes new ones).
+  const picksProps = {
+    picks: ideas.length ? ideas : shuffled,
+    activeId: ideas.length ? look.outfitId : (shuffled.find((p) => sameIds(p.layers.flatMap((l) => l.items).map((i) => i.id), pieces.map((i) => i.id)))?.id ?? null),
+    title: ideas.length ? "Top picks for you" : "Picks from your closet",
+    note:
+      ideas.length && ideasSaved ? (
+        <button onClick={() => styleTheme(undefined, true)} disabled={styling} className="text-[12px] font-semibold text-[#121821] underline underline-offset-4">
+          {styling ? "Styling…" : "New ideas"}
+        </button>
+      ) : null,
+    onPick: (pick: Outfit) => {
+      if (pick.id.startsWith("pick-")) {
+        rememberShown(null);
+        setPieces(pick.layers.flatMap((l) => l.items));
+        setLook(EMPTY_LOOK);
+        setResult(null);
+      } else showOutfit(pick);
+      showMirror();
+    },
+  };
+
   return (
     <main className="flex-1 pb-16">
       <PageShell className="max-w-[1440px]! pt-6 sm:pt-8">
@@ -671,11 +695,16 @@ export default function StudioPage() {
             ) : (
               <div
                 ref={mirrorRef}
-                className={`${mirrorFrame} grid bg-white ${pieces.length ? "grid-cols-[minmax(88px,24%)_minmax(0,1fr)]" : "grid-cols-1"}`}
+                className={`${mirrorFrame} grid bg-white ${
+                  pieces.length
+                    ? "grid-cols-[minmax(88px,24%)_minmax(0,1fr)] md:grid-cols-[minmax(88px,18%)_minmax(0,1fr)_minmax(150px,26%)]"
+                    : "grid-cols-1 md:grid-cols-[minmax(0,1fr)_minmax(150px,26%)]"
+                }`}
               >
-                {/* The look's pieces, numbered down the left; the person on the right, head to toe. */}
+                {/* The look's pieces numbered down the left, the person head to toe, and (on wider screens) the top 3 picks. */}
                 {pieces.length > 0 && <NumberedPieces pieces={pieces} max={5} className="justify-center border-r border-black/[0.07] px-3 py-6 sm:px-4 sm:py-8 [&>li]:max-h-[150px]" />}
-                <div className="relative flex min-h-0 min-w-0 justify-center">
+                <div className="flex min-h-0 min-w-0 justify-center">
+                <div className="relative h-full min-w-[160px] max-w-full">
                 {picture ? (
                   <PersonPicture src={picture} alt="You wearing this look" className="block h-full w-auto max-w-full object-contain" />
                 ) : stalePicture ? (
@@ -691,12 +720,12 @@ export default function StudioPage() {
                   </div>
                 )}
                 {!picture && !trying && pieces.length > 0 && !stalePicture && (
-                  <span className="absolute left-4 top-4 rounded-full bg-white/90 px-3 py-1 text-[11px] font-semibold text-[#4f5b66]">
+                  <span className="absolute bottom-14 left-1/2 -translate-x-1/2 whitespace-nowrap rounded-full bg-white/90 px-3 py-1 text-[11px] font-semibold text-[#4f5b66]">
                     Press Try On to see it on you
                   </span>
                 )}
                 {stalePicture && (
-                  <span className="absolute left-4 top-4 flex items-center gap-2 rounded-full bg-white/95 py-1 pl-3 pr-1 text-[11px] font-semibold text-[#4f5b66] shadow-sm">
+                  <span className="absolute bottom-14 left-1/2 -translate-x-1/2 whitespace-nowrap flex items-center gap-2 rounded-full bg-white/95 py-1 pl-3 pr-1 text-[11px] font-semibold text-[#4f5b66] shadow-sm">
                     Look changed
                     <button
                       onClick={() => tryOn()}
@@ -708,7 +737,7 @@ export default function StudioPage() {
                   </span>
                 )}
                 {!changed && result?.reused && !trying && (
-                  <span className="absolute left-4 top-4 flex items-center gap-2 rounded-full bg-white/90 py-1 pl-3 pr-1 text-[11px] font-semibold text-[#4f5b66] shadow-sm">
+                  <span className="absolute bottom-14 left-1/2 -translate-x-1/2 whitespace-nowrap flex items-center gap-2 rounded-full bg-white/90 py-1 pl-3 pr-1 text-[11px] font-semibold text-[#4f5b66] shadow-sm">
                     Saved try-on
                     <button
                       onClick={() => tryOn(true)}
@@ -720,19 +749,19 @@ export default function StudioPage() {
                   </span>
                 )}
                 {((!changed && result?.isMock) || shopShown?.isMock) && (
-                  <span className="absolute left-4 top-4 rounded-full bg-[#121821]/90 px-3 py-1 text-[10px] font-bold tracking-[1.4px] text-white">
+                  <span className="absolute bottom-14 left-1/2 -translate-x-1/2 whitespace-nowrap rounded-full bg-[#121821]/90 px-3 py-1 text-[10px] font-bold tracking-[1.4px] text-white">
                     PREVIEW (AI NOT CONNECTED)
                   </span>
                 )}
                 <button
                   onClick={() => setChangingPhoto(true)}
-                  className="absolute bottom-4 right-4 rounded-full bg-white/90 px-3.5 py-1.5 text-[12px] font-semibold text-[#121821] shadow-sm hover:bg-white"
+                  className="absolute bottom-4 left-1/2 -translate-x-1/2 whitespace-nowrap rounded-full bg-white/90 px-3.5 py-1.5 text-[12px] font-semibold text-[#121821] shadow-sm hover:bg-white"
                 >
                   Change photo
                 </button>
                 {/* Top right: Save, the share arrow (adds this tried-on look to the "to share" list), and Undo. */}
                 {!trying && (
-                  <div className="absolute right-4 top-4 flex flex-col gap-2">
+                  <div className="absolute right-3 top-3 flex flex-col gap-2">
                     {pieces.length > 0 && !hasShopPieces && (
                       <span data-tip="studio-save" className="contents">
                         <SaveToggle
@@ -768,6 +797,8 @@ export default function StudioPage() {
                   </div>
                 )}
                 </div>
+                </div>
+                <OutfitPicks {...picksProps} layout="column" className="hidden min-h-0 border-l border-black/[0.07] p-3 md:flex" />
               </div>
             )}
 
@@ -989,31 +1020,9 @@ export default function StudioPage() {
             </section>
           </div>
         </div>
-        <div className="mt-8">
-          {/* The top 3 picks, below the mirror: the last Style it ideas, or three free outfits (Style it with no theme makes new ones). */}
-          <OutfitPicks
-            picks={ideas.length ? ideas : shuffled}
-            activeId={ideas.length ? look.outfitId : (shuffled.find((p) => sameIds(p.layers.flatMap((l) => l.items).map((i) => i.id), pieces.map((i) => i.id)))?.id ?? null)}
-            title={ideas.length ? "Top picks for you" : "Picks from your closet"}
-            note={
-              ideas.length ? (
-                ideasSaved ? (
-                  <button onClick={() => styleTheme(undefined, true)} disabled={styling} className="text-[12px] font-semibold text-[#121821] underline underline-offset-4">
-                    {styling ? "Styling…" : "New ideas"}
-                  </button>
-                ) : null
-              ) : null
-            }
-            onPick={(pick) => {
-              if (pick.id.startsWith("pick-")) {
-                rememberShown(null);
-                setPieces(pick.layers.flatMap((l) => l.items));
-                setLook(EMPTY_LOOK);
-                setResult(null);
-              } else showOutfit(pick);
-              showMirror();
-            }}
-          />
+        <div className={`mt-8 ${sidePicks ? "md:hidden" : ""}`}>
+          {/* The top 3 picks, below the mirror on phones: the last Style it ideas, or three free outfits (Style it with no theme makes new ones). */}
+          <OutfitPicks {...picksProps} />
         </div>
       </PageShell>
     </main>
