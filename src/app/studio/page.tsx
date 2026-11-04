@@ -762,18 +762,6 @@ export default function StudioPage() {
                     Press Try On to see it on you
                   </span>
                 )}
-                {stalePicture && (
-                  <span className="absolute bottom-3 left-1/2 -translate-x-1/2 whitespace-nowrap md:bottom-14 flex items-center gap-2 rounded-full bg-white/95 py-1 pl-1 pr-1 md:pl-3 text-[11px] font-semibold text-[#4f5b66] shadow-sm">
-                    <span className="max-md:hidden">Look changed</span>
-                    <button
-                      onClick={() => tryOn()}
-                      className="rounded-full bg-[#121821] px-2.5 py-1 text-[11px] font-semibold text-white hover:bg-[#2a3542]"
-                      title="Make a picture of the look as it is now (uses a photo try-on)"
-                    >
-                      Update picture
-                    </button>
-                  </span>
-                )}
                 {!changed && result?.reused && !trying && (
                   <span className="absolute bottom-3 left-1/2 -translate-x-1/2 whitespace-nowrap md:bottom-14 flex items-center gap-2 rounded-full bg-white/90 py-1 pl-1 pr-1 md:pl-3 text-[11px] font-semibold text-[#4f5b66] shadow-sm">
                     <span className="max-md:hidden">Saved try-on</span>
@@ -834,7 +822,7 @@ export default function StudioPage() {
               <div data-tip="studio-tryon" className="flex items-center gap-3">
                 <button onClick={() => tryOn()} disabled={trying || pieces.length === 0 || (!hasPhoto && !chosenPhoto)} className={`${btnPrimary} min-h-[48px] flex-1`}>
                   <MirrorIcon className="h-4 w-4" />
-                  {trying ? "Trying on…" : "Try On"}
+                  {trying ? "Trying on…" : stalePicture ? "Update photo" : "Try On"}
                 </button>
               </div>
               </>
