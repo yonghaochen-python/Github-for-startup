@@ -104,9 +104,7 @@ How it works · Pricing · About · Contact · Privacy · Terms · Reset passwor
 
 ---
 
-## Saved but not live yet
-
-These are on the `closet-shelf` branch and go live with "go live":
+## Latest updates (live since November 5, 2026)
 
 - Studio: numbered pieces + you trimmed head to toe, top 3 picks, the one **Try On / Update photo** button, the phone-first layout.
 - Studio: Save / Share / Undo moved off the face, next to the photo.
