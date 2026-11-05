@@ -38,10 +38,10 @@ export function buildStyleProfile(rows: Row[]): StyleProfile {
     } catch {}
     if (!data?.extra) continue;
     seen.add(row.module);
-    const module = row.module as StudioModuleId;
-    profile.sources.push({ module, reportId: row.id, createdAt: row.createdAt.toISOString(), portraitVersion: row.portraitVersion });
+    const kind = row.module as StudioModuleId;
+    profile.sources.push({ module: kind, reportId: row.id, createdAt: row.createdAt.toISOString(), portraitVersion: row.portraitVersion });
 
-    if (module === "color") {
+    if (kind === "color") {
       const x = data.extra as ColorExtra;
       profile.color = {
         season: x.primary.subtype,
@@ -51,7 +51,7 @@ export function buildStyleProfile(rows: Row[]): StyleProfile {
         neutrals: sw(x.groups.neutrals, 5),
         avoid: sw(x.groups.lessHarmonious, 4),
       };
-    } else if (module === "makeup") {
+    } else if (kind === "makeup") {
       const x = data.extra as MakeupExtra;
       profile.makeup = {
         style: x.styles.find((s) => s.best)?.name ?? x.styles[0]?.name ?? data.headline,
@@ -60,10 +60,10 @@ export function buildStyleProfile(rows: Row[]): StyleProfile {
         blush: sw(x.shades.blush, 3),
         eyes: sw(x.shades.eyeshadow, 4),
       };
-    } else if (module === "hair") {
+    } else if (kind === "hair") {
       const x = data.extra as HairExtra;
       profile.hair = { style: x.final.style, color: x.final.color, colors: sw(x.colors.filter((c) => c.rating === "recommended"), 4) };
-    } else if (module === "style") {
+    } else if (kind === "style") {
       const x = data.extra as StyleExtra;
       const main = x.directions.find((d) => d.primary) ?? x.directions[0];
       profile.style = {
