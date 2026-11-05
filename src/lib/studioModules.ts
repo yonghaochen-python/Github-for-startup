@@ -36,7 +36,7 @@ export const STUDIO_MODULES: StudioModule[] = [
   {
     id: "makeup",
     label: "Makeup",
-    title: "Personal Makeup Guide",
+    title: "Makeup Guide",
     description: "Brows, eyes, blush, lips and base in the shades and finishes that suit your features.",
     covers: ["Respectful notes on your features and undertone", "Brows, eyes, liner, blush, lips and base", "Makeup styles that suit you, and why", "Eyeshadow, blush, lipstick and brow shades"],
     tint: "#f8eff0",
