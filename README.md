@@ -11,8 +11,9 @@ Virm is an AI wardrobe app. You put your clothes in a digital closet, get outfit
 ## What's in the demo
 
 ### Home
-- A personal dashboard once you're signed in: your photo, your closet, your saved looks, and a "Next" suggestion.
-- Signed out: an intro to Virm, with **Try it free** (see outfits on a model, nothing saved), Log in and Create account.
+- Signed in: a greeting beside your photo, **Your Next Step** (one suggestion based on where you are), **My Closet** and **Saved Looks** with real counts, and **Recent** (the last two weeks).
+- Signed out: **Your wardrobe. Reimagined.** with **Try It Free**, Create Account and Log In, and demo looks on a model.
+- **Try it free:** Studio's mirror with a demo model and 20 ready-made looks. Tap a piece to see every look made with it. No AI, no account, nothing saved.
 
 ### My Closet
 - Sliding rows of your clothes by type: tops, bottoms, dresses, outerwear, shoes, accessories.
@@ -58,9 +59,9 @@ A personal beauty and fashion consultation, made from a head-and-shoulders photo
 - A report that's being made keeps going if you leave the page.
 
 ### Shopping
-- **Your shopping try-ons:** pieces you've tried from the shop.
-- Tap a piece to add it to your outfit in Studio.
-- Admin-only preview of real store shelves (Allbirds, Alo Yoga, Taylor Stitch, Tentree, Cuyana). Not public until the brands give permission.
+- **Your Shopping Try-Ons:** pieces you've added from stores, with store, name and price. Kept apart from My Closet, and saved on your device.
+- Tap a piece → **Add to Studio**: it joins the look you already have there. Nothing is made by AI until you press Try On.
+- Admin only: **Store Preview** (Admin → Store Preview) with placeholder shelves for Allbirds, Alo Yoga, Taylor Stitch, Tentree and Cuyana. No real products, nothing read from their websites, no partnership.
 
 ### Saved Looks
 - Your saved outfits, each with its pieces numbered and the whole look (your try-on of it if you have one).
@@ -105,6 +106,11 @@ How it works · Pricing · About · Contact · Privacy · Terms · Reset passwor
 ---
 
 ## Latest updates (live since November 5, 2026)
+
+- Studio fitting room: tap a numbered piece to **Replace** or **Remove** it; the photo always says what it is (AI try-on, Earlier try-on, Your photo); quick theme chips; a color filter in the closet; a bottom drawer on phones.
+- New Home: signed-in dashboard and a new signed-out page; **Try it free** rebuilt as a demo fitting room.
+- Fewer words everywhere: captions that repeated titles are gone.
+- Shopping: **Your Shopping Try-Ons** with **Add to Studio**; Store Preview moved to an admin page with placeholders only.
 
 - Studio: numbered pieces + you trimmed head to toe, top 3 picks, the one **Try On / Update photo** button, the phone-first layout.
 - Studio: Save / Share / Undo moved off the face, next to the photo.
