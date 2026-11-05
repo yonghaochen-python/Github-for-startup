@@ -4,6 +4,7 @@ import { CreditError, withCredit } from "@/lib/credits";
 import { PortraitUnusableError, analyzeColor, analyzeHair, analyzeMakeup, analyzeStyle, type Analysis } from "@/lib/studioAnalysis";
 import type { StyledLook, StyledPiece } from "@/lib/closetLook";
 import { topPicks } from "@/lib/studioPicks";
+import { buildStyleProfile, type StyleProfile } from "@/lib/styleProfile";
 import { portraitReadiness, type ReportSummary, type StudioModuleId, type StudioReportData } from "@/lib/studioModules";
 
 /**
@@ -63,6 +64,16 @@ export async function latestReports(userId: string): Promise<Partial<Record<Stud
     if (data) out[r.module as StudioModuleId]!.picks = topPicks(r.module as StudioModuleId, data).slice(0, 2);
   }
   return out;
+}
+
+/** The Unified Style Profile, from each kind's newest finished report (reads saved reports only; no AI). */
+export async function styleProfileFor(userId: string): Promise<StyleProfile> {
+  const rows = await prisma.studioReport.findMany({
+    where: { userId, status: "ready" },
+    orderBy: { createdAt: "desc" },
+    select: { id: true, module: true, data: true, createdAt: true, portraitVersion: true },
+  });
+  return buildStyleProfile(rows);
 }
 
 /** The modules being made right now (not stuck), so pages can show them as on their way. */

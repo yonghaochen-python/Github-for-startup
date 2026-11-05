@@ -2,9 +2,15 @@
 
 import { useCallback, useEffect, useState } from "react";
 import { cropPortrait, preparePortrait } from "@/lib/portraitCheck";
+import type { StyleProfile } from "@/lib/styleProfile";
 import { type PortraitInfo, type ReportSummary, type StudioModuleId } from "@/lib/studioModules";
 
-export type StudioState = { portrait: PortraitInfo | null; reports: Partial<Record<StudioModuleId, ReportSummary>>; generating?: StudioModuleId[] };
+export type StudioState = {
+  portrait: PortraitInfo | null;
+  reports: Partial<Record<StudioModuleId, ReportSummary>>;
+  generating?: StudioModuleId[];
+  profile?: StyleProfile;
+};
 
 export const portraitUrl = (p: PortraitInfo | null) => (p ? `/api/studio/portrait?v=${p.version}` : null);
 

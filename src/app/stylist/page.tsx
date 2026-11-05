@@ -6,6 +6,7 @@ import { PageShell, eyebrow, surface } from "@/components/ui";
 import { ModuleVisual } from "@/components/studio/ModuleVisual";
 import { PortraitControls } from "@/components/studio/PortraitPanel";
 import { PickSwatches } from "@/components/studio/TopPicks";
+import { StyleProfileBoard } from "@/components/studio/StyleProfile";
 import { portraitUrl, useStudio } from "@/components/studio/useStudio";
 import { STUDIO_MODULES, type StudioModuleId } from "@/lib/studioModules";
 import { Tips, type Tip } from "@/components/Tips";
@@ -108,6 +109,9 @@ export default function StylistPage() {
             )}
           </div>
         </section>
+
+        {/* Everything so far in one place, once there's at least one report. */}
+        {state?.profile && state.profile.sources.length > 0 && <StyleProfileBoard profile={state.profile} portrait={portrait} />}
 
         {/* The four analyses. */}
         <section className="mt-14" aria-label="Analyses">
