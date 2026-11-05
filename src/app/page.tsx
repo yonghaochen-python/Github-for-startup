@@ -8,19 +8,16 @@ import { byLatestTryOn, type Outfit } from "@/components/OutfitCard";
 import { useAuth } from "@/components/AuthProvider";
 import { WhatsNewCard, WhatsNewSection } from "@/components/WhatsNew";
 import { LiquidGlass } from "@/components/LiquidGlass";
-import { CurrentLookBar, MirrorImage, SavedPhotoSetup } from "@/components/SavedPhoto";
-import { PageShell, btnPrimary, btnSecondary, eyebrow } from "@/components/ui";
+import { MirrorImage, SavedPhotoSetup } from "@/components/SavedPhoto";
+import { PageShell, btnPrimary } from "@/components/ui";
 import {
   ArrowRightIcon,
-  BookmarkIcon,
   CameraIcon,
-  ClosetIcon,
   MirrorIcon,
   PlusIcon,
 } from "@/components/Icons";
 import { SavedStylistStrip } from "@/components/studio/SavedStylist";
 import { Tips, type Tip } from "@/components/Tips";
-import { CreditGuide } from "@/components/Credits";
 
 const HOME_TIPS: Tip[] = [
   { target: "#mirror", text: "Your mirror: your latest try-on. Open Studio to try on more." },
@@ -146,245 +143,203 @@ export default function Home() {
   return <Dashboard closet={closet} outfits={outfits} />;
 }
 
-function nextStep(hasPhoto: boolean, closetCount: number, outfitCount: number) {
-  if (closetCount === 0) return { text: "Add a few clothes to get started.", href: "/closet?add=1", cta: "Add Clothes" };
-  if (!hasPhoto) return { text: "Save a full-body photo to try outfits on.", href: "#mirror", cta: "Upload My Photo" };
-  if (outfitCount === 0) return { text: "Create your first outfit.", href: "/studio", cta: "Open Studio" };
-  return null;
+type Step = { text: string; cta: string; href?: string; photo?: true; picture?: string };
+
+const WEEK = 7 * 24 * 60 * 60 * 1000;
+
+/** One useful next action, from what the person has done so far (never the same generic line for everyone). */
+function nextStep(hasPhoto: boolean, closet: ClothingItem[], saved: Outfit[], hasStyleProfile: boolean): Step {
+  if (!hasPhoto) return { text: "Upload your photo to start your virtual fitting room.", cta: "Upload photo", photo: true };
+  if (closet.length === 0) return { text: "Add your first clothing pieces to start building outfits.", cta: "Add clothes", href: "/closet?add=1" };
+  if (saved.length === 0) return { text: "Create your first outfit.", cta: "Open Studio", href: "/studio" };
+  if (!hasStyleProfile) return { text: "Discover your personal colors with AI Stylist.", cta: "Open AI Stylist", href: "/stylist" };
+  const recent = saved.find((o) => Date.now() - new Date((o as { createdAt?: string }).createdAt ?? 0).getTime() < WEEK);
+  if (recent) {
+    return {
+      text: "Revisit and customize your saved outfit.",
+      cta: "Open it",
+      href: `/studio?outfit=${recent.id}`,
+      picture: recent.tryOn ? `/api/outfits/${recent.id}/try-on/image?v=${recent.tryOn}` : recent.layers.flatMap((l) => l.items)[0]?.imageUrl,
+    };
+  }
+  return { text: "Try a new combination using your closet.", cta: "Open Studio", href: "/studio" };
+}
+
+/** A section title with its real count, and the way into it. */
+function SectionHead({ id, title, count, href }: { id: string; title: string; count: number; href: string }) {
+  return (
+    <div className="mb-5 flex items-baseline justify-between gap-4">
+      <h2 id={id} className="font-display text-[34px] font-normal leading-none tracking-[-0.6px] text-[#121821] sm:text-[42px]">
+        {title} <span className="ml-1 font-sans text-[15px] tracking-normal text-[#5d6874]">{count}</span>
+      </h2>
+      <Link href={href} className="group inline-flex shrink-0 items-center gap-1 text-[13px] font-semibold text-[#121821]">
+        View all <ArrowRightIcon className="h-4 w-4 transition-transform group-hover:translate-x-0.5" />
+      </Link>
+    </div>
+  );
 }
 
 function Dashboard({ closet, outfits }: { closet: ClothingItem[]; outfits: Outfit[] }) {
   const { user } = useAuth();
   const hasPhoto = Boolean(user?.photoVersion);
   const [settingUpPhoto, setSettingUpPhoto] = useState(false);
-  const name = user?.displayName?.trim() || "";
+  // Whether any AI Stylist analysis is done (read from saved reports; nothing is generated).
+  const [hasStyleProfile, setHasStyleProfile] = useState<boolean | null>(null);
+  useEffect(() => {
+    fetch("/api/studio")
+      .then(async (res) => (res.ok ? ((await res.json()) as { reports?: Record<string, unknown> }).reports ?? {} : {}))
+      .then((reports) => setHasStyleProfile(Object.keys(reports).length > 0))
+      .catch(() => setHasStyleProfile(false));
+  }, []);
+  const name = user?.displayName?.trim().split(/\s+/)[0] || "";
   const saved = outfits.filter((o) => o.isFavorite).sort(byLatestTryOn);
-  const step = nextStep(hasPhoto, closet.length, outfits.length);
+  const step = hasStyleProfile === null ? null : nextStep(hasPhoto, closet, saved, hasStyleProfile);
 
   const hour = new Date().getHours();
   const greeting = hour < 5 ? "Good evening" : hour < 12 ? "Good morning" : hour < 18 ? "Good afternoon" : "Good evening";
 
   return (
-    <main className="flex-1 pb-16">
+    <main className="flex-1 pb-20">
       <Tips id="home" tips={HOME_TIPS} />
-      {/* Welcome: the one satin-mirror moment on the signed-in home. */}
+      {/* The greeting beside the person's own photo (or latest try-on): the one satin-glass moment. */}
       <section className="relative isolate overflow-hidden">
         <LiquidGlass className="absolute inset-0 -z-10" />
         <div aria-hidden className="absolute inset-0 -z-10 bg-[linear-gradient(180deg,color-mix(in_srgb,var(--page)_25%,transparent),transparent_40%,color-mix(in_srgb,var(--page)_70%,transparent))]" />
-        <PageShell className="glass-legible pb-12 pt-16 sm:pb-14 sm:pt-24">
-          <p className="text-[11px] font-semibold uppercase tracking-[2.4px] text-[#26313a]">{greeting}</p>
-          <h1 className="mt-3 font-display text-[48px] font-normal leading-[0.98] tracking-[-1.6px] text-[#121821] sm:text-[72px]">
+        <PageShell className="glass-legible flex items-end justify-between gap-6 pb-10 pt-14 sm:pb-14 sm:pt-20">
+          <h1 className="font-display font-normal leading-[0.95] tracking-[-1.8px] text-[#121821]" style={{ fontSize: "clamp(48px, 7.5vw, 96px)" }}>
+            {greeting}
             {name ? (
               <>
-                Hello, <em className="text-[#2b4560]">{name}</em>.
+                ,<br />
+                <em className="text-[#2b4560]">{name}.</em>
               </>
             ) : (
-              "Hello."
+              "."
             )}
           </h1>
-          <p className="mt-4 max-w-xl text-[15.5px] font-medium leading-relaxed text-[#1c2328]">
-            {closet.length} {closet.length === 1 ? "piece" : "pieces"} in your closet · {saved.length} saved{" "}
-            {saved.length === 1 ? "look" : "looks"}.
-            {step && (
-              <>
-                {" "}
-                <span className="font-medium text-[#121821]">Next:</span> {step.text}
-              </>
-            )}
-          </p>
-          {step && (
-          <div className="mt-7">
-            {step.href.startsWith("#") ? (
-              <button onClick={() => setSettingUpPhoto(true)} className={btnPrimary}>
-                {step.cta}
-              </button>
+          <button
+            id="mirror"
+            onClick={() => setSettingUpPhoto(true)}
+            aria-label={hasPhoto ? "Change your photo" : "Add your photo"}
+            className="relative aspect-[3/4] w-[110px] shrink-0 overflow-hidden rounded-t-full rounded-b-[20px] bg-white/50 shadow-[0_24px_60px_rgba(18,30,45,0.18)] ring-1 ring-white/60 backdrop-blur sm:w-[170px]"
+          >
+            {hasPhoto ? (
+              <MirrorImage className="absolute inset-0 h-full w-full object-cover object-top" />
             ) : (
-              <Link href={step.href} className={btnPrimary}>
-                {step.cta}
-                <ArrowRightIcon className="h-4 w-4" />
-              </Link>
+              <span className="absolute inset-0 flex items-center justify-center text-[#5d6874]">
+                <CameraIcon className="h-6 w-6" />
+              </span>
             )}
-          </div>
-          )}
+          </button>
         </PageShell>
       </section>
 
       <PageShell className="pt-8">
         <WhatsNewCard />
-        <CreditGuide />
+        {settingUpPhoto && (
+          <div className="mb-8 rounded-[22px] bg-white p-4 shadow-[0_14px_36px_rgba(18,30,45,0.06)] sm:p-6">
+            <SavedPhotoSetup onSaved={() => setSettingUpPhoto(false)} onCancel={() => setSettingUpPhoto(false)} />
+          </div>
+        )}
 
-        {/* Your Virtual Mirror */}
-        <section id="mirror" aria-labelledby="mirror-title" className="mb-6 scroll-mt-24 overflow-hidden rounded-[22px] bg-white shadow-[0_1px_0_rgba(18,24,33,0.03),0_14px_36px_rgba(18,30,45,0.06)]">
-          {settingUpPhoto ? (
-            <div className="p-4 sm:p-6">
-              <SavedPhotoSetup onSaved={() => setSettingUpPhoto(false)} onCancel={() => setSettingUpPhoto(false)} />
+        {/* Your Next Step: one action, chosen from where the person is. */}
+        {step && !settingUpPhoto && (
+          <section aria-labelledby="next-title" className="mb-14 flex flex-col items-start gap-4 rounded-[24px] bg-[#121821] p-5 text-white sm:flex-row sm:items-center sm:gap-5 shadow-[0_24px_60px_rgba(18,30,45,0.18)] sm:p-7">
+            {step.picture && (
+              // eslint-disable-next-line @next/next/no-img-element -- private, owner-only image
+              <img src={step.picture} alt="" className="hidden h-24 w-[72px] shrink-0 rounded-[12px] bg-white object-cover sm:block" />
+            )}
+            <div className="min-w-0 flex-1">
+              <h2 id="next-title" className="text-[11px] font-semibold uppercase tracking-[2.2px] text-white/60">
+                Your Next Step
+              </h2>
+              <p className="mt-2 font-display text-[24px] leading-tight sm:text-[30px]">{step.text}</p>
+            </div>
+            {step.photo ? (
+              <button onClick={() => setSettingUpPhoto(true)} className="shrink-0 rounded-full bg-white px-5 py-3 text-[14px] font-semibold text-[#121821]">
+                {step.cta}
+              </button>
+            ) : (
+              <Link href={step.href!} className="inline-flex shrink-0 items-center gap-1.5 rounded-full bg-white px-5 py-3 text-[14px] font-semibold text-[#121821]">
+                {step.cta} <ArrowRightIcon className="h-4 w-4" />
+              </Link>
+            )}
+          </section>
+        )}
+
+        {/* My Closet: the real count and the newest pieces. */}
+        <section aria-labelledby="closet-title" className="mb-14">
+          <SectionHead id="closet-title" title="My Closet" count={closet.length} href="/closet" />
+          {closet.length > 0 ? (
+            <div className="grid grid-cols-3 gap-3 sm:grid-cols-6">
+              {closet.slice(0, 6).map((item, i) => (
+                <Link
+                  key={item.id}
+                  href="/closet"
+                  className={`group relative aspect-[4/5] overflow-hidden rounded-[16px] bg-white shadow-[0_10px_28px_rgba(18,30,45,0.06)] ${i >= 3 ? "hidden sm:block" : ""}`}
+                >
+                  <Image
+                    src={item.imageUrl}
+                    alt={item.description}
+                    fill
+                    unoptimized
+                    className={`transition-transform duration-700 ease-out group-hover:scale-[1.04] ${item.imageUrl.startsWith("/uploads/cut-") ? "object-contain p-3" : "object-cover"}`}
+                  />
+                </Link>
+              ))}
             </div>
           ) : (
-            <div className="grid md:grid-cols-[minmax(0,340px)_1fr]">
-              <div className={`relative overflow-hidden bg-[linear-gradient(160deg,#e9eff2,#d6dfe3_55%,#efe9e1)] md:h-auto md:min-h-[400px] ${hasPhoto ? "h-[340px]" : "h-[200px]"}`}>
-                {hasPhoto ? (
-                  <MirrorImage className="absolute inset-0 h-full w-full object-cover object-top" />
-                ) : (
-                  <div className="absolute inset-0 flex items-center justify-center">
-                    <svg viewBox="0 0 100 220" className="h-[72%] text-[#b2bfc5]" fill="currentColor" aria-hidden>
-                      <circle cx="50" cy="22" r="16" />
-                      <path d="M24 48h52a8 8 0 0 1 8 8l-6 70H64l-3 90H39l-3-90H22l-6-70a8 8 0 0 1 8-8z" />
-                    </svg>
-                  </div>
-                )}
-                <span className="absolute left-4 top-4 bg-white/85 px-2.5 py-1 text-[10.5px] font-bold uppercase tracking-[1.8px] text-[#26313a]">
-                  {user?.look ? "Latest try-on" : hasPhoto ? "Your photo" : "No photo yet"}
-                </span>
-              </div>
-              <div className="flex flex-col justify-center gap-5 p-6 sm:p-10">
-                <p className={`${eyebrow} flex items-center gap-2`}>
-                  <MirrorIcon className="h-4 w-4" /> Studio
-                </p>
-                {hasPhoto ? (
-                  <>
-                    <h2 id="mirror-title" className="font-display text-[38px] font-normal leading-[1.05] text-[#121821] sm:text-[46px]">
-                      Your mirror
-                    </h2>
-                    {user?.look ? (
-                      <CurrentLookBar />
-                    ) : (
-                      <p className="max-w-md text-[14px] leading-relaxed text-[#4f5b66]">Pick any outfit to try on.</p>
-                    )}
-                    <div className="flex flex-wrap items-center gap-3">
-                      <Link href="/studio" className={btnPrimary}>
-                        <MirrorIcon className="h-4 w-4" /> Open Studio
-                      </Link>
-                      <button onClick={() => setSettingUpPhoto(true)} className={btnSecondary}>
-                        Change Photo
-                      </button>
-                    </div>
-                  </>
-                ) : (
-                  <>
-                    <h2 id="mirror-title" className="font-display text-[38px] font-normal leading-[1.05] text-[#121821] sm:text-[46px]">
-                      Start with your photo
-                    </h2>
-                    <p className="max-w-md text-[14px] leading-relaxed text-[#4f5b66]">
-                      Upload one full-body photo. You&apos;ll use it for every try-on.
-                    </p>
-                    <div className="flex flex-wrap items-center gap-3">
-                      <button onClick={() => setSettingUpPhoto(true)} className={btnPrimary}>
-                        <CameraIcon className="h-4 w-4" /> Upload My Photo
-                      </button>
-                      <Link href="/studio" className={btnSecondary}>
-                        Open Studio
-                      </Link>
-                    </div>
-                    <p className="text-[11.5px] text-[#5d6874]">Only you can see it.</p>
-                  </>
-                )}
-              </div>
-            </div>
+            <Link href="/closet?add=1" className={btnPrimary}>
+              <PlusIcon className="h-4 w-4" /> Add clothes
+            </Link>
           )}
         </section>
 
-        {/* Saved Looks: right under the mirror. A look opens in the Studio (with its try-on, if it has one). */}
-        <section aria-labelledby="saved-title" className="overflow-hidden rounded-[22px] bg-white shadow-[0_1px_0_rgba(18,24,33,0.03),0_14px_36px_rgba(18,30,45,0.06)] mb-6">
-          <FeatureHead
-            Icon={BookmarkIcon}
-            id="saved-title"
-            title="Saved Looks"
-          />
+        {/* Saved Looks: the real count and the latest looks (with their try-on when there is one). */}
+        <section aria-labelledby="saved-title" className="mb-6">
+          <SectionHead id="saved-title" title="Saved Looks" count={saved.length} href="/outfits/saved" />
           {saved.length > 0 ? (
-            <div className="grid grid-cols-2 gap-4 px-6 sm:grid-cols-4 sm:px-8">
+            <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
               {saved.slice(0, 4).map((outfit, i) => (
                 <Link
                   key={outfit.id}
                   href={`/studio?outfit=${outfit.id}`}
-                  className={`group block overflow-hidden rounded-[18px] bg-white shadow-[0_1px_0_rgba(18,24,33,0.03),0_10px_28px_rgba(18,30,45,0.05)] ${i >= 2 ? "hidden sm:block" : ""}`}
+                  className={`group relative block aspect-[3/4] overflow-hidden rounded-[18px] bg-white shadow-[0_10px_28px_rgba(18,30,45,0.06)] ${i >= 2 ? "hidden sm:block" : ""}`}
                 >
                   {outfit.tryOn ? (
-                    <div className="relative aspect-[3/4] bg-white">
-                      {/* eslint-disable-next-line @next/next/no-img-element -- private, owner-only image */}
-                      <img
-                        src={`/api/outfits/${outfit.id}/try-on/image?v=${outfit.tryOn}`}
-                        alt="You wearing this look"
-                        loading="lazy"
-                        className="absolute inset-0 h-full w-full object-contain"
-                      />
-                    </div>
+                    // eslint-disable-next-line @next/next/no-img-element -- private, owner-only image
+                    <img
+                      src={`/api/outfits/${outfit.id}/try-on/image?v=${outfit.tryOn}`}
+                      alt="You wearing this look"
+                      loading="lazy"
+                      className="absolute inset-0 h-full w-full object-contain transition-transform duration-700 ease-out group-hover:scale-[1.03]"
+                    />
                   ) : (
-                    <div className="grid grid-cols-2 gap-px bg-[#e5eaec]">
+                    <div className="grid h-full grid-cols-2 gap-px bg-[#eef0f1]">
                       {outfit.layers.flatMap((l) => l.items).slice(0, 4).map((item) => (
-                        <div key={item.id} className="relative aspect-square bg-[#f6f7f7]">
+                        <div key={item.id} className="relative bg-white">
                           <Image src={item.imageUrl} alt={item.description} fill unoptimized className="object-cover" />
                         </div>
                       ))}
                     </div>
                   )}
-                  <p className="truncate px-3 py-2 text-[11.5px] font-semibold capitalize text-[#3b4850] group-hover:underline">
-                    {outfit.occasion ?? "Saved look"}
-                  </p>
+                  {outfit.occasion && (
+                    <span className="absolute bottom-2 left-2 max-w-[85%] truncate rounded-full bg-white/80 px-2.5 py-1 text-[11px] font-semibold capitalize text-[#121821] backdrop-blur">
+                      {outfit.occasion}
+                    </span>
+                  )}
                 </Link>
               ))}
             </div>
           ) : (
-            <div className="mx-6 rounded-[16px] bg-[#f4f5f6] px-5 py-8 text-[13.5px] text-[#4f5b66] sm:mx-8">
-              Nothing saved yet. Press Save Look on any outfit to keep it here.
-            </div>
+            <Link href="/studio" className={btnPrimary}>
+              <MirrorIcon className="h-4 w-4" /> Create a look
+            </Link>
           )}
           {/* Saved AI Stylist reports, next to the saved looks. */}
           <SavedStylistStrip />
-          <FeatureActions>
-            <Link href="/outfits/saved" className={btnPrimary}>View Saved Looks</Link>
-            {saved.length === 0 && (
-              <Link href="/studio" className={btnSecondary}>Open Studio</Link>
-            )}
-          </FeatureActions>
         </section>
-
-        <div className="grid gap-6 lg:grid-cols-12">
-          {/* My Closet */}
-          <section aria-labelledby="closet-title" className="overflow-hidden rounded-[22px] bg-white shadow-[0_1px_0_rgba(18,24,33,0.03),0_14px_36px_rgba(18,30,45,0.06)] lg:col-span-12">
-            <FeatureHead
-              Icon={ClosetIcon}
-              id="closet-title"
-              title="My Closet"
-            />
-            {closet.length > 0 ? (
-              <div className="grid grid-cols-3 gap-2 px-6 sm:grid-cols-4 sm:px-8 lg:grid-cols-8">
-                {closet.slice(0, 8).map((item, i) => (
-                  <div key={item.id} className={`relative aspect-square overflow-hidden rounded-[14px] bg-[#f4f5f6] ${i >= 6 ? "hidden sm:block" : ""}`}>
-                    <Image src={item.imageUrl} alt={item.description} fill unoptimized className="object-cover" />
-                  </div>
-                ))}
-              </div>
-            ) : (
-              <div className="mx-6 rounded-[16px] bg-[#f4f5f6] px-5 py-8 text-[13.5px] text-[#4f5b66] sm:mx-8">
-                Your closet is empty. Add a photo of one item, or a few laid out together.
-              </div>
-            )}
-            <FeatureActions>
-              <Link href="/closet" className={btnPrimary}>View My Closet</Link>
-              <Link href="/closet?add=1" className={btnSecondary}>
-                <PlusIcon className="h-4 w-4" /> Add Clothes
-              </Link>
-            </FeatureActions>
-          </section>
-
-        </div>
       </PageShell>
     </main>
   );
-}
-
-function FeatureHead({ Icon, id, title, body }: { Icon: typeof ClosetIcon; id: string; title: string; body?: string }) {
-  return (
-    <div className="px-6 pb-5 pt-6 sm:px-8 sm:pt-8">
-      <p className={`${eyebrow} flex items-center gap-2 ${body ? "mb-3" : ""}`}>
-        <Icon className="h-4 w-4" /> {title}
-      </p>
-      <h2 id={id} className="sr-only">{title}</h2>
-      {body && <p className="max-w-md text-[13.5px] leading-relaxed text-[#4f5b66]">{body}</p>}
-    </div>
-  );
-}
-
-function FeatureActions({ children }: { children: React.ReactNode }) {
-  return <div className="flex flex-wrap items-center gap-3 px-6 py-6 sm:px-8">{children}</div>;
 }
