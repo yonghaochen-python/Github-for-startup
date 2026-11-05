@@ -6,6 +6,8 @@ import { asResponse, requireUser } from "@/lib/auth";
 import { serializeOutfit } from "@/lib/outfits";
 import { sanitizeLayeredOutfit } from "@/lib/layering";
 import { readSavedSearch, saveSearch, searchKey } from "@/lib/styleSearchCache";
+import { styleProfileFor } from "@/lib/studioReports";
+import { profileColors } from "@/lib/styleProfile";
 
 function str(value: unknown, maxLength = 200): string | undefined {
   return typeof value === "string" && value.trim() ? value.trim().slice(0, maxLength) : undefined;
@@ -39,6 +41,25 @@ export async function POST(request: Request) {
     colorPreference: str(b.colorPreference),
     prompt: str(b.prompt),
   };
+
+  // The AI Stylist profile, when there is one (read from saved reports; no extra AI call): the ideas lean toward
+  // their style direction and their colors. A few words more in the same request, so the cost doesn't change.
+  const profile = await styleProfileFor(user.id).catch(() => null);
+  if (profile?.style && !outfitRequest.style) {
+    outfitRequest.style = `${profile.style.direction} (${profile.style.keywords.join(", ")})`.slice(0, 200);
+  }
+  if (profile && !outfitRequest.colorPreference) {
+    const { wear, avoid } = profileColors(profile);
+    if (wear.length) {
+      outfitRequest.colorPreference = [
+        `Prefer pieces in colors that suit them: ${wear.slice(0, 8).map((c) => c.name).join(", ")}.`,
+        avoid.length ? `Go easy on: ${avoid.slice(0, 4).map((c) => c.name).join(", ")}.` : "",
+        "Neutrals are always fine.",
+      ]
+        .join(" ")
+        .slice(0, 400);
+    }
+  }
 
   const closet = await prisma.clothingItem.findMany({ where: { userId: user.id } });
   if (closet.length < 2) {

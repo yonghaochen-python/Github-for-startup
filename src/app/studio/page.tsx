@@ -20,6 +20,9 @@ import { NumberedPieces } from "@/components/OutfitPreview";
 import { PersonPicture } from "@/components/PersonPicture";
 import { OutfitPicks } from "@/components/OutfitPicks";
 import { shuffleOutfit } from "@/lib/shuffleOutfit";
+import { paletteWeight } from "@/lib/colorMatch";
+import { profileColors, type StyleProfile } from "@/lib/styleProfile";
+import type { Swatch } from "@/lib/studioModules";
 import { TRY_ON_CAVEAT, requestShopTryOn, requestTryOn, type TryOnResult } from "@/lib/tryOnClient";
 import { LiveTryOn, type ShopPick } from "@/components/LiveTryOn";
 import { CreditsLine, refreshCredits } from "@/components/Credits";
@@ -70,12 +73,16 @@ const PICKS_KEY = "virm-studio-picks";
 
 const sameIds = (a: string[], b: string[]) => a.length === b.length && [...a].sort().join() === [...b].sort().join();
 
+type Palette = { wear: Swatch[]; avoid: Swatch[] };
+
 /** Free picks made on the device from the closet (not saved outfits; ids start with "pick-"). */
-function freePicks(closet: ClothingItem[]): Outfit[] {
+function freePicks(closet: ClothingItem[], palette: Palette | null = null): Outfit[] {
   const picks: Outfit[] = [];
   const seen = new Set<string>();
+  // With a Style Profile, pieces in the person's colors come up more often (their neutrals stay in the mix).
+  const weight = palette?.wear.length ? (i: ClothingItem) => paletteWeight((i as { color?: string }).color, palette) : undefined;
   for (let tries = 0; picks.length < 3 && tries < 12; tries++) {
-    const items = shuffleOutfit(closet, []);
+    const items = shuffleOutfit(closet, [], weight);
     const key = items.map((i) => i.id).sort().join();
     if (items.length < 2 || seen.has(key)) continue;
     seen.add(key);
@@ -121,6 +128,14 @@ export default function StudioPage() {
   const [shopTry, setShopTry] = useState<{ key: string; result: TryOnResult } | null>(null);
 
   const [closet, setCloset] = useState<ClothingItem[] | null>(null);
+  // The colors from the AI Stylist profile (null without one; undefined while loading). Read only, never generated.
+  const [palette, setPalette] = useState<Palette | null | undefined>(undefined);
+  useEffect(() => {
+    fetch("/api/studio")
+      .then(async (res) => (res.ok ? ((await res.json()) as { profile?: StyleProfile }).profile : undefined))
+      .then((profile) => setPalette(profile ? profileColors(profile) : null))
+      .catch(() => setPalette(null));
+  }, []);
   // The closet couldn't load (a connection hiccup): say so with Try again, never show it as empty.
   const [closetFailed, setClosetFailed] = useState(false);
 
@@ -244,7 +259,7 @@ export default function StudioPage() {
 
   // The top picks once the closet is in: last visit's Style it ideas if they're all still there, else free ones.
   useEffect(() => {
-    if (!closet || ideas.length || shuffled.length) return;
+    if (!closet || palette === undefined || ideas.length || shuffled.length) return;
     let ignore = false;
     let ids: string[] = [];
     try {
@@ -260,13 +275,13 @@ export default function StudioPage() {
         if (ignore) return;
         const kept: Outfit[] = found.filter((o): o is Outfit => Boolean(o));
         if (kept.length && kept.length === ids.length) setIdeas(kept);
-        else setShuffled(freePicks(closet));
+        else setShuffled(freePicks(closet, palette));
       });
     return () => {
       ignore = true;
     };
-    // eslint-disable-next-line react-hooks/exhaustive-deps -- once, when the closet first loads
-  }, [closet]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- once, when the closet (and the profile's colors) first load
+  }, [closet, palette]);
 
   // The closet, the try-on settings, and the starting look.
   useEffect(() => {
@@ -492,7 +507,7 @@ export default function StudioPage() {
   /** Style it with no theme: three new free picks from the closet, made on the device (instant, unlimited). */
   function shuffle() {
     if (!closet?.length) return setError("Add a few pieces to your closet first.");
-    const next = freePicks(closet);
+    const next = freePicks(closet, palette);
     if (!next.length) return setError("Add a few more pieces to make outfits.");
     setError(null);
     setIdeas([]);
@@ -612,7 +627,7 @@ export default function StudioPage() {
   const picksProps = {
     picks: ideas.length ? ideas : shuffled,
     activeId: ideas.length ? look.outfitId : (shuffled.find((p) => sameIds(p.layers.flatMap((l) => l.items).map((i) => i.id), pieces.map((i) => i.id)))?.id ?? null),
-    title: ideas.length ? "Top picks for you" : "Picks from your closet",
+    title: ideas.length ? "Top picks for you" : palette?.wear.length ? "Picks in your colors" : "Picks from your closet",
     note:
       ideas.length && ideasSaved ? (
         <button onClick={() => styleTheme(undefined, true)} disabled={styling} className="text-[12px] font-semibold text-[#121821] underline underline-offset-4">
