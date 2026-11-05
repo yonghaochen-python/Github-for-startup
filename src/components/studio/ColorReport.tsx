@@ -72,7 +72,7 @@ export function ColorReport({ module, data, portrait, createdAt }: { module: Stu
         </Panel>
 
         {/* ✓ / ○ / ✗ on your photo */}
-        <Panel module={module} title="Colors on you" note={pictures === null ? "shown as colors (your top wasn't found)" : "same photo, only the top changes"}>
+        <Panel module={module} title="Colors on you" note={pictures === null ? "shown as colors (your top wasn't found)" : undefined}>
           <div className="flex flex-col gap-4">
             {(
               [

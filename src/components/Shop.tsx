@@ -222,7 +222,7 @@ export function Shop() {
           <div>
             <p className="text-[13px] font-semibold text-[#121821]">Your outfit</p>
             <p className="text-[11px] text-[#5d6874]">
-              {tray.length} selected{tray.length >= MAX_TRAY ? " (the most)" : ""} · shopping pieces, not your closet
+              {tray.length} selected{tray.length >= MAX_TRAY ? " (the most)" : ""}
             </p>
           </div>
           {tray.length > 0 && (
@@ -240,7 +240,7 @@ export function Shop() {
         </div>
         {tray.length === 0 ? (
           <p className="mt-4 border-t border-black/[0.07] pt-4 text-[12px] leading-snug text-[#5d6874]">
-            Tap pieces to add them here, then try them all on together.
+            Tap pieces to add them.
           </p>
         ) : (
           <ul className="mt-4 flex flex-col gap-3 border-t border-black/[0.07] pt-4">
@@ -280,7 +280,6 @@ export function Shop() {
         >
           <Spark className="h-3.5 w-3.5" /> Try on in Studio
         </button>
-        <p className="mt-2 text-center text-[10.5px] text-[#5d6874]">Choose Photo or Live there. Two of a kind? Compare them in Studio.</p>
       </>
     );
   }
@@ -530,9 +529,6 @@ export function Shop() {
                 </li>
                 {myTryOnsShown.map(renderTryOn)}
               </ShelfRow>
-              {myTryOns.length === 0 && (
-                <p className="pb-2 text-[11.5px] opacity-70">Add a piece from any store&apos;s link or photo, and it waits here, one tap from your outfit.</p>
-              )}
             </div>
 
             {/* PREVIEW, admin only: real products from stores that haven't joined Virm (see lib/storeFeeds). */}

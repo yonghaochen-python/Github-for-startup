@@ -28,7 +28,7 @@ export function HairReport({ module, data, portrait, createdAt }: { module: Stud
       />
 
       <div className="grid gap-4 lg:grid-cols-[minmax(0,1.2fr)_minmax(0,1fr)]">
-        <Panel module={module} title="Hair colors on you" note={pictures === null ? "shown as colors (your hair wasn't found)" : "same photo, only the hair changes"}>
+        <Panel module={module} title="Hair colors on you" note={pictures === null ? "shown as colors (your hair wasn't found)" : undefined}>
           <div className="flex flex-col gap-4">
             {(["recommended", "alternative", "less"] as const).map((r) => {
               const list = x.colors.filter((c) => c.rating === r);

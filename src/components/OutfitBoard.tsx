@@ -94,7 +94,6 @@ export function OutfitBoard({
         ))}
       </ol>
 
-      {outfit.rationale && <p className="px-5 pb-4 text-[12.5px] leading-relaxed text-[#4f5b66]">{outfit.rationale}</p>}
 
       <div className="mt-auto flex flex-wrap items-center gap-2 border-t border-black/[0.06] px-5 py-4">
         <Link href={`/studio?outfit=${outfit.id}&start=1`} className={btnPrimary}>

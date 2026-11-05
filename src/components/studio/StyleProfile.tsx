@@ -60,7 +60,7 @@ export function StyleProfileBoard({ profile, portrait }: { profile: StyleProfile
       <div className="mb-5 flex flex-wrap items-end justify-between gap-2">
         <h2 className="font-display text-[34px] leading-none text-[#121821] sm:text-[40px]">Your Style Profile</h2>
         <div className="flex items-center gap-3">
-          <p className="text-[12px] text-[#5d6874]">From your reports · {profile.sources.length} of 4</p>
+          <p className="text-[12px] text-[#5d6874]">{profile.sources.length} of 4</p>
           {/* Straight to outfits in these colors (Studio's picks lean on this profile). */}
           {(profile.color || profile.style) && (
             <Link href="/studio" className="rounded-full bg-[#121821] px-4 py-2 text-[13px] font-semibold text-white">

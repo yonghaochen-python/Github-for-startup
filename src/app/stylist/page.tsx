@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { ArrowRightIcon, CameraIcon, CheckIcon, MirrorIcon } from "@/components/Icons";
-import { PageShell, eyebrow, surface } from "@/components/ui";
+import { PageShell, surface } from "@/components/ui";
 import { ModuleVisual } from "@/components/studio/ModuleVisual";
 import { PortraitControls } from "@/components/studio/PortraitPanel";
 import { PickSwatches } from "@/components/studio/TopPicks";
@@ -59,7 +59,6 @@ export default function StylistPage() {
         {/* The consultation: the promise on one side, the person's photo on the other. */}
         <section className="grid items-center gap-8 md:grid-cols-[minmax(0,1fr)_260px] lg:grid-cols-[minmax(0,1fr)_300px] lg:gap-14">
           <div className="max-w-xl">
-            <p className={`${eyebrow} mb-4`}>AI Stylist · Personal consultation</p>
             <h1 className="font-display text-[52px] font-normal leading-[0.95] tracking-[-1.6px] text-[#121821] sm:text-[76px]">
               Your Style,
               <br />
@@ -187,7 +186,6 @@ export default function StylistPage() {
           </span>
           <span className="min-w-0 flex-1">
             <span className="block font-display text-[26px] leading-tight text-[#121821]">Try on in Studio</span>
-            <span className="block text-[14px] text-[#4f5b66]">Your closet and shopping pieces on your photo, or live.</span>
           </span>
           <ArrowRightIcon className="h-5 w-5 shrink-0 text-[#121821] transition-transform group-hover:translate-x-0.5" />
         </Link>

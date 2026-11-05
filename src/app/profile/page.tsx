@@ -46,7 +46,7 @@ export default function ProfilePage() {
   return (
     <main className="flex-1 pb-16">
       <PageShell>
-        <PageHeader title="Profile" description="Your account and try-on photo." />
+        <PageHeader title="Profile" />
 
         <div className="grid gap-6 lg:grid-cols-[minmax(0,1fr)_minmax(0,1.2fr)]">
           <section aria-labelledby="account" className="rounded-[22px] bg-white p-6 shadow-[0_1px_0_rgba(18,24,33,0.03),0_14px_36px_rgba(18,30,45,0.06)] sm:p-8">
@@ -104,7 +104,7 @@ export default function ProfilePage() {
                 <div className="flex flex-col p-6 sm:p-8">
                   <p id="photo" className={`${eyebrow} mb-2`}>Try-on photo</p>
                   <p className="text-[13.5px] leading-relaxed text-[#4f5b66]">
-                    Every try-on uses this photo. Only you can see it.
+                    Only you can see it.
                   </p>
                   <div className="mt-auto flex flex-wrap gap-3 pt-6">
                     <Link href="/studio" className={btnPrimary}>Open Studio</Link>

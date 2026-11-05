@@ -492,7 +492,6 @@ function QuickUpload({
   return (
     <PageShell className="mt-10">
       <p className="text-[12px] text-[#5d6874]">
-        Have separate photos of single items?{" "}
         <label className="cursor-pointer font-semibold text-[#121821] underline underline-offset-4">
           {uploading ? "Uploading and labeling…" : "Upload them one per item"}
           <input

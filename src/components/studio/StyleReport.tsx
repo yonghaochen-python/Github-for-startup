@@ -112,7 +112,7 @@ export function StyleReport({
       />
 
       <div className="grid gap-4 lg:grid-cols-[minmax(0,1.35fr)_minmax(0,1fr)]">
-        <Panel module={module} title="Top colors on you" note={pictures === null ? "shown as colors (your top wasn't found)" : "same photo, only the top changes"}>
+        <Panel module={module} title="Top colors on you" note={pictures === null ? "shown as colors (your top wasn't found)" : undefined}>
           <div className="flex flex-col gap-4">
             {rows.map(([verdict, list]) =>
               list.length ? (
