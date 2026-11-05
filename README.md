@@ -23,27 +23,39 @@ Virm is an AI wardrobe app. You put your clothes in a digital closet, get outfit
 
 ### Studio (try clothes on)
 - **The mirror:** the outfit's pieces numbered down the left (01, 02, 03…), and you on the right, trimmed head to toe. The trimming happens on your device for free.
-- **Top 3 picks:** three outfits from your closet to compare before choosing one. On computers they're to the right of the photo; on phones they're below it.
-- **Style it:** type a theme (old money, first date…) for AI outfit ideas, or leave it empty for 3 new free picks.
+- **Top 3 picks:** three outfits from your closet to compare before choosing one. With a Style Profile they're **Picks in your colors**. On computers they're to the right of the photo; on phones they're below it.
+- **Style it:** type a theme (old money, first date…) for AI outfit ideas that also follow your style direction and colors, or leave it empty for 3 new free picks.
 - **One button:** **Try On** puts the outfit on your photo with AI. If an earlier try-on is showing, it says **Update photo**.
 - **Save**, **Share** and **Undo** as icon buttons. **Change photo** is on the photo.
 - **Live:** live AI try-on on your camera, 20 seconds per session (see limits below).
 - **Your outfit** panel and closet / shop tabs on the side to add or swap pieces.
 
-### AI Stylist
-Four analyses made from a head-and-shoulders photo of you:
+### AI Stylist — "Your Style, Decoded."
+A personal beauty and fashion consultation, made from a head-and-shoulders photo of you.
 
-1. **Seasonal Color Analysis:** your season, undertone, a palette of colors that suit you, and colors to go easy on.
-2. **Makeup guide:** shades for lips, blush and more, with a preview on your own photo.
-3. **Hair & color guide:** lengths, textures, bangs, parting and cuts, with hair colors tried on your photo.
-4. **Personal style guide:** your style direction, plus a look made from your own closet (swap or remove pieces).
+**Your photo**
+- **Take a selfie** right on the page, **Upload** one, or **Use Studio photo** (zoomed to your face).
+- You see it first, and it's used only when you press **Use this photo**.
 
-How it works:
-- **Take a selfie** right on the page, or **Upload** a photo. You can also use your Studio photo.
-- **Tap an analysis to start it.** It's saved, so opening it again is free.
-- **New photo?** The analyses you had are remade for it by themselves (**Analyzing…** until ready).
-- **Download** and **Share** a report as a picture.
-- **Good / Bad** feedback on each report.
+**The four analyses** (each card shows a preview, a one-line description and its status: Not started, Analyzing…, Completed or From earlier photo)
+1. **Seasonal Color Analysis:** your season, undertone, the colors that suit you, and colors to go easy on.
+2. **Makeup Guide:** shades for lips, blush, eyes and brows, with a preview on your own photo.
+3. **Hair & Color Guide:** cuts, lengths, bangs and partings, with hair colors tried on your photo.
+4. **Personal Style Guide:** your style direction, jewelry, and a look from your own closet (swap or remove pieces, then **Try it on** in Studio).
+
+**Each report**
+- **Before / after slider** on your own photo (made on your device, free).
+- Color swatches, **Download** and **Share** as a picture, and optional feedback: Helpful · Not accurate · Not my style · Colors don't look right · Suggestions aren't practical.
+- Saved, so opening, downloading and sharing it again is free.
+
+**Your Style Profile**
+- Colors, makeup, hair, style and jewelry in one place, from your newest reports. Works with any number of analyses done.
+- **Style my closet →** opens Studio with **Picks in your colors**.
+
+**Nothing paid runs by itself**
+- An analysis is made only when you press **Analyze** (1 photo credit).
+- A new photo doesn't remake anything: older reports are marked **From earlier photo**, each with a **Refresh** button.
+- A report that's being made keeps going if you leave the page.
 
 ### Shopping
 - **Your shopping try-ons:** pieces you've tried from the shop.
@@ -72,10 +84,11 @@ How it works:
 - **Live sessions are limited now.** Also 3 a day per person and 50 a day for the whole site.
 - **Photo credits are only counted for now, not limited.**
 - **No payments yet.** Paid buttons say "Coming soon."
-- **Bad ratings:** the first Bad rating each month on a real result gives +2 photo and +1 live credit as a thank-you.
+- **Bad ratings:** the first Bad rating each month on a real photo or live try-on gives +2 photo and +2 live credits as a thank-you.
 
 ### Admin (admins only)
 - Sign-ups, usage and AI costs, and a cost calculator per plan.
+- **AI Stylist usage:** analyses per type, people, AI cost and failures, plus which feedback options people picked.
 - A tool to give test credits.
 
 ### Other pages
