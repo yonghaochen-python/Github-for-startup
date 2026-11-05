@@ -130,6 +130,21 @@ export default function StudioModulePage() {
     // eslint-disable-next-line react-hooks/exhaustive-deps -- once per mod
   }, [id, valid]);
 
+  // Opening an analysis that isn't made for this photo yet (never made, or made from an earlier photo) starts it
+  // straight away: one tap from the AI Stylist page. Once per photo, so a failure never retries on its own.
+  const autoStartedFor = useRef<string | null>(null);
+  useEffect(() => {
+    if (!valid || !state || !loaded || loaded.generating || busy) return;
+    const portrait = state.portrait;
+    if (!portrait || !portraitReadiness(portrait.checks ?? null).ready || autoStartedFor.current === portrait.version) return;
+    const report = loaded.report;
+    const current = report && (!report.portraitVersion || report.portraitVersion === portrait.version);
+    if (current) return;
+    autoStartedFor.current = portrait.version;
+    analyze();
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- analyze is the page's own action
+  }, [valid, state, loaded, busy]);
+
   useEffect(() => {
     if (!busy) return;
     const timer = setInterval(() => setStep((s) => Math.min(s + 1, LOADING_STEPS.length - 1)), 2500);
