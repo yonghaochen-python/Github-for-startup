@@ -4,6 +4,10 @@ import { useCallback, useEffect, useState } from "react";
 import Link from "next/link";
 import type { AdminStats } from "@/lib/adminStats";
 import { STYLIST_FEEDBACK } from "@/components/Feedback";
+import { STUDIO_MODULES } from "@/lib/studioModules";
+
+/** Millionths of a dollar as dollars and cents. */
+const dollars = (micros: number) => "$" + (micros / 1_000_000).toFixed(2);
 import { BarChart, HBars, LineChart } from "@/components/admin/Charts";
 import { InlineLoading } from "@/components/InlineLoading";
 import { CreditsAdmin } from "@/components/admin/CreditsAdmin";
@@ -371,6 +375,27 @@ export default function AdminPage() {
               </p>
             ) : null;
           })()}
+        </Section>
+
+        <Section title="AI Stylist usage" description="Analyses made in this range, by type. Each real one is one AI call and one photo credit; opening, downloading and sharing a report cost nothing. Admins' own and practice reports are left out.">
+          <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
+            {s.stylist.map((m) => (
+              <Stat
+                key={m.module}
+                label={STUDIO_MODULES.find((x) => x.id === m.module)?.title ?? m.module}
+                value={m.made}
+                hint={[
+                  `${m.people} ${m.people === 1 ? "person" : "people"}`,
+                  `${dollars(m.costMicros)} AI`,
+                  m.failed ? `${m.failed} failed` : "",
+                  m.admin ? `${m.admin} by admins` : "",
+                ]
+                  .filter(Boolean)
+                  .join(" · ")}
+              />
+            ))}
+          </div>
+          <p className="mt-2 text-[11.5px] text-[#5d6874]">Total AI cost: {dollars(s.stylist.reduce((sum, m) => sum + m.costMicros, 0))}</p>
         </Section>
 
         <Section title="Credits" description="Photo and live try-on credits. Limits are counted but not applied yet. Admin tests are shown apart from real users.">

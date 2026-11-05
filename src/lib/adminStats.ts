@@ -1,5 +1,6 @@
 import { prisma } from "@/lib/prisma";
 import { isGood } from "@/lib/feedback";
+import { STUDIO_MODULE_IDS } from "@/lib/studioModules";
 
 /**
  * Owner dashboard numbers. Everything is counted from real rows: accounts, closet items, outfits and the
@@ -146,7 +147,27 @@ export async function computeAdminStats(from: Date, to: Date) {
     return { kind, good, bad: of.length - good, rewarded: of.filter((r) => r.rewardPeriod).length, reasons };
   });
 
+  // AI Stylist analyses in the range, per type: real ones (each one AI call and one photo credit) and their AI cost.
+  // Practice reports (no AI) and admins' own are counted apart, so testing doesn't inflate the numbers.
+  const reports = await prisma.studioReport.findMany({
+    where: { createdAt: { gte: from, lte: to } },
+    select: { userId: true, module: true, status: true, practice: true, costMicros: true },
+  });
+  const stylist = STUDIO_MODULE_IDS.map((module) => {
+    const of = reports.filter((r) => r.module === module && !adminIds.has(r.userId));
+    const real = of.filter((r) => r.status === "ready" && !r.practice);
+    return {
+      module,
+      made: real.length,
+      people: new Set(real.map((r) => r.userId)).size,
+      failed: of.filter((r) => r.status === "failed").length,
+      costMicros: real.reduce((sum, r) => sum + (r.costMicros ?? 0), 0),
+      admin: reports.filter((r) => r.module === module && adminIds.has(r.userId) && r.status === "ready").length,
+    };
+  });
+
   return {
+    stylist,
     feedback,
     range: { from: from.toISOString(), to: to.toISOString(), days },
     trackingSince: firstEvent?.createdAt.toISOString() ?? null,

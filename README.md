@@ -97,12 +97,16 @@ These are on the `closet-shelf` branch and go live with "go live":
 
 - Studio: numbered pieces + you trimmed head to toe, top 3 picks, the one **Try On / Update photo** button, the phone-first layout.
 - Studio: Save / Share / Undo moved off the face, next to the photo.
-- AI Stylist:
-  - Selfie camera.
-  - Tap to start.
-  - Reports remade for a new photo.
-  - Reports keep going if you leave the page.
-  - Icon Share / Download buttons.
+- AI Stylist (the 8-stage upgrade):
+  - **Your Style, Decoded.** homepage with four cards (preview, status, Analyze / View report).
+  - Photo step: selfie, Upload or Studio photo → preview → Use this photo.
+  - Nothing runs by itself: a new photo marks reports "From earlier photo", each with **Refresh**.
+  - Before / after sliders on every report (made on your device, free).
+  - Feedback: Helpful · Not accurate · Not my style · Colors don't look right · Suggestions aren't practical.
+  - **Your Style Profile:** colors, makeup, hair, style and jewelry in one place, from your saved reports.
+  - Studio's free picks become **Picks in your colors**; Style it uses your style direction and colors.
+  - Admin: AI Stylist usage and AI cost per analysis type.
+  - Icon Share / Download buttons; reports keep going if you leave the page.
 
 ---
 
