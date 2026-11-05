@@ -4,6 +4,7 @@ import { useRef, useState } from "react";
 import { useAuth } from "@/components/AuthProvider";
 import { CameraIcon } from "@/components/Icons";
 import { ErrorNote, btnPrimary, btnSecondary, btnText } from "@/components/ui";
+import { SelfieCamera } from "@/components/studio/SelfieCamera";
 import { portraitReadiness, type PortraitInfo } from "@/lib/studioModules";
 
 export const PHOTO_TIPS = ["Head and shoulders, facing the camera", "Daylight, like near a window", "No filters, hair out of your face"];
@@ -25,6 +26,7 @@ export function PortraitControls({
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const fileInput = useRef<HTMLInputElement | null>(null);
+  const [camera, setCamera] = useState(false);
   const readiness = portraitReadiness(portrait?.checks ?? null);
 
   async function save(photo: Blob, fromTryOnPhoto = false) {
@@ -95,12 +97,18 @@ export function PortraitControls({
         </button>
       )}
       <div className="flex flex-wrap items-center gap-x-4 gap-y-2">
-        <button onClick={() => fileInput.current?.click()} disabled={saving} className={portrait && (readiness.ready || portrait.checks?.face === "small") ? btnSecondary : btnPrimary}>
-          <CameraIcon className="h-4 w-4" /> {saving ? "Checking…" : portrait ? "Change photo" : "Upload a photo"}
+        {/* A selfie right here (no trip to Studio), or a photo from the phone. */}
+        <button onClick={() => setCamera(true)} disabled={saving} className={portrait && (readiness.ready || portrait.checks?.face === "small") ? btnSecondary : btnPrimary}>
+          <CameraIcon className="h-4 w-4" /> {saving ? "Checking…" : portrait ? "Retake" : "Take a selfie"}
         </button>
+        {!saving && (
+          <button onClick={() => fileInput.current?.click()} className={btnText}>
+            Upload
+          </button>
+        )}
         {!portrait && user?.photoVersion && !saving && (
           <button onClick={useTryOnPhoto} className={btnText}>
-            Use my try-on photo
+            Use Studio photo
           </button>
         )}
         {portrait && removePortrait && (
@@ -120,6 +128,15 @@ export function PortraitControls({
         </ul>
       )}
       {error && <ErrorNote message={error} />}
+      {camera && (
+        <SelfieCamera
+          onClose={() => setCamera(false)}
+          onPhoto={(photo) => {
+            setCamera(false);
+            save(photo);
+          }}
+        />
+      )}
     </div>
   );
 }
