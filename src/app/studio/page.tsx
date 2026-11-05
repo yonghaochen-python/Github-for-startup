@@ -797,14 +797,26 @@ export default function StudioPage() {
                     <span className="rounded-full bg-[#121821]/80 px-4 py-1.5 text-[12px] text-white">{STATUS_STEPS[statusIndex]}</span>
                   </div>
                 )}
-                {!picture && !trying && pieces.length > 0 && !stalePicture && (
-                  <span className="absolute bottom-3 left-1/2 -translate-x-1/2 whitespace-nowrap md:bottom-14 rounded-full bg-white/90 px-3 py-1 text-[11px] font-semibold text-[#4f5b66]">
-                    Press Try On to see it on you
+                {/* What the picture is, always said plainly: the trimmed photo is only cropped on the device, never dressed. */}
+                {!trying && (picture || stalePicture || user?.photoVersion) && !((!changed && result?.isMock) || shopShown?.isMock) && (
+                  <span
+                    className={`absolute left-3 top-3 flex items-center gap-1.5 whitespace-nowrap rounded-full px-2.5 py-1 text-[10.5px] font-semibold uppercase tracking-[1.2px] backdrop-blur-md ${
+                      picture ? "bg-[#121821]/75 text-white" : "bg-white/75 text-[#4f5b66]"
+                    }`}
+                  >
+                    <span className={`h-1.5 w-1.5 rounded-full ${picture ? "bg-emerald-400" : stalePicture ? "bg-amber-500" : "bg-[#9aa4ad]"}`} aria-hidden />
+                    {picture ? "AI try-on" : stalePicture ? "Earlier try-on" : "Your photo"}
+                  </span>
+                )}
+                {!picture && !trying && pieces.length > 0 && (
+                  <span className="absolute bottom-3 left-1/2 -translate-x-1/2 whitespace-nowrap md:bottom-14 rounded-full bg-white/80 px-3 py-1 text-[11px] font-semibold text-[#4f5b66] backdrop-blur-md">
+                    <span className="max-md:hidden">{stalePicture ? "Outfit changed · " : "Not dressed yet · "}</span>
+                    {stalePicture ? "Press Update photo" : "Press Try On"}
                   </span>
                 )}
                 {!changed && result?.reused && !trying && (
                   <span className="absolute bottom-3 left-1/2 -translate-x-1/2 whitespace-nowrap md:bottom-14 flex items-center gap-2 rounded-full bg-white/90 py-1 pl-1 pr-1 md:pl-3 text-[11px] font-semibold text-[#4f5b66] shadow-sm">
-                    <span className="max-md:hidden">Saved try-on</span>
+                    <span className="max-md:hidden">Made earlier</span>
                     <button
                       onClick={() => tryOn(true)}
                       className="rounded-full bg-[#121821] px-2.5 py-1 text-[11px] font-semibold text-white hover:bg-[#2a3542]"
