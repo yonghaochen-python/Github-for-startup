@@ -1,10 +1,10 @@
 import { NextResponse } from "next/server";
 import { asResponse, requireUser } from "@/lib/auth";
-import { FEEDBACK_KINDS, FeedbackError, submitFeedback, type FeedbackKind } from "@/lib/feedback";
+import { FEEDBACK_KINDS, FeedbackError, ratingFor, submitFeedback, type FeedbackKind } from "@/lib/feedback";
 
 const noStore = { "cache-control": "no-store" };
 
-/** Saves a Good / Bad rating of one of the person's results (and, for the month's first real Bad, a thank-you). */
+/** Saves a rating of one of the person's results (and, for the month's first real Bad, a thank-you). */
 export async function POST(request: Request) {
   let user;
   try {
@@ -15,7 +15,7 @@ export async function POST(request: Request) {
   const body = ((await request.json().catch(() => ({}))) ?? {}) as { kind?: unknown; targetId?: unknown; rating?: unknown };
   const kind = (FEEDBACK_KINDS as readonly unknown[]).includes(body.kind) ? (body.kind as FeedbackKind) : null;
   const targetId = typeof body.targetId === "string" && /^[\w-]{6,100}$/.test(body.targetId) ? body.targetId : null;
-  const rating = body.rating === "good" || body.rating === "bad" ? body.rating : null;
+  const rating = kind ? ratingFor(kind, body.rating) : null;
   if (!kind || !targetId || !rating) return NextResponse.json({ error: "Nothing to rate." }, { status: 400, headers: noStore });
 
   try {

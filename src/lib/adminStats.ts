@@ -1,4 +1,5 @@
 import { prisma } from "@/lib/prisma";
+import { isGood } from "@/lib/feedback";
 
 /**
  * Owner dashboard numbers. Everything is counted from real rows: accounts, closet items, outfits and the
@@ -139,7 +140,10 @@ export async function computeAdminStats(from: Date, to: Date) {
   const ratings = await prisma.feedback.findMany({ where: { updatedAt: { gte: from, lte: to } }, select: { kind: true, rating: true, rewardPeriod: true } });
   const feedback = (["photo", "live", "outfit", "stylist"] as const).map((kind) => {
     const of = ratings.filter((r) => r.kind === kind);
-    return { kind, good: of.filter((r) => r.rating === "good").length, bad: of.filter((r) => r.rating === "bad").length, rewarded: of.filter((r) => r.rewardPeriod).length };
+    const reasons: Record<string, number> = {};
+    for (const r of of) reasons[r.rating] = (reasons[r.rating] ?? 0) + 1;
+    const good = of.filter((r) => isGood(r.rating)).length;
+    return { kind, good, bad: of.length - good, rewarded: of.filter((r) => r.rewardPeriod).length, reasons };
   });
 
   return {

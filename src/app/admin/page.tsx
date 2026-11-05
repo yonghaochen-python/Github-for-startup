@@ -3,6 +3,7 @@
 import { useCallback, useEffect, useState } from "react";
 import Link from "next/link";
 import type { AdminStats } from "@/lib/adminStats";
+import { STYLIST_FEEDBACK } from "@/components/Feedback";
 import { BarChart, HBars, LineChart } from "@/components/admin/Charts";
 import { InlineLoading } from "@/components/InlineLoading";
 import { CreditsAdmin } from "@/components/admin/CreditsAdmin";
@@ -345,7 +346,7 @@ export default function AdminPage() {
           </p>
         </Section>
 
-        <Section title="Feedback" description="Good / Bad ratings people gave in this range. The first Bad in a person's month on a real try-on (photo or live) adds 2 photo and 2 live extra credits.">
+        <Section title="Feedback" description="Ratings people gave in this range (for AI Stylist reports, Helpful counts as good and the other options as bad). The first Bad in a person's month on a real try-on (photo or live) adds 2 photo and 2 live extra credits.">
           <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
             {s.feedback.map((f) => (
               <Stat
@@ -360,6 +361,16 @@ export default function AdminPage() {
               />
             ))}
           </div>
+          {/* AI Stylist reports: which option people picked. */}
+          {(() => {
+            const r = s.feedback.find((f) => f.kind === "stylist")?.reasons ?? {};
+            const rows = STYLIST_FEEDBACK.map((o) => [o.label, r[o.value] ?? 0] as const);
+            return rows.some(([, n]) => n) ? (
+              <p className="mt-3 text-[12.5px] text-[#4f5b66]">
+                AI Stylist: {rows.map(([label, n]) => `${label} ${n}`).join(" · ")}
+              </p>
+            ) : null;
+          })()}
         </Section>
 
         <Section title="Credits" description="Photo and live try-on credits. Limits are counted but not applied yet. Admin tests are shown apart from real users.">

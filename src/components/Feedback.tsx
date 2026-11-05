@@ -5,12 +5,21 @@ import { refreshCredits } from "@/components/Credits";
 
 type Kind = "photo" | "live" | "outfit" | "stylist";
 
+/** AI Stylist reports: one tap on what was right or wrong (all optional). */
+export const STYLIST_FEEDBACK = [
+  { value: "helpful", label: "Helpful" },
+  { value: "not_accurate", label: "Not accurate" },
+  { value: "not_my_style", label: "Not my style" },
+  { value: "colors_off", label: "Colors don't look right" },
+  { value: "not_practical", label: "Suggestions aren't practical" },
+] as const;
+
 /**
- * "How was this?" with Good / Bad, under a try-on, a live session, a Style it outfit or an AI Stylist report. The
- * month's first Bad on a real result adds extra try-ons (the server decides); the page just says so.
+ * "How was this?" under a try-on, a live session, a Style it outfit or an AI Stylist report: Good / Bad, or for reports
+ * Helpful and four kinds of not-quite-right. The month's first Bad on a real result adds extra try-ons (the server decides); the page just says so.
  */
 export function Feedback({ kind, targetId, dark = false, className = "" }: { kind: Kind; targetId: string | null | undefined; dark?: boolean; className?: string }) {
-  const [rating, setRating] = useState<"good" | "bad" | null>(null);
+  const [rating, setRating] = useState<string | null>(null);
   const [note, setNote] = useState<string | null>(null);
   const [sending, setSending] = useState(false);
 
@@ -23,7 +32,7 @@ export function Feedback({ kind, targetId, dark = false, className = "" }: { kin
 
   if (!targetId) return null;
 
-  async function send(next: "good" | "bad") {
+  async function send(next: string) {
     if (sending || next === rating) return;
     setSending(true);
     const res = await fetch("/api/feedback", {
@@ -41,7 +50,7 @@ export function Feedback({ kind, targetId, dark = false, className = "" }: { kin
     if (data?.rewarded) {
       setNote("Sorry it wasn't great. We added 2 photo try-ons and 2 live try-ons to your account.");
       refreshCredits();
-    } else setNote(next === "good" ? "Thanks!" : "Thanks for telling us. We'll use it to improve.");
+    } else setNote(next === "good" || next === "helpful" ? "Thanks!" : "Thanks for telling us. We'll use it to improve.");
   }
 
   const muted = dark ? "text-white/70" : "text-[#5d6874]";
@@ -53,12 +62,22 @@ export function Feedback({ kind, targetId, dark = false, className = "" }: { kin
   return (
     <div className={`flex flex-wrap items-center gap-x-2 gap-y-1 text-[12px] ${className}`} role="group" aria-label="Rate this result">
       <span className={muted}>How was this?</span>
+      {kind === "stylist" ? (
+        STYLIST_FEEDBACK.map((o) => (
+          <button key={o.value} onClick={() => send(o.value)} disabled={sending} aria-pressed={rating === o.value} className={button(rating === o.value)}>
+            {o.label}
+          </button>
+        ))
+      ) : (
+        <>
       <button onClick={() => send("good")} disabled={sending} aria-pressed={rating === "good"} className={button(rating === "good")}>
         👍 Good
       </button>
       <button onClick={() => send("bad")} disabled={sending} aria-pressed={rating === "bad"} className={button(rating === "bad")}>
         👎 Bad
       </button>
+        </>
+      )}
       {note && (
         <span role="status" className={`w-full ${muted} ${className.includes("justify-center") ? "text-center" : ""}`}>
           {note}

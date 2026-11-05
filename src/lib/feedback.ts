@@ -2,7 +2,8 @@ import { prisma } from "@/lib/prisma";
 import { accountPlan, adjustExtraCredits } from "@/lib/credits";
 
 /**
- * Good / Bad feedback on a result. Everyone can rate any result of their own once (and change their mind); the
+ * Feedback on a result: Good / Bad, or for AI Stylist reports Helpful / Not accurate / Not my style / Colors don't
+ * look right / Suggestions aren't practical. Everyone can rate any result of their own once (and change their mind); the
  * first Bad in a monthly period on a real try-on (photo or live, one that actually ran) adds a one-time thank-you of
  * extra credits. Later Bads that period, and Bads on outfits or AI Stylist reports, are kept as feedback only.
  *
@@ -12,7 +13,19 @@ import { accountPlan, adjustExtraCredits } from "@/lib/credits";
 
 export const FEEDBACK_KINDS = ["photo", "live", "outfit", "stylist"] as const;
 export type FeedbackKind = (typeof FEEDBACK_KINDS)[number];
-export type Rating = "good" | "bad";
+/** AI Stylist reports get more telling options than Good / Bad; anything but Helpful counts as a Bad. */
+export const STYLIST_REASONS = ["helpful", "not_accurate", "not_my_style", "colors_off", "not_practical"] as const;
+export type StylistReason = (typeof STYLIST_REASONS)[number];
+export type Rating = "good" | "bad" | StylistReason;
+
+/** Whether a rating counts as good (for totals and the thank-you rule). */
+export const isGood = (rating: string) => rating === "good" || rating === "helpful";
+
+/** The ratings each kind of result takes. */
+export function ratingFor(kind: FeedbackKind, value: unknown): Rating | null {
+  if (kind === "stylist") return (STYLIST_REASONS as readonly unknown[]).includes(value) ? (value as Rating) : null;
+  return value === "good" || value === "bad" ? value : null;
+}
 
 /** The thank-you for the first Bad of the period. */
 export const BAD_REWARD = { photo: 2, live: 2 } as const;
@@ -47,7 +60,7 @@ export async function submitFeedback(userId: string, kind: FeedbackKind, targetI
     create: { userId, kind, targetId, rating },
     update: { rating },
   });
-  if (rating !== "bad" || !real || row.rewardPeriod || !REWARDED_KINDS.includes(kind)) return { rewarded: false };
+  if (isGood(rating) || !real || row.rewardPeriod || !REWARDED_KINDS.includes(kind)) return { rewarded: false };
 
   // Claim this period's one thank-you; the unique index refuses a second claim in the same period.
   const { period } = await accountPlan(userId);
