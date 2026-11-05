@@ -778,7 +778,7 @@ export default function StudioPage() {
           {mode === "live" ? (
             <LiveTryOn outfit={pieces} picks={pieces.filter((p) => p.id.startsWith("shop-")) as ShopPick[]} />
           ) : (
-          <section aria-label="Your look" className="min-w-0 self-start overflow-hidden rounded-[22px] bg-white shadow-[0_1px_0_rgba(18,24,33,0.03),0_14px_36px_rgba(18,30,45,0.06)]">
+          <section aria-label="Your look" className="min-w-0 self-start overflow-hidden rounded-[22px] bg-white shadow-[0_30px_80px_rgba(18,30,45,0.12)] ring-1 ring-black/[0.04]">
             {outfitOnly ? (
               <div className={`${mirrorFrame} bg-[#f1ede7]`}>
                 <span className="absolute left-4 top-4 rounded-full bg-white/90 px-3 py-1 text-[11px] font-semibold text-[#4f5b66]">Your outfit</span>
@@ -815,7 +815,7 @@ export default function StudioPage() {
             ) : (
               <div
                 ref={mirrorRef}
-                className={`${mirrorFrame} grid bg-white max-md:max-h-[50vh] ${
+                className={`${mirrorFrame} grid bg-[linear-gradient(180deg,#f9f8f5_0%,#eeece7_100%)] max-md:max-h-[50vh] ${
                   pieces.length
                     ? "grid-cols-[minmax(84px,26%)_minmax(0,1fr)] md:grid-cols-[minmax(170px,26%)_minmax(0,1fr)_minmax(150px,24%)]"
                     : "grid-cols-1 md:grid-cols-[minmax(0,1fr)_minmax(150px,26%)]"
@@ -828,7 +828,7 @@ export default function StudioPage() {
                     replacing={replacing}
                     onReplace={startReplace}
                     onRemove={(piece) => pick(piece)}
-                    className="justify-center border-r border-black/[0.07] px-2 py-4 sm:px-3"
+                    className="justify-center border-r border-black/[0.05] px-2 py-4 sm:px-3"
                   />
                 )}
                 <div className="flex min-h-0 min-w-0 justify-center">
@@ -883,7 +883,7 @@ export default function StudioPage() {
                 )}
                 <button
                   onClick={() => setChangingPhoto(true)}
-                  className="absolute bottom-4 left-1/2 hidden -translate-x-1/2 whitespace-nowrap rounded-full bg-white/90 px-3.5 py-1.5 text-[12px] font-semibold text-[#121821] shadow-sm hover:bg-white md:block"
+                  className="absolute bottom-4 left-1/2 hidden -translate-x-1/2 whitespace-nowrap rounded-full border border-white/60 bg-white/55 px-3.5 py-1.5 text-[12px] font-semibold text-[#121821] shadow-[0_6px_20px_rgba(18,24,33,0.15)] backdrop-blur-xl transition hover:bg-white/80 md:block"
                 >
                   Change photo
                 </button>

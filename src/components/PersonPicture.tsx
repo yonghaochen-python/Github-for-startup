@@ -20,5 +20,6 @@ export function PersonPicture({ src, alt, className = "" }: { src: string; alt: 
 
   const shown = cropped?.src === src && cropped.url ? cropped.url : src;
   // eslint-disable-next-line @next/next/no-img-element -- private, owner-only image
-  return <img src={shown} alt={alt} className={className} />;
+  // A new picture eases in (keyed by the picture, so each change animates once).
+  return <img key={shown} src={shown} alt={alt} className={`animate-[picture-in_.45s_ease-out] motion-reduce:animate-none ${className}`} />;
 }

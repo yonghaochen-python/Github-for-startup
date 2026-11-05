@@ -355,6 +355,18 @@ html[data-period="night"] .site-tabbar [aria-current="page"] > span {
   }
 }
 
+/* Studio: a new picture in the mirror eases in. */
+@keyframes picture-in {
+  from {
+    filter: blur(6px) saturate(0.8);
+    transform: scale(1.01);
+  }
+  to {
+    filter: none;
+    transform: none;
+  }
+}
+
 /* Live Try On: a chosen piece slides gently into "Your outfit". */
 @keyframes piece-in {
   from {

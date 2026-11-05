@@ -58,7 +58,7 @@ export function MirrorPieces({
         const active = open === p.id;
         const swapping = replacing === p.id;
         return (
-          <li key={p.id} className="relative">
+          <li key={p.id} className="relative animate-[piece-in_.28s_ease-out] motion-reduce:animate-none">
             <button
               onClick={() => setOpen(active ? null : p.id)}
               aria-expanded={active}
