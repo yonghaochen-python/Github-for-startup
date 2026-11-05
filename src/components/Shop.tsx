@@ -9,9 +9,6 @@ import {
   isRetiredDemo,
   SHOP_PRODUCTS,
   SUGGESTED_SEARCHES,
-  isVerified,
-  matchesSearch,
-  priceLabel,
   shopPiece,
   trayItemFrom,
   type ShopProduct,
@@ -21,9 +18,6 @@ import { addToWishlist, keepShopTryOn, readShopTryOns, readWishlist, removeFromW
 import { StoreFinder } from "@/components/StoreFinder";
 import { ProductDetail } from "@/components/ProductDetail";
 import { btnPrimary, btnSecondary } from "@/components/ui";
-import { useAuth } from "@/components/AuthProvider";
-import type { StoreShelf } from "@/lib/storeFeeds";
-import { ShelfRow } from "@/components/ShelfRow";
 import { Tips, type Tip } from "@/components/Tips";
 
 const SHOP_TIPS: Tip[] = [
@@ -81,26 +75,12 @@ function Spark({ className = "h-4 w-4" }: { className?: string }) {
   );
 }
 
-function Heart({ filled }: { filled: boolean }) {
-  return (
-    <svg viewBox="0 0 24 24" className="h-4 w-4" aria-hidden>
-      <path
-        d="M12 20s-7-4.4-7-10a4 4 0 0 1 7-2.6A4 4 0 0 1 19 10c0 5.6-7 10-7 10z"
-        fill={filled ? "currentColor" : "none"}
-        stroke="currentColor"
-        strokeWidth="1.6"
-        strokeLinejoin="round"
-      />
-    </svg>
-  );
-}
-
 const label = "text-[10.5px] font-medium uppercase tracking-[2px] text-[#5d6874]";
 
 export function Shop() {
   const router = useRouter();
   const [query, setQuery] = useState("");
-  const [tab, setTab] = useState("all");
+  const [, setTab] = useState("all");
   const [tray, setTray] = useState<TrayItem[]>([]);
   const [wishlist, setWishlist] = useState<TrayItem[]>([]);
   const [open, setOpen] = useState<ShopProduct | null>(null);
@@ -116,22 +96,6 @@ export function Shop() {
   const [myTryOns, setMyTryOns] = useState<TrayItem[]>([]);
   // The try-on piece whose card is open.
   const [piece, setPiece] = useState<TrayItem | null>(null);
-  // Admin-only preview of real store shelves.
-  const { user } = useAuth();
-  const [stores, setStores] = useState<StoreShelf[]>([]);
-
-  useEffect(() => {
-    if (!user?.isAdmin) return;
-    let ignore = false;
-    fetch("/api/shop/stores", { cache: "no-store" })
-      .then((r) => (r.ok ? (r.json() as Promise<{ stores: StoreShelf[] }>) : { stores: [] }))
-      .then((d) => !ignore && setStores(d.stores))
-      .catch(() => {});
-    return () => {
-      ignore = true;
-    };
-  }, [user?.isAdmin]);
-
   // The wishlist and "Your outfit" are remembered on this device only.
   useEffect(() => {
     try {
@@ -293,16 +257,7 @@ export function Shop() {
     return searchWords.every((w) => text.includes(w.replace(/s$/, "")));
   });
 
-  /** A tap on a piece's picture adds it to Your outfit (or takes it out, or swaps it in); try-on happens from there. */
-  const outfitFull = (selected: boolean) => !selected && !swapping && tray.length >= MAX_TRAY;
-  const tapLabel = (name: string, selected: boolean) =>
-    selected ? `Take ${name} out of your outfit` : swapping ? `Swap in ${name}` : `Add ${name} to your outfit`;
   const pickedRing = (selected: boolean) => (selected ? "ring-2 ring-[#121821] ring-offset-2 ring-offset-transparent" : "");
-  const pickedBadge = (
-    <span aria-hidden className="pointer-events-none absolute bottom-6 right-0 flex h-6 w-6 items-center justify-center rounded-full bg-[#121821] text-[11px] text-white shadow-sm">
-      ✓
-    </span>
-  );
 
   /** One of Your Shopping Try-Ons: a tap opens its card (Add to Studio); Edit shows remove. */
   function renderTryOn(t: TrayItem) {
@@ -341,61 +296,6 @@ export function Shop() {
       sessionStorage.setItem(LIVE_SHOP_KEY, JSON.stringify([shopPiece(t)]));
     } catch {}
     router.push("/studio?shop=1&add=1");
-  }
-
-  /** One piece on the shelf (a store's). */
-  function renderPiece(p: ShopProduct) {
-    const selected = inTray.has(p.id);
-    const saved = isSaved(p.id);
-    // Price only for verified real listings.
-    const price = isVerified(p) ? priceLabel(p.price, p.currency) : null;
-    const cut = Boolean(p.shelfImageUrl);
-    return (
-      <li key={p.id} className="relative shrink-0 snap-start">
-        {/* Pieces that can't be tried on (bags, hats) open their details instead. */}
-        <button
-          onClick={() => (!p.tryOnEligible ? setOpen(p) : !outfitFull(selected) && toggleTray(trayItemFrom(p)))}
-          aria-pressed={p.tryOnEligible ? selected : undefined}
-          aria-label={p.tryOnEligible ? tapLabel(p.name, selected) : `Open ${p.name}`}
-          title={outfitFull(selected) ? `Your outfit is full (${MAX_TRAY} pieces)` : undefined}
-          className={`group block ${editMode ? "animate-[wiggle_0.6s_ease-in-out_infinite]" : ""}`}
-        >
-          <span className={`relative block h-[124px] w-[96px] sm:h-[150px] sm:w-[116px] ${cut ? "" : "overflow-hidden rounded-[10px]"} ${pickedRing(selected)}`}>
-            <Image
-              src={p.shelfImageUrl ?? p.imageUrl}
-              alt=""
-              fill
-              unoptimized
-              className={`transition-transform duration-300 group-hover:scale-[1.04] ${
-                cut ? "object-contain drop-shadow-[0_6px_10px_rgba(18,24,33,0.14)]" : "bg-white object-contain p-1"
-              }`}
-            />
-          </span>
-          {price && <span className="mt-1 block text-center text-[11px] font-medium">{price}</span>}
-        </button>
-        {editMode && (
-          <>
-            <button
-              onClick={() => toggleSaved(p)}
-              aria-pressed={saved}
-              aria-label={saved ? `Remove ${p.name} from wishlist` : `Save ${p.name} to wishlist`}
-              className={`absolute right-0 top-0 flex h-7 w-7 items-center justify-center rounded-full bg-white/90 shadow-sm [&_svg]:h-3.5 [&_svg]:w-3.5 ${saved ? "text-[#c23a2c]" : "text-[#29343a]"}`}
-            >
-              <Heart filled={saved} />
-            </button>
-            <button
-              onClick={() => setOpen(p)}
-              aria-label={`Details for ${p.name}`}
-              title="Details"
-              className="absolute left-0 top-0 flex h-7 w-7 items-center justify-center rounded-full bg-white/90 font-display text-[13px] italic text-[#29343a] shadow-sm"
-            >
-              i
-            </button>
-          </>
-        )}
-        {selected && pickedBadge}
-      </li>
-    );
   }
 
   return (
@@ -537,25 +437,6 @@ export function Shop() {
               )}
             </section>
 
-            {/* PREVIEW, admin only: real products from stores that haven't joined Virm (see lib/storeFeeds). */}
-            {stores.length > 0 && (
-              <div className="mt-8">
-                <p className="mb-3 text-[11.5px] text-[#5d6874]">
-                  From stores · preview, only admins see this. These stores haven&apos;t joined Virm.
-                </p>
-                <div className="closet-shelf rounded-[20px] px-4 py-3 sm:rounded-[24px] sm:px-6 sm:py-4">
-                  {stores.map((store) => {
-                    const row = store.products.filter((p) => (tab === "all" || p.category === tab) && matchesSearch(p, query));
-                    if (row.length === 0) return null;
-                    return (
-                      <ShelfRow key={store.id} label={store.name} count={row.length}>
-                        {row.map(renderPiece)}
-                      </ShelfRow>
-                    );
-                  })}
-                </div>
-              </div>
-            )}
           </div>
 
           {/* Your outfit: beside the grid on wide screens (a bar at the bottom on phones, below). */}

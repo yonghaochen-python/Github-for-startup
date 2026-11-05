@@ -142,9 +142,14 @@ export default function AdminPage() {
           title="Dashboard"
           description="Owner only. Real numbers from your database; days are in UTC."
           actions={
-            <Link href="/admin/costs" className={btnSecondary}>
-              Costs & break-even
-            </Link>
+            <div className="flex flex-wrap gap-2">
+              <Link href="/admin/costs" className={btnSecondary}>
+                Costs & break-even
+              </Link>
+              <Link href="/admin/store-preview" className={btnSecondary}>
+                Store Preview
+              </Link>
+            </div>
           }
         />
 
