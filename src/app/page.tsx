@@ -357,7 +357,25 @@ function RecentActivity({
                     }`}
                   />
                 ) : e.tint && isStudioModule(e.tint) ? (
-                  <ModuleVisual module={studioModule(e.tint)} portrait={portrait} className="absolute inset-0 h-full w-full" />
+                  portrait ? (
+                    // Small tiles: the photo clean, the report's colors in one row under it (same for all four).
+                    <>
+                      {/* eslint-disable-next-line @next/next/no-img-element -- owner-only portrait */}
+                      <img
+                        src={portrait}
+                        alt=""
+                        loading="lazy"
+                        className="absolute inset-0 h-full w-full object-cover object-top transition-transform duration-700 ease-out group-hover:scale-[1.04]"
+                      />
+                      <span className="absolute inset-x-2 bottom-2 flex justify-center gap-1 rounded-full bg-white/80 px-2 py-1.5 backdrop-blur">
+                        {studioModule(e.tint).tones.slice(0, 5).map((c) => (
+                          <span key={c} className="h-3 w-3 rounded-full ring-1 ring-black/10" style={{ background: c }} />
+                        ))}
+                      </span>
+                    </>
+                  ) : (
+                    <ModuleVisual module={studioModule(e.tint)} portrait={null} className="absolute inset-0 h-full w-full" />
+                  )
                 ) : null}
               </span>
               <span className="mt-2 block truncate text-[12.5px] font-semibold text-[#121821]">{e.label}</span>
