@@ -44,6 +44,9 @@ const STUDIO_TIPS: Tip[] = [
 ];
 
 /** The closet tabs, in the order people dress. */
+/** One-tap themes for Style it. */
+const QUICK_THEMES = ["Old money", "First date", "Office chic", "Weekend brunch", "Minimalist", "Casual streetwear", "Dinner outfit"];
+
 const TABS = [
   { value: "top", label: "Tops" },
   { value: "bottom", label: "Bottoms" },
@@ -492,15 +495,15 @@ export default function StudioPage() {
     }
   }
 
-  async function styleTheme(e?: React.FormEvent, fresh = false) {
+  async function styleTheme(e?: React.FormEvent, fresh = false, chosen?: string) {
     e?.preventDefault();
     if (styling) return;
+    const typed = (chosen ?? theme).trim();
     // Nothing typed: three new free picks from the closet, made on the device (instant, unlimited).
-    if (!theme.trim() && !fresh) return shuffle();
+    if (!typed && !fresh) return shuffle();
     setError(null);
     setStyling(true);
     try {
-      const typed = theme.trim();
       const res = await fetch("/api/outfits/generate", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -644,7 +647,7 @@ export default function StudioPage() {
   const picksProps = {
     picks: ideas.length ? ideas : shuffled,
     activeId: ideas.length ? look.outfitId : (shuffled.find((p) => sameIds(p.layers.flatMap((l) => l.items).map((i) => i.id), pieces.map((i) => i.id)))?.id ?? null),
-    title: ideas.length ? "Top picks for you" : palette?.wear.length ? "Picks in your colors" : "Picks from your closet",
+    title: ideas.length ? (ideas[0].occasion ? `${ideas[0].occasion.charAt(0).toUpperCase()}${ideas[0].occasion.slice(1)} picks` : "Picks for you") : palette?.wear.length ? "Picks in your colors" : "Top 3 Picks",
     note:
       ideas.length && ideasSaved ? (
         <button onClick={() => styleTheme(undefined, true)} disabled={styling} className="text-[12px] font-semibold text-[#121821] underline underline-offset-4">
@@ -673,7 +676,7 @@ export default function StudioPage() {
         )}
 
         {/* One row above the mirror (so it can be bigger): Photo | Live, the theme box, and the way back to Shopping. */}
-        <div className="mb-4 flex flex-wrap items-center gap-3 lg:flex-nowrap">
+        <div className="mb-4 flex flex-wrap items-center gap-3">
           <div role="tablist" aria-label="How to try it on" className="relative grid shrink-0 grid-cols-2 rounded-full bg-white p-1 shadow-[0_1px_0_rgba(18,24,33,0.03),0_8px_22px_rgba(18,30,45,0.06)]">
             {/* The dark pill slides to the chosen side. */}
             <span
@@ -715,6 +718,24 @@ export default function StudioPage() {
             {styling ? "Styling…" : "Style it"}
           </button>
         </form>
+        {/* Quick themes: one tap styles it (a saved search shows again for free). */}
+        <div className="-mx-1 flex w-full gap-2 overflow-x-auto px-1 pb-1 [scrollbar-width:none] lg:order-last [&::-webkit-scrollbar]:hidden" aria-label="Quick themes">
+          {QUICK_THEMES.map((t) => (
+            <button
+              key={t}
+              onClick={() => {
+                setTheme(t);
+                styleTheme(undefined, false, t);
+              }}
+              disabled={styling}
+              className={`shrink-0 rounded-full border px-3.5 py-1.5 text-[12px] font-medium backdrop-blur-md transition ${
+                theme.trim().toLowerCase() === t.toLowerCase() ? "border-white bg-white text-[#121821]" : "border-white/30 bg-white/15 text-white hover:bg-white/25"
+              }`}
+            >
+              {t}
+            </button>
+          ))}
+        </div>
         </div>
 
         {error && (
@@ -871,6 +892,15 @@ export default function StudioPage() {
               <>
               {/* Phones: the top 3 picks just above Try On (one swipe, one tap, then Try On). */}
               {sidePicks && <OutfitPicks {...picksProps} size="small" className="mb-4 md:hidden" />}
+              {/* A Style it idea on show: its styling direction, in a line. */}
+              {(() => {
+                const idea = ideas.find((o) => o.id === look.outfitId);
+                return idea?.rationale && !changed ? (
+                  <p className="mb-3 line-clamp-2 text-center text-[12.5px] italic leading-snug text-[#4f5b66]" title={idea.rationale}>
+                    {idea.rationale}
+                  </p>
+                ) : null;
+              })()}
               <div data-tip="studio-tryon" className="flex items-center gap-3">
                 <button onClick={() => tryOn()} disabled={trying || pieces.length === 0 || (!hasPhoto && !chosenPhoto)} className={`${btnPrimary} min-h-[48px] flex-1`}>
                   <MirrorIcon className="h-4 w-4" />
