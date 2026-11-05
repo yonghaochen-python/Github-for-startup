@@ -13,7 +13,7 @@ import { SavedPhotoSetup, uploadSavedPhoto } from "@/components/SavedPhoto";
 import { ShareArrowButton, ShareTray } from "@/components/ShareLooks";
 import { SaveToggle } from "@/components/SaveToggle";
 import { useToast } from "@/components/Toast";
-import { MirrorIcon, SearchIcon } from "@/components/Icons";
+import { ClosetIcon, MirrorIcon, SearchIcon } from "@/components/Icons";
 import { ErrorNote, PageShell, btnPrimary, btnSecondary, mirrorFrame } from "@/components/ui";
 import { OutfitFlatLay } from "@/components/OutfitFlatLay";
 import { MirrorPieces } from "@/components/MirrorPieces";
@@ -170,6 +170,8 @@ export default function StudioPage() {
   const [tab, setTab] = useState(TABS[0].value);
   // The mirror piece being replaced (the next closet or Shop tap takes its place).
   const [replacing, setReplacing] = useState<string | null>(null);
+  // Phones: the closet drawer.
+  const [drawer, setDrawer] = useState(false);
   const closetRef = useRef<HTMLElement | null>(null);
 
   const [theme, setTheme] = useState("");
@@ -372,6 +374,8 @@ export default function StudioPage() {
   function pick(item: ClothingItem) {
     const out = replacing;
     setReplacing(null);
+    // A replacement is one tap: the drawer closes so the change shows in the mirror.
+    if (out) setDrawer(false);
     setPieces((current) => {
       // Replacing: the chosen piece takes the old one's place (whatever its kind).
       if (out && out !== item.id) return withPiece(current.filter((p) => p.id !== out), item);
@@ -385,6 +389,7 @@ export default function StudioPage() {
     setReplacing(piece.id);
     setSource(isShopPiece(piece) ? "shop" : "closet");
     setTab(piece.category);
+    setDrawer(true);
     requestAnimationFrame(() => closetRef.current?.scrollIntoView({ block: "nearest", behavior: "smooth" }));
   }
 
@@ -666,7 +671,16 @@ export default function StudioPage() {
   };
 
   return (
-    <main className="flex-1 pb-16">
+    <main className="flex-1 pb-16 max-md:pb-32">
+      {/* Phones: one button for Your outfit and the closet, just above the tab bar. */}
+      {!drawer && !(sidePicks && !trying) && (
+        <button
+          onClick={() => setDrawer(true)}
+          className="fixed bottom-[calc(84px+env(safe-area-inset-bottom))] left-1/2 z-[60] flex -translate-x-1/2 items-center gap-2 rounded-full border border-white/40 bg-white/80 px-4 py-2.5 text-[13px] font-semibold text-[#121821] shadow-[0_10px_30px_rgba(0,0,0,0.25)] backdrop-blur-xl md:hidden"
+        >
+          <ClosetIcon className="h-4 w-4" /> Closet · {pieces.length} {pieces.length === 1 ? "piece" : "pieces"}
+        </button>
+      )}
       <PageShell className="max-w-[1440px]! pt-6 sm:pt-8">
         <h1 className="sr-only">Studio</h1>
         <Tips id="studio" tips={STUDIO_TIPS} />
@@ -729,7 +743,7 @@ export default function StudioPage() {
               }}
               disabled={styling}
               className={`shrink-0 rounded-full border px-3.5 py-1.5 text-[12px] font-medium backdrop-blur-md transition ${
-                theme.trim().toLowerCase() === t.toLowerCase() ? "border-white bg-white text-[#121821]" : "border-white/30 bg-white/15 text-white hover:bg-white/25"
+                theme.trim().toLowerCase() === t.toLowerCase() ? "border-[#121821] bg-[#121821] text-white" : "border-black/10 bg-white/80 text-[#2b3540] hover:bg-white"
               }`}
             >
               {t}
@@ -870,8 +884,14 @@ export default function StudioPage() {
               <div className="flex items-center gap-2 border-t border-black/[0.06] px-4 py-2.5 md:hidden">
                 <span className="flex items-center gap-2 [&_a]:!h-10 [&_a]:!w-10 [&_button]:!h-10 [&_button]:!w-10">{mirrorActions}</span>
                 <button
+                  onClick={() => setDrawer(true)}
+                  className="ml-auto flex h-10 items-center gap-1.5 rounded-full bg-[#121821] px-3.5 text-[12px] font-semibold text-white"
+                >
+                  <ClosetIcon className="h-4 w-4" /> Closet
+                </button>
+                <button
                   onClick={() => setChangingPhoto(true)}
-                  className="ml-auto h-10 rounded-full bg-[#f4f5f6] px-3.5 text-[12px] font-semibold text-[#121821]"
+                  className="h-10 rounded-full bg-[#f4f5f6] px-3.5 text-[12px] font-semibold text-[#121821]"
                 >
                   Change photo
                 </button>
@@ -924,7 +944,21 @@ export default function StudioPage() {
           </section>
           )}
 
-          <div className="flex min-w-0 flex-col gap-4 self-start lg:sticky lg:top-24">
+          {/* Phones: Your outfit and Closet / Shop open as a drawer from the bottom, so the mirror keeps the screen. */}
+          {drawer && <button aria-label="Close the closet" onClick={() => setDrawer(false)} className="fixed inset-0 z-[69] bg-black/45 backdrop-blur-[2px] md:hidden" />}
+          <div
+            role={drawer ? "dialog" : undefined}
+            aria-label="Your outfit and closet"
+            className={`flex min-w-0 flex-col gap-4 self-start lg:sticky lg:top-24 max-md:fixed max-md:inset-x-0 max-md:bottom-0 max-md:z-[70] max-md:max-h-[86vh] max-md:gap-3 max-md:overflow-y-auto max-md:rounded-t-[26px] max-md:bg-[#e9ebee] max-md:p-3 max-md:pb-[max(12px,env(safe-area-inset-bottom))] max-md:shadow-[0_-20px_60px_rgba(0,0,0,0.35)] max-md:transition-transform max-md:duration-300 ${
+              drawer ? "max-md:translate-y-0" : "max-md:pointer-events-none max-md:translate-y-full"
+            }`}
+          >
+            <div className="flex items-center justify-between px-1 md:hidden">
+              <span className="mx-auto h-1.5 w-10 rounded-full bg-[#121821]/20" aria-hidden />
+              <button onClick={() => setDrawer(false)} className="absolute right-5 rounded-full bg-[#121821] px-4 py-1.5 text-[12.5px] font-semibold text-white">
+                Done
+              </button>
+            </div>
             {/* The pieces in this look, above the closet. */}
             <section aria-label="Pieces in this look" className="rounded-[22px] bg-white p-4 shadow-[0_1px_0_rgba(18,24,33,0.03),0_14px_36px_rgba(18,30,45,0.06)] sm:p-5">
                 <div className="mb-3 flex items-center justify-between gap-3">
