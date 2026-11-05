@@ -73,6 +73,8 @@ const EMPTY_LOOK: Look = { outfitId: null, occasion: null, isFavorite: false, tr
 
 /** The last Style it ideas (their outfit ids), so they're still the top picks on the next visit. */
 const PICKS_KEY = "virm-studio-picks";
+// The pieces on the mirror, kept for this browser tab, so a piece added from Shopping joins the look already here.
+const LOOK_KEY = "virm-studio-look";
 
 const sameIds = (a: string[], b: string[]) => a.length === b.length && [...a].sort().join() === [...b].sort().join();
 
@@ -329,6 +331,22 @@ export default function StudioPage() {
 
   // Shopping's "Your outfit" (kept on this device) is listed first in the Shop panel on every visit. Arriving from
   // Shopping (?shop=1), the pieces sent over are also worn to start with.
+  // The look kept from this tab's last visit, read once (before anything on this visit replaces it).
+  const [keptLook] = useState<ClothingItem[]>(() => {
+    if (typeof window === "undefined") return [];
+    try {
+      const kept = JSON.parse(sessionStorage.getItem(LOOK_KEY) ?? "[]");
+      return Array.isArray(kept) ? kept.filter((p) => p && typeof p.id === "string" && typeof p.imageUrl === "string") : [];
+    } catch {
+      return [];
+    }
+  });
+  useEffect(() => {
+    try {
+      sessionStorage.setItem(LOOK_KEY, JSON.stringify(pieces));
+    } catch {}
+  }, [pieces]);
+
   useEffect(() => {
     let outfit: ShopPick[] = [];
     let sent: ShopPick[] = [];
@@ -346,8 +364,10 @@ export default function StudioPage() {
     /* eslint-disable react-hooks/set-state-in-effect -- browser-only storage, read after the first render */
     setShopPicks(all);
     if (sent.length) {
-      // Wear one of each kind to start (the first picked); the others are a tap away in "Your outfit".
-      setPieces([...sent].reverse().reduce<ClothingItem[]>((worn, piece) => withPiece(worn, piece), []));
+      // "Add to Studio" (?add=1): the piece joins the look that was here (taking its kind's place). Otherwise wear one
+      // of each kind to start (the first picked); the others are a tap away in "Your outfit".
+      const start = searchParams.get("add") === "1" ? keptLook : [];
+      setPieces([...sent].reverse().reduce<ClothingItem[]>((worn, piece) => withPiece(worn, piece), start));
     }
     if (all.length) setTab("picks");
     /* eslint-enable react-hooks/set-state-in-effect */

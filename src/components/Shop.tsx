@@ -114,6 +114,8 @@ export function Shop() {
   const [editMode, setEditMode] = useState(false);
   // Pieces added from other stores, kept on this device.
   const [myTryOns, setMyTryOns] = useState<TrayItem[]>([]);
+  // The try-on piece whose card is open.
+  const [piece, setPiece] = useState<TrayItem | null>(null);
   // Admin-only preview of real store shelves.
   const { user } = useAuth();
   const [stores, setStores] = useState<StoreShelf[]>([]);
@@ -302,35 +304,43 @@ export function Shop() {
     </span>
   );
 
-  /** One of "Your shopping try-ons": a tap adds it to Your outfit; Edit shows remove. */
+  /** One of Your Shopping Try-Ons: a tap opens its card (Add to Studio); Edit shows remove. */
   function renderTryOn(t: TrayItem) {
     const selected = inTray.has(t.key);
     return (
-      <li key={t.key} className="relative shrink-0 snap-start">
-        <button
-          onClick={() => !outfitFull(selected) && toggleTray(t)}
-          aria-pressed={selected}
-          aria-label={tapLabel(t.name, selected)}
-          title={outfitFull(selected) ? `Your outfit is full (${MAX_TRAY} pieces)` : undefined}
-          className={`group block ${editMode ? "animate-[wiggle_0.6s_ease-in-out_infinite]" : ""}`}
-        >
-          <span className={`relative block h-[124px] w-[96px] overflow-hidden rounded-[10px] sm:h-[150px] sm:w-[116px] ${pickedRing(selected)}`}>
-            <Image src={t.imageUrl} alt="" fill unoptimized className="bg-white object-contain p-1 transition-transform duration-300 group-hover:scale-[1.04]" />
+      <li key={t.key} className="relative min-w-0">
+        <button onClick={() => setPiece(t)} aria-label={`Open ${t.name}`} className={`group block w-full text-left ${editMode ? "animate-[wiggle_0.6s_ease-in-out_infinite]" : ""}`}>
+          <span className={`relative block aspect-[3/4] overflow-hidden rounded-[18px] bg-white shadow-[0_10px_28px_rgba(18,30,45,0.06)] ${pickedRing(selected)}`}>
+            <Image src={t.imageUrl} alt="" fill unoptimized className="object-contain p-3 transition-transform duration-500 ease-out group-hover:scale-[1.04]" />
           </span>
-          <span className="mt-1 block w-[96px] truncate text-center text-[11px] sm:w-[116px]">{t.name}</span>
+          {t.label && <span className="mt-2.5 block truncate text-[10px] font-semibold uppercase tracking-[1.6px] text-[#5d6874]">{t.label}</span>}
+          <span className={`block truncate text-[13px] font-medium text-[#121821] ${t.label ? "" : "mt-2.5"}`}>{t.name}</span>
+          {t.price && <span className="block text-[12px] text-[#5d6874]">{t.price}</span>}
         </button>
         {editMode && (
           <button
             onClick={() => setMyTryOns(removeShopTryOn(t.key))}
             aria-label={`Remove ${t.name}`}
-            className="absolute right-0 top-0 flex h-6 w-6 items-center justify-center rounded-full bg-[#121821] text-[11px] text-white shadow"
+            className="absolute right-2 top-2 flex h-7 w-7 items-center justify-center rounded-full bg-[#121821] text-[11px] text-white shadow"
           >
             ✕
           </button>
         )}
-        {selected && pickedBadge}
+        {selected && (
+          <span aria-hidden className="pointer-events-none absolute left-2 top-2 flex h-6 w-6 items-center justify-center rounded-full bg-[#121821] text-[11px] text-white shadow-sm">
+            ✓
+          </span>
+        )}
       </li>
     );
+  }
+
+  /** Opens Studio with this one piece added to the look there (no AI until Try On is pressed). */
+  function addToStudio(t: TrayItem) {
+    try {
+      sessionStorage.setItem(LIVE_SHOP_KEY, JSON.stringify([shopPiece(t)]));
+    } catch {}
+    router.push("/studio?shop=1&add=1");
   }
 
   /** One piece on the shelf (a store's). */
@@ -502,8 +512,6 @@ export function Shop() {
           </div>
         )}
 
-        {editMode && <p className="mt-5 text-[11.5px] text-[#5d6874]">♡ saves, i shows details, ✕ removes one of your try-ons.</p>}
-
         <div id="collection-grid" className="mt-6 grid scroll-mt-24 grid-cols-[minmax(0,1fr)] gap-6 lg:grid-cols-[minmax(0,1fr)_280px]">
           <div>
             {swapping && (
@@ -516,20 +524,18 @@ export function Shop() {
                 </button>
               </div>
             )}
-            <div className="closet-shelf rounded-[20px] px-4 py-3 sm:rounded-[24px] sm:px-6 sm:py-4">
-              <ShelfRow label="Your shopping try-ons" count={myTryOnsShown.length}>
-                <li className="shrink-0 snap-start">
-                  <button
-                    onClick={() => setImporting(true)}
-                    className="flex h-[124px] w-[96px] flex-col items-center justify-center gap-1 rounded-[12px] border border-dashed border-black/20 text-[11px] opacity-80 hover:opacity-100 sm:h-[150px] sm:w-[116px]"
-                  >
-                    <span className="text-[24px] font-light leading-none">+</span>
-                    Add a piece
-                  </button>
-                </li>
-                {myTryOnsShown.map(renderTryOn)}
-              </ShelfRow>
-            </div>
+            <section aria-labelledby="tryons-title">
+              <h2 id="tryons-title" className="mb-5 font-display text-[30px] font-normal leading-none tracking-[-0.5px] text-[#121821] sm:text-[38px]">
+                Your Shopping Try-Ons {myTryOns.length > 0 && <span className="ml-1 font-sans text-[14px] tracking-normal text-[#5d6874]">{myTryOnsShown.length}</span>}
+              </h2>
+              {myTryOns.length === 0 ? (
+                <button onClick={() => setImporting(true)} className={btnPrimary}>
+                  <span className="text-[16px] font-light leading-none">+</span> Add a piece
+                </button>
+              ) : (
+                <ul className="grid grid-cols-2 gap-x-3 gap-y-6 sm:grid-cols-3 xl:grid-cols-4">{myTryOnsShown.map(renderTryOn)}</ul>
+              )}
+            </section>
 
             {/* PREVIEW, admin only: real products from stores that haven't joined Virm (see lib/storeFeeds). */}
             {stores.length > 0 && (
@@ -585,6 +591,56 @@ export function Shop() {
             >
               Try on in Studio
             </button>
+          </div>
+        </div>
+      )}
+
+      {piece && (
+        <div className="fixed inset-0 z-[80] flex items-end justify-center bg-black/40 p-3 backdrop-blur-[2px] sm:items-center" onClick={() => setPiece(null)}>
+          <div role="dialog" aria-label={piece.name} onClick={(e) => e.stopPropagation()} className="w-full max-w-[420px] overflow-hidden rounded-[26px] bg-white shadow-[0_40px_90px_rgba(0,0,0,0.3)]">
+            <div className="relative aspect-[4/5] max-h-[52vh] w-full bg-[#f6f5f2]">
+              <Image src={piece.imageUrl} alt={piece.name} fill unoptimized className="object-contain p-6" />
+              <button onClick={() => setPiece(null)} aria-label="Close" className="absolute right-3 top-3 flex h-9 w-9 items-center justify-center rounded-full bg-white/85 text-[15px] text-[#121821] shadow-sm backdrop-blur">
+                ✕
+              </button>
+            </div>
+            <div className="p-5">
+              {piece.label && <p className="text-[10.5px] font-semibold uppercase tracking-[1.8px] text-[#5d6874]">{piece.label}</p>}
+              <p className="mt-1 font-display text-[26px] leading-tight text-[#121821]">{piece.name}</p>
+              <p className="mt-1 flex flex-wrap gap-x-3 text-[13px] text-[#5d6874]">
+                {piece.price && <span>{piece.price}</span>}
+                {piece.productUrl && (
+                  <a href={piece.productUrl} target="_blank" rel="noopener noreferrer" className="font-semibold text-[#121821] underline-offset-4 hover:underline">
+                    Store ↗
+                  </a>
+                )}
+              </p>
+              <div className="mt-5 flex flex-wrap items-center gap-2">
+                <button onClick={() => addToStudio(piece)} className={btnPrimary}>
+                  <Spark className="h-4 w-4" /> Add to Studio
+                </button>
+                <button
+                  onClick={() => toggleTray(piece)}
+                  disabled={!inTray.has(piece.key) && tray.length >= MAX_TRAY}
+                  aria-pressed={inTray.has(piece.key)}
+                  className={btnSecondary}
+                >
+                  {inTray.has(piece.key) ? "✓ In outfit" : "Add to outfit"}
+                </button>
+                <button
+                  onClick={() => {
+                    setMyTryOns(removeShopTryOn(piece.key));
+                    setPiece(null);
+                  }}
+                  aria-label={`Remove ${piece.name}`}
+                  className="ml-auto p-2 text-[#5d6874] hover:text-[#c23a2c]"
+                >
+                  <svg viewBox="0 0 24 24" className="h-4 w-4" fill="none" stroke="currentColor" strokeWidth="1.6" aria-hidden>
+                    <path d="M5 7h14M10 7V5h4v2M7 7l1 12h8l1-12" strokeLinecap="round" strokeLinejoin="round" />
+                  </svg>
+                </button>
+              </div>
+            </div>
           </div>
         </div>
       )}
