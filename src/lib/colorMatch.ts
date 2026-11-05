@@ -56,3 +56,24 @@ export function paletteWeight(colorWords: string | null | undefined, palette: { 
   if (NEUTRAL.test((colorWords ?? "").toLowerCase())) return 1.2; // neutrals go with everything
   return wear < 0.22 ? 1.6 : 0.8;
 }
+
+/** Color families for filtering, each with a dot color and the words that belong to it. */
+export const COLOR_FAMILIES = [
+  { id: "black", label: "Black", dot: "#141414", words: ["black", "charcoal", "onyx", "jet"] },
+  { id: "white", label: "White & cream", dot: "#F3EBD3", words: ["white", "ivory", "cream", "off-white", "ecru"] },
+  { id: "gray", label: "Gray", dot: "#8F9296", words: ["gray", "grey", "silver", "heather"] },
+  { id: "brown", label: "Brown & beige", dot: "#A9825A", words: ["brown", "tan", "camel", "beige", "khaki", "taupe", "chocolate", "cognac", "nude", "sand"] },
+  { id: "blue", label: "Blue", dot: "#3A66B0", words: ["blue", "navy", "denim", "teal", "turquoise", "sky", "indigo", "cobalt"] },
+  { id: "green", label: "Green", dot: "#4C8C4A", words: ["green", "olive", "sage", "mint", "emerald", "forest", "khaki green"] },
+  { id: "red", label: "Red & pink", dot: "#C0302E", words: ["red", "pink", "burgundy", "wine", "maroon", "coral", "rose", "blush", "fuchsia", "peach"] },
+  { id: "yellow", label: "Yellow & orange", dot: "#E6A030", words: ["yellow", "mustard", "gold", "orange", "rust", "terracotta"] },
+  { id: "purple", label: "Purple", dot: "#6B4C9A", words: ["purple", "lavender", "lilac", "plum", "violet", "mauve"] },
+] as const;
+
+export type ColorFamily = (typeof COLOR_FAMILIES)[number]["id"];
+
+/** The families a piece belongs to, from its color words ("gray and cream" is in both). */
+export function colorFamilies(words: string | null | undefined): ColorFamily[] {
+  const text = (words ?? "").toLowerCase();
+  return COLOR_FAMILIES.filter((f) => f.words.some((w) => text.includes(w))).map((f) => f.id);
+}

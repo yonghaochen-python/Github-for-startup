@@ -20,7 +20,7 @@ import { MirrorPieces } from "@/components/MirrorPieces";
 import { PersonPicture } from "@/components/PersonPicture";
 import { OutfitPicks } from "@/components/OutfitPicks";
 import { shuffleOutfit } from "@/lib/shuffleOutfit";
-import { paletteWeight } from "@/lib/colorMatch";
+import { COLOR_FAMILIES, colorFamilies, paletteWeight, type ColorFamily } from "@/lib/colorMatch";
 import { profileColors, type StyleProfile } from "@/lib/styleProfile";
 import type { Swatch } from "@/lib/studioModules";
 import { TRY_ON_CAVEAT, requestShopTryOn, requestTryOn, type TryOnResult } from "@/lib/tryOnClient";
@@ -170,6 +170,7 @@ export default function StudioPage() {
   const [tab, setTab] = useState(TABS[0].value);
   // The mirror piece being replaced (the next closet or Shop tap takes its place).
   const [replacing, setReplacing] = useState<string | null>(null);
+  const [colorFilter, setColorFilter] = useState<ColorFamily | "yours" | null>(null);
   // Phones: the closet drawer.
   const [drawer, setDrawer] = useState(false);
   const closetRef = useRef<HTMLElement | null>(null);
@@ -553,14 +554,28 @@ export default function StudioPage() {
 
   const tabs = source === "shop" && shopPicks.length ? [{ value: "picks", label: "Your outfit" }, ...TABS] : TABS;
   const activeTab = tabs.some((t) => t.value === tab) ? tab : tabs[0].value;
+  // A new kind of piece (or Shop) starts unfiltered.
+  useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect -- reset the color filter when the tab changes
+    setColorFilter(null);
+  }, [activeTab, source]);
   const isShopPiece = (p: ClothingItem) => p.id.startsWith("shop-");
+  // The color filter: a color family, or "yours" (pieces in the Style Profile's colors). Closet only.
+  const colorOf = (item: ClothingItem) => (item as { color?: string }).color;
+  function matchesColor(item: ClothingItem) {
+    if (colorFilter === "yours") return Boolean(palette?.wear.length) && paletteWeight(colorOf(item), palette!) >= 1.6;
+    return colorFamilies(colorOf(item)).includes(colorFilter as ColorFamily);
+  }
   const tabItems: ClothingItem[] =
     source === "shop"
       ? activeTab === "picks"
         ? shopPicks
         : // Your outfit's pieces of this kind first, then the rest of your shopping try-ons.
           [...shopPicks.filter((p) => p.category === activeTab), ...shopTryOns.filter((c) => c.category === activeTab && !shopPicks.some((p) => p.id === c.id))]
-      : (closet ?? []).filter((item) => item.category === activeTab);
+      : (closet ?? []).filter((item) => item.category === activeTab && (!colorFilter || matchesColor(item)));
+  // Only the families this kind of piece actually comes in are offered.
+  const kindItems = source === "closet" ? (closet ?? []).filter((item) => item.category === activeTab) : [];
+  const familiesHere = COLOR_FAMILIES.filter((f) => kindItems.some((item) => colorFamilies(colorOf(item)).includes(f.id)));
   const countIn = (value: string) =>
     source === "shop"
       ? value === "picks"
@@ -1068,6 +1083,47 @@ export default function StudioPage() {
                   );
                 })}
               </div>
+              {/* Color: dots for the families this kind comes in, and Your colors with a Style Profile. */}
+              {source === "closet" && familiesHere.length > 1 && (
+                <div className="flex items-center gap-1.5 overflow-x-auto border-b border-black/[0.06] px-3 py-2 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden" aria-label="Filter by color">
+                  <button
+                    onClick={() => setColorFilter(null)}
+                    aria-pressed={!colorFilter}
+                    className={`shrink-0 rounded-full px-2.5 py-1 text-[11.5px] font-semibold ${!colorFilter ? "bg-[#121821] text-white" : "text-[#5d6874] hover:text-[#121821]"}`}
+                  >
+                    All
+                  </button>
+                  {Boolean(palette?.wear.length) && (
+                    <button
+                      onClick={() => setColorFilter(colorFilter === "yours" ? null : "yours")}
+                      aria-pressed={colorFilter === "yours"}
+                      title="Pieces in your colors (from your Style Profile)"
+                      className={`flex shrink-0 items-center gap-1 rounded-full px-2.5 py-1 text-[11.5px] font-semibold ${
+                        colorFilter === "yours" ? "bg-[#121821] text-white" : "bg-[#f1efeb] text-[#121821]"
+                      }`}
+                    >
+                      <span className="flex -space-x-1" aria-hidden>
+                        {palette!.wear.slice(0, 3).map((c) => (
+                          <span key={c.hex} className="h-2.5 w-2.5 rounded-full ring-1 ring-white" style={{ background: c.hex }} />
+                        ))}
+                      </span>
+                      Your colors
+                    </button>
+                  )}
+                  {familiesHere.map((f) => (
+                    <button
+                      key={f.id}
+                      onClick={() => setColorFilter(colorFilter === f.id ? null : f.id)}
+                      aria-pressed={colorFilter === f.id}
+                      aria-label={f.label}
+                      title={f.label}
+                      className={`flex h-7 w-7 shrink-0 items-center justify-center rounded-full ${colorFilter === f.id ? "ring-2 ring-[#121821] ring-offset-1" : ""}`}
+                    >
+                      <span className="h-5 w-5 rounded-full shadow-[inset_0_0_0_1px_rgba(18,24,33,0.15)]" style={{ background: f.dot }} />
+                    </button>
+                  ))}
+                </div>
+              )}
               <div className="max-h-[calc(100vh-220px)] min-h-[240px] overflow-y-auto p-3 sm:p-4 lg:max-h-[calc(100vh-260px)]">
                 {closetFailed && source === "closet" ? (
                   <p className="px-1 py-6 text-[13px] text-[#5d6874]">
