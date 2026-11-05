@@ -1,4 +1,4 @@
-import { NextResponse } from "next/server";
+import { NextResponse, after } from "next/server";
 import { asResponse, requireUser } from "@/lib/auth";
 import { requestIdFrom } from "@/lib/credits";
 import { isStudioModule } from "@/lib/studioModules";
@@ -27,13 +27,16 @@ export async function GET(request: Request, ctx: Ctx) {
   return NextResponse.json(await moduleReports(user.id, module, id), { headers: noStore });
 }
 
-/** Makes a new report for this module, only when the person presses Analyze (or Regenerate). */
+/** Makes a new report for this module: when the person opens one not made for their photo, or after a new photo. */
 export async function POST(request: Request, ctx: Ctx) {
   const { user, module, res } = await setUp(request, ctx);
   if (!user) return res;
   const body = ((await request.json().catch(() => ({}))) ?? {}) as { requestId?: unknown };
   try {
-    const report = await generateReport(user, module, requestIdFrom(body.requestId));
+    // Kept running after the response too, so leaving the page doesn't lose a report that's being made.
+    const job = generateReport(user, module, requestIdFrom(body.requestId));
+    after(job.catch(() => {}));
+    const report = await job;
     return NextResponse.json({ report }, { headers: noStore });
   } catch (err) {
     const e = err instanceof ReportError ? err : new ReportError("failed", "This analysis couldn't be made right now. Please try again.");

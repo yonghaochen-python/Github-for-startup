@@ -145,6 +145,15 @@ export default function StudioModulePage() {
     // eslint-disable-next-line react-hooks/exhaustive-deps -- analyze is the page's own action
   }, [valid, state, loaded, busy]);
 
+  // Being made elsewhere (a new photo, or before the page was left): check back until it's ready.
+  const waiting = Boolean(loaded?.generating) && !busy;
+  useEffect(() => {
+    if (!waiting) return;
+    const timer = setInterval(() => load(), 4000);
+    return () => clearInterval(timer);
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- load is the page's own fetch
+  }, [waiting]);
+
   useEffect(() => {
     if (!busy) return;
     const timer = setInterval(() => setStep((s) => Math.min(s + 1, LOADING_STEPS.length - 1)), 2500);
@@ -189,6 +198,12 @@ export default function StudioModulePage() {
       });
       const data = (await res.json().catch(() => ({}))) as { report?: Report; error?: string; code?: string };
       setPhotoProblem(data.code === "unusable");
+      // Already being made (e.g. started by a new photo): wait for that one instead.
+      if (data.code === "busy") {
+        requestId.current = null;
+        await load();
+        return;
+      }
       if (!res.ok || !data.report) throw new Error(data.error ?? "This analysis couldn't be made. Please try again.");
       requestId.current = null;
       refreshCredits();
@@ -297,12 +312,7 @@ export default function StudioModulePage() {
                 {mod.title}
               </p>
               <p className="mt-3 font-display text-[32px] leading-tight text-[#121821]">{busy ? LOADING_STEPS[step] : "Your report is being made…"}</p>
-              <p className="mt-2 text-[13px] text-[#5d6874]">Keep this page open. It usually takes under a minute.</p>
-              {!busy && (
-                <button onClick={() => load()} className={`${btnText} mt-2`}>
-                  Check again
-                </button>
-              )}
+              <p className="mt-2 text-[13px] text-[#5d6874]">Usually under a minute.</p>
             </div>
           </section>
         )}

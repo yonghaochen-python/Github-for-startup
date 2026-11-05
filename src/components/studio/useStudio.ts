@@ -1,14 +1,17 @@
 "use client";
 
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { cropPortrait, preparePortrait } from "@/lib/portraitCheck";
-import type { PortraitInfo, ReportSummary, StudioModuleId } from "@/lib/studioModules";
+import { portraitReadiness, type PortraitInfo, type ReportSummary, type StudioModuleId } from "@/lib/studioModules";
 
-export type StudioState = { portrait: PortraitInfo | null; reports: Partial<Record<StudioModuleId, ReportSummary>> };
+export type StudioState = { portrait: PortraitInfo | null; reports: Partial<Record<StudioModuleId, ReportSummary>>; generating?: StudioModuleId[] };
 
 export const portraitUrl = (p: PortraitInfo | null) => (p ? `/api/studio/portrait?v=${p.version}` : null);
 
-/** The AI Stylist page's data (portrait and newest reports), and saving or removing the portrait. Nothing is generated here. */
+/**
+ * The AI Stylist page's data (portrait, newest reports, and which are being made), and saving or removing the
+ * portrait. A new photo remakes the reports the person already had, so the new ones are there to see.
+ */
 export function useStudio() {
   const [state, setState] = useState<StudioState | null>(null);
   const [failed, setFailed] = useState(false);
@@ -24,6 +27,17 @@ export function useStudio() {
   }, []);
 
   useEffect(reload, [reload]);
+
+  // Reports on their way: check back until they're ready.
+  const making = Boolean(state?.generating?.length);
+  useEffect(() => {
+    if (!making) return;
+    const timer = setInterval(reload, 4000);
+    return () => clearInterval(timer);
+  }, [making, reload]);
+
+  const latest = useRef(state);
+  latest.current = state;
 
   /** Checks the photo on the device, then saves it. Throws with a message the person can read. */
   const savePortrait = useCallback(async (photo: Blob, fromTryOnPhoto = false) => {
@@ -44,8 +58,25 @@ export function useStudio() {
     const data = (await res.json().catch(() => ({}))) as { portrait?: PortraitInfo; error?: string };
     if (!res.ok || !data.portrait) throw new Error(data.error ?? "Couldn't save your portrait. Please try again.");
     setState((s) => (s ? { ...s, portrait: data.portrait! } : s));
+    // The reports made from the earlier photo are made again for this one (one photo credit each). They keep going
+    // on the server if the page is left.
+    if (portraitReadiness(data.portrait.checks ?? null).ready) {
+      const redo = Object.keys(latest.current?.reports ?? {}) as StudioModuleId[];
+      if (redo.length) {
+        setState((s) => (s ? { ...s, generating: redo } : s));
+        for (const module of redo) {
+          fetch(`/api/studio/reports/${module}`, {
+            method: "POST",
+            headers: { "content-type": "application/json" },
+            body: JSON.stringify({ requestId: crypto.randomUUID() }),
+          })
+            .catch(() => null)
+            .finally(reload);
+        }
+      }
+    }
     return data.portrait;
-  }, []);
+  }, [reload]);
 
   const removePortrait = useCallback(async () => {
     const res = await fetch("/api/studio/portrait", { method: "DELETE" });

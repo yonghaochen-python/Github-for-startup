@@ -65,6 +65,15 @@ export async function latestReports(userId: string): Promise<Partial<Record<Stud
   return out;
 }
 
+/** The modules being made right now (not stuck), so pages can show them as on their way. */
+export async function generatingModules(userId: string): Promise<StudioModuleId[]> {
+  const rows = await prisma.studioReport.findMany({
+    where: { userId, status: "generating", createdAt: { gt: new Date(Date.now() - STUCK_MS) } },
+    select: { module: true },
+  });
+  return [...new Set(rows.map((r) => r.module as StudioModuleId))];
+}
+
 /** One module's report (the newest, or the one asked for) and its history. */
 export async function moduleReports(userId: string, module: StudioModuleId, id?: string) {
   const rows = await prisma.studioReport.findMany({

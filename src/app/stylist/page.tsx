@@ -110,14 +110,15 @@ export default function StylistPage() {
         <section className="mt-12" aria-label="Analyses">
           <div className="mb-5 flex items-end justify-between gap-4">
             <h2 className="font-display text-[32px] leading-none text-[#121821] sm:text-[38px]">Your analyses</h2>
-            <p className="hidden text-[12.5px] text-[#5d6874] sm:block">Each one is made only when you ask, and saved for you.</p>
+            <p className="hidden text-[12.5px] text-[#5d6874] sm:block">Saved for you. A new photo makes new ones.</p>
           </div>
           <ul className="grid gap-5 sm:grid-cols-2">
             {STUDIO_MODULES.map((m, i) => {
               const report = state?.reports[m.id];
               // A report from an earlier photo doesn't count as done for this one: it asks to be made again.
               const stale = Boolean(report && portrait && report.portraitVersion && report.portraitVersion !== portrait.version);
-              const done = stale ? undefined : report;
+              const making = Boolean(state?.generating?.includes(m.id));
+              const done = stale || making ? undefined : report;
               return (
                 <li key={m.id}>
                   <Link href={`/stylist/${m.id}`} className={`${surface} group flex h-full flex-col overflow-hidden transition-transform hover:-translate-y-0.5`}>
@@ -134,6 +135,8 @@ export default function StylistPage() {
                             <>
                               <CheckIcon className="h-3 w-3" /> Completed · {day(done.createdAt)}
                             </>
+                          ) : making ? (
+                            "Analyzing…"
                           ) : stale ? (
                             "New photo"
                           ) : (
@@ -165,7 +168,7 @@ export default function StylistPage() {
                           done ? "bg-[#eef1f4] text-[#121821]" : "bg-[#121821] text-white"
                         }`}
                       >
-                        {done ? "See report" : stale ? "Analyze new photo" : "Start"} <ArrowRightIcon className="h-4 w-4 transition-transform group-hover:translate-x-0.5" />
+                        {done ? "See report" : making ? "Analyzing" : stale ? "Analyze new photo" : "Start"} <ArrowRightIcon className="h-4 w-4 transition-transform group-hover:translate-x-0.5" />
                       </span>
                     </div>
                   </Link>
