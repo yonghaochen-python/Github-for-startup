@@ -16,7 +16,7 @@ import { useToast } from "@/components/Toast";
 import { MirrorIcon, SearchIcon } from "@/components/Icons";
 import { ErrorNote, PageShell, btnPrimary, btnSecondary, mirrorFrame } from "@/components/ui";
 import { OutfitFlatLay } from "@/components/OutfitFlatLay";
-import { NumberedPieces } from "@/components/OutfitPreview";
+import { MirrorPieces } from "@/components/MirrorPieces";
 import { PersonPicture } from "@/components/PersonPicture";
 import { OutfitPicks } from "@/components/OutfitPicks";
 import { shuffleOutfit } from "@/lib/shuffleOutfit";
@@ -165,6 +165,9 @@ export default function StudioPage() {
   const [startId] = useState(() => (fromShop || startItems.length ? null : searchParams.get("outfit") || user?.look?.outfitId || null));
   const [loadingLook, setLoadingLook] = useState(Boolean(startId));
   const [tab, setTab] = useState(TABS[0].value);
+  // The mirror piece being replaced (the next closet or Shop tap takes its place).
+  const [replacing, setReplacing] = useState<string | null>(null);
+  const closetRef = useRef<HTMLElement | null>(null);
 
   const [theme, setTheme] = useState("");
   const [styling, setStyling] = useState(false);
@@ -364,8 +367,22 @@ export default function StudioPage() {
   }, [trying]);
 
   function pick(item: ClothingItem) {
-    setPieces((current) => (current.some((p) => p.id === item.id) ? current.filter((p) => p.id !== item.id) : withPiece(current, item)));
+    const out = replacing;
+    setReplacing(null);
+    setPieces((current) => {
+      // Replacing: the chosen piece takes the old one's place (whatever its kind).
+      if (out && out !== item.id) return withPiece(current.filter((p) => p.id !== out), item);
+      return current.some((p) => p.id === item.id) ? current.filter((p) => p.id !== item.id) : withPiece(current, item);
+    });
     setResult(null);
+  }
+
+  /** Replace from the mirror: opens the closet (or Shop) at that piece's kind; the next piece tapped takes its place. */
+  function startReplace(piece: ClothingItem) {
+    setReplacing(piece.id);
+    setSource(isShopPiece(piece) ? "shop" : "closet");
+    setTab(piece.category);
+    requestAnimationFrame(() => closetRef.current?.scrollIntoView({ block: "nearest", behavior: "smooth" }));
   }
 
   /** Makes sure the server has an outfit with exactly these pieces, and returns its id. */
@@ -750,12 +767,20 @@ export default function StudioPage() {
                 ref={mirrorRef}
                 className={`${mirrorFrame} grid bg-white max-md:max-h-[50vh] ${
                   pieces.length
-                    ? "grid-cols-[minmax(88px,30%)_minmax(0,1fr)] md:grid-cols-[minmax(88px,18%)_minmax(0,1fr)_minmax(150px,26%)]"
+                    ? "grid-cols-[minmax(84px,26%)_minmax(0,1fr)] md:grid-cols-[minmax(170px,26%)_minmax(0,1fr)_minmax(150px,24%)]"
                     : "grid-cols-1 md:grid-cols-[minmax(0,1fr)_minmax(150px,26%)]"
                 }`}
               >
                 {/* The look's pieces numbered down the left, the person head to toe, and (on wider screens) the top 3 picks. */}
-                {pieces.length > 0 && <NumberedPieces pieces={pieces} max={5} className="justify-center border-r border-black/[0.07] px-3 py-6 sm:px-4 sm:py-8 [&>li]:max-h-[150px]" />}
+                {pieces.length > 0 && (
+                  <MirrorPieces
+                    pieces={pieces}
+                    replacing={replacing}
+                    onReplace={startReplace}
+                    onRemove={(piece) => pick(piece)}
+                    className="justify-center border-r border-black/[0.07] px-2 py-4 sm:px-3"
+                  />
+                )}
                 <div className="flex min-h-0 min-w-0 justify-center">
                 <div className="relative h-full min-w-[160px] max-w-full">
                 {picture ? (
@@ -908,42 +933,12 @@ export default function StudioPage() {
                   <div className="h-20 animate-pulse rounded-[14px] bg-[#f4f5f6]" />
                 ) : pieces.length === 0 ? (
                   <p className="rounded-[14px] bg-[#f4f5f6] px-4 py-5 text-[13px] text-[#4f5b66]">Tap a pick, press Style it for new ones, or pick pieces below.</p>
-                ) : (
-                  <ul className="flex gap-2 overflow-x-auto pb-1 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
-                    {pieces.map((piece) => (
-                      <li key={piece.id} className="relative shrink-0">
-                        <button
-                          onClick={() => {
-                            setSource(isShopPiece(piece) ? "shop" : "closet");
-                            setTab(piece.category);
-                          }}
-                          title={piece.description}
-                          className="relative block h-20 w-20 overflow-hidden rounded-[14px] bg-[#f4f5f6] shadow-[inset_0_0_0_1px_rgba(18,24,33,0.06)]"
-                        >
-                          <Image src={piece.imageUrl} alt={piece.description} fill unoptimized onError={retryImage} className="object-cover" />
-                          {/* Shopping pieces aren't owned: marked so they're never mistaken for closet clothes. */}
-                          {piece.id.startsWith("shop-") && (
-                            <span className="absolute bottom-1 left-1 rounded-full bg-white/95 px-1.5 py-[1px] text-[8.5px] font-semibold uppercase tracking-[1px] text-[#4f5b66]">
-                              Shop
-                            </span>
-                          )}
-                        </button>
-                        <button
-                          onClick={() => pick(piece)}
-                          aria-label={`Remove ${piece.description}`}
-                          className="absolute -right-1.5 -top-1.5 flex h-6 w-6 items-center justify-center rounded-full bg-[#121821] text-[13px] leading-none text-white shadow hover:bg-[#d93a2b]"
-                        >
-                          ×
-                        </button>
-                      </li>
-                    ))}
-                  </ul>
-                )}
+                ) : null}
 
             </section>
 
             {/* The closet, by category. Tap to add; tap again to remove. */}
-            <section aria-label="Your closet" data-tip="studio-closet" className="min-w-0 overflow-hidden rounded-[22px] bg-white shadow-[0_1px_0_rgba(18,24,33,0.03),0_14px_36px_rgba(18,30,45,0.06)]">
+            <section ref={closetRef} aria-label="Your closet" data-tip="studio-closet" className="min-w-0 overflow-hidden rounded-[22px] bg-white shadow-[0_1px_0_rgba(18,24,33,0.03),0_14px_36px_rgba(18,30,45,0.06)]">
               <div className="flex items-center justify-between gap-3 px-4 pt-4">
                 <div className="inline-flex rounded-full bg-[#f1f3f4] p-1">
                   {(["closet", "shop"] as const).map((s) => (
@@ -967,6 +962,16 @@ export default function StudioPage() {
                   </Link>
                 )}
               </div>
+              {replacing && (
+                <div className="mx-4 mt-3 flex items-center justify-between gap-3 rounded-[12px] bg-[#f1efeb] px-3 py-2 text-[12px] text-[#2b3540]">
+                  <span className="min-w-0 truncate">
+                    Replacing <span className="font-semibold">{pieces.find((p) => p.id === replacing)?.description.split(",")[0] ?? "a piece"}</span>: tap a new one
+                  </span>
+                  <button onClick={() => setReplacing(null)} className="shrink-0 font-semibold text-[#121821] underline-offset-4 hover:underline">
+                    Cancel
+                  </button>
+                </div>
+              )}
               <div role="tablist" aria-label={source === "shop" ? "Shop sections" : "Closet sections"} className="flex flex-wrap border-b border-black/[0.06] px-2.5 pt-3">
                 {tabs.map((t) => {
                   const active = t.value === activeTab;
