@@ -16,7 +16,9 @@ import {
   MirrorIcon,
   PlusIcon,
 } from "@/components/Icons";
-import { SavedStylistStrip } from "@/components/studio/SavedStylist";
+import { ModuleVisual } from "@/components/studio/ModuleVisual";
+import { portraitUrl } from "@/components/studio/useStudio";
+import { isStudioModule, studioModule, type PortraitInfo } from "@/lib/studioModules";
 import { Tips, type Tip } from "@/components/Tips";
 
 const HOME_TIPS: Tip[] = [
@@ -183,14 +185,19 @@ function Dashboard({ closet, outfits }: { closet: ClothingItem[]; outfits: Outfi
   const { user } = useAuth();
   const hasPhoto = Boolean(user?.photoVersion);
   const [settingUpPhoto, setSettingUpPhoto] = useState(false);
-  // Whether any AI Stylist analysis is done (read from saved reports; nothing is generated).
-  const [hasStyleProfile, setHasStyleProfile] = useState<boolean | null>(null);
+  // The finished AI Stylist analyses (read from saved reports; nothing is generated). Null while loading.
+  const [reports, setReports] = useState<Record<string, { id: string; createdAt: string }> | null>(null);
+  const [portrait, setPortrait] = useState<PortraitInfo | null>(null);
   useEffect(() => {
     fetch("/api/studio")
-      .then(async (res) => (res.ok ? ((await res.json()) as { reports?: Record<string, unknown> }).reports ?? {} : {}))
-      .then((reports) => setHasStyleProfile(Object.keys(reports).length > 0))
-      .catch(() => setHasStyleProfile(false));
+      .then(async (res) => (res.ok ? ((await res.json()) as { reports?: Record<string, { id: string; createdAt: string }>; portrait?: PortraitInfo | null }) : {}))
+      .then((data) => {
+        setReports(data.reports ?? {});
+        setPortrait(data.portrait ?? null);
+      })
+      .catch(() => setReports({}));
   }, []);
+  const hasStyleProfile = reports === null ? null : Object.keys(reports).length > 0;
   const name = user?.displayName?.trim().split(/\s+/)[0] || "";
   const saved = outfits.filter((o) => o.isFavorite).sort(byLatestTryOn);
   const step = hasStyleProfile === null ? null : nextStep(hasPhoto, closet, saved, hasStyleProfile);
@@ -336,10 +343,96 @@ function Dashboard({ closet, outfits }: { closet: ClothingItem[]; outfits: Outfi
               <MirrorIcon className="h-4 w-4" /> Create a look
             </Link>
           )}
-          {/* Saved AI Stylist reports, next to the saved looks. */}
-          <SavedStylistStrip />
         </section>
+
+        <RecentActivity closet={closet} saved={saved} reports={reports ?? {}} portrait={portraitUrl(portrait)} />
       </PageShell>
     </main>
+  );
+}
+
+const ANALYSIS: Record<string, string> = { color: "Seasonal Color", makeup: "Makeup Guide", hair: "Hair & Color", style: "Personal Style" };
+const RECENT_DAYS = 14;
+
+function when(iso: string, now: number) {
+  const days = Math.floor((now - new Date(iso).getTime()) / (24 * 60 * 60 * 1000));
+  if (days <= 0) return "Today";
+  if (days === 1) return "Yesterday";
+  if (days < 7) return `${days} days ago`;
+  return new Date(iso).toLocaleDateString(undefined, { month: "short", day: "numeric" });
+}
+
+/**
+ * The last two weeks in one row: looks saved, pieces added, analyses finished. Shown only when something happened;
+ * each opens where it lives.
+ */
+function RecentActivity({
+  closet,
+  saved,
+  reports,
+  portrait,
+}: {
+  closet: ClothingItem[];
+  saved: Outfit[];
+  reports: Record<string, { id: string; createdAt: string }>;
+  portrait: string | null;
+}) {
+  // "Now" is taken once, when the section first shows.
+  const [now] = useState(() => Date.now());
+  const since = now - RECENT_DAYS * 24 * 60 * 60 * 1000;
+  const recent = (iso?: string) => Boolean(iso) && new Date(iso!).getTime() >= since;
+  type Entry = { key: string; at: string; label: string; href: string; picture?: string; tint?: string };
+  const entries: Entry[] = [
+    ...saved
+      .filter((o) => recent((o as { createdAt?: string }).createdAt))
+      .map((o) => ({
+        key: `look-${o.id}`,
+        at: (o as { createdAt?: string }).createdAt!,
+        label: "Saved look",
+        href: `/studio?outfit=${o.id}`,
+        picture: o.tryOn ? `/api/outfits/${o.id}/try-on/image?v=${o.tryOn}` : o.layers.flatMap((l) => l.items)[0]?.imageUrl,
+      })),
+    ...closet
+      .filter((i) => recent((i as { createdAt?: string }).createdAt))
+      .map((i) => ({ key: `piece-${i.id}`, at: (i as { createdAt?: string }).createdAt!, label: "Added to closet", href: "/closet", picture: i.imageUrl })),
+    ...Object.entries(reports)
+      .filter(([, r]) => recent(r.createdAt))
+      .map(([module, r]) => ({ key: `report-${r.id}`, at: r.createdAt, label: ANALYSIS[module] ?? "Analysis", href: `/stylist/${module}`, tint: module })),
+  ]
+    .sort((a, b) => new Date(b.at).getTime() - new Date(a.at).getTime())
+    .slice(0, 8);
+  if (!entries.length) return null;
+
+  return (
+    <section aria-labelledby="recent-title" className="mt-14">
+      <h2 id="recent-title" className="mb-5 font-display text-[34px] font-normal leading-none tracking-[-0.6px] text-[#121821] sm:text-[42px]">
+        Recent
+      </h2>
+      <ul className="-mx-5 flex gap-3 overflow-x-auto px-5 pb-2 [scrollbar-width:none] sm:mx-0 sm:px-0 [&::-webkit-scrollbar]:hidden">
+        {entries.map((e) => (
+          <li key={e.key} className="w-[132px] shrink-0">
+            <Link href={e.href} className="group block">
+              <span className="relative block aspect-[4/5] overflow-hidden rounded-[16px] bg-white shadow-[0_10px_28px_rgba(18,30,45,0.06)]">
+                {e.picture ? (
+                  // eslint-disable-next-line @next/next/no-img-element -- closet pictures and owner-only try-ons
+                  <img
+                    src={e.picture}
+                    alt=""
+                    loading="lazy"
+                    className={`absolute inset-0 h-full w-full transition-transform duration-700 ease-out group-hover:scale-[1.04] ${
+                      e.picture.startsWith("/uploads/cut-") || e.picture.includes("/try-on/") ? "object-contain p-2" : "object-cover"
+                    }`}
+                  />
+                ) : e.tint && isStudioModule(e.tint) ? (
+                  <ModuleVisual module={studioModule(e.tint)} portrait={portrait} className="absolute inset-0 h-full w-full" />
+                ) : null}
+              </span>
+              <span className="mt-2 block truncate text-[12.5px] font-semibold text-[#121821]">{e.label}</span>
+              <span className="block text-[11.5px] text-[#5d6874]">{when(e.at, now)}</span>
+            </Link>
+          </li>
+        ))}
+      </ul>
+    </section>
   );
 }
