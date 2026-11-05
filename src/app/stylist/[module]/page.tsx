@@ -4,6 +4,7 @@ import { useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import { useParams } from "next/navigation";
 import { ArrowLeftIcon, CheckIcon } from "@/components/Icons";
+import { ShareIcon } from "@/components/ShareLooks";
 import { CreditsLine, refreshCredits } from "@/components/Credits";
 import { ErrorNote, PageShell, btnPrimary, btnSecondary, btnText } from "@/components/ui";
 import { ColorReport } from "@/components/studio/ColorReport";
@@ -378,11 +379,29 @@ export default function StudioModulePage() {
               <button onClick={() => setChangingPhoto((v) => !v)} className={btnSecondary}>
                 {changingPhoto ? "Close" : "Change photo"}
               </button>
-              <button onClick={download} disabled={cardBusy} className={btnSecondary}>
-                Download image
+              <button
+                onClick={download}
+                disabled={cardBusy}
+                aria-label="Download this report as a picture"
+                title="Download"
+                className="btn-tactile flex h-11 w-11 items-center justify-center rounded-full bg-white/90 text-[#121821] shadow-sm hover:bg-white disabled:opacity-50"
+              >
+                {/* The share icon's arrow turned down, so the two read as a pair. */}
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" className="h-5 w-5" aria-hidden>
+                  <path d="M12 3.5V15" />
+                  <path d="m7.5 10.5 4.5 4.5 4.5-4.5" />
+                  <path d="M5 16v3.5A1.5 1.5 0 0 0 6.5 21h11a1.5 1.5 0 0 0 1.5-1.5V16" />
+                </svg>
               </button>
-              <button onClick={share} disabled={cardBusy} className={btnSecondary}>
-                Share
+              {/* The same round share button as Studio's. */}
+              <button
+                onClick={share}
+                disabled={cardBusy}
+                aria-label="Share this report"
+                title="Share"
+                className="btn-tactile flex h-11 w-11 items-center justify-center rounded-full bg-white/90 text-[#121821] shadow-sm hover:bg-white disabled:opacity-50"
+              >
+                <ShareIcon className="h-5 w-5" />
               </button>
             </div>
             {/* A new photo since this report: one tap makes the report for it. */}
