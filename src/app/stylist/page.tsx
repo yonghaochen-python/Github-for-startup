@@ -110,12 +110,12 @@ export default function StylistPage() {
         <section className="mt-12" aria-label="Analyses">
           <div className="mb-5 flex items-end justify-between gap-4">
             <h2 className="font-display text-[32px] leading-none text-[#121821] sm:text-[38px]">Your analyses</h2>
-            <p className="hidden text-[12.5px] text-[#5d6874] sm:block">Saved for you. A new photo makes new ones.</p>
+            <p className="hidden text-[12.5px] text-[#5d6874] sm:block">Saved for you. Reopening is free.</p>
           </div>
           <ul className="grid gap-5 sm:grid-cols-2">
             {STUDIO_MODULES.map((m, i) => {
               const report = state?.reports[m.id];
-              // A report from an earlier photo doesn't count as done for this one: it asks to be made again.
+              // A report from an earlier photo stays readable; it offers Refresh (made only when pressed).
               const stale = Boolean(report && portrait && report.portraitVersion && report.portraitVersion !== portrait.version);
               const making = Boolean(state?.generating?.includes(m.id));
               const done = stale || making ? undefined : report;
@@ -138,7 +138,7 @@ export default function StylistPage() {
                           ) : making ? (
                             "Analyzing…"
                           ) : stale ? (
-                            "New photo"
+                            "From earlier photo"
                           ) : (
                             "Not started"
                           )}
@@ -168,7 +168,7 @@ export default function StylistPage() {
                           done ? "bg-[#eef1f4] text-[#121821]" : "bg-[#121821] text-white"
                         }`}
                       >
-                        {done ? "See report" : making ? "Analyzing" : stale ? "Analyze new photo" : "Start"} <ArrowRightIcon className="h-4 w-4 transition-transform group-hover:translate-x-0.5" />
+                        {done ? "See report" : making ? "Analyzing" : stale ? "Refresh" : "Start"} <ArrowRightIcon className="h-4 w-4 transition-transform group-hover:translate-x-0.5" />
                       </span>
                     </div>
                   </Link>

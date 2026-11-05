@@ -131,21 +131,6 @@ export default function StudioModulePage() {
     // eslint-disable-next-line react-hooks/exhaustive-deps -- once per mod
   }, [id, valid]);
 
-  // Opening an analysis that isn't made for this photo yet (never made, or made from an earlier photo) starts it
-  // straight away: one tap from the AI Stylist page. Once per photo, so a failure never retries on its own.
-  const autoStartedFor = useRef<string | null>(null);
-  useEffect(() => {
-    if (!valid || !state || !loaded || loaded.generating || busy) return;
-    const portrait = state.portrait;
-    if (!portrait || !portraitReadiness(portrait.checks ?? null).ready || autoStartedFor.current === portrait.version) return;
-    const report = loaded.report;
-    const current = report && (!report.portraitVersion || report.portraitVersion === portrait.version);
-    if (current) return;
-    autoStartedFor.current = portrait.version;
-    analyze();
-    // eslint-disable-next-line react-hooks/exhaustive-deps -- analyze is the page's own action
-  }, [valid, state, loaded, busy]);
-
   // Being made elsewhere (a new photo, or before the page was left): check back until it's ready.
   const waiting = Boolean(loaded?.generating) && !busy;
   useEffect(() => {
@@ -404,23 +389,23 @@ export default function StudioModulePage() {
                 <ShareIcon className="h-5 w-5" />
               </button>
             </div>
-            {/* A new photo since this report: one tap makes the report for it. */}
+            {/* A new photo since this report: Refresh makes one for it (only when pressed). */}
             {fromEarlierPhoto && photoReady && (
               <div className="mb-5 flex items-center gap-4 rounded-[18px] bg-white p-4 text-[#121821] shadow-[0_8px_22px_rgba(18,30,45,0.12)]">
                 {picture && (
                   // eslint-disable-next-line @next/next/no-img-element
-                  <img src={picture} alt="Your new photo" className="h-16 w-[52px] shrink-0 rounded-[10px] object-cover" />
+                  <img src={picture} alt="Your current photo" className="h-16 w-[52px] shrink-0 rounded-[10px] object-cover" />
                 )}
                 <div className="min-w-0 flex-1">
-                  <p className="font-display text-[22px] leading-tight">New photo</p>
-                  <p className="text-[12px] text-[#5d6874]">Below is from your earlier photo · 1 photo credit</p>
+                  <p className="font-display text-[22px] leading-tight">From your earlier photo</p>
+                  <p className="text-[12px] text-[#5d6874]">Refresh for your current photo · 1 photo credit</p>
                 </div>
                 <button
                   onClick={analyze}
                   disabled={!canAnalyze}
                   className="btn-tactile shrink-0 rounded-full bg-[#121821] px-5 py-2.5 text-[14px] font-semibold text-white disabled:opacity-50"
                 >
-                  Analyze
+                  Refresh
                 </button>
               </div>
             )}
