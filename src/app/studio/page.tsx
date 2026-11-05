@@ -786,7 +786,7 @@ export default function StudioPage() {
                   Change photo
                 </button>
                 {/* Top right on wider screens: Save, the share arrow (adds this tried-on look to the "to share" list), and Undo. */}
-                {!trying && <div className="absolute right-3 top-3 hidden flex-col gap-2 md:flex">{mirrorActions}</div>}
+                {!trying && <div className="absolute left-[calc(100%+12px)] top-3 hidden flex-col gap-2 md:flex">{mirrorActions}</div>}
                 </div>
                 </div>
                 <OutfitPicks {...picksProps} layout="column" className="hidden min-h-0 border-l border-black/[0.07] p-3 md:flex" />
