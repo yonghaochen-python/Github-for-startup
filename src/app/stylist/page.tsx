@@ -7,7 +7,7 @@ import { ModuleVisual } from "@/components/studio/ModuleVisual";
 import { PortraitControls } from "@/components/studio/PortraitPanel";
 import { PickSwatches } from "@/components/studio/TopPicks";
 import { portraitUrl, useStudio } from "@/components/studio/useStudio";
-import { STUDIO_MODULES, portraitReadiness } from "@/lib/studioModules";
+import { STUDIO_MODULES, portraitReadiness, type StudioModuleId } from "@/lib/studioModules";
 import { Tips, type Tip } from "@/components/Tips";
 
 const STYLIST_TIPS: Tip[] = [
@@ -51,9 +51,14 @@ export default function StylistPage() {
   const portrait = state?.portrait ?? null;
   const picture = portraitUrl(portrait);
   const readiness = portraitReadiness(portrait?.checks ?? null);
-  const anyDone = Object.keys(state?.reports ?? {}).length > 0;
+  // Reports made from this photo (ones from an earlier photo need making again).
+  const current = (id: StudioModuleId) => {
+    const r = state?.reports[id];
+    return Boolean(r && (!portrait || !r.portraitVersion || r.portraitVersion === portrait.version));
+  };
+  const anyDone = STUDIO_MODULES.some((m) => current(m.id));
   const step = !portrait || !readiness.ready ? 1 : anyDone ? 3 : 2;
-  const next = state ? STUDIO_MODULES.find((m) => !state.reports[m.id]) : undefined;
+  const next = state ? STUDIO_MODULES.find((m) => !current(m.id)) : undefined;
 
   return (
     <main className="flex-1 pb-20">
@@ -109,7 +114,10 @@ export default function StylistPage() {
           </div>
           <ul className="grid gap-5 sm:grid-cols-2">
             {STUDIO_MODULES.map((m, i) => {
-              const done = state?.reports[m.id];
+              const report = state?.reports[m.id];
+              // A report from an earlier photo doesn't count as done for this one: it asks to be made again.
+              const stale = Boolean(report && portrait && report.portraitVersion && report.portraitVersion !== portrait.version);
+              const done = stale ? undefined : report;
               return (
                 <li key={m.id}>
                   <Link href={`/stylist/${m.id}`} className={`${surface} group flex h-full flex-col overflow-hidden transition-transform hover:-translate-y-0.5`}>
@@ -126,6 +134,8 @@ export default function StylistPage() {
                             <>
                               <CheckIcon className="h-3 w-3" /> Completed · {day(done.createdAt)}
                             </>
+                          ) : stale ? (
+                            "New photo"
                           ) : (
                             "Not started"
                           )}
@@ -155,7 +165,7 @@ export default function StylistPage() {
                           done ? "bg-[#eef1f4] text-[#121821]" : "bg-[#121821] text-white"
                         }`}
                       >
-                        {done ? "See report" : "Start"} <ArrowRightIcon className="h-4 w-4 transition-transform group-hover:translate-x-0.5" />
+                        {done ? "See report" : stale ? "Analyze new photo" : "Start"} <ArrowRightIcon className="h-4 w-4 transition-transform group-hover:translate-x-0.5" />
                       </span>
                     </div>
                   </Link>

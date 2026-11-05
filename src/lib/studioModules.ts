@@ -89,6 +89,8 @@ export type ReportSummary = {
   id: string;
   createdAt: string;
   practice: boolean;
+  /** The photo it was made from (a report from an earlier photo asks to be made again). */
+  portraitVersion?: string | null;
   /** The report's first top picks, for the AI Stylist page's cards (lib/studioPicks). */
   picks?: { label: string; value?: string; swatches?: Swatch[]; skip?: boolean }[];
 };

@@ -49,12 +49,12 @@ export async function latestReports(userId: string): Promise<Partial<Record<Stud
   const rows = await prisma.studioReport.findMany({
     where: { userId, status: "ready" },
     orderBy: { createdAt: "desc" },
-    select: { id: true, module: true, createdAt: true, practice: true },
+    select: { id: true, module: true, createdAt: true, practice: true, portraitVersion: true },
   });
   const out: Partial<Record<StudioModuleId, ReportSummary>> = {};
   for (const r of rows) {
     const m = r.module as StudioModuleId;
-    if (!out[m]) out[m] = { id: r.id, createdAt: r.createdAt.toISOString(), practice: r.practice };
+    if (!out[m]) out[m] = { id: r.id, createdAt: r.createdAt.toISOString(), practice: r.practice, portraitVersion: r.portraitVersion };
   }
   // Only the newest of each module needs its data, for the first top picks on its card.
   const newest = await prisma.studioReport.findMany({ where: { id: { in: Object.values(out).map((r) => r!.id) } }, select: { id: true, module: true, data: true } });

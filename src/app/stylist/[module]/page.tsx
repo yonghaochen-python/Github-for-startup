@@ -360,20 +360,32 @@ export default function StudioModulePage() {
                 Share
               </button>
             </div>
-            {(changingPhoto || (fromEarlierPhoto && photoReady)) && (
-              <div className="mb-5 rounded-[18px] bg-white p-5 shadow-[0_8px_22px_rgba(18,30,45,0.06)]">
-                {fromEarlierPhoto && photoReady && (
-                  <p className="mb-3 text-[13.5px] text-[#2b3540]">
-                    This report was made from an earlier photo.{" "}
-                    <button onClick={analyze} disabled={!canAnalyze} className="font-semibold text-[#121821] underline underline-offset-4">
-                      Make a new one with your current photo
-                    </button>{" "}
-                    (one photo credit).
-                  </p>
+            {/* A new photo since this report: one tap makes the report for it. */}
+            {fromEarlierPhoto && photoReady && (
+              <div className="mb-5 flex items-center gap-4 rounded-[18px] bg-white p-4 text-[#121821] shadow-[0_8px_22px_rgba(18,30,45,0.12)]">
+                {picture && (
+                  // eslint-disable-next-line @next/next/no-img-element
+                  <img src={picture} alt="Your new photo" className="h-16 w-[52px] shrink-0 rounded-[10px] object-cover" />
                 )}
-                {changingPhoto && <PortraitControls portrait={portrait} savePortrait={savePortrait} />}
+                <div className="min-w-0 flex-1">
+                  <p className="font-display text-[22px] leading-tight">New photo</p>
+                  <p className="text-[12px] text-[#5d6874]">Below is from your earlier photo · 1 photo credit</p>
+                </div>
+                <button
+                  onClick={analyze}
+                  disabled={!canAnalyze}
+                  className="btn-tactile shrink-0 rounded-full bg-[#121821] px-5 py-2.5 text-[14px] font-semibold text-white disabled:opacity-50"
+                >
+                  Analyze
+                </button>
               </div>
             )}
+            {changingPhoto && (
+              <div className="mb-5 rounded-[18px] bg-white p-5 shadow-[0_8px_22px_rgba(18,30,45,0.06)]">
+                <PortraitControls portrait={portrait} savePortrait={savePortrait} />
+              </div>
+            )}
+            <div className={fromEarlierPhoto ? "opacity-45 saturate-50" : undefined}>
             {mod.id === "color" && report.data.extra ? (
               <ColorReport module={mod} data={report.data} portrait={reportPicture} createdAt={report.createdAt} />
             ) : mod.id === "hair" && report.data.extra ? (
@@ -385,6 +397,7 @@ export default function StudioModulePage() {
             ) : (
               <ReportView module={mod} report={report} portrait={reportPicture} />
             )}
+            </div>
             <Feedback kind="stylist" targetId={report.id} className="mt-5 justify-center rounded-[16px] bg-white px-4 py-3" />
             <div className="mt-6 flex flex-wrap items-center gap-x-5 gap-y-3">
               {loaded.history.length > 1 && (
