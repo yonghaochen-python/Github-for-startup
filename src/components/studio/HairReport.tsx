@@ -13,6 +13,7 @@ const ICON: Record<HairRating, string> = { recommended: "✓", alternative: "○
 export function HairReport({ module, data, portrait, createdAt }: { module: StudioModule; data: StudioReportData; portrait: string | null; createdAt: string }) {
   const x = data.extra as HairExtra;
   const { pictures, of } = useRecolored(portrait, x.colors.map((c) => c.hex), "hair");
+  const bestHair = x.colors.find((c) => c.rating === "recommended");
 
   return (
     <div className="flex flex-col gap-4">
@@ -23,6 +24,7 @@ export function HairReport({ module, data, portrait, createdAt }: { module: Stud
         banner={{ label: "Your best hair", value: x.final.style, line: x.final.color }}
         keywords={data.keywords}
         picks={topPicks("hair", data).slice(1)}
+        after={bestHair ? { src: of(bestHair.hex), label: bestHair.name } : undefined}
       />
 
       <div className="grid gap-4 lg:grid-cols-[minmax(0,1.2fr)_minmax(0,1fr)]">

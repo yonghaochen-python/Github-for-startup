@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
-import { Checklist, Chip, Cover, Panel, Why, shortDay } from "@/components/studio/board";
+import { BeforeAfter, Checklist, Chip, Cover, Panel, Why, shortDay } from "@/components/studio/board";
 import { drawMakeup, prepareMakeup, type MakeupCanvas } from "@/lib/makeupPreview";
 import type { NotedSwatch } from "@/lib/studioColor";
 import type { MakeupExtra } from "@/lib/studioMakeup";
@@ -61,7 +61,15 @@ function MakeupMirror({ portrait, shades }: { portrait: string | null; shades: M
   return (
     <div className="grid items-start gap-4 sm:grid-cols-[minmax(0,180px)_minmax(0,1fr)]">
       <div className="relative aspect-[4/5] w-full overflow-hidden rounded-[14px] bg-[#e9edf1]">
-        <canvas ref={canvas} className={`h-full w-full object-cover ${prepared ? "" : "hidden"}`} aria-label="Your photo with the chosen lip color and blush" />
+        {/* Before / after once the face is found: drag to compare bare and with the chosen shades. */}
+        {portrait && (
+          <BeforeAfter
+            before={portrait}
+            after={<canvas ref={canvas} className="h-full w-full object-cover" aria-label="Your photo with the chosen lip color and blush" />}
+            afterLabel="With makeup"
+            className={`h-full w-full ${prepared ? "" : "hidden"}`}
+          />
+        )}
         {!prepared && portrait && (
           // eslint-disable-next-line @next/next/no-img-element
           <img src={portrait} alt="Your photo" className={`h-full w-full object-cover ${prepared === undefined ? "animate-pulse" : ""}`} />

@@ -108,6 +108,7 @@ export function StyleReport({
         }}
         keywords={data.keywords}
         picks={topPicks("style", data).slice(1)}
+        after={x.topColors.recommended[0] ? { src: of(x.topColors.recommended[0].hex), label: `In ${x.topColors.recommended[0].name}` } : undefined}
       />
 
       <div className="grid gap-4 lg:grid-cols-[minmax(0,1.35fr)_minmax(0,1fr)]">

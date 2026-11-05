@@ -128,7 +128,38 @@ export function Banner({ module, label, value, line }: { module: StudioModule; l
   );
 }
 
-/** The cover: the portrait beside the verdict banner, the keywords and the top picks. */
+/**
+ * Before and after on the same photo: drag (or use the arrow keys on) the line to compare. The "after" is made on
+ * the device (a recolor or makeup preview), so comparing never calls the AI.
+ */
+export function BeforeAfter({ before, after, afterLabel, className = "" }: { before: string; after: React.ReactNode; afterLabel: string; className?: string }) {
+  const [at, setAt] = useState(50);
+  return (
+    <div className={`relative overflow-hidden ${className}`}>
+      {/* eslint-disable-next-line @next/next/no-img-element */}
+      <img src={before} alt="Your photo, before" className="absolute inset-0 h-full w-full object-cover" />
+      <div className="absolute inset-0" style={{ clipPath: `inset(0 0 0 ${at}%)` }}>
+        {after}
+      </div>
+      <span className="pointer-events-none absolute inset-y-0 w-0.5 -translate-x-1/2 bg-white shadow-[0_0_8px_rgba(0,0,0,0.35)]" style={{ left: `${at}%` }}>
+        <span className="absolute left-1/2 top-1/2 flex h-8 w-8 -translate-x-1/2 -translate-y-1/2 items-center justify-center rounded-full bg-white text-[12px] text-[#121821] shadow">⇆</span>
+      </span>
+      <span className="pointer-events-none absolute bottom-2 left-2 rounded-full bg-black/45 px-2 py-0.5 text-[10.5px] font-semibold uppercase tracking-wider text-white">Before</span>
+      <span className="pointer-events-none absolute bottom-2 right-2 max-w-[60%] truncate rounded-full bg-black/45 px-2 py-0.5 text-[10.5px] font-semibold uppercase tracking-wider text-white">{afterLabel}</span>
+      <input
+        type="range"
+        min={0}
+        max={100}
+        value={at}
+        onChange={(e) => setAt(Number(e.target.value))}
+        aria-label={`Compare before and ${afterLabel}`}
+        className="absolute inset-0 h-full w-full cursor-ew-resize opacity-0"
+      />
+    </div>
+  );
+}
+
+/** The cover: the portrait (or a before / after of it) beside the verdict banner, the keywords and the top picks. */
 export function Cover({
   module,
   portrait,
@@ -136,6 +167,7 @@ export function Cover({
   banner,
   keywords,
   picks,
+  after,
 }: {
   module: StudioModule;
   portrait: string | null;
@@ -143,15 +175,27 @@ export function Cover({
   banner: { label: string; value: string; line?: string };
   keywords: string[];
   picks: Pick[];
+  /** The photo with the main recommendation on it, for a before / after (shown once it's made). */
+  after?: { src: string | null; label: string };
 }) {
   return (
     <section className="grid gap-5 rounded-[22px] p-5 sm:p-6 md:grid-cols-[minmax(0,260px)_minmax(0,1fr)]" style={{ background: module.tint }}>
-      <div className="aspect-[4/5] w-full overflow-hidden rounded-[16px] bg-white/60">
-        {portrait && (
+      {portrait && after?.src ? (
+        <BeforeAfter
+          before={portrait}
           // eslint-disable-next-line @next/next/no-img-element
-          <img src={portrait} alt="Your photo" className="h-full w-full object-cover" />
-        )}
-      </div>
+          after={<img src={after.src} alt={`Your photo, ${after.label}`} className="h-full w-full object-cover" />}
+          afterLabel={after.label}
+          className="aspect-[4/5] w-full rounded-[16px] bg-white/60"
+        />
+      ) : (
+        <div className="aspect-[4/5] w-full overflow-hidden rounded-[16px] bg-white/60">
+          {portrait && (
+            // eslint-disable-next-line @next/next/no-img-element
+            <img src={portrait} alt="Your photo" className="h-full w-full object-cover" />
+          )}
+        </div>
+      )}
       <div className="flex min-w-0 flex-col gap-4">
         <p className="text-[11px] font-medium uppercase tracking-[2.4px]" style={{ color: module.accent }}>
           AI Stylist · {module.label} · {date}

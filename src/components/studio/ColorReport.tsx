@@ -24,6 +24,7 @@ export function ColorReport({ module, data, portrait, createdAt }: { module: Stu
         banner={{ label: "Your color type", value: x.primary.subtype, line: x.secondary ? `Also close to ${x.secondary.subtype}` : undefined }}
         keywords={data.keywords}
         picks={topPicks("color", data).slice(1)}
+        after={best[0] ? { src: of(best[0].hex), label: `In ${best[0].name}` } : undefined}
       />
 
       <div className="grid gap-4 lg:grid-cols-[minmax(0,1fr)_minmax(0,1.35fr)]">
