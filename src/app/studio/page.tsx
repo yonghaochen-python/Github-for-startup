@@ -735,7 +735,7 @@ export default function StudioPage() {
                 ref={mirrorRef}
                 className={`${mirrorFrame} grid bg-white max-md:max-h-[50vh] ${
                   pieces.length
-                    ? "grid-cols-[minmax(88px,1fr)_auto] md:grid-cols-[minmax(88px,18%)_minmax(0,1fr)_minmax(150px,26%)]"
+                    ? "grid-cols-[minmax(88px,30%)_minmax(0,1fr)] md:grid-cols-[minmax(88px,18%)_minmax(0,1fr)_minmax(150px,26%)]"
                     : "grid-cols-1 md:grid-cols-[minmax(0,1fr)_minmax(150px,26%)]"
                 }`}
               >
