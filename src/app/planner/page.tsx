@@ -177,7 +177,7 @@ export default function PlannerPage() {
               <button onClick={() => changeMonth(-1)} aria-label="Previous month" className="flex h-10 w-10 items-center justify-center rounded-full text-[22px] text-[#121821] hover:bg-black/5">
                 ‹
               </button>
-              <p className="min-w-[230px] text-center font-display text-[40px] font-normal leading-none tracking-[-1px] text-[#121821] sm:min-w-[300px] sm:text-[52px]" aria-live="polite">
+              <p className="min-w-0 text-center font-display text-[34px] min-[380px]:min-w-[230px] min-[380px]:text-[40px] font-normal leading-none tracking-[-1px] text-[#121821] sm:min-w-[300px] sm:text-[52px]" aria-live="polite">
                 {monthName(month)}
               </p>
               <button onClick={() => changeMonth(1)} aria-label="Next month" className="flex h-10 w-10 items-center justify-center rounded-full text-[22px] text-[#121821] hover:bg-black/5">
