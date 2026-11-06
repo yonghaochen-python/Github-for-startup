@@ -10,6 +10,8 @@ Virm is an AI wardrobe app. You put your clothes in a digital closet, get outfit
 
 ## What's in the demo
 
+**Getting around:** four main places, **Home · My Closet · Studio · Planner** (top bar on computers, bottom bar on phones). **More** holds Shopping, AI Stylist and Saved Looks; your photo opens Profile, Admin and Log out (on phones it also holds Shopping, AI Stylist and Saved Looks). Works with a keyboard and screen readers, and up to 400% zoom.
+
 ### Home
 - Signed in: a greeting beside your photo, **Your Next Step** (one suggestion based on where you are), **This Week** (your planned outfits), **My Closet** and **Saved Looks** with real counts, and **Recent** (the last two weeks).
 - Signed out: **Your wardrobe. Reimagined.** with **Try It Free**, Create Account and Log In, and demo looks on a model.
