@@ -34,6 +34,7 @@ model User {
   credits  CreditEntry[]
   reports  StudioReport[]
   feedback Feedback[]
+  plans    OutfitPlan[]
 }
 
 /// The credit history: one row per grant, adjustment or use, never deleted. A use is "reserved" while its try-on
@@ -239,4 +240,21 @@ model PickVote {
 
   @@id([pickId, voterId])
   @@index([pickId, choice])
+}
+
+/// A month of planned outfits (Planner). One row per person per month; days is JSON:
+/// { "2026-11-06": { "items": ["<clothing id>", ...], "source": "generated" | "edited" }, ... }.
+/// Pieces deleted from the closet are simply left out when read. Not a saved look.
+model OutfitPlan {
+  id        String   @id @default(cuid())
+  userId    String
+  /// "2026-11"
+  month     String
+  days      String   @default("{}")
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, month])
 }

@@ -15,7 +15,13 @@ const chance = (p: number) => Math.random() < p;
  * a layer over it; shoes; sometimes an accessory. Runs on the device (no AI, no cost), so it can be tapped forever.
  * Tries not to repeat the look already on screen. An optional weight favors some pieces (e.g. the person's colors).
  */
-export function shuffleOutfit(closet: ClothingItem[], current: ClothingItem[], weight?: (item: ClothingItem) => number): ClothingItem[] {
+export function shuffleOutfit(
+  closet: ClothingItem[],
+  current: ClothingItem[],
+  weight?: (item: ClothingItem) => number,
+  /** How often a layer goes over the top (0–1; 0.4 when not given). The Planner raises it in winter. */
+  outerChance = 0.4
+): ClothingItem[] {
   const pick = (list: ClothingItem[]) => pickOne(list, weight);
   const of = (role: string) => closet.filter((i) => i.layeringRole === role);
   const currentKey = current.map((p) => p.id).sort().join();
@@ -35,7 +41,7 @@ export function shuffleOutfit(closet: ClothingItem[], current: ClothingItem[], w
       else chosen.push(base ?? mid);
       chosen.push(pick(bottoms));
     }
-    if (chance(0.4)) chosen.push(pick(of("outer_layer")));
+    if (chance(outerChance)) chosen.push(pick(of("outer_layer")));
     chosen.push(pick(of("shoes")));
     if (chance(0.3)) chosen.push(pick(of("accessory")));
     outfit = chosen.filter((i): i is ClothingItem => Boolean(i));
