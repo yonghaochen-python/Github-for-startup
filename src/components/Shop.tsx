@@ -17,6 +17,7 @@ import {
 import { addToWishlist, keepShopTryOn, readShopTryOns, readWishlist, removeFromWishlist, removeShopTryOn } from "@/lib/shopWishlist";
 import { StoreFinder } from "@/components/StoreFinder";
 import { ProductDetail } from "@/components/ProductDetail";
+import { Dialog } from "@/components/Dialog";
 import { btnPrimary, btnSecondary } from "@/components/ui";
 import { Tips, type Tip } from "@/components/Tips";
 
@@ -477,53 +478,51 @@ export function Shop() {
       )}
 
       {piece && (
-        <div className="fixed inset-0 z-[80] flex items-end justify-center bg-black/40 p-3 backdrop-blur-[2px] sm:items-center" onClick={() => setPiece(null)}>
-          <div role="dialog" aria-label={piece.name} onClick={(e) => e.stopPropagation()} className="w-full max-w-[420px] overflow-hidden rounded-[26px] bg-white shadow-[0_40px_90px_rgba(0,0,0,0.3)]">
-            <div className="relative aspect-[4/5] max-h-[52vh] w-full bg-[#f6f5f2]">
-              <Image src={piece.imageUrl} alt={piece.name} fill unoptimized className="object-contain p-6" />
-              <button onClick={() => setPiece(null)} aria-label="Close" className="absolute right-3 top-3 flex h-9 w-9 items-center justify-center rounded-full bg-white/85 text-[15px] text-[#121821] shadow-sm backdrop-blur">
-                ✕
+        <Dialog label={piece.name} onClose={() => setPiece(null)} className="w-full max-w-[420px] overflow-hidden rounded-[26px] bg-white shadow-[0_40px_90px_rgba(0,0,0,0.3)]">
+          <div className="relative aspect-[4/5] max-h-[52vh] w-full bg-[#f6f5f2]">
+            <Image src={piece.imageUrl} alt={piece.name} fill unoptimized className="object-contain p-6" />
+            <button onClick={() => setPiece(null)} aria-label="Close" className="absolute right-3 top-3 flex h-9 w-9 items-center justify-center rounded-full bg-white/85 text-[15px] text-[#121821] shadow-sm backdrop-blur">
+              ✕
+            </button>
+          </div>
+          <div className="p-5">
+            {piece.label && <p className="text-[10.5px] font-semibold uppercase tracking-[1.8px] text-[#5d6874]">{piece.label}</p>}
+            <p className="mt-1 font-display text-[26px] leading-tight text-[#121821]">{piece.name}</p>
+            <p className="mt-1 flex flex-wrap gap-x-3 text-[13px] text-[#5d6874]">
+              {piece.price && <span>{piece.price}</span>}
+              {piece.productUrl && (
+                <a href={piece.productUrl} target="_blank" rel="noopener noreferrer" className="font-semibold text-[#121821] underline-offset-4 hover:underline">
+                  Store ↗
+                </a>
+              )}
+            </p>
+            <div className="mt-5 flex flex-wrap items-center gap-2">
+              <button onClick={() => addToStudio(piece)} className={btnPrimary}>
+                <Spark className="h-4 w-4" /> Add to Studio
+              </button>
+              <button
+                onClick={() => toggleTray(piece)}
+                disabled={!inTray.has(piece.key) && tray.length >= MAX_TRAY}
+                aria-pressed={inTray.has(piece.key)}
+                className={btnSecondary}
+              >
+                {inTray.has(piece.key) ? "✓ In outfit" : "Add to outfit"}
+              </button>
+              <button
+                onClick={() => {
+                  setMyTryOns(removeShopTryOn(piece.key));
+                  setPiece(null);
+                }}
+                aria-label={`Remove ${piece.name}`}
+                className="ml-auto p-2 text-[#5d6874] hover:text-[#c23a2c]"
+              >
+                <svg viewBox="0 0 24 24" className="h-4 w-4" fill="none" stroke="currentColor" strokeWidth="1.6" aria-hidden>
+                  <path d="M5 7h14M10 7V5h4v2M7 7l1 12h8l1-12" strokeLinecap="round" strokeLinejoin="round" />
+                </svg>
               </button>
             </div>
-            <div className="p-5">
-              {piece.label && <p className="text-[10.5px] font-semibold uppercase tracking-[1.8px] text-[#5d6874]">{piece.label}</p>}
-              <p className="mt-1 font-display text-[26px] leading-tight text-[#121821]">{piece.name}</p>
-              <p className="mt-1 flex flex-wrap gap-x-3 text-[13px] text-[#5d6874]">
-                {piece.price && <span>{piece.price}</span>}
-                {piece.productUrl && (
-                  <a href={piece.productUrl} target="_blank" rel="noopener noreferrer" className="font-semibold text-[#121821] underline-offset-4 hover:underline">
-                    Store ↗
-                  </a>
-                )}
-              </p>
-              <div className="mt-5 flex flex-wrap items-center gap-2">
-                <button onClick={() => addToStudio(piece)} className={btnPrimary}>
-                  <Spark className="h-4 w-4" /> Add to Studio
-                </button>
-                <button
-                  onClick={() => toggleTray(piece)}
-                  disabled={!inTray.has(piece.key) && tray.length >= MAX_TRAY}
-                  aria-pressed={inTray.has(piece.key)}
-                  className={btnSecondary}
-                >
-                  {inTray.has(piece.key) ? "✓ In outfit" : "Add to outfit"}
-                </button>
-                <button
-                  onClick={() => {
-                    setMyTryOns(removeShopTryOn(piece.key));
-                    setPiece(null);
-                  }}
-                  aria-label={`Remove ${piece.name}`}
-                  className="ml-auto p-2 text-[#5d6874] hover:text-[#c23a2c]"
-                >
-                  <svg viewBox="0 0 24 24" className="h-4 w-4" fill="none" stroke="currentColor" strokeWidth="1.6" aria-hidden>
-                    <path d="M5 7h14M10 7V5h4v2M7 7l1 12h8l1-12" strokeLinecap="round" strokeLinejoin="round" />
-                  </svg>
-                </button>
-              </div>
-            </div>
           </div>
-        </div>
+        </Dialog>
       )}
 
       {open && (

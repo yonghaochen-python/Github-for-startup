@@ -7,6 +7,7 @@ import { GUEST_LOOKS, GUEST_MODEL_PHOTO, type GuestPiece } from "@/lib/guestLook
 import { LAYER_LABELS, type LayeringRole } from "@/lib/layering";
 import { PageShell, btnPrimary, btnSecondary } from "@/components/ui";
 import { useAuth } from "@/components/AuthProvider";
+import { Dialog } from "@/components/Dialog";
 
 /**
  * The free demo: Studio's mirror with a demo model and the starter closet. Pick a look, or tap a piece to see every
@@ -187,23 +188,21 @@ export default function TryFreePage() {
 
       {/* The invite: what an account adds, and the way in. Nothing in the demo is saved. */}
       {invite && (
-        <div className="fixed inset-0 z-[80] flex items-end justify-center bg-black/40 p-4 backdrop-blur-[2px] sm:items-center" onClick={() => setInvite(null)}>
-          <div role="dialog" aria-label={INVITES[invite]} onClick={(e) => e.stopPropagation()} className="w-full max-w-[400px] rounded-[24px] bg-white p-6 shadow-[0_40px_90px_rgba(0,0,0,0.3)]">
-            <p className="font-display text-[30px] leading-tight text-[#121821]">{INVITES[invite]}</p>
-            <p className="mt-2 text-[14px] text-[#4f5b66]">Free with an account.</p>
-            <div className="mt-6 flex flex-wrap items-center gap-3">
-              <Link href="/login?create=1" className={btnPrimary}>
-                Create Account
-              </Link>
-              <Link href="/login" className="px-2 text-[14px] font-semibold text-[#121821] underline-offset-4 hover:underline">
-                Log In
-              </Link>
-              <button onClick={() => setInvite(null)} className="ml-auto text-[13px] font-semibold text-[#5d6874]">
-                Not now
-              </button>
-            </div>
+        <Dialog label={INVITES[invite]} onClose={() => setInvite(null)} className="w-full max-w-[400px] rounded-[24px] bg-white p-6 shadow-[0_40px_90px_rgba(0,0,0,0.3)]">
+          <p className="font-display text-[30px] leading-tight text-[#121821]">{INVITES[invite]}</p>
+          <p className="mt-2 text-[14px] text-[#4f5b66]">Free with an account.</p>
+          <div className="mt-6 flex flex-wrap items-center gap-3">
+            <Link href="/login?create=1" className={btnPrimary}>
+              Create Account
+            </Link>
+            <Link href="/login" className="px-2 text-[14px] font-semibold text-[#121821] underline-offset-4 hover:underline">
+              Log In
+            </Link>
+            <button onClick={() => setInvite(null)} className="ml-auto text-[13px] font-semibold text-[#5d6874]">
+              Not now
+            </button>
           </div>
-        </div>
+        </Dialog>
       )}
     </main>
   );

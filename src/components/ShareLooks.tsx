@@ -1,6 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useRef, useState, useSyncExternalStore } from "react";
+import { useDialog } from "@/lib/useDialog";
 import Link from "next/link";
 import type { Outfit } from "@/components/OutfitCard";
 import { useToast } from "@/components/Toast";
@@ -369,6 +370,7 @@ function SharePopup({
   const [code, setCode] = useState<string | null>(null);
   const [card, setCard] = useState<Blob | null>(null);
   const overlayRef = useRef<HTMLDivElement | null>(null);
+  useDialog(overlayRef, onClose, { escape: false });
   const byId = (id: string) => shown.find((l) => l.id === id)!;
 
   useEffect(() => {

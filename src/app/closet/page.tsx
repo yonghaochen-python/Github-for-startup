@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useRef, useState } from "react";
+import { useDialog } from "@/lib/useDialog";
 import { retryImage } from "@/lib/retryImage";
 import { fetchWithRetry } from "@/lib/fetchRetry";
 import Image from "next/image";
@@ -538,6 +539,8 @@ function ItemDetail({
   const [saving, setSaving] = useState(false);
   const closeRef = useRef<HTMLButtonElement | null>(null);
 
+  const itemDialog = useRef<HTMLDivElement | null>(null);
+  useDialog(itemDialog, onClose, { escape: false });
   useEffect(() => {
     closeRef.current?.focus();
     const onKey = (e: KeyboardEvent) => e.key === "Escape" && onClose();
@@ -565,6 +568,7 @@ function ItemDetail({
 
   return (
     <div
+        ref={itemDialog}
       role="dialog"
       aria-modal="true"
       aria-labelledby="item-title"

@@ -1,6 +1,7 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, useRef } from "react";
+import { useDialog } from "@/lib/useDialog";
 import Link from "next/link";
 import { useAuth } from "@/components/AuthProvider";
 import { DEMO_LABEL, isVerified, priceLabel, type ShopProduct } from "@/lib/shopCatalog";
@@ -47,6 +48,8 @@ export function ProductDetail({
   const verified = isVerified(product);
   const price = verified ? priceLabel(product.price, product.currency) : null;
 
+  const productDialog = useRef<HTMLDivElement | null>(null);
+  useDialog(productDialog, onClose, { escape: false });
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => e.key === "Escape" && onClose();
     document.addEventListener("keydown", onKey);
@@ -85,6 +88,7 @@ export function ProductDetail({
   return (
     <div className="fixed inset-0 z-50 flex items-end justify-center bg-[rgba(10,16,24,0.55)] sm:items-center sm:p-6" onClick={onClose}>
       <div
+        ref={productDialog}
         role="dialog"
         aria-modal="true"
         aria-label={product.name}

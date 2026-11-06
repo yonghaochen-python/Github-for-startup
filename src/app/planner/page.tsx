@@ -8,6 +8,7 @@ import { ErrorNote, PageShell, btnPrimary, btnSecondary } from "@/components/ui"
 import { InlineLoading } from "@/components/InlineLoading";
 import { useAuth } from "@/components/AuthProvider";
 import { DayEditor } from "@/components/planner/DayEditor";
+import { Dialog } from "@/components/Dialog";
 import { DayFlatLay as FlatLay } from "@/components/planner/DayFlatLay";
 import type { Palette } from "@/components/ClosetPicker";
 import { profileColors, type StyleProfile } from "@/lib/styleProfile";
@@ -183,7 +184,11 @@ export default function PlannerPage() {
             </Link>
           ) : (
             !past && (
-              <button onClick={() => generate(false)} disabled={generating || loading} className={btnPrimary}>
+              <button
+                onClick={() => !generating && !loading && generate(false)}
+                aria-disabled={generating || loading}
+                className={`${btnPrimary} ${generating || loading ? "opacity-60" : ""}`}
+              >
                 {generating ? "Planning…" : "Generate Plan"}
               </button>
             )
@@ -298,20 +303,18 @@ export default function PlannerPage() {
 
       {/* Asked before a month's plan is replaced (days edited by hand are kept). */}
       {confirm && (
-        <div className="fixed inset-0 z-[80] flex items-end justify-center bg-black/40 p-4 backdrop-blur-[2px] sm:items-center" onClick={() => setConfirm(false)}>
-          <div role="dialog" aria-label="Replace this month's plan?" onClick={(e) => e.stopPropagation()} className="w-full max-w-[400px] rounded-[24px] bg-white p-6 shadow-[0_40px_90px_rgba(0,0,0,0.3)]">
-            <p className="font-display text-[28px] leading-tight text-[#121821]">Replace {monthName(month)}?</p>
-            <p className="mt-2 text-[14px] text-[#4f5b66]">Days you edited stay.</p>
-            <div className="mt-6 flex items-center gap-3">
-              <button onClick={() => generate(true)} className={btnPrimary}>
-                Replace
-              </button>
-              <button onClick={() => setConfirm(false)} className={btnSecondary}>
-                Cancel
-              </button>
-            </div>
+        <Dialog label={"Replace this month's plan?"} onClose={() => setConfirm(false)} className="w-full max-w-[400px] rounded-[24px] bg-white p-6 shadow-[0_40px_90px_rgba(0,0,0,0.3)]">
+          <p className="font-display text-[28px] leading-tight text-[#121821]">Replace {monthName(month)}?</p>
+          <p className="mt-2 text-[14px] text-[#4f5b66]">Days you edited stay.</p>
+          <div className="mt-6 flex items-center gap-3">
+            <button onClick={() => generate(true)} className={btnPrimary}>
+              Replace
+            </button>
+            <button onClick={() => setConfirm(false)} className={btnSecondary}>
+              Cancel
+            </button>
           </div>
-        </div>
+        </Dialog>
       )}
     </main>
   );

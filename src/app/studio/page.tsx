@@ -176,6 +176,13 @@ export default function StudioPage() {
   const [colorFilter, setColorFilter] = useState<ColorChoice>(null);
   // Phones: the closet drawer.
   const [drawer, setDrawer] = useState(false);
+  // Escape closes the drawer.
+  useEffect(() => {
+    if (!drawer) return;
+    const key = (e: KeyboardEvent) => e.key === "Escape" && setDrawer(false);
+    document.addEventListener("keydown", key);
+    return () => document.removeEventListener("keydown", key);
+  }, [drawer]);
   const closetRef = useRef<HTMLElement | null>(null);
 
   const [theme, setTheme] = useState("");
@@ -974,7 +981,7 @@ export default function StudioPage() {
           )}
 
           {/* Phones: Your outfit and Closet / Shop open as a drawer from the bottom, so the mirror keeps the screen. */}
-          {drawer && <button aria-label="Close the closet" onClick={() => setDrawer(false)} className="fixed inset-0 z-[69] bg-black/45 backdrop-blur-[2px] md:hidden" />}
+          {drawer && <button aria-label="Close the closet" tabIndex={-1} onClick={() => setDrawer(false)} className="fixed inset-0 z-[69] bg-black/45 backdrop-blur-[2px] md:hidden" />}
           <div
             role={drawer ? "dialog" : undefined}
             aria-label="Your outfit and closet"

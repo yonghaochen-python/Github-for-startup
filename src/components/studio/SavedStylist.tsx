@@ -1,6 +1,7 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, useRef } from "react";
+import { useDialog } from "@/lib/useDialog";
 import Link from "next/link";
 import { PaletteIcon } from "@/components/Icons";
 import { ModuleVisual } from "@/components/studio/ModuleVisual";
@@ -70,6 +71,8 @@ export function SavedStylistStrip() {
 
 /** A saved report in a pop-up: the styled photo and its main picks, with the full report one tap away. */
 function ReportPeek({ module: m, report, picture, onClose }: { module: StudioModule; report: ReportSummary; picture: string | null; onClose: () => void }) {
+  const peekDialog = useRef<HTMLDivElement | null>(null);
+  useDialog(peekDialog, onClose, { escape: false });
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => e.key === "Escape" && onClose();
     window.addEventListener("keydown", onKey);
@@ -79,6 +82,7 @@ function ReportPeek({ module: m, report, picture, onClose }: { module: StudioMod
   return (
     <div className="fixed inset-0 z-50 flex items-end justify-center bg-[rgba(10,16,24,0.55)] sm:items-center sm:p-6" onClick={onClose}>
       <div
+        ref={peekDialog}
         role="dialog"
         aria-modal="true"
         aria-label={m.title}

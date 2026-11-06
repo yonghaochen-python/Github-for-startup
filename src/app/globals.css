@@ -408,3 +408,19 @@ html[data-period="night"] .closet-shelf {
     animation: none !important;
   }
 }
+
+/*
+ * Keyboard focus: one clear ring on every link, button and field, shown when moving with the keyboard (a mouse or
+ * finger tap doesn't show it, except in text fields). Kept outside Tailwind's layers so no utility hides it. Dark by
+ * day; light on the night page, and dark again inside light surfaces at night.
+ */
+:focus-visible {
+  outline: 2px solid #121821;
+  outline-offset: 2px;
+}
+html[data-period="night"] :focus-visible {
+  outline-color: #f1e9da;
+}
+html[data-period="night"] :is(.bg-white, [class^="bg-white/"], [class*=" bg-white/"], [class^="bg-[#f"], [class*=" bg-[#f"], [class^="bg-[#e"], [class*=" bg-[#e"], [class^="bg-[linear-gradient"], [class*=" bg-[linear-gradient"]) :focus-visible {
+  outline-color: #121821;
+}

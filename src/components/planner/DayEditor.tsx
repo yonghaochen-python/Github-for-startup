@@ -9,6 +9,7 @@ import { MirrorPieces } from "@/components/MirrorPieces";
 import { OutfitFlatLay } from "@/components/OutfitFlatLay";
 import { ClosetPicker, CLOSET_TABS, type Palette } from "@/components/ClosetPicker";
 import { btnPrimary, btnSecondary } from "@/components/ui";
+import { useDialog } from "@/lib/useDialog";
 
 const sameIds = (a: string[], b: string[]) => a.length === b.length && [...a].sort().join() === [...b].sort().join();
 
@@ -53,6 +54,8 @@ export function DayEditor({
   const [busy, setBusy] = useState<"generate" | "save" | null>(null);
   const [note, setNote] = useState<string | null>(null);
   const closetRef = useRef<HTMLDivElement | null>(null);
+  const dialogRef = useRef<HTMLDivElement | null>(null);
+  useDialog(dialogRef, onClose, { escape: false });
 
   const ids = pieces.map((p) => p.id);
   const changed = !sameIds(ids, saved.map((p) => p.id));
@@ -149,7 +152,9 @@ export function DayEditor({
   return (
     <div className="fixed inset-0 z-[80] flex items-stretch justify-center bg-black/40 backdrop-blur-[2px] md:items-center md:p-6" onClick={onClose}>
       <div
+        ref={dialogRef}
         role="dialog"
+        aria-modal="true"
         aria-label={title}
         onClick={(e) => e.stopPropagation()}
         className="flex h-full w-full max-w-[1180px] flex-col overflow-hidden bg-white shadow-[0_40px_90px_rgba(0,0,0,0.3)] md:h-[min(88vh,820px)] md:rounded-[28px]"

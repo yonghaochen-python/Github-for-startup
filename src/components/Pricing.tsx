@@ -1,6 +1,7 @@
 "use client";
 
-import { Fragment, useEffect, useState } from "react";
+import { Fragment, useEffect, useState, useRef } from "react";
+import { useDialog } from "@/lib/useDialog";
 import { createPortal } from "react-dom";
 import Link from "next/link";
 import { useAuth } from "@/components/AuthProvider";
@@ -346,6 +347,8 @@ export function Pricing({ compact = false, onCompare }: { compact?: boolean; onC
  * leaving what they're doing. Same content as the Pricing page, more compact; nothing can be bought yet.
  */
 export function PricingSheet({ onClose }: { onClose: () => void }) {
+  const pricingDialog = useRef<HTMLDivElement | null>(null);
+  useDialog(pricingDialog, onClose, { escape: false });
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => e.key === "Escape" && onClose();
     document.addEventListener("keydown", onKey);
@@ -361,6 +364,7 @@ export function PricingSheet({ onClose }: { onClose: () => void }) {
   return createPortal(
     <div className="fixed inset-0 z-50 flex items-end justify-center bg-[rgba(10,16,24,0.55)] sm:items-center sm:p-6" onClick={onClose}>
       <div
+        ref={pricingDialog}
         role="dialog"
         aria-modal="true"
         aria-label="Plans"

@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
+import { useDialog } from "@/lib/useDialog";
 
 /**
  * A full-screen front camera for the AI Stylist photo: one round button takes the selfie. The browser only asks for
@@ -10,6 +11,8 @@ export function SelfieCamera({ onPhoto, onClose }: { onPhoto: (photo: Blob) => v
   const video = useRef<HTMLVideoElement | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [ready, setReady] = useState(false);
+  const dialog = useRef<HTMLDivElement | null>(null);
+  useDialog(dialog, onClose);
 
   useEffect(() => {
     let stream: MediaStream | null = null;
@@ -50,7 +53,7 @@ export function SelfieCamera({ onPhoto, onClose }: { onPhoto: (photo: Blob) => v
   }
 
   return (
-    <div className="fixed inset-0 z-[80] flex flex-col bg-black" role="dialog" aria-label="Take a selfie">
+    <div ref={dialog} className="fixed inset-0 z-[80] flex flex-col bg-black" role="dialog" aria-modal="true" aria-label="Take a selfie">
       <div className="relative min-h-0 flex-1">
         <video ref={video} playsInline muted className="absolute inset-0 h-full w-full -scale-x-100 object-cover" />
         {/* Where the face goes. */}
