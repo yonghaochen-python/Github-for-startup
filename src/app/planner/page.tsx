@@ -2,13 +2,15 @@
 
 import { useCallback, useEffect, useMemo, useState } from "react";
 import Link from "next/link";
-import { useRouter } from "next/navigation";
 import type { ClothingItem } from "@/components/OutfitCard";
 import type { PlanDays } from "@/lib/planOutfits";
 import { ErrorNote, PageShell, btnPrimary, btnSecondary } from "@/components/ui";
 import { InlineLoading } from "@/components/InlineLoading";
 import { useAuth } from "@/components/AuthProvider";
 import { retryImage } from "@/lib/retryImage";
+import { DayEditor } from "@/components/planner/DayEditor";
+import type { Palette } from "@/components/ClosetPicker";
+import { profileColors, type StyleProfile } from "@/lib/styleProfile";
 
 /**
  * Planner: a month of outfits from the person's own closet. Generate Plan fills today on (this month) or every day
@@ -77,7 +79,6 @@ function FlatLay({ pieces, size = "grid" }: { pieces: ClothingItem[]; size?: "gr
 }
 
 export default function PlannerPage() {
-  const router = useRouter();
   const { status } = useAuth();
   // The date comes from the browser (the person's own time zone), so the page waits for it.
   const [today, setToday] = useState<string | null>(null);
@@ -89,6 +90,10 @@ export default function PlannerPage() {
   const [confirm, setConfirm] = useState(false);
   const [ranOut, setRanOut] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  // The day open in the editor.
+  const [editing, setEditing] = useState<string | null>(null);
+  // The Style Profile's colors, for the closet's color filter (read only; nothing is generated).
+  const [palette, setPalette] = useState<Palette | null | undefined>(undefined);
 
   useEffect(() => {
     const t = localToday();
@@ -103,6 +108,14 @@ export default function PlannerPage() {
       .then(async (res) => (res.ok ? ((await res.json()) as { items: ClothingItem[] }).items : []))
       .then(setCloset)
       .catch(() => setCloset([]));
+  }, [status]);
+
+  useEffect(() => {
+    if (status !== "signedIn") return;
+    fetch("/api/studio")
+      .then(async (res) => (res.ok ? ((await res.json()) as { profile?: StyleProfile }).profile : undefined))
+      .then((profile) => setPalette(profile ? profileColors(profile) : null))
+      .catch(() => setPalette(null));
   }, [status]);
 
   useEffect(() => {
@@ -158,9 +171,9 @@ export default function PlannerPage() {
     setMonth(shiftMonth(month, by));
   }
 
+  /** Opens a day: one with an outfit, or an empty one from today on (to build by hand). */
   const openDay = (date: string) => {
-    const ids = days[date]?.items ?? [];
-    if (ids.length) router.push(`/studio?items=${ids.join(",")}`);
+    if (piecesOf(date).length || (today && date >= today)) setEditing(date);
   };
 
   if (!today || !month || status !== "signedIn" || closet === null) {
@@ -235,7 +248,7 @@ export default function PlannerPage() {
                 <li key={date}>
                   <button
                     onClick={() => openDay(date)}
-                    disabled={!pieces.length}
+                    disabled={!pieces.length && before}
                     aria-label={`${new Date(`${date}T12:00:00Z`).toLocaleDateString(undefined, { weekday: "long", month: "long", day: "numeric", timeZone: "UTC" })}${pieces.length ? "" : ", no outfit"}`}
                     className={`group relative flex aspect-[4/5] w-full flex-col overflow-hidden rounded-[16px] p-2 text-left transition-shadow ${
                       pieces.length ? "bg-white shadow-[0_8px_24px_rgba(18,30,45,0.06)] hover:shadow-[0_14px_34px_rgba(18,30,45,0.12)]" : "bg-white/40"
@@ -272,7 +285,7 @@ export default function PlannerPage() {
               const isToday = date === today;
               return (
                 <li key={date} className={`border-b border-black/[0.06] ${weekday(date) === 0 ? "mt-3" : ""} ${date < today ? "opacity-45" : ""}`}>
-                  <button onClick={() => openDay(date)} disabled={!pieces.length} className="flex w-full items-center gap-4 py-3 text-left">
+                  <button onClick={() => openDay(date)} disabled={!pieces.length && date < today} className="flex w-full items-center gap-4 py-3 text-left">
                     <span className="w-11 shrink-0 text-center">
                       <span className="block text-[10px] font-semibold uppercase tracking-[1.4px] text-[#7a858f]">{WEEKDAYS[weekday(date)]}</span>
                       <span
@@ -291,6 +304,27 @@ export default function PlannerPage() {
             })}
         </ol>
       </PageShell>
+
+      {editing && (
+        <DayEditor
+          key={editing}
+          date={editing}
+          today={today}
+          day={days[editing]}
+          closet={closet}
+          palette={palette}
+          onClose={() => setEditing(null)}
+          onSaved={(day) => {
+            setDays((all) => {
+              const next = { ...all };
+              if (day) next[editing] = day;
+              else delete next[editing];
+              return next;
+            });
+            setEditing(null);
+          }}
+        />
+      )}
 
       {/* Asked before a month's plan is replaced (days edited by hand are kept). */}
       {confirm && (
