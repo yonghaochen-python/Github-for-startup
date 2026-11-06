@@ -59,6 +59,8 @@ const FEATURES = [
   { key: "shop", label: "Shopping" },
   { key: "closet", label: "My Closet" },
   { key: "studio", label: "Studio" },
+  { key: "stylist", label: "AI Stylist" },
+  { key: "planner", label: "Planner" },
   { key: "saved", label: "Saved Looks" },
   { key: "profile", label: "Profile" },
 ] as const;

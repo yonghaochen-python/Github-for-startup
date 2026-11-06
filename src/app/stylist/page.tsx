@@ -14,7 +14,7 @@ import { Tips, type Tip } from "@/components/Tips";
 const STYLIST_TIPS: Tip[] = [
   { target: '[data-tip="stylist-photo"]', text: "Use a clear photo of your face and shoulders. Change it here." },
   { target: 'section[aria-label="Analyses"] li', text: "Pick an analysis. Each one uses 1 photo credit." },
-  { target: '.site-nav a[href="/outfits/saved"], .site-tabbar a[href="/outfits/saved"]', text: "Your reports are saved in Saved Looks." },
+  { target: '.site-nav [data-tip="more"], .site-nav [data-tip="account"]', text: "Your reports are saved in Saved Looks." },
 ];
 
 const day = (iso: string) => new Date(iso).toLocaleDateString(undefined, { month: "short", day: "numeric" });

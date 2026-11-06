@@ -20,7 +20,7 @@ export type EventName =
   | "pick_opened"
   | "pick_vote"
   | "signup_from_pick"
-  | `visit_${"home" | "shop" | "closet" | "studio" | "stylist" | "tryon" | "saved" | "profile"}`;
+  | `visit_${"home" | "shop" | "closet" | "studio" | "stylist" | "tryon" | "saved" | "profile" | "planner"}`;
 
 export async function track(
   userId: string | null,

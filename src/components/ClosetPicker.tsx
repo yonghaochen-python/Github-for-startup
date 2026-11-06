@@ -54,6 +54,21 @@ export function ColorFilter({
       >
         All
       </button>
+      {/* No Style Profile yet: Your colors leads to AI Stylist, where they're found. */}
+      {palette === null && (
+        <Link
+          href="/stylist"
+          aria-label="Your colors: find them in AI Stylist"
+          className="flex min-h-[28px] shrink-0 items-center gap-1 rounded-full px-2.5 py-1 text-[11.5px] font-semibold text-[#121821] shadow-[inset_0_0_0_1px_rgba(18,24,33,0.16)] hover:shadow-[inset_0_0_0_1px_rgba(18,24,33,0.32)]"
+        >
+          <span className="flex -space-x-1" aria-hidden>
+            {["#d9b8a3", "#9fb0c8", "#b9c3a5"].map((c) => (
+              <span key={c} className="h-2.5 w-2.5 rounded-full ring-1 ring-white" style={{ background: c }} />
+            ))}
+          </span>
+          Your colors →
+        </Link>
+      )}
       {Boolean(palette?.wear.length) && (
         <button
           onClick={() => onChange(value === "yours" ? null : "yours")}
