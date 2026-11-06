@@ -11,7 +11,7 @@ Virm is an AI wardrobe app. You put your clothes in a digital closet, get outfit
 ## What's in the demo
 
 ### Home
-- Signed in: a greeting beside your photo, **Your Next Step** (one suggestion based on where you are), **My Closet** and **Saved Looks** with real counts, and **Recent** (the last two weeks).
+- Signed in: a greeting beside your photo, **Your Next Step** (one suggestion based on where you are), **This Week** (your planned outfits), **My Closet** and **Saved Looks** with real counts, and **Recent** (the last two weeks).
 - Signed out: **Your wardrobe. Reimagined.** with **Try It Free**, Create Account and Log In, and demo looks on a model.
 - **Try it free:** Studio's mirror with a demo model and 20 ready-made looks. Tap a piece to see every look made with it. No AI, no account, nothing saved.
 
@@ -62,6 +62,13 @@ A personal beauty and fashion consultation, made from a head-and-shoulders photo
 - **Your Shopping Try-Ons:** pieces you've added from stores, with store, name and price. Kept apart from My Closet, and saved on your device.
 - Tap a piece → **Add to Studio**: it joins the look you already have there. Nothing is made by AI until you press Try On.
 - Admin only: **Store Preview** (Admin → Store Preview) with placeholder shelves for Allbirds, Alo Yoga, Taylor Stitch, Tentree and Cuyana. No real products, nothing read from their websites, no partnership.
+
+### Planner
+- Pick a month and press **Generate Plan**: an outfit for every day from today on (or every day of a future month), made from your own closet.
+- It leans toward the season, your colors and your style (with a Style Profile), and rotates your pieces. The same outfit never repeats within a Monday–Sunday week.
+- Tap a day: your outfit on the left (Replace / Remove), My Closet on the right. **Generate** suggests another outfit for that day only; **Keep** or **Save** it. **Try On** opens Studio.
+- Days you chose or edited are kept (marked with a small gold dot) when you plan the month again; Virm asks before replacing a plan. Each month is saved on its own.
+- Free: no AI and no photos. A photo is only made when you press Try On in Studio.
 
 ### Saved Looks
 - Your saved outfits, each with its pieces numbered and the whole look (your try-on of it if you have one).

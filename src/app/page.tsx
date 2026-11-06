@@ -13,6 +13,7 @@ import { MirrorImage, SavedPhotoSetup } from "@/components/SavedPhoto";
 import { PageShell, btnPrimary, btnSecondary } from "@/components/ui";
 import {
   ArrowRightIcon,
+  CalendarIcon,
   CameraIcon,
   MirrorIcon,
   PlusIcon,
@@ -21,6 +22,8 @@ import { ModuleVisual } from "@/components/studio/ModuleVisual";
 import { portraitUrl } from "@/components/studio/useStudio";
 import { isStudioModule, studioModule, type PortraitInfo } from "@/lib/studioModules";
 import { Tips, type Tip } from "@/components/Tips";
+import { DayFlatLay } from "@/components/planner/DayFlatLay";
+import type { PlanDays } from "@/lib/planOutfits";
 
 const HOME_TIPS: Tip[] = [
   { target: "#mirror", text: "Your mirror: your latest try-on. Open Studio to try on more." },
@@ -207,6 +210,8 @@ function Dashboard({ closet, outfits }: { closet: ClothingItem[]; outfits: Outfi
           </section>
         )}
 
+        {closet.length > 0 && <ThisWeek closet={closet} />}
+
         {/* My Closet: the real count and the newest pieces. */}
         <section aria-labelledby="closet-title" className="mb-14">
           <SectionHead id="closet-title" title="My Closet" count={closet.length} href="/closet" />
@@ -293,6 +298,83 @@ function when(iso: string, now: number) {
   if (days === 1) return "Yesterday";
   if (days < 7) return `${days} days ago`;
   return new Date(iso).toLocaleDateString(undefined, { month: "short", day: "numeric" });
+}
+
+const pad2 = (n: number) => String(n).padStart(2, "0");
+const ymd = (d: Date) => `${d.getFullYear()}-${pad2(d.getMonth() + 1)}-${pad2(d.getDate())}`;
+
+/**
+ * This Week, from the Planner: Monday to Sunday with each day's planned outfit (only read; nothing is generated
+ * here). A day opens in the Planner. Without a plan for the rest of the week, one button to plan the month.
+ */
+function ThisWeek({ closet }: { closet: ClothingItem[] }) {
+  // The week is worked out once, in the person's own time zone.
+  const [week] = useState(() => {
+    const now = new Date();
+    const monday = new Date(now.getFullYear(), now.getMonth(), now.getDate() - ((now.getDay() + 6) % 7));
+    return Array.from({ length: 7 }, (_, i) => ymd(new Date(monday.getFullYear(), monday.getMonth(), monday.getDate() + i)));
+  });
+  const today = ymd(new Date());
+  const [days, setDays] = useState<PlanDays | null>(null);
+  useEffect(() => {
+    const months = [...new Set(week.map((d) => d.slice(0, 7)))];
+    Promise.all(
+      months.map((m) => fetch(`/api/planner?month=${m}`, { cache: "no-store" }).then(async (res) => (res.ok ? ((await res.json()) as { days: PlanDays }).days : {})))
+    )
+      .then((all) => setDays(Object.assign({}, ...all)))
+      .catch(() => setDays({}));
+  }, [week]);
+  if (!days) return null;
+
+  const byId = new Map(closet.map((p) => [p.id, p]));
+  const piecesOf = (date: string) => (days[date]?.items ?? []).flatMap((id) => byId.get(id) ?? []);
+  const planned = week.some((d) => d >= today && piecesOf(d).length);
+
+  return (
+    <section aria-labelledby="week-title" className="mb-14">
+      <div className="mb-5 flex items-baseline justify-between gap-4">
+        <h2 id="week-title" className="font-display text-[34px] font-normal leading-none tracking-[-0.6px] text-[#121821] sm:text-[42px]">
+          This Week
+        </h2>
+        <Link href="/planner" className="group inline-flex shrink-0 items-center gap-1 text-[13px] font-semibold text-[#121821]">
+          Planner <ArrowRightIcon className="h-4 w-4 transition-transform group-hover:translate-x-0.5" />
+        </Link>
+      </div>
+      {planned ? (
+        <ol className="-mx-5 flex snap-x gap-2.5 overflow-x-auto px-5 pb-2 [scrollbar-width:none] sm:mx-0 sm:grid sm:grid-cols-7 sm:overflow-visible sm:px-0 [&::-webkit-scrollbar]:hidden">
+          {week.map((date) => {
+            const pieces = piecesOf(date);
+            const before = date < today;
+            return (
+              <li key={date} className={`w-[30vw] max-w-[150px] shrink-0 snap-start sm:w-auto sm:max-w-none ${before ? "opacity-45" : ""}`}>
+                <Link href={`/planner?day=${date}`} className="group block">
+                  <span className="flex items-baseline gap-1.5 px-0.5 pb-1.5">
+                    <span className="text-[10px] font-semibold uppercase tracking-[1.4px] text-[#7a858f]">
+                      {new Date(`${date}T12:00:00`).toLocaleDateString(undefined, { weekday: "short" })}
+                    </span>
+                    <span className={`text-[12.5px] font-semibold ${date === today ? "rounded-full bg-[#121821] px-1.5 text-white" : "text-[#121821]"}`}>
+                      {Number(date.slice(8))}
+                    </span>
+                  </span>
+                  <span className={`block aspect-[4/5] overflow-hidden rounded-[16px] p-1.5 ${pieces.length ? "bg-white shadow-[0_10px_28px_rgba(18,30,45,0.06)]" : "border border-black/[0.07]"}`}>
+                    {pieces.length > 0 && (
+                      <span className="block h-full transition-transform duration-500 ease-out group-hover:scale-[1.03]">
+                        <DayFlatLay pieces={pieces} />
+                      </span>
+                    )}
+                  </span>
+                </Link>
+              </li>
+            );
+          })}
+        </ol>
+      ) : (
+        <Link href="/planner" className={btnPrimary}>
+          <CalendarIcon className="h-4 w-4" /> Plan this month
+        </Link>
+      )}
+    </section>
+  );
 }
 
 /**

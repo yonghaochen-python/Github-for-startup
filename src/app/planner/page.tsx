@@ -7,8 +7,8 @@ import type { PlanDays } from "@/lib/planOutfits";
 import { ErrorNote, PageShell, btnPrimary, btnSecondary } from "@/components/ui";
 import { InlineLoading } from "@/components/InlineLoading";
 import { useAuth } from "@/components/AuthProvider";
-import { retryImage } from "@/lib/retryImage";
 import { DayEditor } from "@/components/planner/DayEditor";
+import { DayFlatLay as FlatLay } from "@/components/planner/DayFlatLay";
 import type { Palette } from "@/components/ClosetPicker";
 import { profileColors, type StyleProfile } from "@/lib/styleProfile";
 
@@ -17,7 +17,6 @@ import { profileColors, type StyleProfile } from "@/lib/styleProfile";
  * (a future month) for free, no AI; each day shows its pieces. Tapping a day opens it.
  */
 
-const ORDER = ["outer_layer", "mid_layer", "base_layer", "one_piece", "bottom", "shoes", "accessory"];
 const WEEKDAYS = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"];
 
 const pad = (n: number) => String(n).padStart(2, "0");
@@ -41,43 +40,6 @@ function datesOf(month: string) {
 /** 0 = Monday … 6 = Sunday. */
 const weekday = (date: string) => (new Date(`${date}T12:00:00Z`).getUTCDay() + 6) % 7;
 
-/** A day's pieces as a small flat-lay (up to four, top layers first). */
-function FlatLay({ pieces, size = "grid" }: { pieces: ClothingItem[]; size?: "grid" | "row" }) {
-  const sorted = [...pieces].sort((a, b) => ORDER.indexOf(a.layeringRole) - ORDER.indexOf(b.layeringRole));
-  const img = (p: ClothingItem) => (
-    // eslint-disable-next-line @next/next/no-img-element -- the person's own closet pictures
-    <img
-      key={p.id}
-      src={p.imageUrl}
-      alt=""
-      loading="lazy"
-      onError={retryImage}
-      className={`h-full w-full ${p.imageUrl.startsWith("/uploads/cut-") ? "object-contain p-0.5" : "object-cover"}`}
-    />
-  );
-  if (size === "row") {
-    return (
-      <span className="flex min-w-0 gap-1.5 overflow-hidden">
-        {sorted.slice(0, 5).map((p) => (
-          <span key={p.id} className="h-[72px] w-[58px] shrink-0 overflow-hidden rounded-[10px] bg-white">
-            {img(p)}
-          </span>
-        ))}
-      </span>
-    );
-  }
-  const shown = sorted.slice(0, 4);
-  return (
-    <span className={`grid h-full w-full gap-0.5 ${shown.length > 1 ? "grid-cols-2" : ""} ${shown.length > 2 ? "grid-rows-2" : ""}`}>
-      {shown.map((p, i) => (
-        <span key={p.id} className={`min-h-0 overflow-hidden rounded-[6px] bg-white ${shown.length === 3 && i === 0 ? "row-span-2" : ""}`}>
-          {img(p)}
-        </span>
-      ))}
-    </span>
-  );
-}
-
 export default function PlannerPage() {
   const { status } = useAuth();
   // The date comes from the browser (the person's own time zone), so the page waits for it.
@@ -97,9 +59,17 @@ export default function PlannerPage() {
 
   useEffect(() => {
     const t = localToday();
-    // eslint-disable-next-line react-hooks/set-state-in-effect -- the date is only known in the browser
+    // ?day=2026-11-12 (from Home's This Week) opens that day in its month.
+    const asked = new URLSearchParams(window.location.search).get("day");
+    const day = asked && /^\d{4}-\d{2}-\d{2}$/.test(asked) ? asked : null;
+    /* eslint-disable react-hooks/set-state-in-effect -- the date is only known in the browser */
     setToday(t);
-    setMonth(t.slice(0, 7));
+    setMonth((day ?? t).slice(0, 7));
+    if (day) {
+      setEditing(day);
+      window.history.replaceState(null, "", "/planner");
+    }
+    /* eslint-enable react-hooks/set-state-in-effect */
   }, []);
 
   useEffect(() => {
@@ -251,12 +221,12 @@ export default function PlannerPage() {
                     disabled={!pieces.length && before}
                     aria-label={`${new Date(`${date}T12:00:00Z`).toLocaleDateString(undefined, { weekday: "long", month: "long", day: "numeric", timeZone: "UTC" })}${pieces.length ? "" : ", no outfit"}`}
                     className={`group relative flex aspect-[4/5] w-full flex-col overflow-hidden rounded-[16px] p-2 text-left transition-shadow ${
-                      pieces.length ? "bg-white shadow-[0_8px_24px_rgba(18,30,45,0.06)] hover:shadow-[0_14px_34px_rgba(18,30,45,0.12)]" : "bg-white/40"
+                      pieces.length ? "bg-white shadow-[0_8px_24px_rgba(18,30,45,0.06)] hover:shadow-[0_14px_34px_rgba(18,30,45,0.12)]" : "border border-black/[0.07]"
                     } ${before ? "opacity-45" : ""}`}
                   >
                     <span
                       className={`mb-1.5 flex h-6 w-6 shrink-0 items-center justify-center rounded-full text-[11.5px] font-semibold ${
-                        isToday ? "bg-[#121821] text-white" : "text-[#29343a]"
+                        isToday ? "bg-[#121821] text-white" : pieces.length ? "text-[#29343a]" : ""
                       }`}
                     >
                       {Number(date.slice(8))}
