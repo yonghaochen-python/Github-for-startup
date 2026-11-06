@@ -426,7 +426,7 @@ export function LiveTryOn({
               </span>
             </div>
           )}
-          {/* The replay: mirrored like the live view (the file itself isn't). In memory only. */}
+          {/* The replay (the file is saved mirrored, like the live view). In memory only. */}
           {replay && "url" in replay && (
             <video
               ref={replayVideoRef}
@@ -434,7 +434,7 @@ export function LiveTryOn({
               autoPlay
               playsInline
               muted
-              className="absolute inset-0 z-10 h-full w-full -scale-x-100 bg-[#0b1520] object-contain"
+              className="absolute inset-0 z-10 h-full w-full bg-[#0b1520] object-contain"
               aria-label="Replay of your live try-on"
             />
           )}

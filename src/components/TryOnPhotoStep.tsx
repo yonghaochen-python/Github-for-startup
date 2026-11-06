@@ -192,8 +192,8 @@ export function TryOnPhotoStep({
     setError(null);
     try {
       // Match the preview (a centered 3:4 portrait crop) so the photo isn't wider than what the person framed.
-      // Frames from the camera are already upright, including on phones; the photo is kept un-mirrored (true orientation)
-      // even though the live preview is mirrored like a selfie.
+      // Frames from the camera are already upright, including on phones; the photo is saved mirrored, the way the
+      // preview shows it (like a selfie).
       const vw = video.videoWidth;
       const vh = video.videoHeight;
       const target = 3 / 4;
@@ -204,7 +204,10 @@ export function TryOnPhotoStep({
       const canvas = document.createElement("canvas");
       canvas.width = sw;
       canvas.height = sh;
-      canvas.getContext("2d")?.drawImage(video, sx, sy, sw, sh, 0, 0, sw, sh);
+      const ctx = canvas.getContext("2d");
+      ctx?.translate(sw, 0);
+      ctx?.scale(-1, 1);
+      ctx?.drawImage(video, sx, sy, sw, sh, 0, 0, sw, sh);
       const raw = await new Promise<Blob>((resolve, reject) =>
         canvas.toBlob((b) => (b ? resolve(b) : reject(new Error("capture"))), "image/jpeg", 0.95)
       );
