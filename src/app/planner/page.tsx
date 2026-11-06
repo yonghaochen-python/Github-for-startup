@@ -57,7 +57,7 @@ function FlatLay({ pieces, size = "grid" }: { pieces: ClothingItem[]; size?: "gr
   );
   if (size === "row") {
     return (
-      <span className="flex min-w-0 gap-1.5">
+      <span className="flex min-w-0 gap-1.5 overflow-hidden">
         {sorted.slice(0, 5).map((p) => (
           <span key={p.id} className="h-[72px] w-[58px] shrink-0 overflow-hidden rounded-[10px] bg-white">
             {img(p)}
@@ -285,7 +285,7 @@ export default function PlannerPage() {
               const isToday = date === today;
               return (
                 <li key={date} className={`border-b border-black/[0.06] ${weekday(date) === 0 ? "mt-3" : ""} ${date < today ? "opacity-45" : ""}`}>
-                  <button onClick={() => openDay(date)} disabled={!pieces.length && date < today} className="flex w-full items-center gap-4 py-3 text-left">
+                  <button onClick={() => openDay(date)} disabled={!pieces.length && date < today} className="flex w-full min-w-0 items-center gap-4 py-3 text-left">
                     <span className="w-11 shrink-0 text-center">
                       <span className="block text-[10px] font-semibold uppercase tracking-[1.4px] text-[#7a858f]">{WEEKDAYS[weekday(date)]}</span>
                       <span
