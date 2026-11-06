@@ -152,7 +152,7 @@ export function StyleReport({
         <Panel module={module} title="Your style plan">
           <Checklist module={module} items={[x.overall.colorFamilies, x.overall.aesthetic, x.overall.wardrobe]} />
           <Why text={x.directions.map((d) => `${d.name}: ${d.why}`).join(" ")} label="Why these styles?" />
-          <p className="mt-4 text-[11px] text-[#8a939c]">
+          <p className="mt-4 text-[11px] text-[#5d6874]">
             Confidence: {data.confidence}
             {data.limits ? ` · ${data.limits}` : ""}
           </p>

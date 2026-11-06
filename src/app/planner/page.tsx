@@ -104,6 +104,13 @@ export default function PlannerPage() {
 
   const byId = useMemo(() => new Map((closet ?? []).map((p) => [p.id, p])), [closet]);
   const piecesOf = useCallback((date: string) => (days[date]?.items ?? []).flatMap((id) => byId.get(id) ?? []), [days, byId]);
+  /** What a screen reader hears for a day: the date, the outfit's pieces, and whether the person chose it. */
+  const dayLabel = (date: string) => {
+    const pieces = piecesOf(date);
+    const when = new Date(`${date}T12:00:00Z`).toLocaleDateString(undefined, { weekday: "long", month: "long", day: "numeric", timeZone: "UTC" });
+    const mine = days[date] && days[date].source !== "generated" ? ", your choice" : "";
+    return pieces.length ? `${when}: ${pieces.map((p) => p.description.split(/[,;(]/)[0].trim()).join(", ")}${mine}` : `${when}, no outfit`;
+  };
 
   const generate = useCallback(
     async (replace = false) => {
@@ -206,7 +213,7 @@ export default function PlannerPage() {
         <div className={`hidden md:block ${loading ? "opacity-50" : ""}`}>
           <div className="mb-2 grid grid-cols-7 gap-2.5">
             {WEEKDAYS.map((d) => (
-              <span key={d} className="px-1 text-[10.5px] font-semibold uppercase tracking-[1.8px] text-[#7a858f]">
+              <span key={d} className="px-1 text-[10.5px] font-semibold uppercase tracking-[1.8px] text-[#5d6874]">
                 {d}
               </span>
             ))}
@@ -224,7 +231,7 @@ export default function PlannerPage() {
                   <button
                     onClick={() => openDay(date)}
                     disabled={!pieces.length && before}
-                    aria-label={`${new Date(`${date}T12:00:00Z`).toLocaleDateString(undefined, { weekday: "long", month: "long", day: "numeric", timeZone: "UTC" })}${pieces.length ? "" : ", no outfit"}`}
+                    aria-label={dayLabel(date)}
                     className={`group relative flex aspect-[4/5] w-full flex-col overflow-hidden rounded-[16px] p-2 text-left transition-shadow ${
                       pieces.length ? "bg-white shadow-[0_8px_24px_rgba(18,30,45,0.06)] hover:shadow-[0_14px_34px_rgba(18,30,45,0.12)]" : "border border-black/[0.07]"
                     } ${before ? "opacity-45" : ""}`}
@@ -242,7 +249,7 @@ export default function PlannerPage() {
                       </span>
                     )}
                     {days[date] && days[date].source !== "generated" && (
-                      <span aria-hidden className="absolute right-2.5 top-3 h-1.5 w-1.5 rounded-full bg-[#c9a227]" />
+                      <span aria-hidden className="absolute right-2.5 top-3 h-2 w-2 rounded-full bg-[#a8801a]" />
                     )}
                   </button>
                 </li>
@@ -260,9 +267,9 @@ export default function PlannerPage() {
               const isToday = date === today;
               return (
                 <li key={date} className={`border-b border-black/[0.06] ${weekday(date) === 0 ? "mt-3" : ""} ${date < today ? "opacity-45" : ""}`}>
-                  <button onClick={() => openDay(date)} disabled={!pieces.length && date < today} className="flex w-full min-w-0 items-center gap-4 py-3 text-left">
+                  <button onClick={() => openDay(date)} disabled={!pieces.length && date < today} aria-label={dayLabel(date)} className="flex w-full min-w-0 items-center gap-4 py-3 text-left">
                     <span className="w-11 shrink-0 text-center">
-                      <span className="block text-[10px] font-semibold uppercase tracking-[1.4px] text-[#7a858f]">{WEEKDAYS[weekday(date)]}</span>
+                      <span className="block text-[10px] font-semibold uppercase tracking-[1.4px] text-[#5d6874]">{WEEKDAYS[weekday(date)]}</span>
                       <span
                         className={`mx-auto mt-0.5 flex h-8 w-8 items-center justify-center rounded-full font-display text-[20px] leading-none ${
                           isToday ? "bg-[#121821] text-white" : "text-[#121821]"
@@ -272,7 +279,7 @@ export default function PlannerPage() {
                       </span>
                     </span>
                     {pieces.length ? <FlatLay pieces={pieces} size="row" /> : <span className="h-[72px]" />}
-                    {days[date] && days[date].source !== "generated" && <span aria-hidden className="ml-auto h-1.5 w-1.5 shrink-0 rounded-full bg-[#c9a227]" />}
+                    {days[date] && days[date].source !== "generated" && <span aria-hidden className="ml-auto h-1.5 w-1.5 shrink-0 rounded-full bg-[#a8801a]" />}
                   </button>
                 </li>
               );

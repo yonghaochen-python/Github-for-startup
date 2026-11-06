@@ -349,7 +349,7 @@ function ThisWeek({ closet }: { closet: ClothingItem[] }) {
               <li key={date} className={`w-[30vw] max-w-[150px] shrink-0 snap-start sm:w-auto sm:max-w-none ${before ? "opacity-45" : ""}`}>
                 <Link href={`/planner?day=${date}`} className="group block">
                   <span className="flex items-baseline gap-1.5 px-0.5 pb-1.5">
-                    <span className="text-[10px] font-semibold uppercase tracking-[1.4px] text-[#7a858f]">
+                    <span className="text-[10px] font-semibold uppercase tracking-[1.4px] text-[#5d6874]">
                       {new Date(`${date}T12:00:00`).toLocaleDateString(undefined, { weekday: "short" })}
                     </span>
                     <span className={`text-[12.5px] font-semibold ${date === today ? "rounded-full bg-[#121821] px-1.5 text-white" : "text-[#121821]"}`}>

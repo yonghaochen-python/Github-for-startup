@@ -85,7 +85,7 @@ export default function TryFreePage() {
                       </span>
                       <span className="min-w-0 flex-1 max-md:hidden">
                         <span className="line-clamp-2 text-[12px] font-medium leading-snug text-[#121821]">{shortName(item.description)}</span>
-                        <span className="mt-0.5 block text-[10px] uppercase tracking-[1.2px] text-[#7a858f]">{LAYER_LABELS[item.layeringRole as LayeringRole]}</span>
+                        <span className="mt-0.5 block text-[10px] uppercase tracking-[1.2px] text-[#5d6874]">{LAYER_LABELS[item.layeringRole as LayeringRole]}</span>
                       </span>
                     </button>
                   </li>

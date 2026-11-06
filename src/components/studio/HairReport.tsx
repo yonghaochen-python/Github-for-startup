@@ -76,7 +76,7 @@ export function HairReport({ module, data, portrait, createdAt }: { module: Stud
       <Panel module={module} title="Your hair plan">
         <Checklist module={module} items={[x.final.style, x.final.color]} />
         <Why text={x.final.why} />
-        <p className="mt-4 text-[11px] text-[#8a939c]">
+        <p className="mt-4 text-[11px] text-[#5d6874]">
           Confidence: {data.confidence}
           {data.limits ? ` · ${data.limits}` : ""} · Pictures of a different haircut aren&apos;t included yet.
         </p>

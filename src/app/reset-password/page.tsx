@@ -7,7 +7,7 @@ import { ErrorNote, PageShell, btnPrimary } from "@/components/ui";
 
 const MIN_PASSWORD = 8;
 const field =
-  "h-12 w-full rounded-full bg-white px-5 text-[14px] text-[#121821] shadow-[inset_0_0_0_1px_rgba(18,24,33,0.14)] outline-none placeholder:text-[#8a96a1] focus:shadow-[inset_0_0_0_2px_#121821]";
+  "h-12 w-full rounded-full bg-white px-5 text-[14px] text-[#121821] shadow-[inset_0_0_0_1px_rgba(18,24,33,0.14)] outline-none placeholder:text-[#5d6874] focus:shadow-[inset_0_0_0_2px_#121821]";
 
 /** Opened from a one-time reset link: choose a new password. */
 export default function ResetPasswordPage() {

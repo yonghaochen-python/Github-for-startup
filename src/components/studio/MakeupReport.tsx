@@ -17,7 +17,7 @@ function ShadePicker({ title, shades, picked, onPick }: { title: string; shades:
         <button
           onClick={() => onPick(undefined)}
           aria-label={`No ${title.toLowerCase()}`}
-          className={`flex h-9 w-9 items-center justify-center rounded-full bg-white text-[14px] text-[#9aa4ad] shadow-[inset_0_0_0_1px_rgba(18,24,33,0.14)] ${!picked ? "ring-2 ring-[#121821] ring-offset-2" : ""}`}
+          className={`flex h-9 w-9 items-center justify-center rounded-full bg-white text-[14px] text-[#5d6874] shadow-[inset_0_0_0_1px_rgba(18,24,33,0.14)] ${!picked ? "ring-2 ring-[#121821] ring-offset-2" : ""}`}
         >
           ∅
         </button>
@@ -81,7 +81,7 @@ function MakeupMirror({ portrait, shades }: { portrait: string | null; shades: M
         <div className="flex flex-col gap-4">
           <ShadePicker title="Lips" shades={shades.lipstick} picked={lip} onPick={setLip} />
           <ShadePicker title="Blush" shades={shades.blush} picked={blush} onPick={setBlush} />
-          <p className="text-[11px] text-[#8a939c]">A light preview on your device.</p>
+          <p className="text-[11px] text-[#5d6874]">A light preview on your device.</p>
         </div>
       )}
     </div>
@@ -159,7 +159,7 @@ export function MakeupReport({ module, data, portrait, createdAt }: { module: St
 
       <Panel module={module} title="Your makeup plan">
         <Checklist module={module} items={[x.direction]} />
-        <p className="mt-4 text-[11px] text-[#8a939c]">
+        <p className="mt-4 text-[11px] text-[#5d6874]">
           Confidence: {data.confidence}
           {data.limits ? ` · ${data.limits}` : ""} · Ideas to enjoy, never something you need to change.
         </p>

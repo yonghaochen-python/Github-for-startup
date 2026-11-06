@@ -424,3 +424,15 @@ html[data-period="night"] :focus-visible {
 html[data-period="night"] :is(.bg-white, [class^="bg-white/"], [class*=" bg-white/"], [class^="bg-[#f"], [class*=" bg-[#f"], [class^="bg-[#e"], [class*=" bg-[#e"], [class^="bg-[linear-gradient"], [class*=" bg-[linear-gradient"]) :focus-visible {
   outline-color: #121821;
 }
+
+/*
+ * Tap targets: text-style buttons and links (and fields) are at least 24px tall, so they're easy to hit. In the base
+ * layer, so anything with its own size keeps it; links inside a sentence (inline) aren't affected.
+ */
+@layer base {
+  a,
+  button,
+  input:not([type="checkbox"]):not([type="radio"]):not([type="range"]) {
+    min-height: 24px;
+  }
+}

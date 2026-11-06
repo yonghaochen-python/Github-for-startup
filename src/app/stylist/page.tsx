@@ -62,7 +62,7 @@ export default function StylistPage() {
             <h1 className="font-display text-[52px] font-normal leading-[0.95] tracking-[-1.6px] text-[#121821] sm:text-[76px]">
               Your Style,
               <br />
-              <span className="italic text-[#c98a6b]">Decoded.</span>
+              <span className="italic text-[#b06f4f]">Decoded.</span>
             </h1>
             <p className="mt-5 max-w-md text-[15.5px] leading-relaxed text-[#4f5b66]">
               Discover the colors, beauty looks, hairstyles, and fashion choices that complement your personal style.

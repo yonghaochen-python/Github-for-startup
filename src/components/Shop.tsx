@@ -370,7 +370,7 @@ export function Shop() {
               onBlur={() => setSearchFocused(false)}
               placeholder="Search clothes, brands, or styles…"
               aria-label="Search the collection"
-              className="w-full bg-transparent text-[13px] text-[#121821] outline-none placeholder:text-[#7d8790]"
+              className="w-full bg-transparent text-[13px] text-[#121821] outline-none placeholder:text-[#5d6874]"
             />
             {query && (
               <button onClick={() => setQuery("")} aria-label="Clear search" className="text-[14px] leading-none text-[#5d6874] hover:text-[#121821]">

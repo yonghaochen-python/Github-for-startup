@@ -60,7 +60,7 @@ export function Thumb({ image, color, label, sub, round = false }: { image?: str
       <p className="mt-1 truncate text-center text-[11px] font-medium text-[#2b3540]" title={label}>
         {label}
       </p>
-      {sub && <p className="truncate text-center text-[10px] text-[#8a939c]">{sub}</p>}
+      {sub && <p className="truncate text-center text-[10px] text-[#5d6874]">{sub}</p>}
     </li>
   );
 }

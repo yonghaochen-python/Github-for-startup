@@ -145,7 +145,7 @@ export default function LoginPage() {
                 value={displayName}
                 onChange={(e) => setDisplayName(e.target.value)}
                 placeholder="Optional"
-                className="h-12 w-full rounded-[12px] bg-white px-4 text-[14px] font-normal tracking-normal text-[#121821] shadow-[inset_0_0_0_1px_rgba(18,24,33,0.18)] outline-none placeholder:text-[#6b7783] focus:shadow-[inset_0_0_0_2px_#121821]"
+                className="h-12 w-full rounded-[12px] bg-white px-4 text-[14px] font-normal tracking-normal text-[#121821] shadow-[inset_0_0_0_1px_rgba(18,24,33,0.18)] outline-none placeholder:text-[#5d6874] focus:shadow-[inset_0_0_0_2px_#121821]"
               />
             </label>
           )}
@@ -158,7 +158,7 @@ export default function LoginPage() {
               value={email}
               onChange={(e) => setEmail(e.target.value)}
               placeholder="you@example.com"
-              className="h-12 w-full rounded-[12px] bg-white px-4 text-[14px] font-normal tracking-normal text-[#121821] shadow-[inset_0_0_0_1px_rgba(18,24,33,0.18)] outline-none placeholder:text-[#6b7783] focus:shadow-[inset_0_0_0_2px_#121821]"
+              className="h-12 w-full rounded-[12px] bg-white px-4 text-[14px] font-normal tracking-normal text-[#121821] shadow-[inset_0_0_0_1px_rgba(18,24,33,0.18)] outline-none placeholder:text-[#5d6874] focus:shadow-[inset_0_0_0_2px_#121821]"
             />
           </label>
           <label className="mt-5 flex flex-col gap-2.5 text-[11px] font-semibold tracking-[1.4px] text-[#3b4850]">
@@ -171,7 +171,7 @@ export default function LoginPage() {
               value={password}
               onChange={(e) => setPassword(e.target.value)}
               placeholder={creating ? "At least 8 characters" : "Enter your password"}
-              className="h-12 w-full rounded-[12px] bg-white px-4 text-[14px] font-normal tracking-normal text-[#121821] shadow-[inset_0_0_0_1px_rgba(18,24,33,0.18)] outline-none placeholder:text-[#6b7783] focus:shadow-[inset_0_0_0_2px_#121821]"
+              className="h-12 w-full rounded-[12px] bg-white px-4 text-[14px] font-normal tracking-normal text-[#121821] shadow-[inset_0_0_0_1px_rgba(18,24,33,0.18)] outline-none placeholder:text-[#5d6874] focus:shadow-[inset_0_0_0_2px_#121821]"
             />
           </label>
 

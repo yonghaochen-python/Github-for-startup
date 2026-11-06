@@ -96,7 +96,7 @@ export function ColorReport({ module, data, portrait, createdAt }: { module: Stu
 
       <Panel module={module} title="In a nutshell">
         <Checklist module={module} items={[data.summary]} />
-        <p className="mt-4 text-[11px] text-[#8a939c]">
+        <p className="mt-4 text-[11px] text-[#5d6874]">
           Confidence: {data.confidence}
           {data.limits ? ` · ${data.limits}` : ""} · A styling suggestion from one photo, not science.
         </p>

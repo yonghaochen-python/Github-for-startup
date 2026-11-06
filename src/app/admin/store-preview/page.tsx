@@ -45,7 +45,7 @@ export default async function StorePreviewPage() {
       <PageShell>
         <PageHeader label="Admin" title="Store Preview" back={{ href: "/admin", label: "Dashboard" }} />
         <p className="-mt-2 mb-10 inline-flex items-center gap-2 rounded-full bg-white px-3 py-1.5 text-[11px] font-semibold uppercase tracking-[1.4px] text-[#5d6874] shadow-[inset_0_0_0_1px_rgba(18,24,33,0.08)]">
-          <span className="h-1.5 w-1.5 rounded-full bg-[#c9a227]" aria-hidden /> Preview, not partners · placeholders only
+          <span className="h-1.5 w-1.5 rounded-full bg-[#a8801a]" aria-hidden /> Preview, not partners · placeholders only
         </p>
 
         <div className="flex flex-col gap-12">
@@ -55,7 +55,7 @@ export default async function StorePreviewPage() {
                 <h2 id={`store-${store.id}`} className="font-display text-[30px] font-normal leading-none tracking-[-0.5px] text-[#121821] sm:text-[36px]">
                   {store.name}
                 </h2>
-                <span className="text-[11px] font-semibold uppercase tracking-[1.4px] text-[#8a939b]">No permission yet</span>
+                <span className="text-[11px] font-semibold uppercase tracking-[1.4px] text-[#5d6874]">No permission yet</span>
               </div>
               <ul className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-6">
                 {store.slots.map((kind) => (
@@ -63,7 +63,7 @@ export default async function StorePreviewPage() {
                     <div className="flex aspect-[3/4] items-center justify-center rounded-[18px] border border-dashed border-black/[0.12] bg-white/60">
                       <Outline kind={kind} />
                     </div>
-                    <p className="mt-2.5 text-[10px] font-semibold uppercase tracking-[1.6px] text-[#8a939b]">Placeholder</p>
+                    <p className="mt-2.5 text-[10px] font-semibold uppercase tracking-[1.6px] text-[#5d6874]">Placeholder</p>
                     <p className="text-[13px] font-medium text-[#121821]">Sample {kind.toLowerCase()}</p>
                   </li>
                 ))}

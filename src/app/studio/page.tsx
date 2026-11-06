@@ -762,7 +762,7 @@ export default function StudioPage() {
             value={theme}
             onChange={(e) => setTheme(e.target.value.slice(0, MAX_THEME))}
             placeholder="Type a theme (old money, first date…) or leave empty for new picks"
-            className="min-w-0 flex-1 bg-transparent py-2.5 text-[14px] text-[#121821] outline-none placeholder:text-[#8a96a1]"
+            className="min-w-0 flex-1 bg-transparent py-2.5 text-[14px] text-[#121821] outline-none placeholder:text-[#5d6874]"
           />
           <button type="submit" disabled={styling} className={`${btnPrimary} shrink-0`}>
             {styling ? "Styling…" : "Style it"}
