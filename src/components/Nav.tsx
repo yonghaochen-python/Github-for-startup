@@ -4,20 +4,24 @@ import { useEffect, useState } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useAuth } from "@/components/AuthProvider";
-import { BagIcon, BookmarkIcon, ClosetIcon, HomeIcon, MirrorIcon, PaletteIcon, UserIcon } from "@/components/Icons";
+import { BagIcon, BookmarkIcon, CalendarIcon, ClosetIcon, HomeIcon, MirrorIcon, PaletteIcon, UserIcon } from "@/components/Icons";
 import { PricingSheet } from "@/components/Pricing";
 
-type Section = "home" | "shop" | "closet" | "studio" | "stylist" | "saved" | "profile";
+type Section = "home" | "shop" | "closet" | "studio" | "stylist" | "planner" | "saved" | "profile";
 
-const LINKS: { section: Section; href: string; label: string; short: string; Icon: typeof HomeIcon }[] = [
+const LINKS: { section: Section; href: string; label: string; short: string; Icon: typeof HomeIcon; computerOnly?: true }[] = [
   { section: "home", href: "/", label: "Home", short: "Home", Icon: HomeIcon },
   { section: "shop", href: "/shop", label: "Shopping", short: "Shop", Icon: BagIcon },
   { section: "closet", href: "/closet", label: "My Closet", short: "Closet", Icon: ClosetIcon },
   { section: "studio", href: "/studio", label: "Studio", short: "Studio", Icon: MirrorIcon },
   { section: "stylist", href: "/stylist", label: "AI Stylist", short: "Stylist", Icon: PaletteIcon },
+  // Computers only: the phone tab bar is full (phones reach it from Home).
+  { section: "planner", href: "/planner", label: "Planner", short: "Planner", Icon: CalendarIcon, computerOnly: true },
   { section: "saved", href: "/outfits/saved", label: "Saved Looks", short: "Saved", Icon: BookmarkIcon },
   { section: "profile", href: "/profile", label: "Profile", short: "Profile", Icon: UserIcon },
 ];
+
+const PHONE_LINKS = LINKS.filter((l) => !l.computerOnly);
 
 /** Which main section a URL belongs to, so exactly one tab is lit everywhere in the app. */
 function sectionFor(pathname: string | null): Section | null {
@@ -27,6 +31,7 @@ function sectionFor(pathname: string | null): Section | null {
   if (p.startsWith("/closet")) return "closet";
   if (p.startsWith("/stylist")) return "stylist";
   if (p.startsWith("/outfits/saved")) return "saved";
+  if (p.startsWith("/planner")) return "planner";
   if (p.startsWith("/studio") || p.startsWith("/outfits") || p === "/try-on") return "studio";
   if (p.startsWith("/profile")) return "profile";
   return null;
@@ -155,8 +160,8 @@ export function MobileTabBar() {
         aria-label="Main"
         className="site-tabbar fixed inset-x-0 bottom-0 z-30 border-t border-black/[0.06] pb-[env(safe-area-inset-bottom)] backdrop-blur-xl md:hidden"
       >
-        <ul className="grid" style={{ gridTemplateColumns: `repeat(${LINKS.length}, minmax(0, 1fr))` }}>
-          {LINKS.map(({ section, href, short, Icon }) => {
+        <ul className="grid" style={{ gridTemplateColumns: `repeat(${PHONE_LINKS.length}, minmax(0, 1fr))` }}>
+          {PHONE_LINKS.map(({ section, href, short, Icon }) => {
             const active = current === section;
             return (
               <li key={section}>
