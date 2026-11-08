@@ -18,3 +18,23 @@ export function firstText(message: Anthropic.Message): string {
   }
   return block.text;
 }
+
+/**
+ * A running count of the tokens one request used across its Claude calls, so its real cost can be recorded.
+ * Prices: Claude Sonnet 5, $2 per million input tokens and $10 per million output tokens (cached input is billed
+ * at 1.25× to write and 0.1× to read).
+ */
+export type AiMeter = { inputTokens: number; outputTokens: number; costMicros: number };
+export const newMeter = (): AiMeter => ({ inputTokens: 0, outputTokens: 0, costMicros: 0 });
+
+export function addUsage(meter: AiMeter | undefined, usage: Anthropic.Usage | null | undefined) {
+  if (!meter || !usage) return;
+  const input = usage.input_tokens ?? 0;
+  const write = usage.cache_creation_input_tokens ?? 0;
+  const read = usage.cache_read_input_tokens ?? 0;
+  const output = usage.output_tokens ?? 0;
+  meter.inputTokens += input + write + read;
+  meter.outputTokens += output;
+  // $2 per million = 2 millionths of a dollar per token.
+  meter.costMicros += Math.round(input * 2 + write * 2.5 + read * 0.2 + output * 10);
+}

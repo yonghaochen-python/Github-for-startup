@@ -1,4 +1,4 @@
-import { anthropic, OUTFIT_MODEL, firstText } from "@/lib/anthropic";
+import { addUsage, anthropic, OUTFIT_MODEL, firstText, type AiMeter } from "@/lib/anthropic";
 import type { ClothingItem } from "@/generated/prisma/client";
 
 const OUTFITS_SCHEMA = {
@@ -151,7 +151,8 @@ const LAYERING_INSTRUCTIONS = [
 
 export async function generateOutfitsFromCloset(
   closet: ClothingItem[],
-  request: OutfitRequest = {}
+  request: OutfitRequest = {},
+  meter?: AiMeter
 ): Promise<GeneratedOutfit[]> {
   if (!process.env.ANTHROPIC_API_KEY) {
     return generateOutfitsFromClosetPlaceholder(closet);
@@ -202,13 +203,14 @@ export async function generateOutfitsFromCloset(
       },
     ],
   });
+  addUsage(meter, message.usage);
 
   const parsed = JSON.parse(firstText(message)) as { outfits: GeneratedOutfit[] };
   return parsed.outfits;
 }
 
 /** Re-explains a specific set of items, used after "Change One Item" swaps a piece. */
-export async function explainOutfit(items: ClothingItem[]): Promise<string> {
+export async function explainOutfit(items: ClothingItem[], meter?: AiMeter): Promise<string> {
   if (!process.env.ANTHROPIC_API_KEY) {
     return "Demo pairing (no ANTHROPIC_API_KEY set) — swapped as requested, not AI-styled.";
   }
@@ -248,6 +250,7 @@ export async function explainOutfit(items: ClothingItem[]): Promise<string> {
       },
     ],
   });
+  addUsage(meter, message.usage);
 
   const parsed = JSON.parse(firstText(message)) as { rationale: string };
   return parsed.rationale;

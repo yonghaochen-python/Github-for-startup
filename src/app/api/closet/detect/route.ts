@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
-import { trackTimed } from "@/lib/analytics";
+import { newMeter } from "@/lib/anthropic";
+import { trackAiCost, trackTimed } from "@/lib/analytics";
 import { saveUploadedImage } from "@/lib/images";
 import { detectClothingItems } from "@/lib/detectItems";
 import { asResponse, requireUser } from "@/lib/auth";
@@ -44,10 +45,13 @@ export async function POST(request: Request) {
   const height = Number(formData.get("height"));
   const size = width > 0 && height > 0 ? { width: Math.round(width), height: Math.round(height) } : undefined;
 
+  const meter = newMeter();
   try {
-    const items = await trackTimed(user.id, "clothes_detect", () => detectClothingItems(image, size));
+    const items = await trackTimed(user.id, "clothes_detect", () => detectClothingItems(image, size, meter));
+    await trackAiCost(user.id, "ai_cost_closet", meter);
     return NextResponse.json({ imageUrl: image.url, items });
   } catch (err) {
+    await trackAiCost(user.id, "ai_cost_closet", meter, false);
     console.error("Item detection failed:", err);
     return NextResponse.json(
       { error: "Couldn't analyze that photo right now. Please try again." },

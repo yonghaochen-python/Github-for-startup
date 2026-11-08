@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
-import { track, trackTimed } from "@/lib/analytics";
+import { newMeter } from "@/lib/anthropic";
+import { track, trackAiCost, trackTimed } from "@/lib/analytics";
 import { prisma } from "@/lib/prisma";
 import { generateOutfitsFromCloset, type OutfitRequest } from "@/lib/generateOutfits";
 import { asResponse, requireUser } from "@/lib/auth";
@@ -81,6 +82,7 @@ export async function POST(request: Request) {
       // Only if every saved outfit is still there, whole, in its order.
       if (outfits.length === saved.length && outfits.every((o) => o.items.length >= 2)) {
         const byId = new Map(outfits.map((o) => [o.id, o]));
+        await track(user.id, "style_it_reused");
         return NextResponse.json({ outfits: saved.map((id) => serializeOutfit(byId.get(id)!)), saved: true });
       }
     }
@@ -110,9 +112,12 @@ export async function POST(request: Request) {
 
   await track(user.id, "outfit_request");
   let generated;
+  const meter = newMeter();
   try {
-    generated = await trackTimed(user.id, "outfit_generate", () => generateOutfitsFromCloset(closet, outfitRequest));
+    generated = await trackTimed(user.id, "outfit_generate", () => generateOutfitsFromCloset(closet, outfitRequest, meter));
+    await trackAiCost(user.id, "ai_cost_style_it", meter);
   } catch (err) {
+    await trackAiCost(user.id, "ai_cost_style_it", meter, false);
     console.error("Outfit generation failed:", err);
     return NextResponse.json(
       { error: "Couldn't generate outfits right now. Please try again in a moment." },

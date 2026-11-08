@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
-import { track } from "@/lib/analytics";
+import { newMeter } from "@/lib/anthropic";
+import { track, trackAiCost } from "@/lib/analytics";
 import { clearCurrentLook, deleteOutfitTryOns, getCurrentLook, outfitTryOnVersion } from "@/lib/personalPhoto";
 import { prisma } from "@/lib/prisma";
 import { asResponse, requireUser } from "@/lib/auth";
@@ -70,7 +71,9 @@ export async function PATCH(request: Request, ctx: RouteContext<"/api/outfits/[i
       const look = await getCurrentLook(user.id).catch(() => null);
       if (look?.outfitId === id) await clearCurrentLook(user.id).catch(() => {});
       await deleteOutfitTryOns(user.id, [id]).catch(() => {});
-      const rationale = await explainOutfit(items).catch(() => null);
+      const meter = newMeter();
+      const rationale = await explainOutfit(items, meter).catch(() => null);
+      await trackAiCost(user.id, "ai_cost_explain", meter);
       if (rationale) await prisma.outfit.update({ where: { id }, data: { rationale } });
     }
   }
@@ -99,14 +102,16 @@ export async function PATCH(request: Request, ctx: RouteContext<"/api/outfits/[i
     await deleteOutfitTryOns(user.id, [id]).catch(() => {});
 
     const newItems = [...outfit.items.map((oi) => oi.item).filter((i) => i.id !== b.removeItemId), ...(replacement ? [replacement] : [])];
+    const meter = newMeter();
     try {
-      const rationale = await explainOutfit(newItems);
+      const rationale = await explainOutfit(newItems, meter);
       await prisma.outfit.update({ where: { id }, data: { rationale } });
     } catch (err) {
       // The change itself already succeeded above — don't fail the whole request
       // just because the follow-up rationale call did.
       console.error("Failed to refresh rationale after item change:", err);
     }
+    await trackAiCost(user.id, "ai_cost_explain", meter);
   }
 
   const updated = await loadOwnedOutfit(id, user.id);

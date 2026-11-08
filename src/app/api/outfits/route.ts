@@ -1,4 +1,6 @@
 import { NextResponse } from "next/server";
+import { trackAiCost } from "@/lib/analytics";
+import { newMeter } from "@/lib/anthropic";
 import { prisma } from "@/lib/prisma";
 import { asResponse, requireUser } from "@/lib/auth";
 import { ownedPieces, serializeOutfit } from "@/lib/outfits";
@@ -47,7 +49,9 @@ export async function POST(request: Request) {
   const occasion = typeof body.occasion === "string" && body.occasion.trim() ? body.occasion.trim().slice(0, 120) : null;
 
   try {
-    const rationale = await explainOutfit(items).catch(() => "");
+    const meter = newMeter();
+    const rationale = await explainOutfit(items, meter).catch(() => "");
+    await trackAiCost(user.id, "ai_cost_explain", meter);
     const outfit = await prisma.outfit.create({
       data: { userId: user.id, rationale, occasion, items: { create: items.map((item) => ({ itemId: item.id })) } },
       include: { items: { include: { item: true } } },

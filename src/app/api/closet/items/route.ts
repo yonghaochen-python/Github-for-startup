@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
-import { track } from "@/lib/analytics";
+import { newMeter } from "@/lib/anthropic";
+import { track, trackAiCost } from "@/lib/analytics";
 import { prisma } from "@/lib/prisma";
 import { saveUploadedImage } from "@/lib/images";
 import { classifyClothingImage } from "@/lib/classify";
@@ -44,12 +45,13 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: "No images provided under the 'images' field." }, { status: 400 });
   }
 
+  const meter = newMeter();
   const results = await Promise.allSettled(
     files.map(async (file) => {
       const image = await saveUploadedImage(file);
       const [isolatedUrl, attributes] = await Promise.all([
         removeBackground(image.url),
-        classifyClothingImage(image),
+        classifyClothingImage(image, meter),
       ]);
       return prisma.clothingItem.create({
         data: { userId: user.id, imageUrl: isolatedUrl, ...attributes },
@@ -57,6 +59,7 @@ export async function POST(request: Request) {
     })
   );
 
+  await trackAiCost(user.id, "ai_cost_closet", meter);
   const items = results.flatMap((r) => (r.status === "fulfilled" ? [r.value] : []));
   const failedCount = results.length - items.length;
   for (const r of results) {

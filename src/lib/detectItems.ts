@@ -1,5 +1,5 @@
 import type Anthropic from "@anthropic-ai/sdk";
-import { anthropic, CLASSIFY_MODEL, firstText } from "@/lib/anthropic";
+import { addUsage, anthropic, CLASSIFY_MODEL, firstText, type AiMeter } from "@/lib/anthropic";
 import type { SavedImage } from "@/lib/images";
 import {
   CATEGORIES,
@@ -221,7 +221,7 @@ function detectClothingItemsPlaceholder(): DetectedItem[] {
   });
 }
 
-export async function detectClothingItems(image: SavedImage, size?: ImageSize): Promise<DetectedItem[]> {
+export async function detectClothingItems(image: SavedImage, size?: ImageSize, meter?: AiMeter): Promise<DetectedItem[]> {
   if (!process.env.ANTHROPIC_API_KEY) {
     return detectClothingItemsPlaceholder();
   }
@@ -265,6 +265,7 @@ export async function detectClothingItems(image: SavedImage, size?: ImageSize): 
       },
     ],
   });
+  addUsage(meter, message.usage);
 
   const parsed = JSON.parse(firstText(message)) as { items: (Omit<DetectedItem, "boundingBox"> & { box: PixelBox })[] };
   return parsed.items.flatMap(({ box, ...item }) => {
@@ -303,7 +304,7 @@ const CHECK_SCHEMA = {
  * Second look: detection's boxes can be off (an elbow labelled as sunglasses), so each close-up is checked for the
  * item it's meant to show, and a tight box is found inside it. Items that aren't there come back found: false.
  */
-export async function checkDetectedItems(crops: CheckCrop[]): Promise<CheckResult[]> {
+export async function checkDetectedItems(crops: CheckCrop[], meter?: AiMeter): Promise<CheckResult[]> {
   if (!process.env.ANTHROPIC_API_KEY) {
     return crops.map(() => ({ found: true, box: null }));
   }
@@ -334,6 +335,7 @@ export async function checkDetectedItems(crops: CheckCrop[]): Promise<CheckResul
     output_config: { format: { type: "json_schema", schema: CHECK_SCHEMA } },
     messages: [{ role: "user", content }],
   });
+  addUsage(meter, message.usage);
 
   const parsed = JSON.parse(firstText(message)) as { results: { image: number; found: boolean; box: PixelBox }[] };
   const byNumber = new Map(parsed.results.map((r) => [r.image, r]));

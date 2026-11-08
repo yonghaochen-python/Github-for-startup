@@ -20,16 +20,31 @@ export type EventName =
   | "pick_opened"
   | "pick_vote"
   | "signup_from_pick"
+  /** Real AI cost of Claude calls (costMicros set): adding clothes, Style it, an outfit's explanation. */
+  | "ai_cost_closet"
+  | "ai_cost_style_it"
+  | "ai_cost_explain"
+  /** Free reuse: a saved Style it search shown again, an AI Stylist report reopened (once an hour). */
+  | "style_it_reused"
+  | "report_opened"
+  /** Free: a Planner month or day made (no AI). */
+  | "planner_generated"
   | `visit_${"home" | "shop" | "closet" | "studio" | "stylist" | "tryon" | "saved" | "profile" | "planner"}`;
 
 export async function track(
   userId: string | null,
   name: EventName,
-  details: { ok?: boolean; durationMs?: number } = {}
+  details: { ok?: boolean; durationMs?: number; costMicros?: number } = {}
 ): Promise<void> {
   try {
     await prisma.analyticsEvent.create({
-      data: { userId, name, ok: details.ok ?? true, durationMs: details.durationMs != null ? Math.round(details.durationMs) : null },
+      data: {
+        userId,
+        name,
+        ok: details.ok ?? true,
+        durationMs: details.durationMs != null ? Math.round(details.durationMs) : null,
+        costMicros: details.costMicros != null ? Math.round(details.costMicros) : null,
+      },
     });
   } catch (err) {
     console.error("Couldn't record analytics event:", err);
@@ -52,6 +67,20 @@ export async function trackTimed<T>(userId: string, name: EventName, work: () =>
 /** Records a section visit at most once per person per section per hour. */
 export async function trackVisit(userId: string, section: string): Promise<void> {
   const name = `visit_${section}` as EventName;
+  const recent = await prisma.analyticsEvent
+    .findFirst({ where: { userId, name, createdAt: { gte: new Date(Date.now() - 60 * 60 * 1000) } }, select: { id: true } })
+    .catch(() => null);
+  if (!recent) await track(userId, name);
+}
+
+/** Records what a request's Claude calls really cost (nothing when no call was made, e.g. practice mode). */
+export async function trackAiCost(userId: string, name: "ai_cost_closet" | "ai_cost_style_it" | "ai_cost_explain", meter: { costMicros: number; inputTokens: number }, ok = true) {
+  if (!meter.inputTokens) return;
+  await track(userId, name, { ok, costMicros: meter.costMicros });
+}
+
+/** Records a free reuse at most once per person per hour (so reopening a page repeatedly isn't counted many times). */
+export async function trackOncePerHour(userId: string, name: EventName): Promise<void> {
   const recent = await prisma.analyticsEvent
     .findFirst({ where: { userId, name, createdAt: { gte: new Date(Date.now() - 60 * 60 * 1000) } }, select: { id: true } })
     .catch(() => null);

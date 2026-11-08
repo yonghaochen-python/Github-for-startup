@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import { MAX_LIVE_SECONDS } from "@/lib/aiCosts";
 import { createDecartClient } from "@decartai/sdk";
 import { randomUUID } from "node:crypto";
 import { asResponse, requireUser } from "@/lib/auth";
@@ -14,7 +15,7 @@ import { liveUsesToday, reserveCredit, settleCredit } from "@/lib/credits";
  * (admins aside), all worked out from the credit records in the database.
  */
 
-const MAX_SESSION_SECONDS = 20;
+const MAX_SESSION_SECONDS = MAX_LIVE_SECONDS;
 const SESSIONS_PER_DAY = 3;
 /** Caps the whole site's Decart spend per day: about 50 × 20 s × $0.02 ≈ $20 at most. */
 const SITE_SESSIONS_PER_DAY = 50;

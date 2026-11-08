@@ -1,4 +1,6 @@
 import { NextResponse } from "next/server";
+import { trackAiCost } from "@/lib/analytics";
+import { newMeter } from "@/lib/anthropic";
 import { checkDetectedItems, type CheckCrop } from "@/lib/detectItems";
 import type { SavedImage } from "@/lib/images";
 import { asResponse, requireUser } from "@/lib/auth";
@@ -12,8 +14,9 @@ const TYPES = ["image/jpeg", "image/png", "image/webp"];
  * item it's meant to show (and tightened). The close-ups are only read here, never stored.
  */
 export async function POST(request: Request) {
+  let user;
   try {
-    await requireUser(request);
+    user = await requireUser(request);
   } catch (res) {
     return asResponse(res);
   }
@@ -50,9 +53,13 @@ export async function POST(request: Request) {
     });
   }
 
+  const meter = newMeter();
   try {
-    return NextResponse.json({ results: await checkDetectedItems(crops) });
+    const results = await checkDetectedItems(crops, meter);
+    await trackAiCost(user.id, "ai_cost_closet", meter);
+    return NextResponse.json({ results });
   } catch (err) {
+    await trackAiCost(user.id, "ai_cost_closet", meter, false);
     console.error("Item check failed:", err);
     return NextResponse.json({ error: "Couldn't check those pieces right now. Please try again." }, { status: 502 });
   }

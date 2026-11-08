@@ -1,4 +1,4 @@
-import { anthropic, CLASSIFY_MODEL, firstText } from "@/lib/anthropic";
+import { addUsage, anthropic, CLASSIFY_MODEL, firstText, type AiMeter } from "@/lib/anthropic";
 import type { SavedImage } from "@/lib/images";
 import {
   CATEGORIES,
@@ -107,7 +107,7 @@ function classifyClothingImagePlaceholder(): ClothingAttributes {
   return { ...pick };
 }
 
-export async function classifyClothingImage(image: SavedImage): Promise<ClothingAttributes> {
+export async function classifyClothingImage(image: SavedImage, meter?: AiMeter): Promise<ClothingAttributes> {
   if (!process.env.ANTHROPIC_API_KEY) {
     return classifyClothingImagePlaceholder();
   }
@@ -134,6 +134,7 @@ export async function classifyClothingImage(image: SavedImage): Promise<Clothing
       },
     ],
   });
+  addUsage(meter, message.usage);
 
   const attributes = JSON.parse(firstText(message)) as ClothingAttributes;
   return { ...attributes, brand: cleanBrand(attributes.brand) };

@@ -1,4 +1,6 @@
 import { NextResponse } from "next/server";
+import { trackAiCost } from "@/lib/analytics";
+import { newMeter } from "@/lib/anthropic";
 import { prisma } from "@/lib/prisma";
 import { loadSavedImage } from "@/lib/images";
 import { classifyClothingImage } from "@/lib/classify";
@@ -26,10 +28,13 @@ export async function POST(request: Request, ctx: RouteContext<"/api/closet/item
   }
 
   let attributes;
+  const meter = newMeter();
   try {
     const image = await loadSavedImage(existing.imageUrl);
-    attributes = await classifyClothingImage(image);
+    attributes = await classifyClothingImage(image, meter);
+    await trackAiCost(user.id, "ai_cost_closet", meter);
   } catch (err) {
+    await trackAiCost(user.id, "ai_cost_closet", meter, false);
     console.error("Re-analyze failed:", err);
     return NextResponse.json({ error: "Couldn't re-analyze this item right now." }, { status: 502 });
   }

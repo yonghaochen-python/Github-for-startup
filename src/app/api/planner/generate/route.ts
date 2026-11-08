@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import { track } from "@/lib/analytics";
 import { asResponse, requireUser } from "@/lib/auth";
 import { MONTH_RE, aroundMonth, closetFor, readMonth, saveMonth, tasteFor, todayFrom } from "@/lib/planner";
 import { planMonth } from "@/lib/planOutfits";
@@ -36,5 +37,6 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: "Add a top, a bottom and shoes (or a dress) to My Closet first." }, { status: 400, headers: noStore });
   }
   await saveMonth(user.id, month, days);
+  await track(user.id, "planner_generated");
   return NextResponse.json({ month, days, ranOut }, { headers: noStore });
 }

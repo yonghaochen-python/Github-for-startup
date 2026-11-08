@@ -1,4 +1,5 @@
 import { NextResponse, after } from "next/server";
+import { trackOncePerHour } from "@/lib/analytics";
 import { asResponse, requireUser } from "@/lib/auth";
 import { requestIdFrom } from "@/lib/credits";
 import { isStudioModule } from "@/lib/studioModules";
@@ -24,7 +25,10 @@ export async function GET(request: Request, ctx: Ctx) {
   const { user, module, res } = await setUp(request, ctx);
   if (!user) return res;
   const id = new URL(request.url).searchParams.get("id") ?? undefined;
-  return NextResponse.json(await moduleReports(user.id, module, id), { headers: noStore });
+  const reports = await moduleReports(user.id, module, id);
+  // Reopening a saved report is free; counted (once an hour) so free reuse shows apart from new reports.
+  if (reports.report) await trackOncePerHour(user.id, "report_opened").catch(() => {});
+  return NextResponse.json(reports, { headers: noStore });
 }
 
 /** Makes a new report for this module: when the person opens one not made for their photo, or after a new photo. */

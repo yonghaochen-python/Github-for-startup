@@ -131,6 +131,8 @@ model AnalyticsEvent {
   name       String
   ok         Boolean  @default(true)
   durationMs Int?
+  /// The real AI cost of this event in millionths of a dollar (Claude calls only, from its token counts).
+  costMicros Int?
   createdAt  DateTime @default(now())
 
   user User? @relation(fields: [userId], references: [id], onDelete: Cascade)

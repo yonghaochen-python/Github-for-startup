@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import { track } from "@/lib/analytics";
 import { asResponse, requireUser } from "@/lib/auth";
 import { DATE_RE, aroundMonth, closetFor, readMonth, saveMonth, tasteFor } from "@/lib/planner";
 import { outfitFor, outfitKey, weekOf, type DaySource } from "@/lib/planOutfits";
@@ -38,6 +39,7 @@ export async function POST(request: Request) {
     for (const day of Object.values(plan)) for (const id of day.items) uses.set(id, (uses.get(id) ?? 0) + 1);
     const made = outfitFor(date, closet, await tasteFor(user.id), uses, avoid);
     if (!made.items.length) return NextResponse.json({ error: "Add more pieces to My Closet first." }, { status: 400, headers: noStore });
+    await track(user.id, "planner_generated");
     return NextResponse.json({ items: made.items, ranOut: made.ranOut }, { headers: noStore });
   }
 

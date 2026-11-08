@@ -35,12 +35,12 @@ type Replay = { file: File; url: string } | { failed: string };
 const nameOf = (piece: ClothingItem & { color?: string }) => garmentName({ description: piece.description, color: piece.color });
 
 /** Tells the server how a live session went, for its reserved credit (sent even if the page is closing). */
-function reportSession(sessionId: string | null, outcome: "connected" | "failed") {
+function reportSession(sessionId: string | null, outcome: "connected" | "failed" | "ended", seconds?: number) {
   if (!sessionId) return;
   fetch("/api/live/session", {
     method: "POST",
     headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ sessionId, outcome }),
+    body: JSON.stringify({ sessionId, outcome, seconds }),
     keepalive: true,
   }).catch(() => {});
 }
@@ -175,6 +175,8 @@ export function LiveTryOn({
     };
   }, []);
 
+  // The connected AI session and when it started (to report its length when it ends).
+  const liveRef = useRef<{ id: string | null; at: number } | null>(null);
   const stopCamera = useCallback(() => {
     streamRef.current?.getTracks().forEach((t) => t.stop());
     streamRef.current = null;
@@ -182,6 +184,10 @@ export function LiveTryOn({
 
   /** Ends the AI session (nothing more is used once it's stopped). */
   const stopAi = useCallback(() => {
+    // How long the AI session really ran (Decart charges by the second), for the cost on the admin dashboard.
+    const live = liveRef.current;
+    liveRef.current = null;
+    if (live) reportSession(live.id, "ended", Math.round((Date.now() - live.at) / 1000));
     if (timerRef.current) clearInterval(timerRef.current);
     timerRef.current = null;
     rtRef.current?.disconnect();
@@ -294,6 +300,7 @@ export function LiveTryOn({
       rtRef.current = rt;
       // The stream connected: this session's live credit counts.
       reportSession(sessionId, "connected");
+      liveRef.current = { id: sessionId, at: Date.now() };
       connected = true;
       setRatedSession(sessionId);
       rt.on("sessionEnded", () => endAi());
