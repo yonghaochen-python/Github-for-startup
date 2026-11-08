@@ -1,6 +1,7 @@
 import { prisma } from "@/lib/prisma";
 import { isGood } from "@/lib/feedback";
 import { STUDIO_MODULE_IDS } from "@/lib/studioModules";
+import { LIVE_MICROS_PER_SECOND, MAX_LIVE_SECONDS, PHOTO_TRYON_MICROS } from "@/lib/aiCosts";
 
 /**
  * Owner dashboard numbers. Everything is counted from real rows: accounts, closet items, outfits and the
@@ -73,7 +74,7 @@ export async function computeAdminStats(from: Date, to: Date) {
     prisma.outfit.findMany({ select: { userId: true, createdAt: true, isFavorite: true } }),
     prisma.analyticsEvent.findMany({
       where: { createdAt: { gte: new Date(Math.min(from.getTime(), now.getTime() - 30 * DAY)), lte: to } },
-      select: { userId: true, name: true, ok: true, durationMs: true, createdAt: true },
+      select: { userId: true, name: true, ok: true, durationMs: true, createdAt: true, costMicros: true },
     }),
     prisma.analyticsEvent.findFirst({ orderBy: { createdAt: "asc" }, select: { createdAt: true } }),
   ]);
@@ -168,7 +169,68 @@ export async function computeAdminStats(from: Date, to: Date) {
     };
   });
 
+  // AI costs in the range, per feature: new results (each one paid AI work) with what they really cost, and free
+  // reuse (results shown again, reopened or made without AI) apart. Everyone's usage counts here, admins' included,
+  // because it's real spending; the admins' share is shown on its own.
+  const costEvents = allEvents.filter((e) => inRange(e.createdAt, from, to));
+  const withName = (name: string) => costEvents.filter((e) => e.name === name);
+  const credits = await prisma.creditEntry.findMany({
+    where: { type: "use", status: "completed", createdAt: { gte: from, lte: to } },
+    select: { userId: true, kind: true, requestId: true, note: true },
+  });
+  const photoUses = credits.filter((c) => c.kind === "photo" && !c.requestId.startsWith("studio-"));
+  const liveUses = credits.filter((c) => c.kind === "live");
+  const liveSeconds = (note: string | null) => {
+    const m = /^seconds:(\d+)$/.exec(note ?? "");
+    return m ? Math.min(MAX_LIVE_SECONDS, Number(m[1])) : null;
+  };
+  const realReports = reports.filter((r) => r.status === "ready" && !r.practice);
+  const fromEvents = (name: string) => {
+    const of = withName(name);
+    return { made: of.length, costMicros: of.reduce((sum, e) => sum + (e.costMicros ?? 0), 0), adminMicros: of.filter((e) => e.userId && adminIds.has(e.userId)).reduce((sum, e) => sum + (e.costMicros ?? 0), 0) };
+  };
+  type CostRow = { key: string; label: string; made: number; costMicros: number; estimatedMicros: number; adminMicros: number; reused: number | null; free?: true };
+  const liveMeasured = liveUses.filter((c) => liveSeconds(c.note) !== null);
+  const liveUnmeasured = liveUses.length - liveMeasured.length;
+  const aiCosts: CostRow[] = [
+    {
+      key: "photo",
+      label: "Photo try-on",
+      made: photoUses.length,
+      costMicros: 0,
+      estimatedMicros: photoUses.length * PHOTO_TRYON_MICROS,
+      adminMicros: photoUses.filter((c) => adminIds.has(c.userId)).length * PHOTO_TRYON_MICROS,
+      reused: withName("tryon_reused").length,
+    },
+    {
+      key: "live",
+      label: "Live try-on",
+      made: liveUses.length,
+      costMicros: liveMeasured.reduce((sum, c) => sum + liveSeconds(c.note)! * LIVE_MICROS_PER_SECOND, 0),
+      // A session whose length never came back (the page closed first) is counted at the full 20 seconds.
+      estimatedMicros: liveUnmeasured * MAX_LIVE_SECONDS * LIVE_MICROS_PER_SECOND,
+      adminMicros: liveUses
+        .filter((c) => adminIds.has(c.userId))
+        .reduce((sum, c) => sum + (liveSeconds(c.note) ?? MAX_LIVE_SECONDS) * LIVE_MICROS_PER_SECOND, 0),
+      reused: null,
+    },
+    {
+      key: "stylist",
+      label: "AI Stylist report",
+      made: realReports.length,
+      costMicros: realReports.reduce((sum, r) => sum + (r.costMicros ?? 0), 0),
+      estimatedMicros: 0,
+      adminMicros: realReports.filter((r) => adminIds.has(r.userId)).reduce((sum, r) => sum + (r.costMicros ?? 0), 0),
+      reused: withName("report_opened").length,
+    },
+    { key: "closet", label: "Adding clothes", ...fromEvents("ai_cost_closet"), estimatedMicros: 0, reused: null },
+    { key: "style", label: "Style it", ...fromEvents("ai_cost_style_it"), estimatedMicros: 0, reused: withName("style_it_reused").length },
+    { key: "explain", label: "Outfit explanations", ...fromEvents("ai_cost_explain"), estimatedMicros: 0, reused: null },
+    { key: "planner", label: "Planner", made: withName("planner_generated").length, costMicros: 0, estimatedMicros: 0, adminMicros: 0, reused: null, free: true },
+  ];
+
   return {
+    aiCosts,
     stylist,
     feedback,
     range: { from: from.toISOString(), to: to.toISOString(), days },

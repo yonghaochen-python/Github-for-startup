@@ -382,7 +382,60 @@ export default function AdminPage() {
           })()}
         </Section>
 
-        <Section title="AI Stylist usage" description="Analyses made in this range, by type. Each real one is one AI call and one photo credit; opening, downloading and sharing a report cost nothing. Admins' own and practice reports are left out.">
+        <Section
+          title="AI costs"
+          description="New results are paid AI work; reused ones cost nothing. Photo try-on is estimated until BFL's price is confirmed. Admins' tests are included."
+        >
+          {(() => {
+            const rows = s.aiCosts;
+            const exact = rows.reduce((sum, r) => sum + r.costMicros, 0);
+            const estimated = rows.reduce((sum, r) => sum + r.estimatedMicros, 0);
+            const admin = rows.reduce((sum, r) => sum + r.adminMicros, 0);
+            const reused = rows.reduce((sum, r) => sum + (r.reused ?? 0), 0);
+            return (
+              <>
+                <div className="mb-4 grid grid-cols-2 gap-3 lg:grid-cols-4">
+                  <Stat label="Total AI cost" value={dollars(exact + estimated)} hint={estimated ? `${dollars(estimated)} of it estimated` : "All exact"} />
+                  <Stat label="Exact" value={dollars(exact)} hint="From the providers' usage counts" />
+                  <Stat label="Admins' tests" value={dollars(admin)} />
+                  <Stat label="Reused for free" value={reused} hint="Results shown again, reopened or repeated" />
+                </div>
+                <div className="overflow-x-auto rounded-[18px] bg-white shadow-[0_1px_0_rgba(18,24,33,0.03),0_10px_28px_rgba(18,30,45,0.05)]">
+                  <table className="w-full min-w-[560px] text-left text-[13px]">
+                    <thead className="border-b border-black/[0.07] text-[11px] uppercase tracking-[1.2px] text-[#5d6874]">
+                      <tr>
+                        <th scope="col" className="px-4 py-3 font-semibold">Feature</th>
+                        <th scope="col" className="px-4 py-3 text-right font-semibold">New results</th>
+                        <th scope="col" className="px-4 py-3 text-right font-semibold">AI cost</th>
+                        <th scope="col" className="px-4 py-3 text-right font-semibold">Average</th>
+                        <th scope="col" className="px-4 py-3 text-right font-semibold">Reused (free)</th>
+                      </tr>
+                    </thead>
+                    <tbody className="tabular-nums">
+                      {rows.map((r) => {
+                        const total = r.costMicros + r.estimatedMicros;
+                        return (
+                          <tr key={r.key} className="border-b border-black/[0.05] last:border-0">
+                            <th scope="row" className="px-4 py-2.5 font-medium text-[#121821]">{r.label}</th>
+                            <td className="px-4 py-2.5 text-right">{r.made}</td>
+                            <td className="px-4 py-2.5 text-right">
+                              {r.free ? "Free" : dollars(total)}
+                              {r.estimatedMicros > 0 && <span className="ml-1 text-[11px] text-[#5d6874]">{r.costMicros ? `(${dollars(r.estimatedMicros)} est.)` : "est."}</span>}
+                            </td>
+                            <td className="px-4 py-2.5 text-right">{r.free ? "—" : r.made ? "$" + (total / r.made / 1_000_000).toFixed(3) : "—"}</td>
+                            <td className="px-4 py-2.5 text-right">{r.reused === null ? "—" : r.reused}</td>
+                          </tr>
+                        );
+                      })}
+                    </tbody>
+                  </table>
+                </div>
+              </>
+            );
+          })()}
+        </Section>
+
+        <Section title="AI Stylist by type" description="Real analyses in this range, by type (admins' own and practice reports left out).">
           <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
             {s.stylist.map((m) => (
               <Stat
@@ -400,7 +453,6 @@ export default function AdminPage() {
               />
             ))}
           </div>
-          <p className="mt-2 text-[11.5px] text-[#5d6874]">Total AI cost: {dollars(s.stylist.reduce((sum, m) => sum + m.costMicros, 0))}</p>
         </Section>
 
         <Section title="Credits" description="Photo and live try-on credits. Limits are counted but not applied yet. Admin tests are shown apart from real users.">
