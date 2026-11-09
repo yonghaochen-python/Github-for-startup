@@ -60,7 +60,7 @@ type ShopPiece = { imageUrl: string; description: string; color?: string; layeri
  * Photo try-on for a look with Shopping pieces in it (they aren't in the closet, so it can't be a saved outfit).
  * Every piece's picture is sent, shrunk, with its description; nothing is saved. Same provider and limits.
  */
-export async function requestShopTryOn(pieces: ShopPiece[]): Promise<TryOnResult> {
+export async function requestShopTryOn(pieces: ShopPiece[], fresh = false): Promise<TryOnResult> {
   const photos = await Promise.all(
     pieces.map(async (piece) => {
       const res = await fetch(piece.imageUrl).catch(() => null);
@@ -72,6 +72,8 @@ export async function requestShopTryOn(pieces: ShopPiece[]): Promise<TryOnResult
   const requestId = crypto.randomUUID();
   formData.append("requestId", requestId);
   formData.append("pieces", JSON.stringify(pieces.map((p) => ({ description: p.description, color: p.color ?? "", layeringRole: p.layeringRole }))));
+  // The same pieces on the same photo show the earlier picture again for free; fresh asks for a new one.
+  if (fresh) formData.append("fresh", "1");
   photos.forEach((photo, i) => formData.append(`garment:${i}`, photo, `${i}.jpg`));
   if (photos.length > 1) {
     const sheet = await garmentSheetJpeg(photos, 0.9, SHEET_SIDE).catch(() => null);

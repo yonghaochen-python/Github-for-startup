@@ -1,4 +1,8 @@
 import { NextResponse } from "next/server";
+import { createHash } from "node:crypto";
+import { track } from "@/lib/analytics";
+import { cacheTryOn, getCachedTryOn, tryOnCacheKey } from "@/lib/tryOnCache";
+import { toPlainLayers, type TryOnResult } from "@/lib/tryOn/types";
 import { asResponse, requireUser } from "@/lib/auth";
 import { LAYERING_ROLES } from "@/lib/clothingTaxonomy";
 import { orderedLayerEntries, type LayeringRole } from "@/lib/layering";
@@ -37,8 +41,8 @@ async function readImage(entry: FormDataEntryValue | null): Promise<ImageBytes |
 /**
  * Photo try-on for Shopping pieces (catalog items or imported pictures) on the person's saved full-body photo.
  * The garment pictures come from the browser (already shrunk) as `garment:<n>`, described in `pieces`. It uses the
- * same provider and hourly limit as the Studio try-on, but nothing is written to the closet, outfits or storage:
- * the picture is returned once and not kept.
+ * same provider and hourly limit as the Studio try-on, and nothing is written to the closet or outfits. The picture
+ * is kept privately (like Studio's), so the same pieces on the same photo show again without a credit.
  */
 export async function POST(request: Request) {
   let user;
@@ -72,6 +76,26 @@ export async function POST(request: Request) {
   }));
   const garmentSheet = (await readImage(formData.get("garmentSheet"))) ?? undefined;
 
+  // The same saved photo and the same pieces were tried on before: show that picture again, free (unless a fresh one
+  // is asked for). A piece is known by a fingerprint of its picture plus its description, color and layer.
+  const cacheKey = tryOnCacheKey(
+    user.id,
+    user.selfieUrl!,
+    pieces.map((p, i) => ({
+      id: `shop-${createHash("sha256").update(images[i]!.bytes).digest("hex")}`,
+      imageUrl: "",
+      description: p.description,
+      color: p.color,
+      layeringRole: p.layeringRole,
+    }))
+  );
+  const remembered = formData.get("fresh") !== "1" ? await getCachedTryOn(cacheKey).catch(() => null) : null;
+  if (remembered) {
+    await track(user.id, "tryon_reused");
+    const result: TryOnResult = { isMock: false, provider: "saved", imageDataUrl: remembered, layers: toPlainLayers(orderedLayerEntries(items)), reused: true };
+    return NextResponse.json({ result }, { headers: noStore });
+  }
+
   try {
     // One photo credit: counted only when a real picture comes back; a failure gives it back.
     const result = await withCredit(
@@ -81,6 +105,8 @@ export async function POST(request: Request) {
       () => runTryOn({ person, layers: orderedLayerEntries(items), garmentSheet }, user.id, user.role),
       (r) => !r.isMock && Boolean(r.imageDataUrl)
     );
+    // Kept privately so the same look shows again for free (cleared with a new photo, like Studio's).
+    if (!result.isMock && result.imageDataUrl) await cacheTryOn(cacheKey, result.imageDataUrl).catch(() => {});
     return NextResponse.json({ result }, { headers: noStore });
   } catch (err) {
     if (err instanceof CreditError) {
