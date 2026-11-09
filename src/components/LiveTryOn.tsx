@@ -1,6 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useRef, useState } from "react";
+import { aiPicture } from "@/lib/aiPicture";
 import { Feedback } from "@/components/Feedback";
 import Link from "next/link";
 import type { ClothingItem } from "@/components/OutfitCard";
@@ -67,7 +68,8 @@ function promptFor(pieces: ClothingItem[]): string {
 const BAD_PICTURE = "A piece's picture couldn't be used. Try a clearer photo of just the piece.";
 
 async function pictureOf(piece: ClothingItem): Promise<Blob> {
-  const res = await fetch(piece.imageUrl).catch(() => null);
+  // The piece's own picture, never the AI-enhanced one.
+  const res = await fetch(aiPicture(piece as ClothingItem & { plainUrl?: string | null; enhancedUrl?: string | null })).catch(() => null);
   if (!res?.ok) throw new Error(BAD_PICTURE);
   return res.blob();
 }

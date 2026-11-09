@@ -226,6 +226,22 @@ export async function computeAdminStats(from: Date, to: Date) {
     { key: "closet", label: "Adding clothes", ...fromEvents("ai_cost_closet"), estimatedMicros: 0, reused: null },
     { key: "style", label: "Style it", ...fromEvents("ai_cost_style_it"), estimatedMicros: 0, reused: withName("style_it_reused").length },
     { key: "explain", label: "Outfit explanations", ...fromEvents("ai_cost_explain"), estimatedMicros: 0, reused: null },
+    (() => {
+      // AI clothing enhancement (admins only for now): BFL's own reported cost, or the set rate when a reply didn't say.
+      const exact = withName("ai_cost_enhance");
+      const est = withName("ai_cost_enhance_est");
+      const sum = (list: typeof exact) => list.reduce((total, e) => total + (e.costMicros ?? 0), 0);
+      const admins = (list: typeof exact) => list.filter((e) => e.userId && adminIds.has(e.userId));
+      return {
+        key: "enhance",
+        label: "Clothing enhancement",
+        made: exact.length + est.length,
+        costMicros: sum(exact),
+        estimatedMicros: sum(est),
+        adminMicros: sum(admins(exact)) + sum(admins(est)),
+        reused: withName("enhance_reused").length,
+      };
+    })(),
     { key: "planner", label: "Planner", made: withName("planner_generated").length, costMicros: 0, estimatedMicros: 0, adminMicros: 0, reused: null, free: true },
   ];
 

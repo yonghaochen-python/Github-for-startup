@@ -1,5 +1,6 @@
 import { env } from "cloudflare:workers";
 import { NextResponse } from "next/server";
+import { aiPicture } from "@/lib/aiPicture";
 import { asResponse, requireUser } from "@/lib/auth";
 import { isSavedPhotoKey } from "@/lib/personalPhoto";
 import { prisma } from "@/lib/prisma";
@@ -22,7 +23,8 @@ export async function POST(request: Request) {
 
   const items = await prisma.clothingItem.findMany({ where: { userId: user.id, id: { in: ids } } });
   if (items.length !== ids.length) return NextResponse.json({ remembered: false });
-  const key = tryOnCacheKey(user.id, user.selfieUrl, items);
+  // The same picture the try-on uses (the piece's own, never the AI-enhanced one).
+  const key = tryOnCacheKey(user.id, user.selfieUrl, items.map((item) => ({ ...item, imageUrl: aiPicture(item) })));
   const found = await env.UPLOADS.head(key).catch(() => null);
   return NextResponse.json({ remembered: Boolean(found) }, { headers: { "cache-control": "no-store" } });
 }

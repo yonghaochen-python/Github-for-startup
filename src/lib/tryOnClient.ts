@@ -1,4 +1,5 @@
 import type { LayeringRole } from "@/lib/layering";
+import { aiPicture } from "@/lib/aiPicture";
 import { garmentSheetJpeg, photoToJpeg } from "@/lib/clientImage";
 
 /** The width of the one picture holding every piece of an outfit, sent to the try-on AI. */
@@ -7,7 +8,7 @@ const SHEET_SIDE = 1600;
 /** Shown with every try-on: what an AI preview can't promise. */
 export const TRY_ON_CAVEAT = "Virtual try-ons are AI previews. They can't show exactly how real fabric, fit, size or color will look.";
 
-type Piece = { id: string; imageUrl: string };
+type Piece = { id: string; imageUrl: string; plainUrl?: string | null; enhancedUrl?: string | null };
 type NotShown = { role: LayeringRole; description: string; reason: string };
 export type TryOnResult = {
   isMock: boolean;
@@ -33,7 +34,8 @@ export async function requestTryOn(outfitId: string, pieces: Piece[], liveProvid
   if (liveProvider) {
     const photos = await Promise.allSettled(
       pieces.map(async (piece) => {
-        const res = await fetch(piece.imageUrl);
+        // The piece's own picture, never the AI-enhanced one.
+        const res = await fetch(aiPicture(piece));
         if (!res.ok) throw new Error("garment");
         return photoToJpeg(await res.blob(), 0.88, 1024);
       })
@@ -54,7 +56,7 @@ export async function requestTryOn(outfitId: string, pieces: Piece[], liveProvid
   return { ...data.result, requestId };
 }
 
-type ShopPiece = { imageUrl: string; description: string; color?: string; layeringRole: LayeringRole };
+type ShopPiece = { imageUrl: string; plainUrl?: string | null; enhancedUrl?: string | null; description: string; color?: string; layeringRole: LayeringRole };
 
 /**
  * Photo try-on for a look with Shopping pieces in it (they aren't in the closet, so it can't be a saved outfit).
@@ -63,7 +65,7 @@ type ShopPiece = { imageUrl: string; description: string; color?: string; layeri
 export async function requestShopTryOn(pieces: ShopPiece[], fresh = false): Promise<TryOnResult> {
   const photos = await Promise.all(
     pieces.map(async (piece) => {
-      const res = await fetch(piece.imageUrl).catch(() => null);
+      const res = await fetch(aiPicture(piece)).catch(() => null);
       if (!res?.ok) throw new Error("A piece's picture couldn't be used. Try a clearer photo of just the piece.");
       return photoToJpeg(await res.blob(), 0.9, 1024);
     })

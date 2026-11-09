@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useRef, useState } from "react";
+import { aiPicture } from "@/lib/aiPicture";
 import { retryImage } from "@/lib/retryImage";
 import { fetchWithRetry } from "@/lib/fetchRetry";
 import Image from "next/image";
@@ -478,7 +479,7 @@ export default function StudioPage() {
       if (hasShopPieces) {
         setStatusIndex(1);
         const result = await requestShopTryOn(
-          pieces.map((p) => ({ imageUrl: p.imageUrl, description: p.description, color: (p as ShopPick).color, layeringRole: p.layeringRole }))
+          pieces.map((p) => ({ imageUrl: aiPicture(p as ClothingItem & { plainUrl?: string | null; enhancedUrl?: string | null }), description: p.description, color: (p as ShopPick).color, layeringRole: p.layeringRole }))
         );
         setShopTry({ key: piecesKey, result });
         return;

@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import { aiPicture } from "@/lib/aiPicture";
 import { trackAiCost } from "@/lib/analytics";
 import { newMeter } from "@/lib/anthropic";
 import { prisma } from "@/lib/prisma";
@@ -30,7 +31,7 @@ export async function POST(request: Request, ctx: RouteContext<"/api/closet/item
   let attributes;
   const meter = newMeter();
   try {
-    const image = await loadSavedImage(existing.imageUrl);
+    const image = await loadSavedImage(aiPicture(existing));
     attributes = await classifyClothingImage(image, meter);
     await trackAiCost(user.id, "ai_cost_closet", meter);
   } catch (err) {

@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import { aiPicture } from "@/lib/aiPicture";
 import { track, trackTimed } from "@/lib/analytics";
 import { prisma } from "@/lib/prisma";
 import { asResponse, requireUser } from "@/lib/auth";
@@ -73,7 +74,8 @@ export async function POST(request: Request, ctx: RouteContext<"/api/outfits/[id
       role,
       items: items.map((i) => ({
         id: i.id,
-        imageUrl: i.imageUrl,
+        // AI always works from the piece's own picture, never the AI-enhanced one.
+        imageUrl: aiPicture(i),
         description: i.description,
         color: i.color,
         brand: i.brand,
@@ -83,7 +85,7 @@ export async function POST(request: Request, ctx: RouteContext<"/api/outfits/[id
           if (supplied instanceof File && ACCEPTED_TYPES.includes(supplied.type) && supplied.size <= MAX_GARMENT_BYTES) {
             return { bytes: new Uint8Array(await supplied.arrayBuffer()), mediaType: supplied.type };
           }
-          const saved = await loadSavedImage(i.imageUrl);
+          const saved = await loadSavedImage(aiPicture(i));
           return { bytes: new Uint8Array(Buffer.from(saved.base64, "base64")), mediaType: saved.mediaType };
         },
       })),
@@ -101,7 +103,7 @@ export async function POST(request: Request, ctx: RouteContext<"/api/outfits/[id
     // The same saved photo and pieces were tried on before: show that picture again, free (unless a fresh one is asked for).
     const cacheKey =
       !(sent instanceof File) && isSavedPhotoKey(user.selfieUrl)
-        ? tryOnCacheKey(user.id, user.selfieUrl, outfit.items.map(({ item }) => item))
+        ? tryOnCacheKey(user.id, user.selfieUrl, outfit.items.map(({ item }) => ({ ...item, imageUrl: aiPicture(item) })))
         : null;
     const remembered = cacheKey && formData.get("fresh") !== "1" ? await getCachedTryOn(cacheKey).catch(() => null) : null;
     let result: TryOnResult;
