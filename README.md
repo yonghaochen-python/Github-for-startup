@@ -72,6 +72,11 @@ A personal beauty and fashion consultation, made from a head-and-shoulders photo
 - Days you chose or edited are kept (marked with a small gold dot) when you plan the month again; Virm asks before replacing a plan. Each month is saved on its own.
 - Free: no AI and no photos. A photo is only made when you press Try On in Studio.
 
+### What costs money (and what doesn't)
+- Paid AI work: photo try-on and AI Stylist reports (photo credits), live try-on (live credits, its own allowance), and, without credits, adding clothes, Style it and outfit explanations.
+- Free: browsing, Top 3 Picks, the Planner, cut-outs, sliders, and anything shown again — a try-on of the same pieces on the same photo (Studio and Shopping), a repeated Style it search, a reopened, downloaded or shared report.
+- Profile shows what this month's photo credits went on (try-ons and reports). Admin → **AI costs** shows new (paid) results and free reuse per feature, with exact costs from the providers' usage counts and photo try-on marked as an estimate.
+
 ### Saved Looks
 - Your saved outfits, each with its pieces numbered and the whole look (your try-on of it if you have one).
 - **Try On**, **Share**, **Remove**.

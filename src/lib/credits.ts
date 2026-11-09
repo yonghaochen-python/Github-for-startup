@@ -67,6 +67,8 @@ export type Balances = {
   enforcement: Enforcement;
   /** Admins are never limited. */
   exempt: boolean;
+  /** This month's photo credits used, by what made them (sent by /api/me/credits). */
+  photoUsed?: { tryOns: number; reports: number };
 };
 
 type Account = { id: string; role: string };

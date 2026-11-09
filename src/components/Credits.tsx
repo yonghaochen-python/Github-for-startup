@@ -59,7 +59,13 @@ export function CreditsCard() {
             </Link>
           </p>
           <div className="mt-2">
-            <Row label="Photo try-ons" b={b.photo} />
+            <Row label="Photo credits" b={b.photo} />
+            {b.photoUsed && b.photoUsed.tryOns + b.photoUsed.reports > 0 && (
+              <p className="-mt-1.5 pb-2 text-right text-[11.5px] text-[#5d6874]">
+                Used: {b.photoUsed.tryOns} {b.photoUsed.tryOns === 1 ? "try-on" : "try-ons"} · {b.photoUsed.reports}{" "}
+                {b.photoUsed.reports === 1 ? "report" : "reports"}
+              </p>
+            )}
             <Row label="Live sessions" b={b.live} />
           </div>
           <p className="mt-1 text-[11.5px] leading-snug text-[#5d6874]">
