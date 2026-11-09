@@ -25,6 +25,8 @@ type Plan = {
   lives: number;
   features: Feature[];
   bestValue?: boolean;
+  /** Kept in the code but not shown (Pro, until there are enough advanced features to justify it). */
+  hidden?: true;
 };
 
 const PLANS: Plan[] = [
@@ -69,6 +71,7 @@ const PLANS: Plan[] = [
     line: "A more personal wardrobe experience",
     price: "$24.99",
     purpose: "The most try-ons and live sessions, with wardrobe insights on the way.",
+    hidden: true,
     photos: PLAN_ALLOWANCES.pro.photo,
     lives: PLAN_ALLOWANCES.pro.live,
     features: [
@@ -82,6 +85,10 @@ const PLANS: Plan[] = [
     ],
   },
 ];
+
+/** The plans people see (Pro is hidden for now; its settings stay, and admins can still assign it). */
+const SHOWN = PLANS.filter((p) => !p.hidden);
+const shownAt = PLANS.map((p, i) => (p.hidden ? -1 : i)).filter((i) => i >= 0);
 
 /** The comparison table. "soon" cells are features that aren't built yet. */
 const COMPARE: { label: string; cells: [string, string, string] }[] = [
@@ -158,8 +165,8 @@ export function Pricing({ compact = false, onCompare }: { compact?: boolean; onC
       </p>
 
       {/* The plans: one sheet, columns divided by hairlines; Plus is the inked column. */}
-      <section aria-label="Plans" className="grid overflow-hidden rounded-[6px] bg-white shadow-[0_1px_0_rgba(18,24,33,0.03),0_14px_36px_rgba(18,30,45,0.06)] md:grid-cols-3">
-        {PLANS.map((plan) => {
+      <section aria-label="Plans" className={`grid overflow-hidden rounded-[6px] bg-white shadow-[0_1px_0_rgba(18,24,33,0.03),0_14px_36px_rgba(18,30,45,0.06)] ${SHOWN.length === 2 ? "md:grid-cols-2" : "md:grid-cols-3"}`}>
+        {SHOWN.map((plan) => {
           const dark = Boolean(plan.bestValue);
           const muted = dark ? "text-[#aeb8c2]" : "text-[#5d6874]";
           return (
@@ -272,7 +279,7 @@ export function Pricing({ compact = false, onCompare }: { compact?: boolean; onC
                 <thead>
                   <tr className="border-b border-black/[0.07]">
                     <th className="px-3 py-3 text-left font-normal sm:px-6" />
-                    {PLANS.map((p) => (
+                    {SHOWN.map((p) => (
                       <th key={p.key} className={`px-2 py-3 text-center text-[11px] font-semibold uppercase tracking-[1.6px] sm:px-4 ${p.bestValue ? "bg-[#f1f3f4] text-[#121821]" : "text-[#5d6874]"}`}>
                         {p.name}
                       </th>
@@ -280,13 +287,14 @@ export function Pricing({ compact = false, onCompare }: { compact?: boolean; onC
                   </tr>
                 </thead>
                 <tbody>
-                  {COMPARE.map((row) => (
+                  {/* Only the shown plans' columns; a row nobody shown has (like Pro-only features) is left out. */}
+                  {COMPARE.filter((row) => shownAt.some((i) => row.cells[i] !== "no")).map((row) => (
                     <tr key={row.label} className="border-b border-black/[0.05] last:border-0">
                       <th scope="row" className="px-3 py-3 text-left font-normal sm:px-6">
                         {row.label}
                       </th>
-                      {row.cells.map((c, i) => (
-                        <td key={i} className={`px-2 py-3 text-center tabular-nums sm:px-4 ${PLANS[i].bestValue ? "bg-[#f1f3f4]" : ""}`}>
+                      {shownAt.map((i) => row.cells[i]).map((c, j) => (
+                        <td key={j} className={`px-2 py-3 text-center tabular-nums sm:px-4 ${SHOWN[j].bestValue ? "bg-[#f1f3f4]" : ""}`}>
                           <Cell value={c} />
                         </td>
                       ))}

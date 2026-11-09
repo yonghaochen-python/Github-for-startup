@@ -86,7 +86,8 @@ export const DEFAULT_COSTS: CostAssumptions = {
   claudePerClosetPhoto: 0.03,
   claudePerStyleIt: 0.03,
   extraAiPerUser: 0,
-  users: { free: 100, plus: 10, pro: 3 },
+  // Pro is hidden for now (no Pro subscribers expected); its numbers stay here for when it comes back.
+  users: { free: 100, plus: 10, pro: 0 },
   hosting: 5,
   other: 0,
   scenarios: [
