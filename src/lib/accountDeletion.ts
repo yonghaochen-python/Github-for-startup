@@ -7,6 +7,7 @@ import { clearTryOnCache } from "@/lib/tryOnCache";
 import { deleteAllLiveVideos } from "@/lib/liveVideos";
 import { deletePortrait } from "@/lib/portrait";
 import { deleteSavedSearches } from "@/lib/styleSearchCache";
+import { deleteEnhanceCopies } from "@/lib/enhance";
 
 /**
  * Permanently deletes an account and everything in it: the saved photo, the current look, every outfit's try-on
@@ -16,13 +17,15 @@ import { deleteSavedSearches } from "@/lib/styleSearchCache";
 export async function deleteAccount(userId: string): Promise<void> {
   const user = await prisma.user.findUnique({
     where: { id: userId },
-    select: { selfieUrl: true, items: { select: { imageUrl: true } } },
+    select: { selfieUrl: true, items: { select: { imageUrl: true, plainUrl: true, enhancedUrl: true } } },
   });
   if (!user) return;
 
   // Files first, so nothing is left behind if the database step fails partway.
   // A piece with its background removed has two files: the cut-out and the original photo.
-  const ownUploads = (await Promise.all(user.items.map((item) => pictureKeys(item.imageUrl)))).flat();
+  // Every picture a piece has: the one shown, and (with AI enhancement) its plain and enhanced versions.
+  const pictures = user.items.flatMap((item) => [item.imageUrl, item.plainUrl, item.enhancedUrl].filter((u): u is string => Boolean(u)));
+  const ownUploads = [...new Set((await Promise.all([...new Set(pictures)].map((url) => pictureKeys(url)))).flat())];
   for (let i = 0; i < ownUploads.length; i += 1000) await env.UPLOADS.delete(ownUploads.slice(i, i + 1000));
   if (isSavedPhotoKey(user.selfieUrl)) await deletePersonalPhoto(user.selfieUrl);
   await clearCurrentLook(userId);
@@ -32,6 +35,7 @@ export async function deleteAccount(userId: string): Promise<void> {
   await deleteAllLiveVideos(userId);
   await deletePortrait(userId);
   await deleteSavedSearches(userId);
+  await deleteEnhanceCopies(userId);
 
   await prisma.user.delete({ where: { id: userId } });
 }

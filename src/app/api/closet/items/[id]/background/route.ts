@@ -12,7 +12,7 @@ import { env } from "cloudflare:workers";
 async function ownItem(request: Request, ctx: RouteContext<"/api/closet/items/[id]/background">) {
   const user = await requireUser(request);
   const { id } = await ctx.params;
-  const item = await prisma.clothingItem.findFirst({ where: { id, userId: user.id }, select: { id: true, imageUrl: true } });
+  const item = await prisma.clothingItem.findFirst({ where: { id, userId: user.id }, select: { id: true, imageUrl: true, plainUrl: true, enhancedUrl: true } });
   return item;
 }
 
@@ -25,6 +25,10 @@ export async function POST(request: Request, ctx: RouteContext<"/api/closet/item
     return asResponse(res);
   }
   if (!item) return NextResponse.json({ error: "Item not found." }, { status: 404 });
+  // The AI-enhanced picture is shown: background changes apply to the piece's own picture, so switch back first.
+  if (item.enhancedUrl && item.imageUrl === item.enhancedUrl) {
+    return NextResponse.json({ error: "Switch to the original picture first.", code: "enhanced" }, { status: 409 });
+  }
 
   const form = await request.formData().catch(() => null);
   const file = form?.get("cutout");
@@ -41,7 +45,9 @@ export async function POST(request: Request, ctx: RouteContext<"/api/closet/item
     return NextResponse.json({ error: "That picture couldn't be used." }, { status: 400 });
   }
   // Only if the picture is still the one read above (two quick changes can't cross over and lose a picture).
-  const { count } = await withRetry(() => prisma.clothingItem.updateMany({ where: { id: item.id, imageUrl: item.imageUrl }, data: { imageUrl: url } }));
+  // An enhanced piece's plain picture follows along (so the ✦ switch never points at a removed picture).
+  const plainFollows = item.plainUrl === item.imageUrl ? { plainUrl: url } : {};
+  const { count } = await withRetry(() => prisma.clothingItem.updateMany({ where: { id: item.id, imageUrl: item.imageUrl }, data: { imageUrl: url, ...plainFollows } }));
   if (count === 0) {
     await env.UPLOADS.delete(url.replace(/^\/uploads\//, "")).catch(() => {});
     const current = await prisma.clothingItem.findUnique({ where: { id: item.id } });
@@ -61,6 +67,10 @@ export async function DELETE(request: Request, ctx: RouteContext<"/api/closet/it
     return asResponse(res);
   }
   if (!item) return NextResponse.json({ error: "Item not found." }, { status: 404 });
+  // The AI-enhanced picture is shown: background changes apply to the piece's own picture, so switch back first.
+  if (item.enhancedUrl && item.imageUrl === item.enhancedUrl) {
+    return NextResponse.json({ error: "Switch to the original picture first.", code: "enhanced" }, { status: 409 });
+  }
   if (!isCutout(item.imageUrl)) return NextResponse.json({ item });
 
   const original = await withRetry(() => cutoutOriginal(item.imageUrl)).catch(() => null);
@@ -70,7 +80,8 @@ export async function DELETE(request: Request, ctx: RouteContext<"/api/closet/it
   if (original.startsWith("/uploads/") && !exists) {
     return NextResponse.json({ error: "The original photo couldn't be found." }, { status: 409 });
   }
-  const { count } = await withRetry(() => prisma.clothingItem.updateMany({ where: { id: item.id, imageUrl: item.imageUrl }, data: { imageUrl: original } }));
+  const plainFollows = item.plainUrl === item.imageUrl ? { plainUrl: original } : {};
+  const { count } = await withRetry(() => prisma.clothingItem.updateMany({ where: { id: item.id, imageUrl: item.imageUrl }, data: { imageUrl: original, ...plainFollows } }));
   if (count === 0) return NextResponse.json({ error: "This piece just changed. Please try again." }, { status: 409 });
   await env.UPLOADS.delete(item.imageUrl.replace(/^\/uploads\//, "")).catch(() => {});
   const updated = await prisma.clothingItem.findUnique({ where: { id: item.id } });

@@ -166,6 +166,10 @@ model ClothingItem {
   description  String
   /// The brand, when a logo, label or printed name shows it (or the person typed it). Empty = unknown.
   brand        String?
+  /// AI enhancement (admins only for now): the picture shown before enhancing (photo or cut-out), kept as it is.
+  plainUrl     String?
+  /// The AI-tidied picture. imageUrl is whichever of the two is shown; switching never makes a new one.
+  enhancedUrl  String?
   createdAt    DateTime @default(now())
 
   user        User         @relation(fields: [userId], references: [id], onDelete: Cascade)

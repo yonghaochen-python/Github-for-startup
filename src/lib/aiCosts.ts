@@ -11,3 +11,5 @@ export const MAX_LIVE_SECONDS = 20;
 export const LIVE_MICROS_PER_SECOND = 20_000;
 /** BFL FLUX VTO: about $0.04 a try-on (estimate; BFL doesn't publish it). */
 export const PHOTO_TRYON_MICROS = 40_000;
+/** FLUX 3 Image at 768×768: $0.041 a picture (BFL's price table), used only if a reply doesn't say what it cost. */
+export const ENHANCE_MICROS = 41_000;

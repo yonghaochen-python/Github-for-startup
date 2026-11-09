@@ -24,6 +24,11 @@ export type EventName =
   | "ai_cost_closet"
   | "ai_cost_style_it"
   | "ai_cost_explain"
+  /** AI clothing enhancement (FLUX 3): exact when BFL reports the cost; _est when it didn't (the set rate is used). */
+  | "ai_cost_enhance"
+  | "ai_cost_enhance_est"
+  /** An enhancement shown again from its kept copy (free). */
+  | "enhance_reused"
   /** Free reuse: a saved Style it search shown again, an AI Stylist report reopened (once an hour). */
   | "style_it_reused"
   | "report_opened"
