@@ -16,6 +16,8 @@ import { CheckIcon, PlusIcon, SparkleIcon } from "@/components/Icons";
 import { EmptyState, ErrorNote, PageHeader, PageShell, btnPrimary, btnSecondary, btnText } from "@/components/ui";
 import { Tips, type Tip } from "@/components/Tips";
 import { keepItemBackground, removeBackgroundsAfterAdding, removeItemBackground } from "@/lib/cutoutClient";
+import { DRIFT_WARNING, keepEnhancement, previewEnhancement, showPicture, type EnhancePreview } from "@/lib/enhanceClient";
+import { useAuth } from "@/components/AuthProvider";
 import { ShelfRow } from "@/components/ShelfRow";
 
 const CLOSET_TIPS: Tip[] = [
@@ -36,6 +38,9 @@ type ClothingItem = {
   season: string;
   description: string;
   brand?: string | null;
+  /** AI enhancement (admins only for now): the piece's own picture, and the AI-tidied one (imageUrl is the one shown). */
+  plainUrl?: string | null;
+  enhancedUrl?: string | null;
 };
 
 type EditForm = Pick<
@@ -474,6 +479,7 @@ export default function ClosetPage() {
           startEditing={editMode}
           backgroundWorking={working.has(viewing.id)}
           onToggleBackground={() => toggleBackground(viewing)}
+          onItemChange={replaceItem}
         />
       )}
     </main>
@@ -521,6 +527,7 @@ function ItemDetail({
   startEditing,
   backgroundWorking,
   onToggleBackground,
+  onItemChange,
 }: {
   item: ClothingItem;
   aiEnabled: boolean;
@@ -532,8 +539,59 @@ function ItemDetail({
   startEditing: boolean;
   backgroundWorking: boolean;
   onToggleBackground: () => void;
+  onItemChange: (item: ClothingItem) => void;
 }) {
   const [editing, setEditing] = useState(startEditing);
+  // AI enhancement: admins only for now (the server checks too). The ✦ switch works for anyone with an enhanced picture.
+  const isAdmin = Boolean(useAuth().user?.isAdmin);
+  const enhancedShown = Boolean(item.enhancedUrl && item.imageUrl === item.enhancedUrl);
+  const [enhancing, setEnhancing] = useState<"working" | "saving" | "switching" | null>(null);
+  const [enhanceError, setEnhanceError] = useState<string | null>(null);
+  const [preview, setPreview] = useState<EnhancePreview | null>(null);
+  const plainPicture = enhancedShown ? (item.plainUrl ?? item.imageUrl) : item.imageUrl;
+  // The preview's picture is let go when it's replaced or the window closes.
+  useEffect(() => () => {
+    if (preview) URL.revokeObjectURL(preview.url);
+  }, [preview]);
+
+  async function enhance() {
+    setEnhanceError(null);
+    setEnhancing("working");
+    try {
+      setPreview(await previewEnhancement(item));
+    } catch (err) {
+      setEnhanceError(err instanceof Error ? err.message : "Couldn't enhance this picture. Your picture is unchanged.");
+    } finally {
+      setEnhancing(null);
+    }
+  }
+
+  async function useEnhanced() {
+    if (!preview) return;
+    setEnhancing("saving");
+    setEnhanceError(null);
+    try {
+      onItemChange(await keepEnhancement(item, preview.png));
+      setPreview(null);
+    } catch (err) {
+      setEnhanceError(err instanceof Error ? err.message : "Couldn't save the enhanced picture.");
+    } finally {
+      setEnhancing(null);
+    }
+  }
+
+  /** ✦: the enhanced picture or the piece's own (no AI, no cost). */
+  async function switchPicture() {
+    setEnhancing("switching");
+    setEnhanceError(null);
+    try {
+      onItemChange(await showPicture(item, enhancedShown ? "original" : "enhanced"));
+    } catch (err) {
+      setEnhanceError(err instanceof Error ? err.message : "Couldn't switch the picture.");
+    } finally {
+      setEnhancing(null);
+    }
+  }
   const cut = isCutout(item);
   const [form, setForm] = useState<EditForm>(() => toEditForm(item));
   const [saving, setSaving] = useState(false);
@@ -577,15 +635,80 @@ function ItemDetail({
     >
       <div className="max-h-[92dvh] w-full max-w-[860px] overflow-y-auto bg-[#f8fafb] sm:grid sm:grid-cols-[minmax(0,1fr)_minmax(0,1fr)]">
         <div className="closet-shelf relative aspect-square sm:aspect-auto sm:min-h-[460px]">
-          <Image src={item.imageUrl} alt={item.description} fill unoptimized onError={retryImage} className={`object-contain ${cut ? "p-8" : ""}`} />
-          {/* Remove background / Keep background: the original photo is always kept. */}
-          <button
-            onClick={onToggleBackground}
-            disabled={backgroundWorking}
-            className="absolute bottom-3 left-1/2 -translate-x-1/2 whitespace-nowrap rounded-full bg-white/95 px-4 py-2 text-[12px] font-semibold text-[#121821] shadow-[0_4px_14px_rgba(18,24,33,0.12)] disabled:opacity-70"
-          >
-            {backgroundWorking ? (cut ? "Restoring…" : "Removing background…") : cut ? "Keep background" : "Remove background"}
-          </button>
+          {preview ? (
+            // Before / after side by side, whole pictures, so logos and prints can be checked.
+            <div className="absolute inset-0 grid grid-cols-2 gap-2 p-3 pb-[132px]">
+              {[
+                ["Original", plainPicture],
+                ["AI enhanced", preview.url],
+              ].map(([label, src]) => (
+                <figure key={label} className="relative min-h-0 overflow-hidden rounded-[14px] bg-white/70">
+                  {/* eslint-disable-next-line @next/next/no-img-element -- the person's own pictures */}
+                  <img src={src} alt={`${label}: ${item.description}`} className="absolute inset-0 h-full w-full object-contain p-2" />
+                  <figcaption className="absolute left-2 top-2 rounded-full bg-white/90 px-2 py-0.5 text-[10.5px] font-semibold uppercase tracking-[1px] text-[#121821]">{label}</figcaption>
+                </figure>
+              ))}
+              <div className="absolute inset-x-3 bottom-3 rounded-[16px] bg-white/95 p-3 shadow-[0_4px_14px_rgba(18,24,33,0.12)]">
+                {preview.practice && <p className="mb-1 text-[11.5px] text-[#5d6874]">Practice: nothing was sent, so this is your picture.</p>}
+                {preview.drift !== null && preview.drift >= DRIFT_WARNING && (
+                  <p role="alert" className="mb-1 text-[12px] font-semibold text-[#a03a2f]">The colors look different from your picture.</p>
+                )}
+                <div className="flex flex-wrap gap-2">
+                  <button onClick={useEnhanced} disabled={enhancing !== null} className={`${btnPrimary} min-h-[40px] flex-1`}>
+                    {enhancing === "saving" ? "Saving…" : "Use enhanced"}
+                  </button>
+                  <button onClick={() => setPreview(null)} disabled={enhancing !== null} className={`${btnSecondary} min-h-[40px] flex-1`}>
+                    Keep original
+                  </button>
+                </div>
+              </div>
+            </div>
+          ) : (
+            <>
+              <Image src={item.imageUrl} alt={item.description} fill unoptimized onError={retryImage} className={`object-contain ${cut ? "p-8" : ""}`} />
+              {/* ✦: the AI-enhanced picture or the piece's own. A plain switch: no AI, no cost. */}
+              {item.enhancedUrl && item.plainUrl && (
+                <button
+                  onClick={switchPicture}
+                  disabled={enhancing !== null}
+                  aria-pressed={enhancedShown}
+                  aria-label="AI-enhanced picture"
+                  title={enhancedShown ? "Show your original picture" : "Show the AI-enhanced picture"}
+                  className={`absolute right-3 top-3 flex h-10 w-10 items-center justify-center rounded-full shadow-[0_4px_14px_rgba(18,24,33,0.14)] disabled:opacity-60 ${
+                    enhancedShown ? "bg-[#121821] text-white" : "bg-white/95 text-[#121821]"
+                  }`}
+                >
+                  <SparkleIcon className="h-[18px] w-[18px]" />
+                </button>
+              )}
+              <div className="absolute bottom-3 left-1/2 flex -translate-x-1/2 flex-wrap justify-center gap-2">
+                {/* Remove background / Keep background: the original photo is always kept. Changes apply to the piece's own picture. */}
+                {!enhancedShown && (
+                  <button
+                    onClick={onToggleBackground}
+                    disabled={backgroundWorking || enhancing !== null}
+                    className="whitespace-nowrap rounded-full bg-white/95 px-4 py-2 text-[12px] font-semibold text-[#121821] shadow-[0_4px_14px_rgba(18,24,33,0.12)] disabled:opacity-70"
+                  >
+                    {backgroundWorking ? (cut ? "Restoring…" : "Removing background…") : cut ? "Keep background" : "Remove background"}
+                  </button>
+                )}
+                {isAdmin && !item.enhancedUrl && (
+                  <button
+                    onClick={enhance}
+                    disabled={enhancing !== null || backgroundWorking}
+                    className="flex items-center gap-1.5 whitespace-nowrap rounded-full bg-[#121821] px-4 py-2 text-[12px] font-semibold text-white shadow-[0_4px_14px_rgba(18,24,33,0.18)] disabled:opacity-70"
+                  >
+                    <SparkleIcon className="h-3.5 w-3.5" /> {enhancing === "working" ? "Enhancing…" : "Enhance with AI"}
+                  </button>
+                )}
+              </div>
+            </>
+          )}
+          {enhanceError && (
+            <p role="alert" className="absolute inset-x-3 top-3 rounded-[12px] bg-white/95 px-3 py-2 text-[12px] text-[#a03a2f] shadow-[0_4px_14px_rgba(18,24,33,0.12)]">
+              {enhanceError}
+            </p>
+          )}
         </div>
         <div className="flex flex-col p-6 sm:p-8">
           <div className="mb-5 flex items-start justify-between gap-4">
