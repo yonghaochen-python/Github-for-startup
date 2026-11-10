@@ -170,6 +170,23 @@ export default function ClosetPage() {
     added.forEach((i) => markWorking(i.id, false));
   }
 
+  // Pieces removed but still in their Undo time: deleted for real when it runs out, or right away if the page is left.
+  const pendingDeletes = useRef(new Map<string, { item: ClothingItem; timer: ReturnType<typeof setTimeout> }>());
+  useEffect(() => {
+    const pending = pendingDeletes.current;
+    const flush = () => {
+      for (const { item, timer } of pending.values()) {
+        clearTimeout(timer);
+        void deleteNow(item, true);
+      }
+    };
+    window.addEventListener("pagehide", flush);
+    return () => {
+      window.removeEventListener("pagehide", flush);
+      flush();
+    };
+  }, []);
+
   /** One piece: Remove background, or Keep background (the original photo). */
   async function toggleBackground(item: ClothingItem) {
     setError(null);
@@ -217,16 +234,40 @@ export default function ClosetPage() {
     }
   }
 
-  async function handleDelete(item: ClothingItem) {
-    if (!window.confirm(`Remove "${item.description}" from your closet? Outfits that use it will lose this piece.`)) return;
-    const res = await fetch(`/api/closet/items/${item.id}`, { method: "DELETE" });
-    if (!res.ok) {
+  /** Really deletes a piece (after its Undo time ran out, or the page is being left). */
+  async function deleteNow(item: ClothingItem, leaving = false) {
+    pendingDeletes.current.delete(item.id);
+    const res = await fetch(`/api/closet/items/${item.id}`, { method: "DELETE", keepalive: leaving }).catch(() => null);
+    if (!leaving && !res?.ok) {
+      // It couldn't be deleted: show it again rather than lose track of it.
+      setItems((prev) => (prev.some((i) => i.id === item.id) ? prev : [item, ...prev]));
       setError("Couldn't remove that item. Please try again.");
-      return;
     }
+  }
+
+  /**
+   * ✕ / Remove: the piece leaves the closet at once (no pop-up), with "Removed · Undo" for a few seconds. It's only
+   * deleted for real when that time runs out, so Undo brings it back exactly as it was.
+   */
+  function handleDelete(item: ClothingItem) {
+    const index = items.findIndex((i) => i.id === item.id);
     setItems((prev) => prev.filter((i) => i.id !== item.id));
     setViewingId(null);
-    showToast("Removed from your closet");
+    const timer = setTimeout(() => deleteNow(item), 6000);
+    pendingDeletes.current.set(item.id, { item, timer });
+    showToast("Removed from your closet", {
+      label: "Undo",
+      onClick: () => {
+        clearTimeout(timer);
+        pendingDeletes.current.delete(item.id);
+        setItems((prev) => {
+          if (prev.some((i) => i.id === item.id)) return prev;
+          const next = [...prev];
+          next.splice(Math.max(0, Math.min(index, next.length)), 0, item);
+          return next;
+        });
+      },
+    });
   }
 
   async function handleReanalyze(id: string) {
