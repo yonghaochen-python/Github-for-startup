@@ -83,7 +83,7 @@ async function callFal(baseUrl: string, apiKey: string, body: Record<string, unk
     if (res.status === 402 || detail.includes("balance") || detail.includes("exhausted") || detail.includes("credit")) {
       throw new TryOnError(
         "quota_exhausted",
-        "Try It On is paused because its testing credits have run out. Please try again later."
+        "the fal.ai account is out of credits. Add credits at fal.ai and try-ons work again right away."
       );
     }
     if (res.status === 401 || res.status === 403) {

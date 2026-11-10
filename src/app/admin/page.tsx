@@ -197,6 +197,18 @@ export default function AdminPage() {
         </div>
         {error && <div className="mt-4"><ErrorNote message={error} /></div>}
 
+        {/* Something only the owner can fix: shown first, in red. */}
+        {s.alerts.tryOnDown > 0 && (
+          <div role="alert" className="mt-4 rounded-[18px] bg-[#fbeceb] p-4 text-[13.5px] leading-snug text-[#7a1f19]">
+            <p className="font-semibold">Photo try-on isn&apos;t working</p>
+            <p className="mt-1">
+              It failed {s.alerts.tryOnDown} {s.alerts.tryOnDown === 1 ? "time" : "times"} in the last 24 hours (last at{" "}
+              {s.alerts.tryOnDownLastAt ? new Date(s.alerts.tryOnDownLastAt).toLocaleString() : "—"}) because the try-on service refused it: usually
+              its balance has run out. Add credits at bfl.ai. People see &ldquo;not available right now&rdquo; and get their credit back.
+            </p>
+          </div>
+        )}
+
         {/* Tracking notice + summary */}
         <div className="mt-6 grid gap-4 lg:grid-cols-[1fr_1fr]">
           <div className="rounded-[22px] bg-[#121821] p-6 text-white">

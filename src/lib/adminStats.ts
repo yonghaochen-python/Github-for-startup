@@ -248,7 +248,15 @@ export async function computeAdminStats(from: Date, to: Date) {
 
   const billing = await billingStats(adminIds, from, to, now);
 
+  // Photo try-on down on Virm's side (out of balance, key rejected), counted for everyone including admins.
+  const downEvents = allEvents.filter((e) => e.name === "tryon_service_down" && now.getTime() - e.createdAt.getTime() <= DAY);
+  const alerts = {
+    tryOnDown: downEvents.length,
+    tryOnDownLastAt: downEvents.reduce<Date | null>((last, e) => (!last || e.createdAt > last ? e.createdAt : last), null)?.toISOString() ?? null,
+  };
+
   return {
+    alerts,
     billing,
     aiCosts,
     stylist,

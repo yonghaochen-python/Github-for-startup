@@ -34,6 +34,8 @@ export type EventName =
   | "report_opened"
   /** Free: a Planner month or day made (no AI). */
   | "planner_generated"
+  /** Photo try-on was down on Virm's side (the try-on service's balance ran out, or its key was rejected). */
+  | "tryon_service_down"
   /** Billing: the trial's secure card page was opened. */
   | "trial_checkout_started"
   /** Billing: the Plus payment page was opened (after the final confirmation). */
