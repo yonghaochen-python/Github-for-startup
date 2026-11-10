@@ -86,24 +86,33 @@ export function MirrorPieces({
               </span>
             </button>
             {active && (
-              <div className="mt-1 flex gap-1.5 pl-[26px] max-md:pl-1">
+              <div className="mt-1 flex gap-1.5 pl-[26px] max-md:justify-center max-md:pl-0">
+                {/* Phones: the column is narrow, so two round icon buttons (⇄ replace, ✕ remove); computers: words. */}
                 <button
                   onClick={() => {
                     setOpen(null);
                     onReplace(p);
                   }}
-                  className="rounded-full bg-[#121821] px-3 py-1.5 text-[11.5px] font-semibold text-white"
+                  aria-label={`Replace ${shortName(p.description)}`}
+                  title="Replace"
+                  className="flex items-center justify-center rounded-full bg-[#121821] text-[11.5px] font-semibold text-white max-md:h-8 max-md:w-8 md:px-3 md:py-1.5"
                 >
-                  Replace
+                  <svg viewBox="0 0 24 24" className="h-4 w-4 md:hidden" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden>
+                    <path d="M7 7h11l-3-3M17 17H6l3 3" />
+                  </svg>
+                  <span className="max-md:hidden">Replace</span>
                 </button>
                 <button
                   onClick={() => {
                     setOpen(null);
                     onRemove(p);
                   }}
-                  className="rounded-full bg-white px-3 py-1.5 text-[11.5px] font-semibold text-[#121821] shadow-[inset_0_0_0_1px_rgba(18,24,33,0.14)]"
+                  aria-label={`Remove ${shortName(p.description)}`}
+                  title="Remove"
+                  className="flex items-center justify-center rounded-full bg-white text-[11.5px] font-semibold text-[#121821] shadow-[inset_0_0_0_1px_rgba(18,24,33,0.14)] max-md:h-8 max-md:w-8 md:px-3 md:py-1.5"
                 >
-                  Remove
+                  <span aria-hidden className="text-[13px] md:hidden">✕</span>
+                  <span className="max-md:hidden">Remove</span>
                 </button>
               </div>
             )}
