@@ -24,6 +24,14 @@ model User {
   plan         String    @default("free")
   /// Start of the person's monthly periods; empty means their sign-up date.
   periodAnchor DateTime?
+  /// 7-day Plus trial: when it started (set once, never cleared, so one trial per account) and when it ends.
+  trialStartedAt       DateTime?
+  trialEndsAt          DateTime?
+  /// The Stripe customer for this account (Stripe holds the payment methods; Virm stores only this id).
+  stripeCustomerId     String?   @unique
+  /// A keyed one-way hash of Stripe's card fingerprint, never the fingerprint itself, the card number or CVC.
+  /// Server only (never sent to a browser). A match flags a trial for review; it never blocks it on its own.
+  trialCardFingerprint String?
 
   items    ClothingItem[]
   outfits  Outfit[]
@@ -35,6 +43,9 @@ model User {
   reports  StudioReport[]
   feedback Feedback[]
   plans    OutfitPlan[]
+  subscriptions Subscription[]
+
+  @@index([trialCardFingerprint])
 }
 
 /// The credit history: one row per grant, adjustment or use, never deleted. A use is "reserved" while its try-on
@@ -263,4 +274,42 @@ model OutfitPlan {
   user User @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@unique([userId, month])
+}
+
+/// A mirror of one Stripe subscription. Stripe is the source of truth; this is updated only from verified webhooks.
+model Subscription {
+  id                   String    @id @default(cuid())
+  userId               String
+  stripeSubscriptionId String    @unique
+  stripeCustomerId     String
+  /// plus (pro stays hidden)
+  plan                 String    @default("plus")
+  priceId              String
+  /// Stripe's status: incomplete | active | past_due | unpaid | canceled | incomplete_expired
+  status               String
+  currentPeriodEnd     DateTime?
+  cancelAtPeriodEnd    Boolean   @default(false)
+  canceledAt           DateTime?
+  createdAt            DateTime  @default(now())
+  updatedAt            DateTime  @updatedAt
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  // "At most one open subscription per person" is a partial unique index in the SQL (Prisma can't describe it).
+}
+
+/// One handled Stripe webhook event, by Stripe's event id, so a repeated delivery is never processed twice.
+/// Only ids and outcomes are kept: no card, payment or customer details.
+model BillingEvent {
+  /// Stripe's event id (evt_…)
+  id          String    @id
+  type        String
+  userId      String?
+  /// ok | ignored | error: short reason
+  outcome     String?
+  receivedAt  DateTime  @default(now())
+  processedAt DateTime?
+
+  @@index([type, receivedAt])
 }
