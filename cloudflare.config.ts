@@ -20,6 +20,12 @@ export default defineConfig({
       BFL_API_KEY: bindings.secret(),
       // Live Try On's real-time preview (Decart). Only admin accounts can start it (see /api/live/token).
       DECART_API_KEY: bindings.secret(),
+      // Billing (Stripe). All secrets, so billing stays off anywhere they aren't set; BILLING_ENABLED=1 turns it on.
+      STRIPE_SECRET_KEY: bindings.secret(),
+      STRIPE_WEBHOOK_SECRET: bindings.secret(),
+      STRIPE_PLUS_PRICE_ID: bindings.secret(),
+      TRIAL_FINGERPRINT_SECRET: bindings.secret(),
+      BILLING_ENABLED: bindings.secret(),
     },
   }),
 });

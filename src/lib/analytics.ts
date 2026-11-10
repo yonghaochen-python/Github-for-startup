@@ -34,6 +34,8 @@ export type EventName =
   | "report_opened"
   /** Free: a Planner month or day made (no AI). */
   | "planner_generated"
+  /** Billing: the trial's secure card page was opened. */
+  | "trial_checkout_started"
   | `visit_${"home" | "shop" | "closet" | "studio" | "stylist" | "tryon" | "saved" | "profile" | "planner"}`;
 
 export async function track(
