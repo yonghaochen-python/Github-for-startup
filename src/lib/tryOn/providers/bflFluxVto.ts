@@ -1,5 +1,6 @@
 import type { LayeringRole } from "@/lib/layering";
 import { garmentName, TryOnError, toPlainLayers, type ImageBytes, type TryOnInputItem, type TryOnProvider } from "../types";
+import { isOpenFront, outfitPrompt, wornOrder, wornPhrases } from "../outfitPrompt";
 
 /**
  * Black Forest Labs' FLUX virtual try-on, called directly on the BFL API (model "vto-v2").
@@ -19,33 +20,10 @@ const SUBMIT_TIMEOUT_MS = 30_000;
 const TOTAL_TIMEOUT_MS = 120_000;
 const POLL_INTERVAL_MS = 1_000;
 
-/** Innermost to outermost, then feet and accessories. */
-const WORN_ORDER: LayeringRole[] = ["one_piece", "bottom", "base_layer", "mid_layer", "outer_layer", "shoes", "accessory"];
-
 const PREFIX = "The person of image 1, maintaining exactly their face and pose, wearing";
 /** Logos and prints are what try-on AI most often redraws (a small side logo turned into a big front one). */
 const KEEP_DETAILS =
   " Keep every logo, print, text and graphic exactly as it is in image 2: the same size, position and color. Don't add, move or enlarge any logo.";
-
-/** One garment phrase per piece, phrased so layered tops stack the right way round. */
-function phraseFor(role: LayeringRole, description: string): string {
-  const garment = `the ${description.trim() || "garment"}`;
-  switch (role) {
-    case "base_layer":
-      return `${garment} as the inner top`;
-    case "mid_layer":
-      return `${garment} layered over the inner top`;
-    case "outer_layer":
-      return `${garment} worn open as the outer layer`;
-    default:
-      return garment;
-  }
-}
-
-function joinPhrases(phrases: string[]): string {
-  if (phrases.length <= 1) return phrases[0] ?? "the garments";
-  return `${phrases.slice(0, -1).join(", ")}, and ${phrases[phrases.length - 1]}`;
-}
 
 const toBase64 = ({ bytes }: ImageBytes) => Buffer.from(bytes).toString("base64");
 
@@ -154,36 +132,34 @@ export function bflFluxVtoProvider(apiKey: string): TryOnProvider {
   return {
     name: "bfl-flux-vto",
     async generate({ person, layers, garmentSheet }) {
-      const steps: { role: LayeringRole; item: TryOnInputItem }[] = [];
-      for (const role of WORN_ORDER) {
-        for (const layer of layers) {
-          if (layer.role !== role) continue;
-          for (const item of layer.items) steps.push({ role, item });
-        }
-      }
+      // Innermost first, in the same order the browser laid the garment sheet out in (see outfitPrompt).
+      const steps: { role: LayeringRole; item: TryOnInputItem }[] = wornOrder(
+        layers.flatMap((layer) => layer.items.map((item) => ({ role: layer.role, item, layeringRole: layer.role, description: item.description })))
+      ).map(({ role, item }) => ({ role, item }));
       if (steps.length === 0) {
         throw new TryOnError("provider_error", "This outfit has no pieces to try on.");
       }
+      const named = steps.map((s) => ({ role: s.role, name: `the ${garmentName(s.item)}`, description: s.item.description, openFront: isOpenFront(s.item) }));
 
       let sampleUrl: string;
       if (garmentSheet || steps.length === 1) {
-        // One call for the whole look: every piece is on the sheet (or there is only one piece).
+        // One call for the whole look: every piece is on the sheet (or there is only one piece), each named by its place.
         const garment = garmentSheet ?? (await steps[0].item.getImage());
-        const prompt = `${PREFIX} ${joinPhrases(steps.map((s) => phraseFor(s.role, garmentName(s.item))))} of image 2.${KEEP_DETAILS}`;
         sampleUrl = await runJob(baseUrl, apiKey, {
-          prompt,
+          prompt: outfitPrompt(PREFIX, KEEP_DETAILS, named),
           person: toBase64(person),
           garment: toBase64(garment),
           output_format: "jpeg",
         });
       } else {
-        // No sheet: dress one piece per call, feeding each result into the next.
+        // No sheet: dress one piece per call, innermost first, feeding each result into the next.
+        const phrases = wornPhrases(named);
         let current = toBase64(person);
         sampleUrl = "";
-        for (const { role, item } of steps) {
+        for (const [i, { item }] of steps.entries()) {
           const garment = await item.getImage();
           sampleUrl = await runJob(baseUrl, apiKey, {
-            prompt: `${PREFIX} ${phraseFor(role, garmentName(item))} of image 2, keeping everything else they have on.${KEEP_DETAILS}`,
+            prompt: `${PREFIX} ${phrases[i]} of image 2, keeping everything else they have on visible.${KEEP_DETAILS}`,
             person: current,
             garment: toBase64(garment),
             output_format: "jpeg",

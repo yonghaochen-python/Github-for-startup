@@ -1,4 +1,5 @@
 import type { LayeringRole } from "@/lib/layering";
+import { wornOrder } from "@/lib/tryOn/outfitPrompt";
 import { aiPicture } from "@/lib/aiPicture";
 import { garmentSheetJpeg, photoToJpeg } from "@/lib/clientImage";
 
@@ -8,7 +9,7 @@ const SHEET_SIDE = 1600;
 /** Shown with every try-on: what an AI preview can't promise. */
 export const TRY_ON_CAVEAT = "Virtual try-ons are AI previews. They can't show exactly how real fabric, fit, size or color will look.";
 
-type Piece = { id: string; imageUrl: string; plainUrl?: string | null; enhancedUrl?: string | null };
+type Piece = { id: string; imageUrl: string; plainUrl?: string | null; enhancedUrl?: string | null; layeringRole?: string; description?: string };
 type NotShown = { role: LayeringRole; description: string; reason: string };
 export type TryOnResult = {
   isMock: boolean;
@@ -32,6 +33,8 @@ export async function requestTryOn(outfitId: string, pieces: Piece[], liveProvid
   // By default a picture already made of this photo and these pieces is shown again for free; fresh asks for a new one.
   if (fresh) formData.append("fresh", "1");
   if (liveProvider) {
+    // Laid out innermost first, the same order the server names them in, so "1) …, 2) …" matches the sheet.
+    pieces = wornOrder(pieces.map((p) => ({ ...p, layeringRole: p.layeringRole ?? "", description: p.description ?? "" })));
     const photos = await Promise.allSettled(
       pieces.map(async (piece) => {
         // The piece's own picture, never the AI-enhanced one.
@@ -63,6 +66,8 @@ type ShopPiece = { imageUrl: string; plainUrl?: string | null; enhancedUrl?: str
  * Every piece's picture is sent, shrunk, with its description; nothing is saved. Same provider and limits.
  */
 export async function requestShopTryOn(pieces: ShopPiece[], fresh = false): Promise<TryOnResult> {
+  // Innermost first (pictures, sheet and descriptions alike), matching the order the server names them in.
+  pieces = wornOrder(pieces);
   const photos = await Promise.all(
     pieces.map(async (piece) => {
       const res = await fetch(aiPicture(piece)).catch(() => null);
