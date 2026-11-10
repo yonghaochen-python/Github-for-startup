@@ -55,15 +55,26 @@ ACCOUNT=$(api GET account) || stop "couldn't reach Stripe."
 [ "$(echo "$ACCOUNT" | json charges_enabled)" = "True" ] || stop "your Stripe account can't take payments yet. Finish activating it on stripe.com (business details and bank account), then run this again."
 echo "✓ Live account ready"
 
-# ---- 2. Product and price (made once; Stripe's duplicate guard makes re-runs reuse them) ------------------------
+# ---- 2. Product and price (found if they already exist, so running again with a new key reuses them) ------------
 echo "→ Virm Plus, \$14.99/month…"
-PRODUCT=$(curl -sS https://api.stripe.com/v1/products -K - -H "Idempotency-Key: virm-plus-product-live-v1" \
-  --data-urlencode "name=Virm Plus" \
-  --data-urlencode "description=More photo and live try-ons, clothing photos and Style It searches each month." <<<"user = \"$KEY:\"" | json id)
-[ -n "$PRODUCT" ] || stop "couldn't create the Virm Plus product."
-PRICE=$(curl -sS https://api.stripe.com/v1/prices -K - -H "Idempotency-Key: virm-plus-price-1499-monthly-live-v1" \
-  -d product="$PRODUCT" -d unit_amount=1499 -d currency=usd -d "recurring[interval]=month" <<<"user = \"$KEY:\"" | json id)
-case "$PRICE" in price_*) ;; *) stop "couldn't create the \$14.99 price.";; esac
+PRODUCT=$(api GET "products?active=true&limit=100" | python3 -c "import json,sys
+try: d=json.load(sys.stdin)
+except Exception: d={}
+print(next((p['id'] for p in d.get('data',[]) if p.get('name')=='Virm Plus'), ''))")
+if [ -z "$PRODUCT" ]; then
+  REPLY_JSON=$(api POST products "name=Virm Plus" "description=More photo and live try-ons, clothing photos and Style It searches each month.")
+  PRODUCT=$(echo "$REPLY_JSON" | json id)
+  [ -n "$PRODUCT" ] || stop "couldn't create the Virm Plus product. Stripe said: $(echo "$REPLY_JSON" | json error.message)"
+fi
+PRICE=$(api GET "prices?product=$PRODUCT&active=true&limit=100" | python3 -c "import json,sys
+try: d=json.load(sys.stdin)
+except Exception: d={}
+print(next((p['id'] for p in d.get('data',[]) if p.get('unit_amount')==1499 and p.get('currency')=='usd' and (p.get('recurring') or {}).get('interval')=='month'), ''))")
+if [ -z "$PRICE" ]; then
+  REPLY_JSON=$(api POST prices "product=$PRODUCT" "unit_amount=1499" "currency=usd" "recurring[interval]=month")
+  PRICE=$(echo "$REPLY_JSON" | json id)
+  case "$PRICE" in price_*) ;; *) stop "couldn't create the \$14.99 price. Stripe said: $(echo "$REPLY_JSON" | json error.message)";; esac
+fi
 echo "✓ Product and price ready"
 
 # ---- 3. Webhook (Stripe shows its secret only when it's made, so an existing one is replaced) -------------------
