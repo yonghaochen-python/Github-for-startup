@@ -34,7 +34,8 @@ export default function PrivacyPage() {
           <li>
             <strong>Billing (only if you start the trial or Plus):</strong> Stripe&apos;s reference numbers for you and your subscription, your
             plan and its dates, and a scrambled code made from Stripe&apos;s fingerprint of your card. That code can&apos;t be turned back into
-            your card; it&apos;s used only to notice one card being used for several free trials. We never see or store your card number.
+            your card; it&apos;s used only to notice one card being used for several free trials. We never see or store your card number. If you
+            join with a friend&apos;s invite code, we note whose code it was (they only see how many friends joined, not who).
           </li>
         )}
       </ul>

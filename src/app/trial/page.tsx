@@ -6,18 +6,24 @@ import { useSearchParams } from "next/navigation";
 import type { BillingStatus } from "@/app/api/billing/status/route";
 import { refreshCredits } from "@/components/Credits";
 import { PageShell, btnPrimary, btnSecondary, eyebrow, surface } from "@/components/ui";
+import { TRIAL_ALLOWANCES, TRIAL_DAYS, type TrialKind } from "@/lib/plans";
+import { clearPendingInvite, pendingInvite, redeemInvite } from "@/lib/pendingInvite";
 
-const INCLUDES = [
-  "15 photo try-ons",
-  "3 live try-ons",
-  "4 AI Stylist reports",
-  "40 clothing photo additions with AI tagging",
-  "20 Style It searches",
+const includes = (a: Record<TrialKind, number>) => [
+  `${a.photo} photo try-ons`,
+  `${a.live} live try-ons`,
+  `${a.report} AI Stylist reports`,
+  `${a.closet} clothing photo additions with AI tagging`,
+  `${a.style} Style It searches`,
 ];
+const WORDS: Record<number, string> = { 7: "seven", 14: "fourteen" };
 
 const day = (iso: string) => new Date(iso).toLocaleDateString(undefined, { month: "long", day: "numeric" });
 
-/** The 7-day Plus trial: what it includes, then a card saved on Stripe's page with $0 charged. */
+/**
+ * The Plus trial (7 days, or 14 with a friend's code): what it includes, then a card saved on Stripe's page with $0
+ * charged. A friend's code can be entered here until the trial starts.
+ */
 function Trial() {
   const params = useSearchParams();
   const done = params.get("done") === "1";
@@ -27,6 +33,9 @@ function Trial() {
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [waitedOut, setWaitedOut] = useState(false);
+  const [codeOpen, setCodeOpen] = useState(false);
+  const [code, setCode] = useState("");
+  const [codeError, setCodeError] = useState<string | null>(null);
 
   const load = useCallback(async () => {
     const res = await fetch("/api/billing/status", { cache: "no-store" }).catch(() => null);
@@ -56,6 +65,25 @@ function Trial() {
     };
   }, [done, load]);
 
+  // A code from a friend's /join link: used automatically for a signed-in account that can still take it.
+  useEffect(() => {
+    const saved = pendingInvite();
+    if (!saved || !status?.enabled || !status.signedIn || status.invited || status.trial) return;
+    void redeemInvite(saved).then((err) => {
+      clearPendingInvite();
+      if (err) setCodeError(err);
+      void load();
+    });
+  }, [status, load]);
+
+  async function applyCode() {
+    setCodeError(null);
+    const err = await redeemInvite(code);
+    if (err) return setCodeError(err);
+    setCodeOpen(false);
+    void load();
+  }
+
   async function start() {
     setBusy(true);
     setError(null);
@@ -77,6 +105,9 @@ function Trial() {
     }
     setBusy(false);
   }
+
+  const days = status?.trialDays ?? TRIAL_DAYS;
+  const allowances = status?.trialAllowances ?? TRIAL_ALLOWANCES;
 
   let body: React.ReactNode;
   if (!status) {
@@ -118,13 +149,42 @@ function Trial() {
         <label className="mt-5 flex cursor-pointer items-start gap-2.5 text-[13px] leading-snug text-[#4f5b66]">
           <input type="checkbox" checked={accepted} onChange={(e) => setAccepted(e.target.checked)} className="mt-0.5 h-4 w-4 shrink-0 accent-[#121821]" />
           <span>
-            I understand my card is saved but not charged, and that after seven days I can choose whether to continue with Plus for $14.99/month. See the{" "}
+            I understand my card is saved but not charged, and that after {WORDS[days] ?? days} days I can choose whether to continue with Plus for $14.99/month. See the{" "}
             <Link href="/terms" className="underline underline-offset-2">
               terms
             </Link>
             .
           </span>
         </label>
+        {status.signedIn && !status.invited && (
+          <div className="mt-4 text-[13px]">
+            {codeOpen ? (
+              <div className="flex gap-2">
+                <input
+                  value={code}
+                  onChange={(e) => setCode(e.target.value)}
+                  placeholder="VIRM-K7Q2X"
+                  aria-label="Friend's code"
+                  autoCapitalize="characters"
+                  className="min-h-[42px] min-w-0 flex-1 rounded-full bg-white px-4 uppercase shadow-[inset_0_0_0_1px_rgba(18,24,33,0.14)] outline-none focus:shadow-[inset_0_0_0_1.5px_#121821]"
+                />
+                <button onClick={applyCode} disabled={!code.trim()} className={btnSecondary}>
+                  Apply
+                </button>
+              </div>
+            ) : (
+              <button onClick={() => setCodeOpen(true)} className="font-medium text-[#121821] underline-offset-4 hover:underline">
+                Have a friend&apos;s code? Get 14 days
+              </button>
+            )}
+            {codeError && (
+              <p role="alert" className="mt-2 text-[#a1312a]">
+                {codeError}
+              </p>
+            )}
+          </div>
+        )}
+        {status.invited && <p className="mt-4 text-[13px] font-medium text-[#1d6b3a]">✓ Friend&apos;s code applied: your trial is 14 days.</p>}
         {status.signedIn ? (
           <button onClick={start} disabled={!accepted || busy} className={`${btnPrimary} mt-5 w-full sm:w-auto`}>
             {busy ? "Opening…" : "Start my free trial"}
@@ -148,11 +208,11 @@ function Trial() {
       <section>
         <p className={eyebrow}>VIRM Plus</p>
         <h1 className="mt-3 font-display text-[40px] font-normal leading-[1] tracking-[-1.2px] text-[#121821] sm:text-[56px]">
-          Try VIRM Plus free for 7 days.
+          Try VIRM Plus free for {days} days.
         </h1>
-        <p className="mt-6 text-[14px] font-semibold text-[#121821]">Your 7-day Plus trial includes:</p>
+        <p className="mt-6 text-[14px] font-semibold text-[#121821]">Your {days}-day Plus trial includes:</p>
         <ul className="mt-2 grid gap-1.5 text-[14px] text-[#121821]">
-          {INCLUDES.map((line) => (
+          {includes(allowances).map((line) => (
             <li key={line} className="flex gap-2">
               <span aria-hidden>·</span>
               {line}
@@ -160,7 +220,7 @@ function Trial() {
           ))}
         </ul>
         <p className="mt-4 max-w-md text-[14px] leading-relaxed text-[#4f5b66]">
-          Enjoy seven days of VIRM Plus, with clear usage limits and no automatic payment when your trial ends.
+          Enjoy {WORDS[days] ?? days} days of VIRM Plus, with clear usage limits and no automatic payment when your trial ends.
         </p>
       </section>
       <section className={`${surface} p-5 sm:p-6`} aria-live="polite">

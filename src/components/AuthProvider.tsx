@@ -42,7 +42,7 @@ export function useAuth(): AuthContextValue {
   return ctx;
 }
 
-const PUBLIC_PATHS = ["/", "/login", "/reset-password", "/about", "/how-it-works", "/pricing", "/privacy", "/terms", "/contact", "/try"];
+const PUBLIC_PATHS = ["/", "/login", "/reset-password", "/about", "/how-it-works", "/pricing", "/privacy", "/terms", "/contact", "/try", "/join"];
 
 /**
  * Who's signed in. A connection problem or server hiccup is tried again; if Virm still can't be reached the answer

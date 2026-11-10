@@ -20,6 +20,10 @@ export type EventName =
   | "pick_opened"
   | "pick_vote"
   | "signup_from_pick"
+  /** Signed up with a friend's invite code (their trial will be 14 days). */
+  | "signup_with_invite"
+  /** A friend's invite code was entered after sign-up (before the trial). */
+  | "invite_code_used"
   /** Real AI cost of Claude calls (costMicros set): adding clothes, Style it, an outfit's explanation. */
   | "ai_cost_closet"
   | "ai_cost_style_it"

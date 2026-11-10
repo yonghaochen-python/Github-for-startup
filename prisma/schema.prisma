@@ -32,6 +32,10 @@ model User {
   /// A keyed one-way hash of Stripe's card fingerprint, never the fingerprint itself, the card number or CVC.
   /// Server only (never sent to a browser). A match flags a trial for review; it never blocks it on its own.
   trialCardFingerprint String?
+  /// This account's own invite code to share (made the first time it's shown). A friend's code gives a 14-day trial.
+  inviteCode           String?   @unique
+  /// Whose code this account joined with (that account's id). Set once; empty if no code was used.
+  invitedById          String?
 
   items    ClothingItem[]
   outfits  Outfit[]
@@ -46,6 +50,7 @@ model User {
   subscriptions Subscription[]
 
   @@index([trialCardFingerprint])
+  @@index([invitedById])
 }
 
 /// The credit history: one row per grant, adjustment or use, never deleted. A use is "reserved" while its try-on

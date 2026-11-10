@@ -1,6 +1,7 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, useSyncExternalStore } from "react";
+import { clearPendingInvite, pendingInvite } from "@/lib/pendingInvite";
 import Link from "next/link";
 import { useSearchParams } from "next/navigation";
 import { useAuth } from "@/components/AuthProvider";
@@ -49,6 +50,14 @@ export default function LoginPage() {
   const searchParams = useSearchParams();
   const [creating, setCreating] = useState(searchParams.get("create") === "1");
   const [displayName, setDisplayName] = useState("");
+  // A friend's code from a /join link (read after hydration); the box only shows when there is one.
+  const savedCode = useSyncExternalStore(
+    () => () => {},
+    () => pendingInvite(),
+    () => null
+  );
+  const [typedCode, setTypedCode] = useState<string | null>(null);
+  const inviteCode = typedCode ?? savedCode ?? "";
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [error, setError] = useState<string | null>(null);
@@ -82,10 +91,13 @@ export default function LoginPage() {
       const res = await fetch(`/api/auth/${creating ? "signup" : "login"}`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(creating ? { email, password, displayName: displayName || undefined } : { email, password }),
+        body: JSON.stringify(
+          creating ? { email, password, displayName: displayName || undefined, inviteCode: inviteCode.trim() || undefined } : { email, password }
+        ),
       });
       const data = (await res.json().catch(() => ({}))) as { error?: string };
       if (!res.ok) throw new Error(data.error ?? "Couldn't sign you in right now. Please try again.");
+      if (creating) clearPendingInvite();
       completeLogin(creating ? "Welcome to Virm. Your closet is ready." : "Welcome back.");
     } catch (err) {
       setError(err instanceof Error ? err.message : "Something went wrong");
@@ -174,6 +186,19 @@ export default function LoginPage() {
               className="h-12 w-full rounded-[12px] bg-white px-4 text-[14px] font-normal tracking-normal text-[#121821] shadow-[inset_0_0_0_1px_rgba(18,24,33,0.18)] outline-none placeholder:text-[#5d6874] focus:shadow-[inset_0_0_0_2px_#121821]"
             />
           </label>
+
+          {creating && savedCode && (
+            <label className="mt-5 flex flex-col gap-2.5 text-[11px] font-semibold tracking-[1.4px] text-[#3b4850]">
+              FRIEND&apos;S CODE · 14-DAY PLUS TRIAL
+              <input
+                type="text"
+                autoCapitalize="characters"
+                value={inviteCode}
+                onChange={(e) => setTypedCode(e.target.value)}
+                className="h-12 w-full rounded-[12px] bg-white px-4 text-[14px] font-normal uppercase tracking-normal text-[#121821] shadow-[inset_0_0_0_1px_rgba(18,24,33,0.18)] outline-none focus:shadow-[inset_0_0_0_2px_#121821]"
+              />
+            </label>
+          )}
 
           {error && <p className="mt-4 text-xs text-red-700">{error}</p>}
 

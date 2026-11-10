@@ -6,7 +6,7 @@ import { createPortal } from "react-dom";
 import Link from "next/link";
 import { useAuth } from "@/components/AuthProvider";
 import { eyebrow } from "@/components/ui";
-import { PLAN_ALLOWANCES, TRIAL_ALLOWANCES } from "@/lib/plans";
+import { INVITE_TRIAL_DAYS, PLAN_ALLOWANCES, TRIAL_ALLOWANCES } from "@/lib/plans";
 import { useBillingStatus } from "@/lib/useBillingStatus";
 
 /**
@@ -330,6 +330,7 @@ export function Pricing({ compact = false, onCompare }: { compact?: boolean; onC
           <p className={`${compact ? "mt-1 text-[12.5px]" : "mt-3 text-[13.5px]"} leading-relaxed text-[#4f5b66]`}>
             Enjoy seven days of VIRM Plus, with clear usage limits and no automatic payment when your trial ends.
           </p>
+          <p className={`mt-2 ${compact ? "text-[12px]" : "text-[13px]"} font-medium text-[#121821]`}>Got a code from a friend? Your trial is {INVITE_TRIAL_DAYS} days.</p>
         </section>
       )}
 

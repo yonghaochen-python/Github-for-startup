@@ -1,0 +1,61 @@
+"use client";
+
+import { Suspense, useEffect } from "react";
+import Link from "next/link";
+import { useRouter, useSearchParams } from "next/navigation";
+import { useAuth } from "@/components/AuthProvider";
+import { savePendingInvite } from "@/lib/pendingInvite";
+import { INVITE_TRIAL_DAYS } from "@/lib/plans";
+import { PageShell, btnPrimary, btnSecondary, eyebrow } from "@/components/ui";
+
+/**
+ * A friend's invite link (/join?code=VIRM-…). The code is kept in this browser; new people create an account with it
+ * filled in, and signed-in people go straight to the trial page, which uses it.
+ */
+function Join() {
+  const params = useSearchParams();
+  const router = useRouter();
+  const { status } = useAuth();
+  const code = (params.get("code") ?? "").trim().toUpperCase();
+
+  useEffect(() => {
+    if (code) savePendingInvite(code);
+  }, [code]);
+  useEffect(() => {
+    if (status === "signedIn") router.replace("/trial");
+  }, [status, router]);
+
+  return (
+    <div className="max-w-xl pt-10 sm:pt-14">
+      <p className={eyebrow}>An invite from a friend</p>
+      <h1 className="mt-3 font-display text-[40px] font-normal leading-[1] tracking-[-1.2px] text-[#121821] sm:text-[56px]">
+        {INVITE_TRIAL_DAYS} days of VIRM Plus, free.
+      </h1>
+      <p className="mt-4 text-[15px] leading-relaxed text-[#4f5b66]">
+        Your digital closet, outfit ideas and AI try-on. Your friend&apos;s code gives you a {INVITE_TRIAL_DAYS}-day Plus trial: $0 today, and no
+        automatic charge when it ends.
+      </p>
+      {code && <p className="mt-4 text-[13px] text-[#5d6874]">Code: {code}</p>}
+      <div className="mt-6 flex flex-wrap gap-2">
+        <Link href="/login?create=1" className={btnPrimary}>
+          Create my account
+        </Link>
+        <Link href="/login" className={btnSecondary}>
+          I have an account
+        </Link>
+      </div>
+    </div>
+  );
+}
+
+export default function JoinPage() {
+  return (
+    <main className="flex-1 pb-20">
+      <PageShell>
+        <Suspense fallback={null}>
+          <Join />
+        </Suspense>
+      </PageShell>
+    </main>
+  );
+}

@@ -10,6 +10,7 @@ import { BookmarkIcon, ClosetIcon, SparkleIcon } from "@/components/Icons";
 import { ErrorNote, PageHeader, PageShell, btnPrimary, btnSecondary, btnText, eyebrow } from "@/components/ui";
 import { resetTips } from "@/components/Tips";
 import { CreditsCard } from "@/components/Credits";
+import { InviteCard } from "@/components/InviteCard";
 
 type Outfit = { id: string; isFavorite: boolean };
 
@@ -58,6 +59,7 @@ export default function ProfilePage() {
               <p className="mt-1 text-[12px] text-[#5d6874]">Used to log in. Can&apos;t be changed.</p>
             </div>
             <CreditsCard />
+            <InviteCard />
             <ul className="mt-8 grid grid-cols-3 gap-3 border-t border-black/[0.07] pt-6">
               {stats.map(({ label, value, href, Icon }) => (
                 <li key={label}>

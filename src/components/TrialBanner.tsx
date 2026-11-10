@@ -28,6 +28,8 @@ type Note = { key: string; text: string; action: string; href?: string };
 function noteFor(s: BillingStatus): Note | null {
   if (!s.enabled) return null;
   if (s.pastDue) return { key: "past-due", text: "Payment failed", action: "Update card", href: "/profile" };
+  // Joined with a friend's code but hasn't started the trial yet.
+  if (s.invited && !s.trial && !s.subscribed) return { key: "invited", text: `${s.trialDays} days of Plus, free`, action: "Start", href: "/trial" };
   if (s.subscribed || !s.trial) return null;
   const ends = new Date(s.trial.endsAt).getTime();
   const left = ends - Date.now();

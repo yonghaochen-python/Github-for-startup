@@ -3,6 +3,7 @@ import { asResponse, requireUser } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { billingEnabled, customerFor, stripe } from "@/lib/billing";
 import { track } from "@/lib/analytics";
+import { trialTerms } from "@/lib/plans";
 
 const noStore = { "cache-control": "private, no-store" };
 
@@ -22,7 +23,7 @@ export async function POST(request: Request) {
   const body = (await request.json().catch(() => ({}))) as { accepted?: unknown };
   if (body.accepted !== true) return NextResponse.json({ error: "Please confirm the trial terms first." }, { status: 400, headers: noStore });
 
-  const account = await prisma.user.findUnique({ where: { id: user.id }, select: { email: true, trialStartedAt: true } });
+  const account = await prisma.user.findUnique({ where: { id: user.id }, select: { email: true, trialStartedAt: true, invitedById: true } });
   if (!account) return NextResponse.json({ error: "Not found." }, { status: 404, headers: noStore });
   if (account.trialStartedAt) return NextResponse.json({ error: "You've already had your free trial.", code: "already_used" }, { status: 409, headers: noStore });
   const subscribed = await prisma.subscription.findFirst({ where: { userId: user.id, status: { in: ["active", "past_due", "incomplete", "unpaid"] } }, select: { id: true } });
@@ -41,7 +42,9 @@ export async function POST(request: Request) {
       cancel_url: `${origin}/trial?canceled=1`,
       metadata: { userId: user.id, purpose: "trial" },
       setup_intent_data: { metadata: { userId: user.id, purpose: "trial" } },
-      custom_text: { submit: { message: "$0 today. Your card is saved, not charged. No automatic charge when your 7-day trial ends." } },
+      custom_text: {
+        submit: { message: `$0 today. Your card is saved, not charged. No automatic charge when your ${trialTerms(Boolean(account.invitedById)).days}-day trial ends.` },
+      },
     });
     await track(user.id, "trial_checkout_started");
     return NextResponse.json({ url: session.url }, { headers: noStore });

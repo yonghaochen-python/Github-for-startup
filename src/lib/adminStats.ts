@@ -327,7 +327,7 @@ async function billingStats(adminIds: Set<string>, from: Date, to: Date, now: Da
   const [trials, subs] = await Promise.all([
     prisma.user.findMany({
       where: { trialStartedAt: { not: null } },
-      select: { id: true, trialStartedAt: true, trialEndsAt: true, trialCardFingerprint: true },
+      select: { id: true, trialStartedAt: true, trialEndsAt: true, trialCardFingerprint: true, invitedById: true },
     }),
     prisma.subscription.findMany({ select: { userId: true, status: true, createdAt: true, cancelAtPeriodEnd: true } }),
   ]);
@@ -351,6 +351,10 @@ async function billingStats(adminIds: Set<string>, from: Date, to: Date, now: Da
   for (const t of people) if (t.trialCardFingerprint) byCard.set(t.trialCardFingerprint, (byCard.get(t.trialCardFingerprint) ?? 0) + 1);
 
   const open = subs.filter((s) => !adminIds.has(s.userId) && (s.status === "active" || s.status === "past_due"));
+  // Friend's-code (14-day) trials on their own, to compare with the 7-day ones.
+  const invitedDecided = decided.filter((t) => t.invitedById);
+  const invitedConverted = converted.filter((t) => t.invitedById);
+  const invitedSignups = await prisma.user.count({ where: { invitedById: { not: null }, role: { not: "admin" } } });
   return {
     trialsStarted: people.length,
     trialsInRange: people.filter((t) => inRange(t.trialStartedAt!, from, to)).length,
@@ -363,5 +367,10 @@ async function billingStats(adminIds: Set<string>, from: Date, to: Date, now: Da
     paymentFailing: open.filter((s) => s.status === "past_due").length,
     cancelling: open.filter((s) => s.cancelAtPeriodEnd).length,
     sharedCardAccounts: [...byCard.values()].filter((n) => n > 1).reduce((a, n) => a + n, 0),
+    invitedSignups,
+    invitedTrials: people.filter((t) => t.invitedById).length,
+    invitedConverted: invitedConverted.length,
+    invitedDecided: invitedDecided.length,
+    invitedRate: invitedDecided.length ? invitedConverted.length / invitedDecided.length : null,
   };
 }

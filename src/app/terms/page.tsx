@@ -1,7 +1,7 @@
 import Link from "next/link";
 import { InfoPage } from "@/components/InfoPage";
 import { CONTACT_EMAIL, POLICY_UPDATED, billingIsOn } from "@/lib/site";
-import { PLAN_ALLOWANCES, TRIAL_ALLOWANCES } from "@/lib/plans";
+import { INVITE_TRIAL_ALLOWANCES, INVITE_TRIAL_DAYS, PLAN_ALLOWANCES, TRIAL_ALLOWANCES } from "@/lib/plans";
 
 export default function TermsPage() {
   return (
@@ -45,13 +45,20 @@ export default function TermsPage() {
             <li>Payments are handled by Stripe. Virm never sees or stores your card details.</li>
           </ul>
 
-          <h2>The 7-day Plus trial</h2>
+          <h2>The Plus trial</h2>
           <ul>
-            <li>One free trial per person. To start it you add a card, which Stripe saves. $0 is charged.</li>
+            <li>One free trial per person, for 7 days. To start it you add a card, which Stripe saves. $0 is charged.</li>
             <li>
               The trial includes {TRIAL_ALLOWANCES.photo} photo try-ons, {TRIAL_ALLOWANCES.live} live try-ons (at most one a day), {TRIAL_ALLOWANCES.report} AI
               Stylist reports, {TRIAL_ALLOWANCES.closet} clothing photo additions with AI tagging and {TRIAL_ALLOWANCES.style} Style It searches. Trial
               credits end when the trial ends.
+            </li>
+            <li>
+              With a friend&apos;s invite code, entered before your trial starts, the trial is {INVITE_TRIAL_DAYS} days and includes{" "}
+              {INVITE_TRIAL_ALLOWANCES.photo} photo try-ons, {INVITE_TRIAL_ALLOWANCES.live} live try-ons (at most one a day),{" "}
+              {INVITE_TRIAL_ALLOWANCES.report} AI Stylist reports, {INVITE_TRIAL_ALLOWANCES.closet} clothing photo additions and{" "}
+              {INVITE_TRIAL_ALLOWANCES.style} Style It searches. A code can be used once per new account, not on your own account, and
+              gives nothing to the person who shared it.
             </li>
             <li>
               <strong>There is no automatic charge when the trial ends.</strong> Your account goes back to Free unless you choose to continue

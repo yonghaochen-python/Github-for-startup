@@ -5,6 +5,8 @@ import { hashPassword, createSession, sessionCookieHeader, devSignedOutCookieHea
 import { SAMPLE_CLOSET } from "@/lib/sampleCloset";
 import { cleanDisplayName } from "@/lib/displayName";
 import { FROM_PICK_COOKIE, readCookie } from "@/lib/picks";
+import { normalizeCode, redeemInviteCode } from "@/lib/invites";
+import { billingEnabled } from "@/lib/billing";
 
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
@@ -14,6 +16,14 @@ export async function POST(request: Request) {
   const password = body && typeof body === "object" && "password" in body ? String(body.password) : "";
   // Optional; the email remains the login.
   const displayName = body && typeof body === "object" && "displayName" in body ? cleanDisplayName(body.displayName) ?? null : null;
+
+  // Optional friend's invite code (gives the 14-day trial). A typed code that isn't real stops sign-up so it can be fixed.
+  const rawCode = body && typeof body === "object" && "inviteCode" in body ? String(body.inviteCode ?? "").trim() : "";
+  if (rawCode && billingEnabled()) {
+    const code = normalizeCode(rawCode);
+    const friend = code ? await prisma.user.findUnique({ where: { inviteCode: code }, select: { id: true } }) : null;
+    if (!friend) return NextResponse.json({ error: "We couldn't find that friend's code. Check it, or leave it empty.", field: "inviteCode" }, { status: 400 });
+  }
 
   if (!EMAIL_RE.test(email)) {
     return NextResponse.json({ error: "Enter a valid email address." }, { status: 400 });
@@ -34,6 +44,7 @@ export async function POST(request: Request) {
   });
   const { cookie, expiresAt } = await createSession(user.id);
   await track(user.id, "signup");
+  if (rawCode && billingEnabled() && (await redeemInviteCode(user.id, rawCode)).ok) await track(user.id, "signup_with_invite");
   // Arrived from a friend's "Share looks" link: counts toward how many people that loop brings in.
   const fromPick = readCookie(request, FROM_PICK_COOKIE) !== null;
   if (fromPick) await track(user.id, "signup_from_pick");

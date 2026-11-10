@@ -24,6 +24,15 @@ export const PLAN_ALLOWANCES: Record<PlanKey, Record<CreditKind, number>> = {
 /** The 7-day Plus trial: exact allowances (never unlimited), kept apart from every monthly and extra credit. */
 export const TRIAL_DAYS = 7;
 export const TRIAL_ALLOWANCES: Record<TrialKind, number> = { photo: 15, live: 3, report: 4, closet: 40, style: 20 };
+/**
+ * With a friend's invite code: a 14-day trial with double the allowances (reports stay one per type, so 4). Still a
+ * card saved with $0 charged and no automatic charge.
+ */
+export const INVITE_TRIAL_DAYS = 14;
+export const INVITE_TRIAL_ALLOWANCES: Record<TrialKind, number> = { photo: 30, live: 6, report: 4, closet: 80, style: 40 };
+/** The trial someone gets: the 14-day one when they joined with a friend's code, otherwise the 7-day one. */
+export const trialTerms = (invited: boolean) =>
+  invited ? { days: INVITE_TRIAL_DAYS, allowances: INVITE_TRIAL_ALLOWANCES } : { days: TRIAL_DAYS, allowances: TRIAL_ALLOWANCES };
 /** Live try-on during a trial: at most this many sessions a day (checked on the server). */
 export const TRIAL_LIVE_PER_DAY = 1;
 

@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { getCurrentUser } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { billingEnabled, OPEN_STATUSES } from "@/lib/billing";
+import { trialTerms, type TrialKind } from "@/lib/plans";
 
 export type BillingStatus = {
   enabled: boolean;
@@ -13,6 +14,11 @@ export type BillingStatus = {
   pastDue: boolean;
   /** Plus is set to stop at the end of the paid month (that date). */
   endsAt: string | null;
+  /** Joined with a friend's invite code, so the trial is the 14-day one. */
+  invited: boolean;
+  /** The trial this person gets (or got): its length and exact allowances. */
+  trialDays: number;
+  trialAllowances: Record<TrialKind, number>;
 };
 
 /** What the trial and plan screens need to know about the signed-in person (nothing about cards or payments). */
@@ -20,9 +26,9 @@ export async function GET(request: Request) {
   const headers = { "cache-control": "private, no-store" };
   const enabled = billingEnabled();
   const user = await getCurrentUser(request);
-  if (!user) return NextResponse.json({ enabled, signedIn: false, trial: null, subscribed: false, pastDue: false, endsAt: null } satisfies BillingStatus, { headers });
+  if (!user) return NextResponse.json({ enabled, signedIn: false, trial: null, subscribed: false, pastDue: false, endsAt: null, invited: false, trialDays: trialTerms(false).days, trialAllowances: trialTerms(false).allowances } satisfies BillingStatus, { headers });
   const [row, open] = await Promise.all([
-    prisma.user.findUnique({ where: { id: user.id }, select: { trialStartedAt: true, trialEndsAt: true } }),
+    prisma.user.findUnique({ where: { id: user.id }, select: { trialStartedAt: true, trialEndsAt: true, invitedById: true } }),
     prisma.subscription.findFirst({ where: { userId: user.id, status: { in: OPEN_STATUSES } }, select: { status: true, cancelAtPeriodEnd: true, currentPeriodEnd: true } }),
   ]);
   const trial =
@@ -37,6 +43,9 @@ export async function GET(request: Request) {
       subscribed: open?.status === "active" || open?.status === "past_due",
       pastDue: open?.status === "past_due",
       endsAt: open?.cancelAtPeriodEnd && open.currentPeriodEnd ? open.currentPeriodEnd.toISOString() : null,
+      invited: Boolean(row?.invitedById),
+      trialDays: trialTerms(Boolean(row?.invitedById)).days,
+      trialAllowances: trialTerms(Boolean(row?.invitedById)).allowances,
     } satisfies BillingStatus,
     { headers }
   );

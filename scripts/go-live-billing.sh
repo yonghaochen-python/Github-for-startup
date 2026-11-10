@@ -7,7 +7,8 @@
 #   2. creates (once) the live "Virm Plus" product and its $14.99/month price;
 #   3. creates the webhook that tells Virm about payments (its secret goes straight into Cloudflare, never shown);
 #   4. checks Stripe's "Manage Plus" page is set up;
-#   5. backs up the live database and adds the billing tables (0016: only adds; nothing existing changes);
+#   5. backs up the live database and adds the billing tables (0016) and invite codes (0017): both only add; nothing
+#      existing changes;
 #   6. saves the billing settings as Cloudflare secrets, with the on-switch (BILLING_ENABLED) last;
 #   7. pushes the code, which turns on the trial, Plus and the monthly limits (people are stopped at their limit).
 # It stops at the first problem; nothing is pushed unless every step works. Safe to run again.
@@ -120,6 +121,16 @@ recorded 0016_billing.sql || q "INSERT INTO d1_migrations (name) VALUES ('0016_b
 for o in Subscription BillingEvent Subscription_one_open_per_user User_stripeCustomerId_key; do has_object "$o" || stop "$o isn't showing."; done
 has_column User trialCardFingerprint || stop "the new User columns aren't showing."
 echo "✓ 0016 done"
+
+echo "→ 0017: invite codes…"
+for c in inviteCode invitedById; do
+  has_column User "$c" || q "ALTER TABLE \"User\" ADD COLUMN \"$c\" TEXT;" >/dev/null || stop "couldn't add User.$c."
+done
+q 'CREATE UNIQUE INDEX IF NOT EXISTS "User_inviteCode_key" ON "User"("inviteCode");' >/dev/null &&
+q 'CREATE INDEX IF NOT EXISTS "User_invitedById_idx" ON "User"("invitedById");' >/dev/null || stop "couldn't add the invite-code indexes."
+recorded 0017_invite_codes.sql || q "INSERT INTO d1_migrations (name) VALUES ('0017_invite_codes.sql');" >/dev/null || stop "couldn't record 0017."
+has_column User inviteCode && has_column User invitedById && has_object User_inviteCode_key || stop "the invite-code columns aren't showing."
+echo "✓ 0017 done"
 
 # ---- 6. Cloudflare secrets (the on-switch last) -------------------------------------------------------------------
 secret() { npx cf workers secrets update "$1" --worker "$WORKER" --type secret_text --text "$2" -q >/dev/null 2>/tmp/virm-golive.err ||

@@ -411,6 +411,11 @@ export default function AdminPage() {
                 <Stat label="Trials started" value={b.trialsStarted} hint={`${b.trialsInRange} in this range · ${b.trialsActive} running now`} />
                 <Stat label="Plus members" value={b.plusMembers} hint={`${b.cancelling} cancelling · ${b.paymentFailing} payment failing`} />
                 <Stat label="Same card, several trials" value={b.sharedCardAccounts} hint="Accounts to look at (never blocked)" />
+                <Stat
+                  label="Joined with a friend's code"
+                  value={b.invitedSignups}
+                  hint={`${b.invitedTrials} started the 14-day trial · ${b.invitedRate === null ? "—" : `${Math.round(b.invitedRate * 100)}%`} paid (${b.invitedConverted} of ${b.invitedDecided})`}
+                />
               </div>
             );
           })()}

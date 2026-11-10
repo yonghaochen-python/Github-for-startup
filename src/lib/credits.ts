@@ -146,6 +146,17 @@ export async function trialCoversReport(userId: string, module: string): Promise
   return left > 0 && !done.includes(module);
 }
 
+/** What this account's trial granted of each kind (7-day or 14-day trial). */
+async function trialGranted(userId: string): Promise<Record<TrialKind, number>> {
+  const rows = await prisma.creditEntry.groupBy({
+    by: ["kind"],
+    where: { userId, source: "trial", type: "adjustment" },
+    _sum: { amount: true },
+  });
+  const sums = new Map(rows.map((r) => [r.kind, r._sum.amount ?? 0]));
+  return Object.fromEntries(TRIAL_KINDS.map((kind) => [kind, sums.get(kind) ?? TRIAL_ALLOWANCES[kind]])) as Record<TrialKind, number>;
+}
+
 export async function getBalances(userId: string): Promise<Balances> {
   const { plan, role, period, trial } = await accountPlan(userId);
   const [photo, live, closet, style] = await Promise.all(
@@ -157,7 +168,7 @@ export async function getBalances(userId: string): Promise<Balances> {
     trialBalance = {
       startedAt: trial.startedAt.toISOString(),
       endsAt: trial.endsAt.toISOString(),
-      allowance: TRIAL_ALLOWANCES,
+      allowance: await trialGranted(userId),
       left: Object.fromEntries(TRIAL_KINDS.map((kind, i) => [kind, lefts[i]])) as Record<TrialKind, number>,
       reports: await trialReports(userId),
     };
