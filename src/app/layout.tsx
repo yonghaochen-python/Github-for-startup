@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import { DM_Sans, Instrument_Serif } from "next/font/google";
 import { MobileTabBar, Nav } from "@/components/Nav";
 import { DemoModeBanner } from "@/components/DemoModeBanner";
+import { TrialBanner } from "@/components/TrialBanner";
 import { ToastProvider } from "@/components/Toast";
 import { AuthProvider } from "@/components/AuthProvider";
 import { TimeOfDaySync } from "@/components/TimeOfDay";
@@ -49,6 +50,7 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
           <AuthProvider>
             <Nav />
             <DemoModeBanner />
+            <TrialBanner />
             <div className="flex flex-1 flex-col">{children}</div>
             <Footer />
             <MobileTabBar />

@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import type Stripe from "stripe";
 import { prisma } from "@/lib/prisma";
-import { claimEvent, finishEvent, fingerprintHash, stripe, verifyWebhook } from "@/lib/billing";
+import { claimEvent, finishEvent, fingerprintHash, stripe, syncSubscription, verifyWebhook } from "@/lib/billing";
 import { startTrial } from "@/lib/trial";
 
 /**
@@ -26,6 +26,20 @@ export async function POST(request: Request) {
         await finishEvent(event.id, outcome.outcome, outcome.userId);
         return NextResponse.json({ received: true });
       }
+      // Plus confirmed and paid on Stripe's page: record it now (the subscription messages below keep it current).
+      if (session.mode === "subscription" && session.subscription) {
+        const id = typeof session.subscription === "string" ? session.subscription : session.subscription.id;
+        const outcome = await syncSubscription(await stripe().subscriptions.retrieve(id));
+        await finishEvent(event.id, outcome.outcome, outcome.userId);
+        return NextResponse.json({ received: true });
+      }
+    }
+    if (event.type === "customer.subscription.created" || event.type === "customer.subscription.updated" || event.type === "customer.subscription.deleted") {
+      // Always the latest copy from Stripe, so messages arriving out of order can't leave an old status behind.
+      const latest = await stripe().subscriptions.retrieve((event.data.object as Stripe.Subscription).id);
+      const outcome = await syncSubscription(latest);
+      await finishEvent(event.id, outcome.outcome, outcome.userId);
+      return NextResponse.json({ received: true });
     }
     await finishEvent(event.id, "ignored");
     return NextResponse.json({ received: true });

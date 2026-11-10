@@ -69,3 +69,37 @@ export async function claimEvent(event: Stripe.Event): Promise<boolean> {
 export async function finishEvent(id: string, outcome: string, userId: string | null = null): Promise<void> {
   await prisma.billingEvent.update({ where: { id }, data: { outcome: outcome.slice(0, 200), userId, processedAt: new Date() } }).catch(() => {});
 }
+
+/** Subscription states that count as one open subscription (at most one per account; see the database index). */
+export const OPEN_STATUSES = ["incomplete", "active", "past_due", "unpaid"];
+
+/**
+ * Copies a Stripe subscription onto Virm's Subscription row (made the first time, updated after). The account is the
+ * one whose Stripe customer it belongs to; a subscription for any other customer is ignored.
+ */
+export async function syncSubscription(sub: Stripe.Subscription): Promise<{ outcome: string; userId: string | null }> {
+  const customerId = typeof sub.customer === "string" ? sub.customer : sub.customer.id;
+  const user = await prisma.user.findUnique({ where: { stripeCustomerId: customerId }, select: { id: true } });
+  if (!user) return { outcome: "ignored: unknown customer", userId: null };
+  const item = sub.items.data[0];
+  const data = {
+    status: sub.status,
+    priceId: item?.price.id ?? null,
+    currentPeriodEnd: item?.current_period_end ? new Date(item.current_period_end * 1000) : null,
+    cancelAtPeriodEnd: sub.cancel_at_period_end,
+    canceledAt: sub.canceled_at ? new Date(sub.canceled_at * 1000) : null,
+  };
+  try {
+    await prisma.subscription.upsert({
+      where: { stripeSubscriptionId: sub.id },
+      create: { userId: user.id, stripeSubscriptionId: sub.id, stripeCustomerId: customerId, plan: "plus", ...data },
+      update: data,
+    });
+  } catch (err) {
+    // The one-open-subscription rule: a second paid subscription for the same person needs a person to look at it
+    // (and refund it), not a retry.
+    if (OPEN_STATUSES.includes(sub.status) && String(err).includes("UNIQUE")) return { outcome: "review: second open subscription", userId: user.id };
+    throw err;
+  }
+  return { outcome: `subscription ${sub.status}`, userId: user.id };
+}

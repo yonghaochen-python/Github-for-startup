@@ -36,6 +36,8 @@ export type EventName =
   | "planner_generated"
   /** Billing: the trial's secure card page was opened. */
   | "trial_checkout_started"
+  /** Billing: the Plus payment page was opened (after the final confirmation). */
+  | "plus_checkout_started"
   | `visit_${"home" | "shop" | "closet" | "studio" | "stylist" | "tryon" | "saved" | "profile" | "planner"}`;
 
 export async function track(
