@@ -70,10 +70,11 @@ async function runJob(baseUrl: string, apiKey: string, body: Record<string, unkn
     const payload = (await res.json().catch(() => ({}))) as SubmitResponse;
     const detail = detailText(payload.detail);
     if (res.status === 402 || detail.includes("credit") || detail.includes("insufficient")) {
-      throw new TryOnError("quota_exhausted", "Try It On is paused because its credits have run out. Please try again later.");
+      // Only admins see this wording (see tryOnErrorMessage); everyone else gets a plain "not available right now".
+      throw new TryOnError("quota_exhausted", "the Black Forest Labs (BFL) account is out of credits. Add credits at bfl.ai and try-ons work again right away.");
     }
     if (res.status === 401 || res.status === 403) {
-      throw new TryOnError("not_configured", "Try It On isn't connected correctly yet (the service key was rejected).");
+      throw new TryOnError("not_configured", "BFL rejected the try-on key (BFL_API_KEY). Check it in Cloudflare.");
     }
     if (res.status === 429) {
       throw new TryOnError("rate_limited", "The try-on service is busy right now. Please try again in a minute.");

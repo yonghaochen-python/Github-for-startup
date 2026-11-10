@@ -76,6 +76,21 @@ export type TryOnResult = {
 
 export type TryOnErrorCode = "not_configured" | "quota_exhausted" | "rate_limited" | "provider_error";
 
+/** What people see when the try-on service is down on Virm's side (its balance ran out, or its key was rejected). */
+export const SERVICE_DOWN_MESSAGE = "Try It On isn't available right now. Please try again in a little while. No credit was used.";
+
+/** True for problems only the owner can fix (not the person's photo, credits or connection). */
+export const isServiceDown = (err: TryOnError) => err.code === "quota_exhausted" || err.code === "not_configured";
+
+/**
+ * The message for this person: the owner's problems read as a plain "not available right now" (never "credits have run
+ * out", which people take to mean their own credits); admins see the real reason so they can fix it.
+ */
+export function tryOnErrorMessage(err: TryOnError, role?: string | null): string {
+  if (!isServiceDown(err)) return err.message;
+  return role === "admin" ? `Admin only: ${err.message}` : SERVICE_DOWN_MESSAGE;
+}
+
 /** A failure whose message is safe to show the person. */
 export class TryOnError extends Error {
   constructor(

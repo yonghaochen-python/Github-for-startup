@@ -34,6 +34,8 @@ export type EventName =
   | "report_opened"
   /** Free: a Planner month or day made (no AI). */
   | "planner_generated"
+  /** Photo try-on was down on Virm's side (the try-on service's balance ran out, or its key was rejected). */
+  | "tryon_service_down"
   | `visit_${"home" | "shop" | "closet" | "studio" | "stylist" | "tryon" | "saved" | "profile" | "planner"}`;
 
 export async function track(

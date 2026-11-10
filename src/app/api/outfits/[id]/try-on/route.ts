@@ -7,7 +7,7 @@ import { withRetry } from "@/lib/dbRetry";
 import { loadSavedImage } from "@/lib/images";
 import { orderedLayerEntries, type LayeringRole } from "@/lib/layering";
 import { runTryOn, TryOnError, type TryOnInputLayer } from "@/lib/tryOn";
-import { toPlainLayers, type ImageBytes, type TryOnResult } from "@/lib/tryOn/types";
+import { isServiceDown, toPlainLayers, tryOnErrorMessage, type ImageBytes, type TryOnResult } from "@/lib/tryOn/types";
 import { cacheTryOn, getCachedTryOn, tryOnCacheKey } from "@/lib/tryOnCache";
 import { isSavedPhotoKey, loadPersonalPhoto, saveCurrentLook, saveOutfitTryOn } from "@/lib/personalPhoto";
 import { CreditError, requestIdFrom, withCredit } from "@/lib/credits";
@@ -148,7 +148,9 @@ export async function POST(request: Request, ctx: RouteContext<"/api/outfits/[id
       return NextResponse.json({ error: err.message, code: err.code }, { status: err.code === "duplicate" ? 409 : 402, headers: noStore });
     }
     if (err instanceof TryOnError) {
-      return NextResponse.json({ error: err.message, code: err.code }, { status: STATUS_BY_CODE[err.code], headers: noStore });
+      // Down on Virm's side (out of balance, key rejected): noted for the admin dashboard's alert.
+      if (isServiceDown(err)) await track(user.id, "tryon_service_down", { ok: false }).catch(() => {});
+      return NextResponse.json({ error: tryOnErrorMessage(err, user.role), code: err.code }, { status: STATUS_BY_CODE[err.code], headers: noStore });
     }
     console.error("Try-on failed:", err);
     return NextResponse.json({ error: "Couldn't run the try-on right now. Please try again." }, { status: 500, headers: noStore });
