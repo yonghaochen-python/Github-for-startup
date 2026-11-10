@@ -1,6 +1,7 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
+import { useToast } from "@/components/Toast";
 
 type LiveVideo = { id: string; savedAt: string; size: number };
 
@@ -11,6 +12,9 @@ type LiveVideo = { id: string; savedAt: string; size: number };
 export function LiveVideos() {
   const [videos, setVideos] = useState<LiveVideo[] | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const { showToast } = useToast();
+  // Videos removed from the list but not deleted yet: Undo brings them back; after 6 s (or on leaving) they're deleted.
+  const pending = useRef(new Map<string, { video: LiveVideo; index: number; timer: ReturnType<typeof setTimeout> }>());
 
   useEffect(() => {
     let ignore = false;
@@ -23,12 +27,56 @@ export function LiveVideos() {
     };
   }, []);
 
-  async function remove(id: string) {
-    if (!window.confirm("Delete this video? This can't be undone.")) return;
+  useEffect(() => {
+    const waiting = pending.current;
+    const flush = () => {
+      // Leaving the page: delete what's still waiting (keepalive lets the request finish after the page closes).
+      for (const [id, { timer }] of waiting) {
+        clearTimeout(timer);
+        void fetch(`/api/me/live-videos/${id}`, { method: "DELETE", keepalive: true }).catch(() => {});
+      }
+      waiting.clear();
+    };
+    window.addEventListener("pagehide", flush);
+    return () => {
+      window.removeEventListener("pagehide", flush);
+      flush();
+    };
+  }, []);
+
+  function putBack(video: LiveVideo, index: number) {
+    setVideos((list) => {
+      const next = [...(list ?? [])];
+      if (next.some((v) => v.id === video.id)) return next;
+      next.splice(Math.max(0, Math.min(index, next.length)), 0, video);
+      return next;
+    });
+  }
+
+  async function deleteNow(video: LiveVideo) {
+    const entry = pending.current.get(video.id);
+    pending.current.delete(video.id);
+    const res = await fetch(`/api/me/live-videos/${video.id}`, { method: "DELETE" }).catch(() => null);
+    if (!res?.ok) {
+      putBack(video, entry?.index ?? 0);
+      setError("Couldn't delete that video. Please try again.");
+    }
+  }
+
+  function remove(video: LiveVideo) {
     setError(null);
-    const res = await fetch(`/api/me/live-videos/${id}`, { method: "DELETE" }).catch(() => null);
-    if (!res?.ok) return setError("Couldn't delete that video. Please try again.");
-    setVideos((list) => (list ?? []).filter((v) => v.id !== id));
+    const index = (videos ?? []).findIndex((v) => v.id === video.id);
+    setVideos((list) => (list ?? []).filter((v) => v.id !== video.id));
+    const timer = setTimeout(() => void deleteNow(video), 6000);
+    pending.current.set(video.id, { video, index, timer });
+    showToast("Video deleted", {
+      label: "Undo",
+      onClick: () => {
+        clearTimeout(timer);
+        pending.current.delete(video.id);
+        putBack(video, index);
+      },
+    });
   }
 
   if (!videos?.length) return null;
@@ -48,7 +96,7 @@ export function LiveVideos() {
               <a href={`/api/me/live-videos/${v.id}?download=1`} className="font-semibold text-[#121821] underline-offset-4 hover:underline">
                 Download
               </a>
-              <button onClick={() => remove(v.id)} className="font-semibold text-[#a3261b] underline-offset-4 hover:underline">
+              <button onClick={() => remove(v)} className="font-semibold text-[#a3261b] underline-offset-4 hover:underline">
                 Delete
               </button>
             </div>

@@ -116,12 +116,11 @@ export function SavedPhotoSetup({
   );
 }
 
-/** Removes the saved photo after an explicit confirmation. */
+/** Removes the saved photo (the button asks first; see ConfirmButton). */
 export function useRemoveSavedPhoto() {
   const { refreshUser } = useAuth();
   const { showToast } = useToast();
   return async function removeSavedPhoto(): Promise<boolean> {
-    if (!window.confirm("Remove your saved try-on photo? You can add a new one anytime.")) return false;
     const res = await fetch("/api/me/photo", { method: "DELETE" });
     if (!res.ok) {
       showToast("Couldn't remove your photo. Please try again.");

@@ -11,6 +11,7 @@ import { ColorReport } from "@/components/studio/ColorReport";
 import { HairReport } from "@/components/studio/HairReport";
 import { MakeupReport } from "@/components/studio/MakeupReport";
 import { Feedback } from "@/components/Feedback";
+import { ConfirmButton } from "@/components/ConfirmButton";
 import { ModuleVisual } from "@/components/studio/ModuleVisual";
 import { PortraitControls } from "@/components/studio/PortraitPanel";
 import { StyleReport } from "@/components/studio/StyleReport";
@@ -257,7 +258,7 @@ export default function StudioModulePage() {
   }
 
   async function deleteThis() {
-    if (!report || !confirm("Delete this report? This can't be undone.")) return;
+    if (!report) return;
     const res = await fetch(`/api/studio/reports/${id}?id=${report.id}`, { method: "DELETE" });
     if (res.ok) await load();
     else setError("Couldn't delete it right now. Please try again.");
@@ -443,17 +444,10 @@ export default function StudioModulePage() {
                 </label>
               )}
               {photoReady && (
-                <button
-                  onClick={() => confirm("Make a new report? This one stays in Earlier reports.") && analyze()}
-                  disabled={!canAnalyze}
-                  className={btnText}
-                >
-                  Regenerate
-                </button>
+                // A new report is paid AI work, so it asks first (this one stays in Earlier reports).
+                <ConfirmButton label="Regenerate" question="Make a new report? This one stays saved." confirmLabel="Make it" onConfirm={analyze} disabled={!canAnalyze} className={btnText} />
               )}
-              <button onClick={deleteThis} className={`${btnText} text-[#5d6874]`}>
-                Delete this report
-              </button>
+              <ConfirmButton label="Delete this report" question="Delete this report?" confirmLabel="Delete" onConfirm={deleteThis} className={`${btnText} text-[#5d6874]`} />
             </div>
           </>
         )}

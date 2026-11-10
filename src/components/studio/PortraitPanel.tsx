@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
+import { ConfirmButton } from "@/components/ConfirmButton";
 import { useAuth } from "@/components/AuthProvider";
 import { CameraIcon } from "@/components/Icons";
 import { ErrorNote, btnPrimary, btnSecondary, btnText } from "@/components/ui";
@@ -82,7 +83,7 @@ export function PortraitControls({
   }
 
   async function remove() {
-    if (!removePortrait || !confirm("Remove your photo? Your finished reports stay.")) return;
+    if (!removePortrait) return;
     try {
       await removePortrait();
     } catch (err) {
@@ -152,9 +153,7 @@ export function PortraitControls({
           </button>
         )}
         {portrait && removePortrait && (
-          <button onClick={remove} className={`${btnText} text-[#5d6874]`}>
-            Remove
-          </button>
+          <ConfirmButton label="Remove" question="Remove your photo? Reports stay." confirmLabel="Remove" onConfirm={remove} className={`${btnText} text-[#5d6874]`} />
         )}
       </div>
       )}

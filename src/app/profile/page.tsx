@@ -10,6 +10,7 @@ import { BookmarkIcon, ClosetIcon, SparkleIcon } from "@/components/Icons";
 import { ErrorNote, PageHeader, PageShell, btnPrimary, btnSecondary, btnText, eyebrow } from "@/components/ui";
 import { resetTips } from "@/components/Tips";
 import { CreditsCard } from "@/components/Credits";
+import { ConfirmButton } from "@/components/ConfirmButton";
 import { InviteCard } from "@/components/InviteCard";
 
 type Outfit = { id: string; isFavorite: boolean };
@@ -114,9 +115,13 @@ export default function ProfilePage() {
                   </div>
                   <div className="mt-4 flex flex-wrap items-center gap-x-3 gap-y-1 text-[12px]">
                     <CurrentLookBar />
-                    <button onClick={removeSavedPhoto} className="font-semibold text-[#a03a2f] underline-offset-4 hover:underline">
-                      Remove photo
-                    </button>
+                    <ConfirmButton
+                      label="Remove photo"
+                      question="Remove your try-on photo?"
+                      confirmLabel="Remove"
+                      onConfirm={removeSavedPhoto}
+                      className="font-semibold text-[#a03a2f] underline-offset-4 hover:underline"
+                    />
                   </div>
                 </div>
               </div>
