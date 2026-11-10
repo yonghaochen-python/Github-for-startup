@@ -111,6 +111,13 @@ export async function POST(request: Request, ctx: RouteContext<"/api/outfits/[id
       result = { isMock: false, provider: "saved", imageDataUrl: remembered, layers: toPlainLayers(layers), reused: true };
       await track(user.id, "tryon_reused");
     } else {
+      // The browser prepares the pictures (white behind cut-outs, one sheet for the whole look). If they didn't arrive,
+      // stop here rather than send stored cut-outs whose see-through background the AI can read as black (and one
+      // paid call per piece). Nothing is used or charged.
+      const prepared = outfit.items.length > 1 ? Boolean(garmentSheet) : outfit.items.every(({ item }) => formData.get(`garment:${item.id}`) instanceof File);
+      if ((process.env.TRYON_PROVIDER ?? "mock") !== "mock" && !prepared) {
+        return NextResponse.json({ error: "Couldn't prepare your clothes' pictures. Please try again." }, { status: 400, headers: noStore });
+      }
       // One photo credit: counted only when a real picture comes back; a failure gives it back.
       result = await withCredit(
         user,
