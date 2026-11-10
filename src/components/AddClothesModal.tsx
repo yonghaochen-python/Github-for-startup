@@ -662,8 +662,19 @@ export function AddClothesModal<T extends { id: string; imageUrl: string }>({
                 </p>
                 <div className="mb-5 grid grid-cols-1 gap-4 sm:grid-cols-2">
                   {items.map((item, i) => (
-                    <div key={item.localId} data-tip={i === 0 ? "add-item" : undefined} className="rounded-[18px] bg-[#f4f5f6] p-3">
-                      <div className="mb-3 flex gap-3">
+                    <div key={item.localId} data-tip={i === 0 ? "add-item" : undefined} className="relative rounded-[18px] bg-[#f4f5f6] p-3">
+                      {/* Not this piece: ✕ in the card's corner (easy to reach on a phone). */}
+                      <button
+                        type="button"
+                        data-tip={i === 0 ? "add-remove" : undefined}
+                        onClick={() => removeItem(item.localId)}
+                        aria-label={`Remove item ${i + 1}${item.description ? `: ${item.description}` : ""}`}
+                        title="Remove"
+                        className="absolute right-2 top-2 flex h-8 w-8 items-center justify-center rounded-full bg-white text-[13px] text-[#29343a] shadow-[0_1px_3px_rgba(18,24,33,0.18)] hover:bg-[#121821] hover:text-white"
+                      >
+                        ✕
+                      </button>
+                      <div className="mb-3 flex gap-3 pr-9">
                         <button
                           type="button"
                           onClick={() => startEditing(item.localId)}
@@ -766,13 +777,6 @@ export function AddClothesModal<T extends { id: string; imageUrl: string }>({
                           ))}
                         </select>
                       </div>
-                      <button
-                        data-tip={i === 0 ? "add-remove" : undefined}
-                        onClick={() => removeItem(item.localId)}
-                        className="mt-2 w-full rounded-full bg-white shadow-[inset_0_0_0_1px_rgba(18,24,33,0.12)] py-1 text-xs font-medium text-[#333f46] hover:bg-[#e9edef]"
-                      >
-                        Remove
-                      </button>
                     </div>
                   ))}
                 </div>
