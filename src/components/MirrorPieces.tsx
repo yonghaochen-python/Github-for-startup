@@ -60,15 +60,23 @@ export function MirrorPieces({
         return (
           <li key={p.id} className="relative animate-[piece-in_.28s_ease-out] motion-reduce:animate-none">
             <button
-              onClick={() => setOpen(active ? null : p.id)}
+              onClick={() => {
+                // Phones: the piece itself is Replace (its ✕ removes it). Computers: show Replace / Remove.
+                if (window.matchMedia("(max-width: 767px)").matches) onReplace(p);
+                else setOpen(active ? null : p.id);
+              }}
               aria-expanded={active}
+              aria-label={`${String(i + 1).padStart(2, "0")} ${shortName(p.description)}`}
               title={p.description}
               className={`group flex w-full items-center gap-2.5 rounded-[12px] p-1.5 text-left transition-colors ${
                 active || swapping ? "bg-[#f1efeb]" : "hover:bg-[#f6f5f2]"
               }`}
             >
-              <span className="w-[18px] shrink-0 self-start pt-1 text-[10px] font-bold tracking-widest text-[#29343a]">{String(i + 1).padStart(2, "0")}</span>
-              <span className="relative h-14 w-12 shrink-0 overflow-hidden rounded-[8px] bg-[#f4f3f0] md:h-[72px] md:w-[60px]">
+              {/* The number: beside the picture on computers, a small badge on its corner on phones (the column is narrow). */}
+              <span className="w-[18px] shrink-0 self-start pt-1 text-[10px] font-bold tracking-widest text-[#29343a] max-md:absolute max-md:bottom-2.5 max-md:left-2.5 max-md:z-10 max-md:w-auto max-md:rounded-full max-md:bg-white/90 max-md:px-1.5 max-md:pt-0 max-md:text-[9px] max-md:leading-[16px] max-md:tracking-wider">
+                {String(i + 1).padStart(2, "0")}
+              </span>
+              <span className="relative h-14 w-12 shrink-0 overflow-hidden rounded-[8px] bg-[#f4f3f0] max-md:h-16 max-md:w-full md:h-[72px] md:w-[60px]">
                 {/* eslint-disable-next-line @next/next/no-img-element */}
                 <img
                   src={p.imageUrl}
@@ -85,8 +93,17 @@ export function MirrorPieces({
                 </span>
               </span>
             </button>
+            {/* Phones: ✕ on the piece's top-right corner removes it in one tap. */}
+            <button
+              onClick={() => onRemove(p)}
+              aria-label={`Remove ${shortName(p.description)}`}
+              title="Remove"
+              className="absolute right-0.5 top-0.5 z-10 flex h-6 w-6 items-center justify-center rounded-full bg-white text-[10.5px] text-[#121821] shadow-[0_1px_4px_rgba(18,24,33,0.22)] md:hidden"
+            >
+              ✕
+            </button>
             {active && (
-              <div className="mt-1 flex gap-1.5 pl-[26px] max-md:justify-center max-md:pl-0">
+              <div className="mt-1 flex gap-1.5 pl-[26px] max-md:hidden">
                 {/* Phones: the column is narrow, so two round icon buttons (⇄ replace, ✕ remove); computers: words. */}
                 <button
                   onClick={() => {

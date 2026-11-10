@@ -180,7 +180,11 @@ export default function StudioPage() {
   // Escape closes the drawer.
   useEffect(() => {
     if (!drawer) return;
-    const key = (e: KeyboardEvent) => e.key === "Escape" && setDrawer(false);
+    const key = (e: KeyboardEvent) => {
+      if (e.key !== "Escape") return;
+      setDrawer(false);
+      setReplacing(null);
+    };
     document.addEventListener("keydown", key);
     return () => document.removeEventListener("keydown", key);
   }, [drawer]);
@@ -415,6 +419,18 @@ export default function StudioPage() {
   }
 
   /** Replace from the mirror: opens the closet (or Shop) at that piece's kind; the next piece tapped takes its place. */
+  /** Takes one piece out of the look (✕ on the piece, or Remove): never read as part of a pending replace. */
+  function removePiece(piece: ClothingItem) {
+    setReplacing(null);
+    setPieces((current) => current.filter((p) => p.id !== piece.id));
+  }
+
+  /** Phones: closing the closet drawer without picking also cancels a pending replace. */
+  function closeDrawer() {
+    setDrawer(false);
+    setReplacing(null);
+  }
+
   function startReplace(piece: ClothingItem) {
     setReplacing(piece.id);
     setSource(isShopPiece(piece) ? "shop" : "closet");
@@ -849,7 +865,7 @@ export default function StudioPage() {
                     pieces={pieces}
                     replacing={replacing}
                     onReplace={startReplace}
-                    onRemove={(piece) => pick(piece)}
+                    onRemove={(piece) => removePiece(piece)}
                     className="justify-center border-r border-black/[0.05] px-2 py-4 sm:px-3"
                   />
                 )}
@@ -982,7 +998,7 @@ export default function StudioPage() {
           )}
 
           {/* Phones: Your outfit and Closet / Shop open as a drawer from the bottom, so the mirror keeps the screen. */}
-          {drawer && <button aria-label="Close the closet" tabIndex={-1} onClick={() => setDrawer(false)} className="fixed inset-0 z-[69] bg-black/45 backdrop-blur-[2px] md:hidden" />}
+          {drawer && <button aria-label="Close the closet" tabIndex={-1} onClick={closeDrawer} className="fixed inset-0 z-[69] bg-black/45 backdrop-blur-[2px] md:hidden" />}
           <div
             role={drawer ? "dialog" : undefined}
             aria-label="Your outfit and closet"
@@ -992,7 +1008,7 @@ export default function StudioPage() {
           >
             <div className="flex items-center justify-between px-1 md:hidden">
               <span className="mx-auto h-1.5 w-10 rounded-full bg-[#121821]/20" aria-hidden />
-              <button onClick={() => setDrawer(false)} className="absolute right-5 rounded-full bg-[#121821] px-4 py-1.5 text-[12.5px] font-semibold text-white">
+              <button onClick={closeDrawer} className="absolute right-5 rounded-full bg-[#121821] px-4 py-1.5 text-[12.5px] font-semibold text-white">
                 Done
               </button>
             </div>
