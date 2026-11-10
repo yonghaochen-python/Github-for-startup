@@ -55,7 +55,7 @@ export async function POST(request: Request) {
   // have billed the session.
   const sessionId = `live-${randomUUID()}`;
   const reservation = await reserveCredit(user, "live", sessionId, { block: true, trial: { kind: "live" } });
-  if (!reservation.ok) return NextResponse.json({ error: limitMessage("live", reservation) }, { status: 402, headers: noStore });
+  if (!reservation.ok) return NextResponse.json({ error: limitMessage("live", reservation), code: "no_credits" }, { status: 402, headers: noStore });
 
   try {
     const client = createDecartClient({ apiKey, telemetry: false });

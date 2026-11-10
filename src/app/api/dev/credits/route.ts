@@ -26,7 +26,7 @@ export async function POST(request: Request) {
   const allowed = body.trial === "report" && note ? await trialCoversReport(user.id, note) : body.allowed !== false;
   const trial = typeof body.trial === "string" ? { kind: body.trial as TrialKind, note, allowed } : undefined;
   const reservation = await reserveCredit(user, kind, requestId, { block: kind === "live", trial });
-  if (!reservation.ok) return NextResponse.json({ ok: false, message: limitMessage(kind, reservation) }, { status: 402 });
+  if (!reservation.ok) return NextResponse.json({ ok: false, message: limitMessage(kind, reservation), code: "no_credits" }, { status: 402 });
   await settleCredit(user.id, requestId, "completed");
   return NextResponse.json({ ok: true, source: reservation.source, trialUsedUp: reservation.trialUsedUp ?? false, balances: await getBalances(user.id) });
 }

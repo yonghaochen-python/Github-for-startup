@@ -3,6 +3,7 @@ import { DM_Sans, Instrument_Serif } from "next/font/google";
 import { MobileTabBar, Nav } from "@/components/Nav";
 import { DemoModeBanner } from "@/components/DemoModeBanner";
 import { TrialBanner } from "@/components/TrialBanner";
+import { LimitOffer } from "@/components/LimitOffer";
 import { ToastProvider } from "@/components/Toast";
 import { AuthProvider } from "@/components/AuthProvider";
 import { TimeOfDaySync } from "@/components/TimeOfDay";
@@ -51,6 +52,7 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
             <Nav />
             <DemoModeBanner />
             <TrialBanner />
+            <LimitOffer />
             <div className="flex flex-1 flex-col">{children}</div>
             <Footer />
             <MobileTabBar />
