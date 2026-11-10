@@ -123,8 +123,17 @@ async function toDataUrl(url: string): Promise<string> {
   const res = await fetchWithTimeout(url, {}, SUBMIT_TIMEOUT_MS);
   if (!res.ok) throw new TryOnError("provider_error", "Couldn't download the try-on result. Please try again.");
   const type = res.headers.get("content-type") ?? "image/jpeg";
-  return `data:${type};base64,${Buffer.from(await res.arrayBuffer()).toString("base64")}`;
+  const bytes = Buffer.from(await res.arrayBuffer());
+  // A blank (all-black) picture compresses to a few KB; a real ~1 MP photo is far larger. A blank one counts as a
+  // failure, so its credit is given back and it's never saved or shown.
+  if (bytes.length < BLANK_RESULT_BYTES) {
+    throw new TryOnError("provider_error", "The try-on came back blank. Your credit was given back. Please try again.");
+  }
+  return `data:${type};base64,${bytes.toString("base64")}`;
 }
+
+/** Below this size a result can only be (nearly) one flat color: a real photo of a person is much bigger. */
+const BLANK_RESULT_BYTES = 20_000;
 
 export function bflFluxVtoProvider(apiKey: string): TryOnProvider {
   const baseUrl = (process.env.BFL_BASE_URL ?? "https://api.bfl.ai").replace(/\/$/, "");
