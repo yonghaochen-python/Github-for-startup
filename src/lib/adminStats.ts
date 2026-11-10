@@ -1,6 +1,7 @@
 import { prisma } from "@/lib/prisma";
 import { isGood } from "@/lib/feedback";
 import { STUDIO_MODULE_IDS } from "@/lib/studioModules";
+import { CONVERSION_DAYS } from "@/lib/plans";
 import { LIVE_MICROS_PER_SECOND, MAX_LIVE_SECONDS, PHOTO_TRYON_MICROS } from "@/lib/aiCosts";
 
 /**
@@ -245,7 +246,10 @@ export async function computeAdminStats(from: Date, to: Date) {
     { key: "planner", label: "Planner", made: withName("planner_generated").length, costMicros: 0, estimatedMicros: 0, adminMicros: 0, reused: null, free: true },
   ];
 
+  const billing = await billingStats(adminIds, from, to, now);
+
   return {
+    billing,
     aiCosts,
     stylist,
     feedback,
@@ -303,3 +307,53 @@ export async function computeAdminStats(from: Date, to: Date) {
 }
 
 export type AdminStats = Awaited<ReturnType<typeof computeAdminStats>>;
+
+const PAID_STATUSES = ["active", "past_due", "unpaid", "canceled"];
+
+/**
+ * Trials and Plus (admins left out). The key number is trial-to-paid: of trials that have ended, the share whose
+ * account started paying for Plus by 14 days after the trial ended (paying during the trial counts too). A trial
+ * that ended less than 14 days ago without paying isn't counted yet, since it still could.
+ */
+async function billingStats(adminIds: Set<string>, from: Date, to: Date, now: Date) {
+  const [trials, subs] = await Promise.all([
+    prisma.user.findMany({
+      where: { trialStartedAt: { not: null } },
+      select: { id: true, trialStartedAt: true, trialEndsAt: true, trialCardFingerprint: true },
+    }),
+    prisma.subscription.findMany({ select: { userId: true, status: true, createdAt: true, cancelAtPeriodEnd: true } }),
+  ]);
+  const people = trials.filter((t) => !adminIds.has(t.id));
+  const paid = subs.filter((s) => !adminIds.has(s.userId) && PAID_STATUSES.includes(s.status));
+  const firstPaid = new Map<string, Date>();
+  for (const s of paid) {
+    const was = firstPaid.get(s.userId);
+    if (!was || s.createdAt < was) firstPaid.set(s.userId, s.createdAt);
+  }
+
+  const ended = people.filter((t) => t.trialEndsAt && t.trialEndsAt <= now);
+  const converted = ended.filter((t) => {
+    const p = firstPaid.get(t.id);
+    return p && p.getTime() <= t.trialEndsAt!.getTime() + CONVERSION_DAYS * DAY;
+  });
+  const decided = ended.filter((t) => converted.includes(t) || now.getTime() - t.trialEndsAt!.getTime() >= CONVERSION_DAYS * DAY);
+
+  // The same card on more than one account's trial (only ever a flag to look at, never a block).
+  const byCard = new Map<string, number>();
+  for (const t of people) if (t.trialCardFingerprint) byCard.set(t.trialCardFingerprint, (byCard.get(t.trialCardFingerprint) ?? 0) + 1);
+
+  const open = subs.filter((s) => !adminIds.has(s.userId) && (s.status === "active" || s.status === "past_due"));
+  return {
+    trialsStarted: people.length,
+    trialsInRange: people.filter((t) => inRange(t.trialStartedAt!, from, to)).length,
+    trialsActive: people.filter((t) => t.trialEndsAt && t.trialEndsAt > now).length,
+    trialsEnded: ended.length,
+    trialsDecided: decided.length,
+    trialsConverted: converted.length,
+    conversionRate: decided.length ? converted.length / decided.length : null,
+    plusMembers: open.length,
+    paymentFailing: open.filter((s) => s.status === "past_due").length,
+    cancelling: open.filter((s) => s.cancelAtPeriodEnd).length,
+    sharedCardAccounts: [...byCard.values()].filter((n) => n > 1).reduce((a, n) => a + n, 0),
+  };
+}

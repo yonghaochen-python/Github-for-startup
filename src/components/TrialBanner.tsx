@@ -1,9 +1,10 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import type { BillingStatus } from "@/app/api/billing/status/route";
+import { useBillingStatus } from "@/lib/useBillingStatus";
 import { useAuth } from "@/components/AuthProvider";
 
 /** How long after the trial ends the "continue with Plus" offer still shows. */
@@ -43,29 +44,19 @@ const DISMISSED = "virm-trial-note-dismissed";
 
 /** A slim note under the menu near the end of the trial and after it. One ✕ hides it (until the next stage). */
 export function TrialBanner() {
-  const { status: auth, user } = useAuth();
+  const { status: auth } = useAuth();
   const pathname = usePathname();
-  const [note, setNote] = useState<Note | null>(null);
-
-  useEffect(() => {
-    if (auth !== "signedIn") return;
-    let gone = false;
-    fetch("/api/billing/status", { cache: "no-store" })
-      .then(async (res) => (res.ok ? ((await res.json()) as BillingStatus) : null))
-      .then((s) => {
-        if (gone || !s) return;
-        const next = noteFor(s);
-        let dismissed: string | null = null;
-        try {
-          dismissed = localStorage.getItem(DISMISSED);
-        } catch {}
-        setNote(next && dismissed !== next.key ? next : null);
-      })
-      .catch(() => {});
-    return () => {
-      gone = true;
-    };
-  }, [auth, user?.id]);
+  const billing = useBillingStatus();
+  // Read once in the browser (the banner only appears after the status loads there, so the server never shows it).
+  const [dismissed, setDismissed] = useState<string | null>(() => {
+    try {
+      return typeof window === "undefined" ? null : localStorage.getItem(DISMISSED);
+    } catch {
+      return null;
+    }
+  });
+  const found = billing ? noteFor(billing) : null;
+  const note = found && found.key !== dismissed ? found : null;
 
   if (auth !== "signedIn" || !note || pathname === "/plus" || pathname === "/trial" || pathname === note.href) return null;
 
@@ -80,7 +71,7 @@ export function TrialBanner() {
           try {
             localStorage.setItem(DISMISSED, note.key);
           } catch {}
-          setNote(null);
+          setDismissed(note.key);
         }}
         aria-label="Hide"
         className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full text-white/70 hover:text-white"

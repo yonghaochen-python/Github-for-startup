@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { InfoPage } from "@/components/InfoPage";
-import { CONTACT_EMAIL, POLICY_UPDATED } from "@/lib/site";
+import { CONTACT_EMAIL, POLICY_UPDATED, billingIsOn } from "@/lib/site";
+import { PLAN_ALLOWANCES, TRIAL_ALLOWANCES } from "@/lib/plans";
 
 export default function TermsPage() {
   return (
@@ -30,6 +31,50 @@ export default function TermsPage() {
         Outfit suggestions and try-on pictures are made by AI. They&apos;re previews: fit, colour and detail can differ from the
         real clothes. Use your own judgement.
       </p>
+
+      {billingIsOn() && (
+        <>
+          <h2>Plans</h2>
+          <ul>
+            <li>
+              <strong>Free</strong> costs nothing. <strong>VIRM Plus</strong> costs $14.99 (US dollars) a month. Both include every Virm
+              feature; Plus has bigger monthly allowances ({PLAN_ALLOWANCES.plus.photo} photo try-ons, {PLAN_ALLOWANCES.plus.live} live try-ons,{" "}
+              {PLAN_ALLOWANCES.plus.closet} clothing photos and {PLAN_ALLOWANCES.plus.style} Style It searches a month).
+            </li>
+            <li>Allowances reset each month. Unused allowances don&apos;t carry over.</li>
+            <li>Payments are handled by Stripe. Virm never sees or stores your card details.</li>
+          </ul>
+
+          <h2>The 7-day Plus trial</h2>
+          <ul>
+            <li>One free trial per person. To start it you add a card, which Stripe saves. $0 is charged.</li>
+            <li>
+              The trial includes {TRIAL_ALLOWANCES.photo} photo try-ons, {TRIAL_ALLOWANCES.live} live try-ons (at most one a day), {TRIAL_ALLOWANCES.report} AI
+              Stylist reports, {TRIAL_ALLOWANCES.closet} clothing photo additions with AI tagging and {TRIAL_ALLOWANCES.style} Style It searches. Trial
+              credits end when the trial ends.
+            </li>
+            <li>
+              <strong>There is no automatic charge when the trial ends.</strong> Your account goes back to Free unless you choose to continue
+              with Plus.
+            </li>
+          </ul>
+
+          <h2>Plus</h2>
+          <ul>
+            <li>
+              Plus starts only when you confirm it. You&apos;re charged $14.99 then, and again every month on the same date until you cancel.
+            </li>
+            <li>
+              You can cancel any time from <Link href="/profile">Profile</Link> (Manage Plus). Plus keeps working until the end of the month
+              you&apos;ve paid for, and you won&apos;t be charged again. Payments already made aren&apos;t refunded for part of a month, except
+              where the law requires it.
+            </li>
+            <li>If a monthly payment fails, we&apos;ll ask you to update your card. If it still can&apos;t be paid, Plus ends.</li>
+            <li>If the price ever changes, we&apos;ll tell you at least 30 days before it applies to you, and you can cancel before then.</li>
+            <li>Deleting your account ends Plus straight away, with no further charges.</li>
+          </ul>
+        </>
+      )}
 
       <h2>The service</h2>
       <ul>

@@ -3,6 +3,7 @@
 import { useCallback, useEffect, useState } from "react";
 import Link from "next/link";
 import type { AdminStats } from "@/lib/adminStats";
+import { CONVERSION_DAYS } from "@/lib/plans";
 import { STYLIST_FEEDBACK } from "@/components/Feedback";
 import { STUDIO_MODULES } from "@/lib/studioModules";
 
@@ -383,6 +384,27 @@ export default function AdminPage() {
         </Section>
 
         <Section
+          title="Trials & Plus"
+          description={`Trial-to-paid: of ended trials, how many started paying for Plus within ${CONVERSION_DAYS} days of the end. A trial that ended more recently is counted once it pays or ${CONVERSION_DAYS} days pass. Admins are left out.`}
+        >
+          {(() => {
+            const b = s.billing;
+            return (
+              <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
+                <Stat
+                  label="Trial-to-paid"
+                  value={b.conversionRate === null ? "—" : `${Math.round(b.conversionRate * 100)}%`}
+                  hint={`${b.trialsConverted} of ${b.trialsDecided} counted trials`}
+                />
+                <Stat label="Trials started" value={b.trialsStarted} hint={`${b.trialsInRange} in this range · ${b.trialsActive} running now`} />
+                <Stat label="Plus members" value={b.plusMembers} hint={`${b.cancelling} cancelling · ${b.paymentFailing} payment failing`} />
+                <Stat label="Same card, several trials" value={b.sharedCardAccounts} hint="Accounts to look at (never blocked)" />
+              </div>
+            );
+          })()}
+        </Section>
+
+        <Section
           title="AI costs"
           description="New results are paid AI work; reused ones cost nothing. Photo try-on is estimated until BFL's price is confirmed. Admins' tests are included."
         >
@@ -455,7 +477,7 @@ export default function AdminPage() {
           </div>
         </Section>
 
-        <Section title="Credits" description="Photo and live try-on credits. Limits are counted but not applied yet. Admin tests are shown apart from real users.">
+        <Section title="Credits" description="Photo and live try-on credits. People who reach a limit are stopped; admins are never limited, and their tests are shown apart.">
           <CreditsAdmin />
         </Section>
 

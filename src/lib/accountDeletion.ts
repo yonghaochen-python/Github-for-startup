@@ -44,5 +44,7 @@ export async function deleteAccount(userId: string): Promise<void> {
   await deleteSavedSearches(userId);
   await deleteEnhanceCopies(userId);
 
+  // Stripe's billing messages stay (they hold no card details) but no longer point at the account.
+  await prisma.billingEvent.updateMany({ where: { userId }, data: { userId: null } });
   await prisma.user.delete({ where: { id: userId } });
 }

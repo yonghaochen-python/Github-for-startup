@@ -40,3 +40,6 @@ export const KIND_NAMES: Record<TrialKind, string> = {
 
 export const isPlanKey = (v: unknown): v is PlanKey => v === "free" || v === "plus" || v === "pro";
 export const isCreditKind = (v: unknown): v is CreditKind => v === "photo" || v === "live" || v === "closet" || v === "style";
+
+/** Trial-to-paid: days after a trial ends that starting Plus still counts as converting (the key billing number). */
+export const CONVERSION_DAYS = 14;

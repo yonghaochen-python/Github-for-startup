@@ -73,7 +73,7 @@ export function CreditsAdmin() {
                 Admin tests: {s[k].admin.completed} {k === "live" ? "connected" : "completed"} · {s[k].admin.released} {k === "live" ? "failed" : "given back"} ·{" "}
                 {s[k].admin.reserved} reserved
               </p>
-              <p>Over the limit (not blocked yet): {s[k].overLimit}</p>
+              <p>Went over a limit (only when limits are set to count, not stop): {s[k].overLimit}</p>
               {k === "live" && <p>Unclear (no report after 2 min): {summary.unclearLive}</p>}
             </div>
           ))}

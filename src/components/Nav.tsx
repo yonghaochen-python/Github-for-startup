@@ -7,6 +7,7 @@ import { useAuth } from "@/components/AuthProvider";
 import { BagIcon, BookmarkIcon, CalendarIcon, ClosetIcon, HomeIcon, MirrorIcon, PaletteIcon, UserIcon } from "@/components/Icons";
 import { MirrorImage } from "@/components/SavedPhoto";
 import { PricingSheet } from "@/components/Pricing";
+import { useBillingStatus } from "@/lib/useBillingStatus";
 
 type Section = "home" | "shop" | "closet" | "studio" | "stylist" | "planner" | "saved" | "profile";
 type NavLink = { section: Section; href: string; label: string; short: string; Icon: typeof HomeIcon };
@@ -220,6 +221,7 @@ export function Nav() {
   const current = sectionFor(pathname);
   useSectionVisit(current, Boolean(user));
   const [plansOpen, setPlansOpen] = useState(false);
+  const subscribed = Boolean(useBillingStatus()?.subscribed);
 
   if (pathname === "/login") return null;
 
@@ -251,7 +253,8 @@ export function Nav() {
 
         <div className="ml-auto flex shrink-0 items-center gap-2 sm:gap-3">
           {/* Plans, one tap away on every page; they open over the page instead of leaving it. */}
-          {user && (
+          {/* Not for Plus members (they manage Plus from Profile). */}
+          {user && !subscribed && (
             <button
               onClick={() => setPlansOpen(true)}
               className="nav-upgrade min-h-[40px] rounded-full bg-[#121821] px-4 text-[12.5px] font-semibold text-white hover:bg-[#2a3542]"

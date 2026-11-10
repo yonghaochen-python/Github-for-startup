@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { InfoPage } from "@/components/InfoPage";
-import { CONTACT_EMAIL, POLICY_UPDATED } from "@/lib/site";
+import { CONTACT_EMAIL, POLICY_UPDATED, billingIsOn } from "@/lib/site";
 
 export default function PrivacyPage() {
   return (
@@ -30,6 +30,13 @@ export default function PrivacyPage() {
           try-ons and outfit suggestions worked and how long they took, and any Good / Bad ratings you give. This is linked to your account. The owner&apos;s
           dashboard shows totals and partly hidden emails only, never your photos, clothes or password.
         </li>
+        {billingIsOn() && (
+          <li>
+            <strong>Billing (only if you start the trial or Plus):</strong> Stripe&apos;s reference numbers for you and your subscription, your
+            plan and its dates, and a scrambled code made from Stripe&apos;s fingerprint of your card. That code can&apos;t be turned back into
+            your card; it&apos;s used only to notice one card being used for several free trials. We never see or store your card number.
+          </li>
+        )}
       </ul>
 
       <h2>What we do with it</h2>
@@ -59,6 +66,12 @@ export default function PrivacyPage() {
           <strong>Decart</strong> powers live try-on. When you start an AI live session, your camera video and the outfit&apos;s
           clothing photos are sent to them for that session, up to 20 seconds.
         </li>
+        {billingIsOn() && (
+          <li>
+            <strong>Stripe</strong> handles payments for the trial and Plus. You enter your card on Stripe&apos;s own page, and it goes straight
+            to them. Stripe keeps payment records as the law requires; see Stripe&apos;s privacy policy.
+          </li>
+        )}
       </ul>
 
       <h2>Your photos</h2>
@@ -84,7 +97,7 @@ export default function PrivacyPage() {
         <li>
           You can delete your account any time from <Link href="/profile">Profile</Link>. This permanently deletes your photos,
           clothes, try-ons, outfits, usage data and account straight away. Copies in our occasional backups are deleted
-          within 30 days.
+          within 30 days.{billingIsOn() && " It also ends any Plus subscription and removes your saved card from Stripe."}
         </li>
         <li>
           To get a copy of your data, or for help deleting it, email{" "}
