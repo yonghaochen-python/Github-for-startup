@@ -1,6 +1,6 @@
 "use client";
 
-import { Suspense, useEffect } from "react";
+import { Suspense, useEffect, useState } from "react";
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
 import { useAuth } from "@/components/AuthProvider";
@@ -18,12 +18,26 @@ function Join() {
   const { status } = useAuth();
   const code = (params.get("code") ?? "").trim().toUpperCase();
 
+  // Checked before it's kept, so a mistyped link says so here instead of at sign-up.
+  const [valid, setValid] = useState<boolean | null>(null);
   useEffect(() => {
-    if (code) savePendingInvite(code);
+    if (!code) return;
+    let gone = false;
+    fetch(`/api/invite/check?code=${encodeURIComponent(code)}`, { cache: "no-store" })
+      .then(async (res) => ((await res.json()) as { valid: boolean; code: string | null }))
+      .then((r) => {
+        if (gone) return;
+        setValid(r.valid);
+        if (r.valid && r.code) savePendingInvite(r.code);
+      })
+      .catch(() => !gone && setValid(false));
+    return () => {
+      gone = true;
+    };
   }, [code]);
   useEffect(() => {
-    if (status === "signedIn") router.replace("/trial");
-  }, [status, router]);
+    if (status === "signedIn" && valid) router.replace("/trial");
+  }, [status, valid, router]);
 
   return (
     <div className="max-w-xl pt-10 sm:pt-14">
@@ -35,7 +49,10 @@ function Join() {
         Your digital closet, outfit ideas and AI try-on. Your friend&apos;s code gives you a {INVITE_TRIAL_DAYS}-day Plus trial: $0 today, and no
         automatic charge when it ends.
       </p>
-      {code && <p className="mt-4 text-[13px] text-[#5d6874]">Code: {code}</p>}
+      {code && valid && <p className="mt-4 text-[13px] text-[#5d6874]">Code: {code}</p>}
+      {(!code || valid === false) && (
+        <p className="mt-4 text-[13px] text-[#8a4b12]">This invite code isn&apos;t valid. Ask your friend to check it, or start with the 7-day trial.</p>
+      )}
       <div className="mt-6 flex flex-wrap gap-2">
         <Link href="/login?create=1" className={btnPrimary}>
           Create my account

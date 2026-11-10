@@ -305,15 +305,18 @@ export function Shop() {
       <section id="collection" className={`mx-auto max-w-[1400px] scroll-mt-24 px-4 pt-8 sm:px-6 ${tray.length ? "pb-32 lg:pb-16" : "pb-16"}`}>
         <div className="flex flex-wrap items-end justify-between gap-4">
           <h1 className="font-display text-[44px] leading-none tracking-[-1px] text-[#121821] sm:text-[52px]">Shopping</h1>
-          <div className="flex items-center gap-2">
-            {/* Add: bring in a piece from any store. */}
-            <button onClick={() => setImporting((v) => !v)} aria-expanded={importing} data-tip="shop-add" className={btnPrimary}>
-              {importing ? "Close" : <><span className="text-[16px] font-light leading-none">+</span> Add</>}
-            </button>
-            <button onClick={() => setEditMode((v) => !v)} aria-pressed={editMode} data-tip="shop-edit" className={btnSecondary}>
-              {editMode ? "Done" : "Edit"}
-            </button>
-          </div>
+          {/* Nothing added yet: the one "Add a piece" button below is enough (no Edit with nothing to edit). */}
+          {myTryOns.length > 0 && (
+            <div className="flex items-center gap-2">
+              {/* Add: bring in a piece from any store. */}
+              <button onClick={() => setImporting((v) => !v)} aria-expanded={importing} data-tip="shop-add" className={btnPrimary}>
+                {importing ? "Close" : <><span className="text-[16px] font-light leading-none">+</span> Add</>}
+              </button>
+              <button onClick={() => setEditMode((v) => !v)} aria-pressed={editMode} data-tip="shop-edit" className={btnSecondary}>
+                {editMode ? "Done" : "Edit"}
+              </button>
+            </div>
+          )}
         </div>
 
         {wishlist.length > 0 && (
@@ -430,8 +433,8 @@ export function Shop() {
                 Your Shopping Try-Ons {myTryOns.length > 0 && <span className="ml-1 font-sans text-[14px] tracking-normal text-[#5d6874]">{myTryOnsShown.length}</span>}
               </h2>
               {myTryOns.length === 0 ? (
-                <button onClick={() => setImporting(true)} className={btnPrimary}>
-                  <span className="text-[16px] font-light leading-none">+</span> Add a piece
+                <button onClick={() => setImporting((v) => !v)} aria-expanded={importing} data-tip="shop-add" className={btnPrimary}>
+                  {importing ? "Close" : <><span className="text-[16px] font-light leading-none">+</span> Add a piece</>}
                 </button>
               ) : (
                 <ul className="grid grid-cols-2 gap-x-3 gap-y-6 sm:grid-cols-3 xl:grid-cols-4">{myTryOnsShown.map(renderTryOn)}</ul>

@@ -500,9 +500,6 @@ function Intro() {
             <Link href="/login?create=1" className={btnSecondary}>
               Create Account
             </Link>
-            <Link href="/login" className="px-3 py-2 text-[14px] font-semibold text-[#121821] underline-offset-4 hover:underline">
-              Log In
-            </Link>
           </div>
         </div>
 
