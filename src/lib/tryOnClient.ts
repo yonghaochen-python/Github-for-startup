@@ -32,7 +32,11 @@ export async function requestTryOn(outfitId: string, pieces: Piece[], liveProvid
   formData.append("requestId", requestId);
   // By default a picture already made of this photo and these pieces is shown again for free; fresh asks for a new one.
   if (fresh) formData.append("fresh", "1");
-  if (liveProvider) {
+  // Always send the prepared pictures (white behind cut-outs, one sheet for the whole look). Without them the server
+  // would send the stored cut-outs as they are, whose see-through background the AI can read as black, one piece per
+  // call. `liveProvider` used to gate this, so a Try On pressed before it loaded went out unprepared.
+  void liveProvider;
+  {
     // Laid out innermost first, the same order the server names them in, so "1) …, 2) …" matches the sheet.
     pieces = wornOrder(pieces.map((p) => ({ ...p, layeringRole: p.layeringRole ?? "", description: p.description ?? "" })));
     const photos = await Promise.allSettled(
