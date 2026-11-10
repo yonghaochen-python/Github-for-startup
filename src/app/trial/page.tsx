@@ -131,6 +131,15 @@ function Trial() {
     );
   } else if (status.subscribed) {
     body = <p className="text-[14px] text-[#4f5b66]">You&apos;re already on Plus.</p>;
+  } else if (status.hadPlus) {
+    body = (
+      <>
+        <p className="text-[14px] text-[#4f5b66]">The free trial is for before your first Plus month.</p>
+        <Link href="/plus" className={`${btnPrimary} mt-5`}>
+          Get Plus
+        </Link>
+      </>
+    );
   } else if (status.trial) {
     body = <p className="text-[14px] text-[#4f5b66]">You&apos;ve already had your free trial.</p>;
   } else if (done && !waitedOut) {

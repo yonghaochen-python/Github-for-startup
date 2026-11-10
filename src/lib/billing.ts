@@ -70,6 +70,14 @@ export async function finishEvent(id: string, outcome: string, userId: string | 
   await prisma.billingEvent.update({ where: { id }, data: { outcome: outcome.slice(0, 200), userId, processedAt: new Date() } }).catch(() => {});
 }
 
+/** Subscription states that mean Plus was paid for at some point (now or before). */
+export const PAID_STATUSES = ["active", "past_due", "unpaid", "canceled"];
+
+/** Has this account ever paid for Plus? The free trial is only for before the first Plus month. */
+export async function hasPaidForPlus(userId: string): Promise<boolean> {
+  return Boolean(await prisma.subscription.findFirst({ where: { userId, status: { in: PAID_STATUSES } }, select: { id: true } }));
+}
+
 /** Subscription states that count as one open subscription (at most one per account; see the database index). */
 export const OPEN_STATUSES = ["incomplete", "active", "past_due", "unpaid"];
 

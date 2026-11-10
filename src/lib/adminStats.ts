@@ -2,6 +2,7 @@ import { prisma } from "@/lib/prisma";
 import { isGood } from "@/lib/feedback";
 import { STUDIO_MODULE_IDS } from "@/lib/studioModules";
 import { CONVERSION_DAYS } from "@/lib/plans";
+import { PAID_STATUSES } from "@/lib/billing";
 import { LIVE_MICROS_PER_SECOND, MAX_LIVE_SECONDS, PHOTO_TRYON_MICROS } from "@/lib/aiCosts";
 
 /**
@@ -316,7 +317,6 @@ export async function computeAdminStats(from: Date, to: Date) {
 
 export type AdminStats = Awaited<ReturnType<typeof computeAdminStats>>;
 
-const PAID_STATUSES = ["active", "past_due", "unpaid", "canceled"];
 
 /**
  * Trials and Plus (admins left out). The key number is trial-to-paid: of trials that have ended, the share whose

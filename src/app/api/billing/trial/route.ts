@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import { asResponse, requireUser } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
-import { billingEnabled, customerFor, stripe } from "@/lib/billing";
+import { billingEnabled, customerFor, hasPaidForPlus, stripe } from "@/lib/billing";
 import { track } from "@/lib/analytics";
 import { trialTerms } from "@/lib/plans";
 
@@ -28,6 +28,8 @@ export async function POST(request: Request) {
   if (account.trialStartedAt) return NextResponse.json({ error: "You've already had your free trial.", code: "already_used" }, { status: 409, headers: noStore });
   const subscribed = await prisma.subscription.findFirst({ where: { userId: user.id, status: { in: ["active", "past_due", "incomplete", "unpaid"] } }, select: { id: true } });
   if (subscribed) return NextResponse.json({ error: "You're already on Plus.", code: "subscribed" }, { status: 409, headers: noStore });
+  // The free trial is only for before someone's first paid Plus month (not after cancelling Plus).
+  if (await hasPaidForPlus(user.id)) return NextResponse.json({ error: "The free trial is for before your first Plus month.", code: "had_plus" }, { status: 409, headers: noStore });
 
   try {
     const origin = new URL(request.url).origin;

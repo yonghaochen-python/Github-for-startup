@@ -159,12 +159,12 @@ export function Pricing({ compact = false, onCompare }: { compact?: boolean; onC
   // Plus: the trial first (once), then the Plus page.
   const plusAction = !user
     ? { href: "/login", label: "Try Plus free for 7 days" }
-    : billing?.trial
+    : billing?.trial || billing?.hadPlus
       ? {
           href: "/plus",
-          label: billing.trial.active ? "Keep Plus" : "Get Plus",
+          label: billing.trial?.active ? "Keep Plus" : "Get Plus",
         }
-      : { href: "/trial", label: "Try Plus free for 7 days" };
+      : { href: "/trial", label: `Try Plus free for ${billing?.trialDays ?? 7} days` };
   // Which "Coming soon" was tapped; the note shows under it (a plain note, nothing is bought).
   const [tapped, setTapped] = useState<string | null>(null);
   const note = (id: string, dark = false) =>
@@ -310,7 +310,7 @@ export function Pricing({ compact = false, onCompare }: { compact?: boolean; onC
         })}
       </section>
 
-      {live && !subscribed && !billing?.trial && (
+      {live && !subscribed && !billing?.trial && !billing?.hadPlus && (
         <section aria-labelledby="trial" className={`${compact ? "mt-5" : "mt-10"} max-w-2xl`}>
           <h2 id="trial" className={`font-display leading-tight tracking-[-0.5px] text-[#121821] ${compact ? "text-[22px]" : "text-[30px]"}`}>
             Try VIRM Plus free for 7 days.

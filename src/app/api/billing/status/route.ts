@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import { getCurrentUser } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
-import { billingEnabled, OPEN_STATUSES } from "@/lib/billing";
+import { billingEnabled, hasPaidForPlus, OPEN_STATUSES } from "@/lib/billing";
 import { trialTerms, type TrialKind } from "@/lib/plans";
 
 export type BillingStatus = {
@@ -14,6 +14,8 @@ export type BillingStatus = {
   pastDue: boolean;
   /** Plus is set to stop at the end of the paid month (that date). */
   endsAt: string | null;
+  /** Paid for Plus at some point (so no free trial, now or later). */
+  hadPlus: boolean;
   /** Joined with a friend's invite code, so the trial is the 14-day one. */
   invited: boolean;
   /** The trial this person gets (or got): its length and exact allowances. */
@@ -26,7 +28,7 @@ export async function GET(request: Request) {
   const headers = { "cache-control": "private, no-store" };
   const enabled = billingEnabled();
   const user = await getCurrentUser(request);
-  if (!user) return NextResponse.json({ enabled, signedIn: false, trial: null, subscribed: false, pastDue: false, endsAt: null, invited: false, trialDays: trialTerms(false).days, trialAllowances: trialTerms(false).allowances } satisfies BillingStatus, { headers });
+  if (!user) return NextResponse.json({ enabled, signedIn: false, trial: null, subscribed: false, pastDue: false, endsAt: null, hadPlus: false, invited: false, trialDays: trialTerms(false).days, trialAllowances: trialTerms(false).allowances } satisfies BillingStatus, { headers });
   const [row, open] = await Promise.all([
     prisma.user.findUnique({ where: { id: user.id }, select: { trialStartedAt: true, trialEndsAt: true, invitedById: true } }),
     prisma.subscription.findFirst({ where: { userId: user.id, status: { in: OPEN_STATUSES } }, select: { status: true, cancelAtPeriodEnd: true, currentPeriodEnd: true } }),
@@ -43,6 +45,7 @@ export async function GET(request: Request) {
       subscribed: open?.status === "active" || open?.status === "past_due",
       pastDue: open?.status === "past_due",
       endsAt: open?.cancelAtPeriodEnd && open.currentPeriodEnd ? open.currentPeriodEnd.toISOString() : null,
+      hadPlus: await hasPaidForPlus(user.id),
       invited: Boolean(row?.invitedById),
       trialDays: trialTerms(Boolean(row?.invitedById)).days,
       trialAllowances: trialTerms(Boolean(row?.invitedById)).allowances,
