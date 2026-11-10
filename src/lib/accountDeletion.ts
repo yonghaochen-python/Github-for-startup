@@ -8,18 +8,25 @@ import { deleteAllLiveVideos } from "@/lib/liveVideos";
 import { deletePortrait } from "@/lib/portrait";
 import { deleteSavedSearches } from "@/lib/styleSearchCache";
 import { deleteEnhanceCopies } from "@/lib/enhance";
+import { deleteStripeCustomer } from "@/lib/billing";
 
 /**
  * Permanently deletes an account and everything in it: the saved photo, the current look, every outfit's try-on
  * picture, remembered try-ons, shared picks and their pictures, saved live videos, the Studio portrait, the person's own clothing photos, and (through the database's
  * cascades) their closet, outfits, sessions, reset links and usage events. Starter-closet pictures are shared files and stay.
  */
+
 export async function deleteAccount(userId: string): Promise<void> {
   const user = await prisma.user.findUnique({
     where: { id: userId },
-    select: { selfieUrl: true, items: { select: { imageUrl: true, plainUrl: true, enhancedUrl: true } } },
+    select: { selfieUrl: true, stripeCustomerId: true, items: { select: { imageUrl: true, plainUrl: true, enhancedUrl: true } } },
   });
   if (!user) return;
+
+  // Stripe first: deleting the customer ends any Plus subscription at once (no further charges) and removes the
+  // saved card. If Stripe can't be reached, the deletion stops here and can be tried again, so nobody is left paying
+  // for an account that no longer exists.
+  if (user.stripeCustomerId) await deleteStripeCustomer(user.stripeCustomerId);
 
   // Files first, so nothing is left behind if the database step fails partway.
   // A piece with its background removed has two files: the cut-out and the original photo.

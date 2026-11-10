@@ -38,6 +38,8 @@ export type EventName =
   | "trial_checkout_started"
   /** Billing: the Plus payment page was opened (after the final confirmation). */
   | "plus_checkout_started"
+  /** Billing: a monthly Plus payment failed (Stripe retries it). */
+  | "plus_payment_failed"
   | `visit_${"home" | "shop" | "closet" | "studio" | "stylist" | "tryon" | "saved" | "profile" | "planner"}`;
 
 export async function track(

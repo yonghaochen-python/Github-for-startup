@@ -5,6 +5,7 @@ import Link from "next/link";
 import type { Balances, KindBalance } from "@/lib/credits";
 import { KIND_NAMES, PLAN_NAMES, TRIAL_KINDS, type CreditKind } from "@/lib/plans";
 import { eyebrow } from "@/components/ui";
+import { ManagePlus } from "@/components/ManagePlus";
 
 /** Ask open balances to reload (after a try-on, for example). */
 export const refreshCredits = () => window.dispatchEvent(new Event("virm-credits"));
@@ -87,6 +88,7 @@ export function CreditsCard() {
               See plans
             </Link>
           </p>
+          <ManagePlus />
           <TrialPanel b={b} />
           <div className="mt-2">
             <Row label="Photo credits" b={b.photo} />

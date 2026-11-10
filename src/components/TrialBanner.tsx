@@ -18,11 +18,16 @@ function day(iso: string): string {
   return diff <= 0 ? "today" : diff === 1 ? "tomorrow" : d.toLocaleDateString(undefined, { weekday: "long" });
 }
 
-type Note = { key: string; text: string; action: string };
+type Note = { key: string; text: string; action: string; href?: string };
 
-/** What to say, if anything: the trial's last two days (days 6 and 7), then the offer for 14 days after it ends. */
+/**
+ * What to say, if anything: a failed Plus payment; the trial's last two days (days 6 and 7); then the offer for 14 days
+ * after the trial ends.
+ */
 function noteFor(s: BillingStatus): Note | null {
-  if (!s.enabled || s.subscribed || !s.trial) return null;
+  if (!s.enabled) return null;
+  if (s.pastDue) return { key: "past-due", text: "Payment failed", action: "Update card", href: "/profile" };
+  if (s.subscribed || !s.trial) return null;
   const ends = new Date(s.trial.endsAt).getTime();
   const left = ends - Date.now();
   if (left > 0 && left <= 2 * DAY) {
@@ -62,12 +67,12 @@ export function TrialBanner() {
     };
   }, [auth, user?.id]);
 
-  if (auth !== "signedIn" || !note || pathname === "/plus" || pathname === "/trial") return null;
+  if (auth !== "signedIn" || !note || pathname === "/plus" || pathname === "/trial" || pathname === note.href) return null;
 
   return (
     <div className="mx-auto mt-2 flex w-[calc(100%-32px)] max-w-[1180px] items-center gap-3 rounded-full bg-[#121821] py-1.5 pl-4 pr-1.5 text-[13px] text-white">
       <span className="min-w-0 flex-1 truncate">{note.text}</span>
-      <Link href="/plus" className="shrink-0 rounded-full bg-white px-3.5 py-1.5 text-[12.5px] font-semibold text-[#121821]">
+      <Link href={note.href ?? "/plus"} className="shrink-0 rounded-full bg-white px-3.5 py-1.5 text-[12.5px] font-semibold text-[#121821]">
         {note.action}
       </Link>
       <button

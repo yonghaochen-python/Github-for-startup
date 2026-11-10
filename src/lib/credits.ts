@@ -96,7 +96,8 @@ type Account = { id: string; role: string };
 export async function accountPlan(userId: string) {
   const [user, subscription] = await Promise.all([
     prisma.user.findUnique({ where: { id: userId }, select: { plan: true, periodAnchor: true, createdAt: true, role: true, trialStartedAt: true, trialEndsAt: true } }),
-    prisma.subscription.findFirst({ where: { userId, status: "active" }, select: { plan: true } }),
+    // Plus stays on while Stripe retries a failed renewal ("past_due"); it ends when Stripe cancels it.
+    prisma.subscription.findFirst({ where: { userId, status: { in: ["active", "past_due"] } }, select: { plan: true } }),
   ]);
   if (!user) throw new Error("No such account.");
   const subscribed = subscription && isPlanKey(subscription.plan) ? subscription.plan : null;

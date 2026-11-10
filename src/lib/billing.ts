@@ -85,8 +85,10 @@ export async function syncSubscription(sub: Stripe.Subscription): Promise<{ outc
   const data = {
     status: sub.status,
     priceId: item?.price.id ?? null,
-    currentPeriodEnd: item?.current_period_end ? new Date(item.current_period_end * 1000) : null,
-    cancelAtPeriodEnd: sub.cancel_at_period_end,
+    // A scheduled cancel (Stripe now sets an end date, cancel_at; older versions set cancel_at_period_end): Plus runs
+    // until that date, which is then the end shown.
+    currentPeriodEnd: sub.cancel_at ? new Date(sub.cancel_at * 1000) : item?.current_period_end ? new Date(item.current_period_end * 1000) : null,
+    cancelAtPeriodEnd: sub.cancel_at_period_end || Boolean(sub.cancel_at),
     canceledAt: sub.canceled_at ? new Date(sub.canceled_at * 1000) : null,
   };
   try {
@@ -102,4 +104,20 @@ export async function syncSubscription(sub: Stripe.Subscription): Promise<{ outc
     throw err;
   }
   return { outcome: `subscription ${sub.status}`, userId: user.id };
+}
+
+/** Deletes a Stripe customer: ends their subscriptions immediately and removes saved cards. Already gone is fine. */
+export async function deleteStripeCustomer(customerId: string): Promise<void> {
+  try {
+    await stripe().customers.del(customerId);
+  } catch (err) {
+    if ((err as { code?: string }).code === "resource_missing") return;
+    throw err;
+  }
+}
+
+/** Stripe's own page where a Plus member changes their card, sees invoices or cancels. */
+export async function portalUrl(customerId: string, returnUrl: string): Promise<string> {
+  const session = await stripe().billingPortal.sessions.create({ customer: customerId, return_url: returnUrl });
+  return session.url;
 }

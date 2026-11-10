@@ -3,6 +3,7 @@ import type Stripe from "stripe";
 import { prisma } from "@/lib/prisma";
 import { claimEvent, finishEvent, fingerprintHash, stripe, syncSubscription, verifyWebhook } from "@/lib/billing";
 import { startTrial } from "@/lib/trial";
+import { track } from "@/lib/analytics";
 
 /**
  * Stripe's messages to Virm. Each one is checked against the webhook secret (so only Stripe can send them) and
@@ -39,6 +40,15 @@ export async function POST(request: Request) {
       const latest = await stripe().subscriptions.retrieve((event.data.object as Stripe.Subscription).id);
       const outcome = await syncSubscription(latest);
       await finishEvent(event.id, outcome.outcome, outcome.userId);
+      return NextResponse.json({ received: true });
+    }
+    if (event.type === "invoice.payment_failed") {
+      // The subscription itself turns "past_due" through customer.subscription.updated; this only records it.
+      const invoice = event.data.object as Stripe.Invoice;
+      const customerId = typeof invoice.customer === "string" ? invoice.customer : invoice.customer?.id;
+      const user = customerId ? await prisma.user.findUnique({ where: { stripeCustomerId: customerId }, select: { id: true } }) : null;
+      if (user) await track(user.id, "plus_payment_failed");
+      await finishEvent(event.id, "payment failed", user?.id ?? null);
       return NextResponse.json({ received: true });
     }
     await finishEvent(event.id, "ignored");
