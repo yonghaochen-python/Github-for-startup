@@ -32,6 +32,9 @@ git merge-base --is-ancestor origin/main HEAD || stop "the live site has changes
 # ---- 1. The live key (hidden) -----------------------------------------------------------------------------------
 echo "Paste your Stripe LIVE secret key (starts with sk_live_). It won't show as you paste; press Return after."
 read -rs KEY; echo
+KEY=$(printf '%s' "$KEY" | tr -d '[:space:]')
+echo "  (got ${#KEY} characters; a Stripe key is usually about 100)"
+[ "$(printf '%s' "$KEY" | grep -o '_live_' | wc -l | tr -d ' ')" = 1 ] || { KEY=""; stop "that looks like the key was pasted more than once. Run the script again and paste it once."; }
 case "$KEY" in sk_live_*|rk_live_*) ;; *) KEY=""; stop "that isn't a live secret key (it should start with sk_live_).";; esac
 
 # Stripe calls with the key passed privately (not visible to other programs on this Mac).
