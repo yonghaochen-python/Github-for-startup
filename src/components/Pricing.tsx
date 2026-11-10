@@ -54,7 +54,7 @@ const PLANS: Plan[] = [
     line: "Your everyday AI stylist",
     price: "$14.99",
     purpose: "More try-ons, clothing photos and Style It searches, every month.",
-    features: [{ text: "Everything in Free, with bigger monthly allowances" }],
+    features: [{ text: "Everything in Free, with bigger monthly allowances" }, { text: "Unused photo and live try-ons carry over a month" }],
     bestValue: true,
   },
   {
@@ -93,6 +93,7 @@ const COMPARE: { label: string; cells: [string, string, string] }[] = [
   row("Live AI try-on sessions / month (20 s each)", "live"),
   row("Clothing photos added with AI tagging / month", "closet"),
   row("Style It searches / month", "style"),
+  { label: "Unused photo & live try-ons carry over a month", cells: ["no", "yes", "yes"] },
   { label: "Digital closet", cells: ["yes", "yes", "yes"] },
   { label: "Monthly outfit Planner", cells: ["yes", "yes", "yes"] },
   { label: "AI Stylist (uses photo try-ons)", cells: ["yes", "yes", "yes"] },
@@ -393,7 +394,8 @@ export function Pricing({ compact = false, onCompare }: { compact?: boolean; onC
               </table>
             </div>
             <p className="mt-3 text-[12px] text-[#5d6874]">
-              Live sessions run up to 20 seconds, at most 3 a day. Allowances reset each month; reopening anything you&apos;ve made is free.
+              Live sessions run up to 20 seconds, at most 3 a day. Allowances reset each month. On Plus, unused photo and live try-ons carry over one more month (up to a month&apos;s worth).
+            Reopening anything you&apos;ve made is free.
             </p>
           </section>
         </>

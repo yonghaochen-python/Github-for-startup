@@ -14,6 +14,7 @@ const INCLUDES = [
   `${PLUS.live} live try-ons`,
   `${PLUS.closet} clothing photo additions with AI tagging`,
   `${PLUS.style} Style It searches`,
+  "Unused photo and live try-ons carry over a month",
 ];
 
 const day = (iso: string) => new Date(iso).toLocaleDateString(undefined, { month: "long", day: "numeric" });

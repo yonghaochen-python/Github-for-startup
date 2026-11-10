@@ -36,7 +36,7 @@ function Row({ label, b }: { label: string; b: KindBalance }) {
       <span className="text-right text-[#121821]">
         <b className="font-semibold">{b.total}</b> left
         <span className="ml-2 text-[11.5px] text-[#5d6874]">
-          {b.planLeft} of {b.allowance} this month · {b.extraLeft} extra
+          {b.planLeft} of {b.allowance} this month{b.rollover > 0 ? ` · ${b.rolloverLeft} carried over` : ""} · {b.extraLeft} extra
         </span>
       </span>
     </div>
@@ -103,7 +103,8 @@ export function CreditsCard() {
             <Row label="Style It searches" b={b.style} />
           </div>
           <p className="mt-1 text-[11.5px] leading-snug text-[#5d6874]">
-            Monthly allowances reset {day(b.period.end)}; extra credits don&apos;t expire. Reopening anything you already made is free.
+            Monthly allowances reset {day(b.period.end)}; extra credits don&apos;t expire.
+            {b.plan === "plus" ? " Unused photo and live try-ons carry over one month." : ""} Reopening anything you already made is free.
             {b.exempt ? " Admin account: not limited." : b.enforcement === "count" ? " Limits aren't applied yet." : ""}
           </p>
         </>

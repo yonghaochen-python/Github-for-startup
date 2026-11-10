@@ -41,7 +41,11 @@ export default function TermsPage() {
               feature; Plus has bigger monthly allowances ({PLAN_ALLOWANCES.plus.photo} photo try-ons, {PLAN_ALLOWANCES.plus.live} live try-ons,{" "}
               {PLAN_ALLOWANCES.plus.closet} clothing photos and {PLAN_ALLOWANCES.plus.style} Style It searches a month).
             </li>
-            <li>Allowances reset each month. Unused allowances don&apos;t carry over.</li>
+            <li>
+              Allowances reset each month. On Plus, unused photo and live try-ons carry over to the next month only (up to one month&apos;s
+              worth: {PLAN_ALLOWANCES.plus.photo} photo and {PLAN_ALLOWANCES.plus.live} live), are used first, and end if Plus ends. Other
+              unused allowances don&apos;t carry over.
+            </li>
             <li>Payments are handled by Stripe. Virm never sees or stores your card details.</li>
           </ul>
 

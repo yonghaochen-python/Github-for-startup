@@ -54,6 +54,9 @@ const dbDate = (d: Date) => d.toISOString().replace("Z", "+00:00");
 
 export type KindBalance = {
   allowance: number;
+  /** Plus: unused photo/live try-ons carried over from last month (used first; gone at the end of this month). */
+  rollover: number;
+  rolloverLeft: number;
   planUsed: number;
   planLeft: number;
   extraLeft: number;
@@ -97,19 +100,45 @@ export async function accountPlan(userId: string) {
   const [user, subscription] = await Promise.all([
     prisma.user.findUnique({ where: { id: userId }, select: { plan: true, periodAnchor: true, createdAt: true, role: true, trialStartedAt: true, trialEndsAt: true } }),
     // Plus stays on while Stripe retries a failed renewal ("past_due"); it ends when Stripe cancels it.
-    prisma.subscription.findFirst({ where: { userId, status: { in: ["active", "past_due"] } }, select: { plan: true } }),
+    prisma.subscription.findFirst({ where: { userId, status: { in: ["active", "past_due"] } }, select: { plan: true, createdAt: true } }),
   ]);
   if (!user) throw new Error("No such account.");
   const subscribed = subscription && isPlanKey(subscription.plan) ? subscription.plan : null;
   const plan: PlanKey = subscribed ?? (isPlanKey(user.plan) ? user.plan : "free");
   const now = new Date();
   const trial = user.trialStartedAt && user.trialEndsAt && user.trialEndsAt > now ? { startedAt: user.trialStartedAt, endsAt: user.trialEndsAt } : null;
-  return { plan, role: user.role, period: currentPeriod(user.periodAnchor ?? user.createdAt), trial };
+  const anchor = user.periodAnchor ?? user.createdAt;
+  const period = currentPeriod(anchor, now);
+  // Rollover: Plus that was already on during last month's period (a new Plus member has nothing to carry yet).
+  const prevPeriod = currentPeriod(anchor, new Date(period.start.getTime() - 1));
+  const plusLastPeriod = Boolean(subscribed === "plus" && subscription && subscription.createdAt < prevPeriod.end && prevPeriod.start < period.start);
+  return { plan, role: user.role, period, trial, prevPeriod, plusLastPeriod };
 }
 
-async function kindBalance(userId: string, kind: CreditKind, plan: PlanKey, period: { start: Date; end: Date }): Promise<KindBalance> {
+/** Kinds whose unused Plus allowance carries over one month (at most one month's worth). */
+export const ROLLOVER_KINDS: CreditKind[] = ["photo", "live"];
+
+/**
+ * Unused Plus try-ons carried into this month: last month's Plus allowance minus what was used from it, at most one
+ * month's worth. Only last month's own allowance carries (never last month's carry-over), so nothing piles up.
+ */
+async function rolloverFor(userId: string, kind: CreditKind, plusLastPeriod: boolean, prevPeriod: { start: Date; end: Date }): Promise<number> {
+  if (!plusLastPeriod || !ROLLOVER_KINDS.includes(kind)) return 0;
+  const used = await prisma.creditEntry.count({
+    where: { userId, kind, type: "use", source: "plan", status: { not: "released" }, createdAt: { gte: prevPeriod.start, lt: prevPeriod.end } },
+  });
+  const allowance = PLAN_ALLOWANCES.plus[kind];
+  return Math.min(allowance, Math.max(0, allowance - used));
+}
+
+type PlanInfo = Awaited<ReturnType<typeof accountPlan>>;
+
+async function kindBalance(userId: string, kind: CreditKind, info: PlanInfo): Promise<KindBalance> {
+  const { plan, period } = info;
   const inPeriod = { gte: period.start, lt: period.end };
-  const [planUsed, overLimit, extra] = await Promise.all([
+  const [rollover, rolloverUsed, planUsed, overLimit, extra] = await Promise.all([
+    rolloverFor(userId, kind, info.plusLastPeriod, info.prevPeriod),
+    prisma.creditEntry.count({ where: { userId, kind, type: "use", source: "rollover", status: { not: "released" }, createdAt: inPeriod } }),
     prisma.creditEntry.count({ where: { userId, kind, type: "use", source: "plan", status: { not: "released" }, createdAt: inPeriod } }),
     prisma.creditEntry.count({ where: { userId, kind, type: "use", source: "over", status: { not: "released" }, createdAt: inPeriod } }),
     prisma.creditEntry.aggregate({ where: { userId, kind, source: "extra", status: { not: "released" } }, _sum: { amount: true } }),
@@ -117,7 +146,8 @@ async function kindBalance(userId: string, kind: CreditKind, plan: PlanKey, peri
   const allowance = PLAN_ALLOWANCES[plan][kind];
   const planLeft = Math.max(0, allowance - planUsed);
   const extraLeft = Math.max(0, extra._sum.amount ?? 0);
-  return { allowance, planUsed, planLeft, extraLeft, total: planLeft + extraLeft, overLimit };
+  const rolloverLeft = Math.max(0, rollover - rolloverUsed);
+  return { allowance, rollover, rolloverLeft, planUsed, planLeft, extraLeft, total: rolloverLeft + planLeft + extraLeft, overLimit };
 }
 
 /** Trial credits left of one kind: granted once when the trial started, minus what's been used (0 once it ends). */
@@ -158,10 +188,9 @@ async function trialGranted(userId: string): Promise<Record<TrialKind, number>> 
 }
 
 export async function getBalances(userId: string): Promise<Balances> {
-  const { plan, role, period, trial } = await accountPlan(userId);
-  const [photo, live, closet, style] = await Promise.all(
-    (["photo", "live", "closet", "style"] as const).map((kind) => kindBalance(userId, kind, plan, period))
-  );
+  const info = await accountPlan(userId);
+  const { plan, role, period, trial } = info;
+  const [photo, live, closet, style] = await Promise.all((["photo", "live", "closet", "style"] as const).map((kind) => kindBalance(userId, kind, info)));
   let trialBalance: TrialBalance | null = null;
   if (trial) {
     const lefts = await Promise.all(TRIAL_KINDS.map((kind) => trialLeft(userId, kind)));
@@ -189,7 +218,7 @@ export async function getBalances(userId: string): Promise<Balances> {
 /* ---------- Using credits ---------- */
 
 export type Reservation =
-  | { ok: true; duplicate: boolean; source?: "trial" | "plan" | "extra" | "over" | "admin"; trialUsedUp?: boolean }
+  | { ok: true; duplicate: boolean; source?: "trial" | "rollover" | "plan" | "extra" | "over" | "admin"; trialUsedUp?: boolean }
   | { ok: false; reason: "no_credits"; allowance: number; resetsAt: string };
 
 /** What the trial may cover for this request: its kind (reports have their own), and for reports, the report type. */
@@ -213,7 +242,8 @@ export async function reserveCredit(
   const existing = await prisma.creditEntry.findUnique({ where: { userId_requestId: { userId, requestId } }, select: { id: true } });
   if (existing) return { ok: true, duplicate: true };
 
-  const { plan, period, trial } = await accountPlan(userId);
+  const info = await accountPlan(userId);
+  const { plan, period, trial } = info;
   const now = dbDate(new Date());
 
   // The trial first, while it runs (admins are recorded as admin, never from the trial).
@@ -240,8 +270,10 @@ export async function reserveCredit(
     trialUsedUp = true;
   }
 
-  const balance = await kindBalance(userId, kind, plan, period);
-  const source = account.role === "admin" ? "admin" : balance.planLeft > 0 ? "plan" : balance.extraLeft > 0 ? "extra" : "over";
+  const balance = await kindBalance(userId, kind, info);
+  // Carried-over try-ons first (they expire soonest), then this month's allowance, then extra credits.
+  const source =
+    account.role === "admin" ? "admin" : balance.rolloverLeft > 0 ? "rollover" : balance.planLeft > 0 ? "plan" : balance.extraLeft > 0 ? "extra" : "over";
   const refused = { ok: false as const, reason: "no_credits" as const, allowance: balance.allowance, resetsAt: period.end.toISOString() };
   if (source === "over" && block) return refused;
 
@@ -255,6 +287,11 @@ export async function reserveCredit(
     WHERE NOT EXISTS (SELECT 1 FROM "CreditEntry" WHERE "userId" = ${userId} AND "requestId" = ${requestId})
       AND (
         ${source} IN ('admin', 'over')
+        OR (${source} = 'rollover' AND (
+          SELECT COUNT(*) FROM "CreditEntry"
+          WHERE "userId" = ${userId} AND "kind" = ${kind} AND "type" = 'use' AND "source" = 'rollover'
+            AND "status" != 'released' AND "createdAt" >= ${start} AND "createdAt" < ${end}
+        ) < ${balance.rollover})
         OR (${source} = 'plan' AND (
           SELECT COUNT(*) FROM "CreditEntry"
           WHERE "userId" = ${userId} AND "kind" = ${kind} AND "type" = 'use' AND "source" = 'plan'
