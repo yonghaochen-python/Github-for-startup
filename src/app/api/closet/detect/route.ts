@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import { limitMessage, requestIdFrom, reserveCredit, settleCredit } from "@/lib/credits";
 import { newMeter } from "@/lib/anthropic";
 import { trackAiCost, trackTimed } from "@/lib/analytics";
 import { saveUploadedImage } from "@/lib/images";
@@ -29,11 +30,17 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: "That photo is too large. Please use one under 20MB." }, { status: 400 });
   }
 
+  // One clothing photo from the person's allowance (the trial's first), before anything is saved or sent.
+  const requestId = `closet-${requestIdFrom(formData.get("requestId"))}`;
+  const reservation = await reserveCredit(user, "closet", requestId, { trial: { kind: "closet" } });
+  if (!reservation.ok) return NextResponse.json({ error: limitMessage("closet", reservation), code: "no_credits" }, { status: 402 });
+
   let image;
   try {
     image = await saveUploadedImage(file);
   } catch (err) {
     console.error("Failed to save photo for detection:", err);
+    await settleCredit(user.id, requestId, "released", "failed").catch(() => {});
     return NextResponse.json(
       { error: "Couldn't read that photo. Use a JPG, PNG, GIF, or WebP image." },
       { status: 400 }
@@ -49,9 +56,11 @@ export async function POST(request: Request) {
   try {
     const items = await trackTimed(user.id, "clothes_detect", () => detectClothingItems(image, size, meter));
     await trackAiCost(user.id, "ai_cost_closet", meter);
+    await settleCredit(user.id, requestId, "completed").catch(() => {});
     return NextResponse.json({ imageUrl: image.url, items });
   } catch (err) {
     await trackAiCost(user.id, "ai_cost_closet", meter, false);
+    await settleCredit(user.id, requestId, "released", "failed").catch(() => {});
     console.error("Item detection failed:", err);
     return NextResponse.json(
       { error: "Couldn't analyze that photo right now. Please try again." },

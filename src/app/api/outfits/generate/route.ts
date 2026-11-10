@@ -1,4 +1,6 @@
 import { NextResponse } from "next/server";
+import { limitMessage, reserveCredit, settleCredit } from "@/lib/credits";
+import { randomUUID } from "node:crypto";
 import { newMeter } from "@/lib/anthropic";
 import { track, trackAiCost, trackTimed } from "@/lib/analytics";
 import { prisma } from "@/lib/prisma";
@@ -110,14 +112,21 @@ export async function POST(request: Request) {
     }
   }
 
+  // One Style It search from the person's allowance (the trial's first). A saved search shown again (above) is free.
+  const requestId = `style-${randomUUID()}`;
+  const reservation = await reserveCredit(user, "style", requestId, { trial: { kind: "style" } });
+  if (!reservation.ok) return NextResponse.json({ error: limitMessage("style", reservation), code: "no_credits" }, { status: 402 });
+
   await track(user.id, "outfit_request");
   let generated;
   const meter = newMeter();
   try {
     generated = await trackTimed(user.id, "outfit_generate", () => generateOutfitsFromCloset(closet, outfitRequest, meter));
     await trackAiCost(user.id, "ai_cost_style_it", meter);
+    await settleCredit(user.id, requestId, "completed").catch(() => {});
   } catch (err) {
     await trackAiCost(user.id, "ai_cost_style_it", meter, false);
+    await settleCredit(user.id, requestId, "released", "failed").catch(() => {});
     console.error("Outfit generation failed:", err);
     return NextResponse.json(
       { error: "Couldn't generate outfits right now. Please try again in a moment." },

@@ -103,7 +103,8 @@ export async function POST(request: Request) {
       "photo",
       requestIdFrom(formData.get("requestId")),
       () => runTryOn({ person, layers: orderedLayerEntries(items), garmentSheet }, user.id, user.role),
-      (r) => !r.isMock && Boolean(r.imageDataUrl)
+      (r) => !r.isMock && Boolean(r.imageDataUrl),
+      { trial: { kind: "photo" } }
     );
     // Kept privately so the same look shows again for free (cleared with a new photo, like Studio's).
     if (!result.isMock && result.imageDataUrl) await cacheTryOn(cacheKey, result.imageDataUrl).catch(() => {});

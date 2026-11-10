@@ -1,6 +1,6 @@
 import { prisma } from "@/lib/prisma";
 import { loadPortrait, portraitInfo } from "@/lib/portrait";
-import { CreditError, withCredit } from "@/lib/credits";
+import { CreditError, trialCoversReport, withCredit } from "@/lib/credits";
 import { PortraitUnusableError, analyzeColor, analyzeHair, analyzeMakeup, analyzeStyle, type Analysis } from "@/lib/studioAnalysis";
 import type { StyledLook, StyledPiece } from "@/lib/closetLook";
 import { topPicks } from "@/lib/studioPicks";
@@ -135,7 +135,11 @@ export async function generateReport(account: { id: string; role: string }, modu
 
   try {
     // One photo credit for a real analysis, counted only when a real report comes back.
-    const made = await withCredit(account, "photo", `studio-${requestId}`, () => makeReport(userId, module, portrait), (r) => !r.practice);
+    // The trial covers one report of each type; any other report uses a photo credit, as always.
+    const covered = await trialCoversReport(userId, module).catch(() => false);
+    const made = await withCredit(account, "photo", `studio-${requestId}`, () => makeReport(userId, module, portrait), (r) => !r.practice, {
+      trial: { kind: "report", note: module, allowed: covered },
+    });
     const done = await prisma.studioReport.update({
       where: { id: row.id },
       data: {
@@ -154,7 +158,7 @@ export async function generateReport(account: { id: string; role: string }, modu
     await prisma.studioReport.update({ where: { id: row.id }, data: { status: "failed", finishedAt: new Date() } }).catch(() => {});
     if (err instanceof ReportError) throw err;
     if (err instanceof PortraitUnusableError) throw new ReportError("unusable", err.message);
-    if (err instanceof CreditError && err.code === "no_credits") throw new ReportError("no_credits", "You've used this month's photo credits.");
+    if (err instanceof CreditError && err.code === "no_credits") throw new ReportError("no_credits", err.message);
     console.error(`Studio ${module} report failed:`, err instanceof Error ? err.message : "unknown");
     throw new ReportError("failed", "This analysis couldn't be made right now. Please try again in a moment.");
   }

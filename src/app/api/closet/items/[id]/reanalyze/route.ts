@@ -1,4 +1,6 @@
 import { NextResponse } from "next/server";
+import { limitMessage, reserveCredit, settleCredit } from "@/lib/credits";
+import { randomUUID } from "node:crypto";
 import { aiPicture } from "@/lib/aiPicture";
 import { trackAiCost } from "@/lib/analytics";
 import { newMeter } from "@/lib/anthropic";
@@ -28,14 +30,21 @@ export async function POST(request: Request, ctx: RouteContext<"/api/closet/item
     return NextResponse.json({ error: "Item not found." }, { status: 404 });
   }
 
+  // Re-tagging asks the AI again: one clothing photo (the trial's first).
+  const requestId = `closet-${randomUUID()}`;
+  const reservation = await reserveCredit(user, "closet", requestId, { trial: { kind: "closet" } });
+  if (!reservation.ok) return NextResponse.json({ error: limitMessage("closet", reservation), code: "no_credits" }, { status: 402 });
+
   let attributes;
   const meter = newMeter();
   try {
     const image = await loadSavedImage(aiPicture(existing));
     attributes = await classifyClothingImage(image, meter);
     await trackAiCost(user.id, "ai_cost_closet", meter);
+    await settleCredit(user.id, requestId, "completed").catch(() => {});
   } catch (err) {
     await trackAiCost(user.id, "ai_cost_closet", meter, false);
+    await settleCredit(user.id, requestId, "released", "failed").catch(() => {});
     console.error("Re-analyze failed:", err);
     return NextResponse.json({ error: "Couldn't re-analyze this item right now." }, { status: 502 });
   }

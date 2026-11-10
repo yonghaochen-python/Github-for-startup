@@ -15,6 +15,8 @@ export default defineConfig({
       UPLOADS: bindings.r2({ name: "virtual-mirror-uploads" }),
       ANTHROPIC_API_KEY: bindings.secret(),
       TRYON_PROVIDER: bindings.text("bfl-flux-vto"),
+      // Credit limits stop people (not just counted): Free, Plus and the 7-day trial. "count" turns it back to record-only.
+      CREDIT_ENFORCEMENT: bindings.text("block"),
       BFL_API_KEY: bindings.secret(),
       // Live Try On's real-time preview (Decart). Only admin accounts can start it (see /api/live/token).
       DECART_API_KEY: bindings.secret(),

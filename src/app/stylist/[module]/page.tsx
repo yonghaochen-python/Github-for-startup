@@ -340,7 +340,7 @@ export default function StudioModulePage() {
                       Analyze
                     </button>
                     <div className="mt-3 max-w-sm">
-                      <CreditsLine kind="photo" />
+                      <CreditsLine kind="photo" report={id} />
                     </div>
                     <p className="mt-2 text-[12px] leading-relaxed text-[#5d6874]">
                       Uses one photo credit, only if your report is made. Your portrait goes to our AI provider for this analysis; the report is saved to open

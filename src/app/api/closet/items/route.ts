@@ -1,4 +1,6 @@
 import { NextResponse } from "next/server";
+import { limitMessage, reserveCredit, settleCredit } from "@/lib/credits";
+import { randomUUID } from "node:crypto";
 import { newMeter } from "@/lib/anthropic";
 import { track, trackAiCost } from "@/lib/analytics";
 import { prisma } from "@/lib/prisma";
@@ -46,16 +48,31 @@ export async function POST(request: Request) {
   }
 
   const meter = newMeter();
+  // One clothing photo per photo tagged (the trial's first); a photo over the limit isn't saved or sent.
+  let limitNote: string | null = null;
   const results = await Promise.allSettled(
     files.map(async (file) => {
-      const image = await saveUploadedImage(file);
-      const [isolatedUrl, attributes] = await Promise.all([
-        removeBackground(image.url),
-        classifyClothingImage(image, meter),
-      ]);
-      return prisma.clothingItem.create({
-        data: { userId: user.id, imageUrl: isolatedUrl, ...attributes },
-      });
+      const requestId = `closet-${randomUUID()}`;
+      const reservation = await reserveCredit(user, "closet", requestId, { trial: { kind: "closet" } });
+      if (!reservation.ok) {
+        limitNote = limitMessage("closet", reservation);
+        throw new Error("no_credits");
+      }
+      try {
+        const image = await saveUploadedImage(file);
+        const [isolatedUrl, attributes] = await Promise.all([
+          removeBackground(image.url),
+          classifyClothingImage(image, meter),
+        ]);
+        const item = await prisma.clothingItem.create({
+          data: { userId: user.id, imageUrl: isolatedUrl, ...attributes },
+        });
+        await settleCredit(user.id, requestId, "completed").catch(() => {});
+        return item;
+      } catch (err) {
+        await settleCredit(user.id, requestId, "released", "failed").catch(() => {});
+        throw err;
+      }
     })
   );
 
@@ -66,6 +83,9 @@ export async function POST(request: Request) {
     if (r.status === "rejected") console.error("Failed to process an uploaded photo:", r.reason);
   }
 
+  if (items.length === 0 && limitNote) {
+    return NextResponse.json({ error: limitNote, code: "no_credits" }, { status: 402 });
+  }
   if (items.length === 0) {
     return NextResponse.json(
       { error: "Couldn't process any of those photos. Use JPG, PNG, GIF, or WebP images." },
@@ -79,7 +99,8 @@ export async function POST(request: Request) {
     {
       items,
       ...(failedCount > 0 && {
-        warning: `${failedCount} of ${results.length} photos couldn't be processed and ${failedCount === 1 ? "was" : "were"} skipped.`,
+        // Over the limit: say which allowance stopped them, not that the photos were bad.
+        warning: limitNote ?? `${failedCount} of ${results.length} photos couldn't be processed and ${failedCount === 1 ? "was" : "were"} skipped.`,
       }),
     },
     { status: 201 }

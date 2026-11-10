@@ -3,7 +3,8 @@ import { MAX_LIVE_SECONDS } from "@/lib/aiCosts";
 import { createDecartClient } from "@decartai/sdk";
 import { randomUUID } from "node:crypto";
 import { asResponse, requireUser } from "@/lib/auth";
-import { liveUsesToday, reserveCredit, settleCredit } from "@/lib/credits";
+import { accountPlan, limitMessage, liveUsesToday, reserveCredit, settleCredit } from "@/lib/credits";
+import { TRIAL_LIVE_PER_DAY } from "@/lib/plans";
 
 /**
  * Live Try On (preview): a short-lived Decart token for one real-time session, so the permanent key never reaches
@@ -34,9 +35,15 @@ export async function POST(request: Request) {
 
   const admin = user.role === "admin";
   if (!admin) {
+    // During the 7-day trial, live try-on is at most one session a day (checked here, on the server).
+    const { trial } = await accountPlan(user.id);
+    const perDay = trial ? TRIAL_LIVE_PER_DAY : SESSIONS_PER_DAY;
     const [mine, everyone] = await Promise.all([liveUsesToday(user.id), liveUsesToday()]);
-    if (mine >= SESSIONS_PER_DAY) {
-      return NextResponse.json({ error: `That's ${SESSIONS_PER_DAY} live sessions today. Try again tomorrow.` }, { status: 429, headers: noStore });
+    if (mine >= perDay) {
+      const error = trial
+        ? `During your trial, live try-on is ${perDay} session a day. Try again tomorrow.`
+        : `That's ${perDay} live sessions today. Try again tomorrow.`;
+      return NextResponse.json({ error }, { status: 429, headers: noStore });
     }
     if (everyone >= SITE_SESSIONS_PER_DAY) {
       return NextResponse.json({ error: "Live try-on is busy today. Try again tomorrow." }, { status: 429, headers: noStore });
@@ -47,8 +54,8 @@ export async function POST(request: Request) {
   // before connecting (given back) through /api/live/session. With no report it stays reserved, since Decart may
   // have billed the session.
   const sessionId = `live-${randomUUID()}`;
-  const reservation = await reserveCredit(user, "live", sessionId, { block: true });
-  if (!reservation.ok) return NextResponse.json({ error: "You've used this month's live sessions." }, { status: 402, headers: noStore });
+  const reservation = await reserveCredit(user, "live", sessionId, { block: true, trial: { kind: "live" } });
+  if (!reservation.ok) return NextResponse.json({ error: limitMessage("live", reservation) }, { status: 402, headers: noStore });
 
   try {
     const client = createDecartClient({ apiKey, telemetry: false });
