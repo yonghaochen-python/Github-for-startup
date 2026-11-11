@@ -586,7 +586,9 @@ function ItemDetail({
   // AI enhancement: admins only for now (the server checks too). The ✦ switch works for anyone with an enhanced picture.
   const isAdmin = Boolean(useAuth().user?.isAdmin);
   const enhancedShown = Boolean(item.enhancedUrl && item.imageUrl === item.enhancedUrl);
-  const [enhancing, setEnhancing] = useState<"working" | "saving" | "switching" | null>(null);
+  const [enhancing, setEnhancing] = useState<"working" | "flattening" | "saving" | "switching" | null>(null);
+  // Which kind the preview is: Enhance (tidy) or Lay it flat (a folded piece unfolded by AI).
+  const [previewMode, setPreviewMode] = useState<"tidy" | "flat">("tidy");
   const [enhanceError, setEnhanceError] = useState<string | null>(null);
   const [preview, setPreview] = useState<EnhancePreview | null>(null);
   const plainPicture = enhancedShown ? (item.plainUrl ?? item.imageUrl) : item.imageUrl;
@@ -595,11 +597,12 @@ function ItemDetail({
     if (preview) URL.revokeObjectURL(preview.url);
   }, [preview]);
 
-  async function enhance() {
+  async function enhance(mode: "tidy" | "flat" = "tidy") {
     setEnhanceError(null);
-    setEnhancing("working");
+    setEnhancing(mode === "flat" ? "flattening" : "working");
     try {
-      setPreview(await previewEnhancement(item));
+      setPreviewMode(mode);
+      setPreview(await previewEnhancement(item, mode));
     } catch (err) {
       setEnhanceError(err instanceof Error ? err.message : "Couldn't enhance this picture. Your picture is unchanged.");
     } finally {
@@ -681,7 +684,7 @@ function ItemDetail({
             <div className="absolute inset-0 grid grid-cols-2 gap-2 p-3 pb-[132px]">
               {[
                 ["Original", plainPicture],
-                ["AI enhanced", preview.url],
+                [previewMode === "flat" ? "AI laid flat" : "AI enhanced", preview.url],
               ].map(([label, src]) => (
                 <figure key={label} className="relative min-h-0 overflow-hidden rounded-[14px] bg-white/70">
                   {/* eslint-disable-next-line @next/next/no-img-element -- the person's own pictures */}
@@ -691,12 +694,15 @@ function ItemDetail({
               ))}
               <div className="absolute inset-x-3 bottom-3 rounded-[16px] bg-white/95 p-3 shadow-[0_4px_14px_rgba(18,24,33,0.12)]">
                 {preview.practice && <p className="mb-1 text-[11.5px] text-[#5d6874]">Practice: nothing was sent, so this is your picture.</p>}
+                {previewMode === "flat" && !preview.practice && (
+                  <p className="mb-1 text-[11.5px] text-[#5d6874]">The AI filled in the folded parts. Check sleeves, length and prints.</p>
+                )}
                 {preview.drift !== null && preview.drift >= DRIFT_WARNING && (
                   <p role="alert" className="mb-1 text-[12px] font-semibold text-[#a03a2f]">The colors look different from your picture.</p>
                 )}
                 <div className="flex flex-wrap gap-2">
                   <button onClick={useEnhanced} disabled={enhancing !== null} className={`${btnPrimary} min-h-[40px] flex-1`}>
-                    {enhancing === "saving" ? "Saving…" : "Use enhanced"}
+                    {enhancing === "saving" ? "Saving…" : "Use it"}
                   </button>
                   <button onClick={() => setPreview(null)} disabled={enhancing !== null} className={`${btnSecondary} min-h-[40px] flex-1`}>
                     Keep original
@@ -734,13 +740,23 @@ function ItemDetail({
                   </button>
                 )}
                 {isAdmin && !item.enhancedUrl && (
-                  <button
-                    onClick={enhance}
-                    disabled={enhancing !== null || backgroundWorking}
-                    className="flex items-center gap-1.5 whitespace-nowrap rounded-full bg-[#121821] px-4 py-2 text-[12px] font-semibold text-white shadow-[0_4px_14px_rgba(18,24,33,0.18)] disabled:opacity-70"
-                  >
-                    <SparkleIcon className="h-3.5 w-3.5" /> {enhancing === "working" ? "Enhancing…" : "Enhance with AI"}
-                  </button>
+                  <>
+                    <button
+                      onClick={() => enhance("tidy")}
+                      disabled={enhancing !== null || backgroundWorking}
+                      className="flex items-center gap-1.5 whitespace-nowrap rounded-full bg-[#121821] px-4 py-2 text-[12px] font-semibold text-white shadow-[0_4px_14px_rgba(18,24,33,0.18)] disabled:opacity-70"
+                    >
+                      <SparkleIcon className="h-3.5 w-3.5" /> {enhancing === "working" ? "Enhancing…" : "Enhance with AI"}
+                    </button>
+                    {/* For a folded piece: the AI unfolds it and lays it flat (the original stays; you choose). */}
+                    <button
+                      onClick={() => enhance("flat")}
+                      disabled={enhancing !== null || backgroundWorking}
+                      className="flex items-center gap-1.5 whitespace-nowrap rounded-full bg-white/95 px-4 py-2 text-[12px] font-semibold text-[#121821] shadow-[0_4px_14px_rgba(18,24,33,0.12)] disabled:opacity-70"
+                    >
+                      <SparkleIcon className="h-3.5 w-3.5" /> {enhancing === "flattening" ? "Laying it flat…" : "Lay it flat"}
+                    </button>
+                  </>
                 )}
               </div>
             </>

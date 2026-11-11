@@ -84,8 +84,12 @@ async function garmentColor(image: Blob): Promise<[number, number, number] | nul
  * Asks for the enhanced picture (made once, then kept on the server), removes its background on this device, and
  * measures how far its colors moved from the piece's own picture. Nothing on the piece changes yet.
  */
-export async function previewEnhancement(item: Item): Promise<EnhancePreview> {
-  const res = await fetch(`/api/closet/items/${item.id}/enhance`, { method: "POST" });
+export async function previewEnhancement(item: Item, mode: "tidy" | "flat" = "tidy"): Promise<EnhancePreview> {
+  const res = await fetch(`/api/closet/items/${item.id}/enhance`, {
+    method: "POST",
+    headers: { "content-type": "application/json" },
+    body: JSON.stringify({ mode }),
+  });
   const data = (await res.json().catch(() => ({}))) as { image?: string; practice?: boolean; reused?: boolean; error?: string };
   if (!res.ok || !data.image) throw new Error(data.error ?? "Couldn't enhance this picture right now. Your picture is unchanged.");
   const made = await toBlob(data.image);

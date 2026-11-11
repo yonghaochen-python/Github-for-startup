@@ -4,13 +4,13 @@ import { prisma } from "@/lib/prisma";
 import { asResponse, requireAdmin, requireUser } from "@/lib/auth";
 import { withRetry } from "@/lib/dbRetry";
 import { cutoutOriginal, isCutout } from "@/lib/images";
-import { EnhanceError, enhancePicture, saveEnhanced } from "@/lib/enhance";
+import { EnhanceError, enhancePicture, saveEnhanced, type EnhanceMode } from "@/lib/enhance";
 import { track } from "@/lib/analytics";
 import { ENHANCE_MICROS } from "@/lib/aiCosts";
 
 /**
  * AI clothing enhancement for one closet piece (admins only for now; no credits used).
- * - POST: the tidied version of the piece's plain picture (made once by FLUX 3, then kept; the same picture is never
+ * - POST { mode?: "tidy" | "flat" }: the tidied version ("flat": unfolded and laid flat) of the piece's plain picture (made once by FLUX 3, then kept; the same picture is never
  *   sent again). Nothing on the piece changes yet.
  * - PUT: saves the enhanced picture the device prepared (background removed) and shows it. The plain picture and the
  *   uploaded original are never changed or deleted.
@@ -44,7 +44,9 @@ export async function POST(request: Request, ctx: Ctx) {
   if (!object) return NextResponse.json({ error: "The picture couldn't be found." }, { status: 404, headers: noStore });
 
   try {
-    const result = await enhancePicture(user.id, { bytes: new Uint8Array(await object.arrayBuffer()), type: object.httpMetadata?.contentType ?? "image/jpeg" });
+    const body = (await request.json().catch(() => ({}))) as { mode?: unknown };
+    const mode: EnhanceMode = body.mode === "flat" ? "flat" : "tidy";
+    const result = await enhancePicture(user.id, { bytes: new Uint8Array(await object.arrayBuffer()), type: object.httpMetadata?.contentType ?? "image/jpeg" }, mode);
     if (result.reused) await track(user.id, "enhance_reused");
     else if (!result.practice) {
       // The real cost when BFL says it, otherwise the set rate (recorded as an estimate).

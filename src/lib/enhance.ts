@@ -38,6 +38,27 @@ export const ENHANCE_PROMPT = [
   "do not invent it: show only what can be seen.",
 ].join(" ");
 
+/**
+ * "Lay it flat": for a folded or bunched-up piece. Unlike Enhance, the AI may complete the parts it can't see (sleeves,
+ * length, the rest of the body), but only plainly, continuing what is visible, never adding new details. The person
+ * always sees it beside their own picture and chooses; the original is never replaced on its own.
+ */
+export const FLAT_PROMPT = [
+  "This photo shows one clothing item that is folded, rolled or bunched up. Show the same item unfolded and laid out",
+  "completely flat as a clean e-commerce flat-lay product photo: front view, symmetrical, sleeves and legs straightened",
+  "out at its natural full length and shape, smoothed, evenly lit, on a plain pure white background, with no person,",
+  "hanger, hands, props or text added.",
+  "Keep everything visible exactly the same: identical colors and shades, fabric and texture; patterns and prints at",
+  "the same scale; every logo, label, graphic and piece of text exactly as it is; the same collar, neckline, buttons,",
+  "zips, pockets, cuffs, seams and hem.",
+  "Where part of the item is hidden by the folding, continue it plainly in the same fabric, color and pattern, matching",
+  "the visible parts and the item's type. Never add new logos, graphics, text, pockets, trims or details that can't be",
+  "seen in the photo.",
+].join(" ");
+/** Changing an instruction gets its own kept copies (an old result is never shown for a new instruction). */
+export const FLAT_VERSION = "flux3-768-flat-v1";
+export type EnhanceMode = "tidy" | "flat";
+
 export class EnhanceError extends Error {
   constructor(
     readonly code: "not_configured" | "declined" | "busy" | "failed" | "too_large",
@@ -61,8 +82,8 @@ export type EnhanceResult = {
 const practiceMode = () => (process.env.ENHANCE_PROVIDER ?? (isDevMode() ? "mock" : "bfl")) === "mock";
 
 /** Where a picture's result is kept: per person, by a fingerprint of the exact bytes plus the instruction version. */
-export function enhanceKey(userId: string, bytes: Uint8Array): string {
-  const hash = createHash("sha256").update(ENHANCE_VERSION).update(bytes).digest("hex");
+export function enhanceKey(userId: string, bytes: Uint8Array, mode: EnhanceMode = "tidy"): string {
+  const hash = createHash("sha256").update(mode === "flat" ? FLAT_VERSION : ENHANCE_VERSION).update(bytes).digest("hex");
   return `private/enhance/${userId}/${hash}`;
 }
 
@@ -82,7 +103,7 @@ async function fetchWithTimeout(url: string, init: RequestInit, ms: number): Pro
 const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms));
 
 /** Sends one picture to FLUX 3 and waits for it. Returns the result's bytes and what it cost. */
-async function runFlux3(bytes: Uint8Array): Promise<{ bytes: Uint8Array; type: string; costMicros: number | null }> {
+async function runFlux3(bytes: Uint8Array, prompt: string): Promise<{ bytes: Uint8Array; type: string; costMicros: number | null }> {
   const apiKey = process.env.BFL_API_KEY;
   if (!apiKey) throw new EnhanceError("not_configured", "AI enhancement isn't connected yet.");
   const baseUrl = (process.env.BFL_BASE_URL ?? "https://api.bfl.ai").replace(/\/$/, "");
@@ -94,7 +115,7 @@ async function runFlux3(bytes: Uint8Array): Promise<{ bytes: Uint8Array; type: s
       headers: { accept: "application/json", "Content-Type": "application/json", "x-key": apiKey },
       // Only fields FLUX 3 accepts (it rejects unknown ones). No web research: only the photo is used.
       body: JSON.stringify({
-        prompt: ENHANCE_PROMPT,
+        prompt,
         images: [Buffer.from(bytes).toString("base64")],
         resolution: "768sq",
         aspect_ratio: "1:1",
@@ -141,10 +162,10 @@ async function runFlux3(bytes: Uint8Array): Promise<{ bytes: Uint8Array; type: s
  * The tidied version of one picture: the kept copy when this exact picture was enhanced before, otherwise one new
  * FLUX 3 call (kept right away, so it's never paid for twice even if the page is closed).
  */
-export async function enhancePicture(userId: string, source: { bytes: Uint8Array; type: string }): Promise<EnhanceResult> {
+export async function enhancePicture(userId: string, source: { bytes: Uint8Array; type: string }, mode: EnhanceMode = "tidy"): Promise<EnhanceResult> {
   if (source.bytes.length > MAX_SOURCE_BYTES) throw new EnhanceError("too_large", "This picture is too large to enhance.");
   // Practice copies are kept apart, so a real enhancement is never skipped because of a practice one.
-  const key = enhanceKey(userId, source.bytes) + (practiceMode() ? "-practice" : "");
+  const key = enhanceKey(userId, source.bytes, mode) + (practiceMode() ? "-practice" : "");
   const kept = await env.UPLOADS.get(key).catch(() => null);
   if (kept) {
     const type = kept.httpMetadata?.contentType ?? "image/jpeg";
@@ -154,8 +175,8 @@ export async function enhancePicture(userId: string, source: { bytes: Uint8Array
     await env.UPLOADS.put(key, source.bytes, { httpMetadata: { contentType: source.type }, customMetadata: { practice: "1" } });
     return { imageDataUrl: toDataUrl(source.bytes, source.type), practice: true, reused: false, costMicros: null };
   }
-  const made = await runFlux3(source.bytes);
-  await env.UPLOADS.put(key, made.bytes, { httpMetadata: { contentType: made.type }, customMetadata: { version: ENHANCE_VERSION } });
+  const made = await runFlux3(source.bytes, mode === "flat" ? FLAT_PROMPT : ENHANCE_PROMPT);
+  await env.UPLOADS.put(key, made.bytes, { httpMetadata: { contentType: made.type }, customMetadata: { version: mode === "flat" ? FLAT_VERSION : ENHANCE_VERSION } });
   return { imageDataUrl: toDataUrl(made.bytes, made.type), practice: false, reused: false, costMicros: made.costMicros };
 }
 
