@@ -49,15 +49,25 @@ export const FLAT_PROMPT = [
   "relaxed to its natural size and shape (not stretched), sleeves and legs straightened out at their natural full",
   "length, smoothed with no wrinkles, evenly lit, on a plain pure white background. Remove the hands, fingers, hanger,",
   "person and room completely; add no props or text.",
-  "Keep everything visible exactly the same: identical colors and shades, fabric and texture (for example ribbing);",
-  "patterns and prints at the same scale; every logo, label, graphic and piece of text exactly as it is; the same",
-  "collar, neckline, buttons, zips, pockets, cuffs, seams and hem.",
+  "Keep the exact same color and shade as the photo (not greyer, paler or more saturated). Keep the fabric clean and",
+  "even: no spots, stains, marks or blotches that are not on the item in the photo.",
+  "Keep everything visible exactly the same: fabric and texture (for example ribbing); patterns and prints at the same",
+  "scale; every logo and graphic; the same collar, neckline, buttons, zips, pockets, cuffs, seams and hem.",
   "Where part of the item is hidden (folded away, covered by hands or out of the photo), continue it plainly in the",
   "same fabric, color and pattern, matching the visible parts and the item's type. Never add new logos, graphics,",
   "text, pockets, trims or details that can't be seen in the photo.",
 ].join(" ");
+
+/**
+ * Image AI can't reliably write small text (a neck label came out misspelled even when told the exact brand), so labels
+ * stay plain in the picture; the brand is kept as text on the piece (read from the label when it was added) and that's
+ * what search uses. One rule for every piece, so a single press gives a usable result.
+ */
+export function flatPrompt(): string {
+  return `${FLAT_PROMPT} Show any small sewn-in label (inside the neck or waistband) plain, with no letters or numbers on it; never write or invent label text.`;
+}
 /** Changing an instruction gets its own kept copies (an old result is never shown for a new instruction). */
-export const FLAT_VERSION = "flux3-768-flat-v2";
+export const FLAT_VERSION = "flux3-768-flat-v4";
 export type EnhanceMode = "tidy" | "flat";
 
 export class EnhanceError extends Error {
@@ -176,7 +186,7 @@ export async function enhancePicture(userId: string, source: { bytes: Uint8Array
     await env.UPLOADS.put(key, source.bytes, { httpMetadata: { contentType: source.type }, customMetadata: { practice: "1" } });
     return { imageDataUrl: toDataUrl(source.bytes, source.type), practice: true, reused: false, costMicros: null };
   }
-  const made = await runFlux3(source.bytes, mode === "flat" ? FLAT_PROMPT : ENHANCE_PROMPT);
+  const made = await runFlux3(source.bytes, mode === "flat" ? flatPrompt() : ENHANCE_PROMPT);
   await env.UPLOADS.put(key, made.bytes, { httpMetadata: { contentType: made.type }, customMetadata: { version: mode === "flat" ? FLAT_VERSION : ENHANCE_VERSION } });
   return { imageDataUrl: toDataUrl(made.bytes, made.type), practice: false, reused: false, costMicros: made.costMicros };
 }
