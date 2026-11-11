@@ -1012,7 +1012,8 @@ export default function StudioPage() {
                 Done
               </button>
             </div>
-            {/* The pieces in this look, above the closet. */}
+            {/* The pieces in this look, above the closet. Nothing picked yet: no box (the closet below is the next step). */}
+            {(loadingLook || pieces.length > 0) && (
             <section aria-label="Pieces in this look" className="rounded-[22px] bg-white p-4 shadow-[0_1px_0_rgba(18,24,33,0.03),0_14px_36px_rgba(18,30,45,0.06)] sm:p-5">
                 <div className="mb-3 flex items-center justify-between gap-3">
                   <p className="text-[13px] font-semibold text-[#121821]">
@@ -1058,13 +1059,9 @@ export default function StudioPage() {
                 {/* A Style it outfit on show: its Good / Bad feedback. */}
                 {ideas.some((idea) => idea.id === look.outfitId) && <Feedback kind="outfit" targetId={look.outfitId} className="mb-3" />}
 
-                {loadingLook ? (
-                  <div className="h-20 animate-pulse rounded-[14px] bg-[#f4f5f6]" />
-                ) : pieces.length === 0 ? (
-                  <p className="rounded-[14px] bg-[#f4f5f6] px-4 py-5 text-[13px] text-[#4f5b66]">Tap a pick, press Style it for new ones, or pick pieces below.</p>
-                ) : null}
-
+                {loadingLook && <div className="h-20 animate-pulse rounded-[14px] bg-[#f4f5f6]" />}
             </section>
+            )}
 
             {/* The closet, by category. Tap to add; tap again to remove. */}
             <section ref={closetRef} aria-label="Your closet" data-tip="studio-closet" className="min-w-0 overflow-hidden rounded-[22px] bg-white shadow-[0_1px_0_rgba(18,24,33,0.03),0_14px_36px_rgba(18,30,45,0.06)]">
