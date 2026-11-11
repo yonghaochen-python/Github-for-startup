@@ -861,13 +861,19 @@ export default function StudioPage() {
               >
                 {/* The look's pieces numbered down the left, the person head to toe, and (on wider screens) the top 3 picks. */}
                 {pieces.length > 0 && (
-                  <MirrorPieces
-                    pieces={pieces}
-                    replacing={replacing}
-                    onReplace={startReplace}
-                    onRemove={(piece) => removePiece(piece)}
-                    className="justify-center border-r border-black/[0.05] px-2 py-4 sm:px-3"
-                  />
+                  <div className="flex min-h-0 flex-col border-r border-black/[0.05]">
+                    <MirrorPieces
+                      pieces={pieces}
+                      replacing={replacing}
+                      onReplace={startReplace}
+                      onRemove={(piece) => removePiece(piece)}
+                      className="flex-1 justify-center px-2 py-4 sm:px-3"
+                    />
+                    {/* Clears the look (under its pieces, where it belongs). */}
+                    <button onClick={startOver} className="mx-auto mb-3 shrink-0 px-2 py-1 text-[11.5px] font-semibold text-[#5d6874] underline-offset-4 hover:text-[#121821] hover:underline">
+                      Start over
+                    </button>
+                  </div>
                 )}
                 <div className="flex min-h-0 min-w-0 justify-center">
                 <div className="relative h-full min-w-[160px] max-w-full">
@@ -1012,8 +1018,9 @@ export default function StudioPage() {
                 Done
               </button>
             </div>
-            {/* The pieces in this look, above the closet. Nothing picked yet: no box (the closet below is the next step). */}
-            {(loadingLook || pieces.length > 0) && (
+            {/* A Style it idea on show: its name, the idea numbers, its rating and "New ideas". Otherwise no box: the pieces
+                are already listed beside the photo (with Start over), and the closet below is the next step. */}
+            {(loadingLook || ideas.some((idea) => idea.id === look.outfitId)) && (
             <section aria-label="Pieces in this look" className="rounded-[22px] bg-white p-4 shadow-[0_1px_0_rgba(18,24,33,0.03),0_14px_36px_rgba(18,30,45,0.06)] sm:p-5">
                 <div className="mb-3 flex items-center justify-between gap-3">
                   <p className="text-[13px] font-semibold text-[#121821]">
@@ -1041,11 +1048,6 @@ export default function StudioPage() {
                         );
                       })}
                     </div>
-                  )}
-                  {pieces.length > 0 && (
-                    <button onClick={startOver} className="text-[12px] font-semibold text-[#5d6874] underline-offset-4 hover:text-[#121821] hover:underline">
-                      Start over
-                    </button>
                   )}
                 </div>
                 {ideasSaved && ideas.some((idea) => idea.id === look.outfitId) && (
