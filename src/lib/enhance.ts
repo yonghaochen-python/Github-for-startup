@@ -39,24 +39,25 @@ export const ENHANCE_PROMPT = [
 ].join(" ");
 
 /**
- * "Lay it flat": for a folded or bunched-up piece. Unlike Enhance, the AI may complete the parts it can't see (sleeves,
+ * "Lay it flat": for a folded, bunched-up, hanging or held-up piece. Unlike Enhance, the AI may complete the parts it can't see (sleeves,
  * length, the rest of the body), but only plainly, continuing what is visible, never adding new details. The person
  * always sees it beside their own picture and chooses; the original is never replaced on its own.
  */
 export const FLAT_PROMPT = [
-  "This photo shows one clothing item that is folded, rolled or bunched up. Show the same item unfolded and laid out",
-  "completely flat as a clean e-commerce flat-lay product photo: front view, symmetrical, sleeves and legs straightened",
-  "out at its natural full length and shape, smoothed, evenly lit, on a plain pure white background, with no person,",
-  "hanger, hands, props or text added.",
-  "Keep everything visible exactly the same: identical colors and shades, fabric and texture; patterns and prints at",
-  "the same scale; every logo, label, graphic and piece of text exactly as it is; the same collar, neckline, buttons,",
-  "zips, pockets, cuffs, seams and hem.",
-  "Where part of the item is hidden by the folding, continue it plainly in the same fabric, color and pattern, matching",
-  "the visible parts and the item's type. Never add new logos, graphics, text, pockets, trims or details that can't be",
-  "seen in the photo.",
+  "This photo shows one clothing item that is folded, rolled, bunched up, hanging, or held up and stretched by hands.",
+  "Show the same item laid out completely flat as a clean e-commerce flat-lay product photo: front view, symmetrical,",
+  "relaxed to its natural size and shape (not stretched), sleeves and legs straightened out at their natural full",
+  "length, smoothed with no wrinkles, evenly lit, on a plain pure white background. Remove the hands, fingers, hanger,",
+  "person and room completely; add no props or text.",
+  "Keep everything visible exactly the same: identical colors and shades, fabric and texture (for example ribbing);",
+  "patterns and prints at the same scale; every logo, label, graphic and piece of text exactly as it is; the same",
+  "collar, neckline, buttons, zips, pockets, cuffs, seams and hem.",
+  "Where part of the item is hidden (folded away, covered by hands or out of the photo), continue it plainly in the",
+  "same fabric, color and pattern, matching the visible parts and the item's type. Never add new logos, graphics,",
+  "text, pockets, trims or details that can't be seen in the photo.",
 ].join(" ");
 /** Changing an instruction gets its own kept copies (an old result is never shown for a new instruction). */
-export const FLAT_VERSION = "flux3-768-flat-v1";
+export const FLAT_VERSION = "flux3-768-flat-v2";
 export type EnhanceMode = "tidy" | "flat";
 
 export class EnhanceError extends Error {
