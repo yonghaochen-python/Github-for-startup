@@ -684,7 +684,7 @@ function ItemDetail({
             <div className="absolute inset-0 grid grid-cols-2 gap-2 p-3 pb-[132px]">
               {[
                 ["Original", plainPicture],
-                [previewMode === "flat" ? "AI laid flat" : "AI enhanced", preview.url],
+                ["AI enhanced", preview.url],
               ].map(([label, src]) => (
                 <figure key={label} className="relative min-h-0 overflow-hidden rounded-[14px] bg-white/70">
                   {/* eslint-disable-next-line @next/next/no-img-element -- the person's own pictures */}
@@ -695,7 +695,7 @@ function ItemDetail({
               <div className="absolute inset-x-3 bottom-3 rounded-[16px] bg-white/95 p-3 shadow-[0_4px_14px_rgba(18,24,33,0.12)]">
                 {preview.practice && <p className="mb-1 text-[11.5px] text-[#5d6874]">Practice: nothing was sent, so this is your picture.</p>}
                 {previewMode === "flat" && !preview.practice && (
-                  <p className="mb-1 text-[11.5px] text-[#5d6874]">The AI filled in the folded parts. Check sleeves, length and prints.</p>
+                  <p className="mb-1 text-[11.5px] text-[#5d6874]">Check the sleeves, length and prints.</p>
                 )}
                 {preview.drift !== null && preview.drift >= DRIFT_WARNING && (
                   <p role="alert" className="mb-1 text-[12px] font-semibold text-[#a03a2f]">The colors look different from your picture.</p>
@@ -740,23 +740,15 @@ function ItemDetail({
                   </button>
                 )}
                 {isAdmin && !item.enhancedUrl && (
-                  <>
-                    <button
-                      onClick={() => enhance("tidy")}
-                      disabled={enhancing !== null || backgroundWorking}
-                      className="flex items-center gap-1.5 whitespace-nowrap rounded-full bg-[#121821] px-4 py-2 text-[12px] font-semibold text-white shadow-[0_4px_14px_rgba(18,24,33,0.18)] disabled:opacity-70"
-                    >
-                      <SparkleIcon className="h-3.5 w-3.5" /> {enhancing === "working" ? "Enhancing…" : "Enhance with AI"}
-                    </button>
-                    {/* For a folded piece: the AI unfolds it and lays it flat (the original stays; you choose). */}
-                    <button
-                      onClick={() => enhance("flat")}
-                      disabled={enhancing !== null || backgroundWorking}
-                      className="flex items-center gap-1.5 whitespace-nowrap rounded-full bg-white/95 px-4 py-2 text-[12px] font-semibold text-[#121821] shadow-[0_4px_14px_rgba(18,24,33,0.12)] disabled:opacity-70"
-                    >
-                      <SparkleIcon className="h-3.5 w-3.5" /> {enhancing === "flattening" ? "Laying it flat…" : "Lay it flat"}
-                    </button>
-                  </>
+                  // One button: the AI lays the piece out neatly flat (straight sleeves, no wrinkles, no hands); the original
+                  // stays, and you choose.
+                  <button
+                    onClick={() => enhance("flat")}
+                    disabled={enhancing !== null || backgroundWorking}
+                    className="flex items-center gap-1.5 whitespace-nowrap rounded-full bg-[#121821] px-4 py-2 text-[12px] font-semibold text-white shadow-[0_4px_14px_rgba(18,24,33,0.18)] disabled:opacity-70"
+                  >
+                    <SparkleIcon className="h-3.5 w-3.5" /> {enhancing !== null && enhancing !== "saving" && enhancing !== "switching" ? "Enhancing…" : "Enhance with AI"}
+                  </button>
                 )}
               </div>
             </>
