@@ -9,6 +9,7 @@ import { outfitBoard, shrinkPicture } from "@/lib/outfitBoard";
 import { ROLE_FOR, type TrayCategory, type TrayItem } from "@/lib/shopCatalog";
 import { keepShopTryOn, readShopTryOns } from "@/lib/shopWishlist";
 import { PageShell, btnPrimary, btnSecondary, btnText, eyebrow } from "@/components/ui";
+import { useToast } from "@/components/Toast";
 
 type Draft = {
   name: string;
@@ -59,6 +60,13 @@ const fromShop = (t: TrayItem): Draft => ({
   shopPicture: t.imageUrl,
   key: `shop-${t.key}`,
 });
+/** One outfit: at most this many of each kind (a dress counts as the bottom). */
+type Slot = "jacket" | "top" | "bottom" | "shoes" | "accessory";
+const slotOf = (role: string): Slot =>
+  role === "outer_layer" ? "jacket" : role === "base_layer" || role === "mid_layer" ? "top" : role === "bottom" || role === "one_piece" ? "bottom" : role === "shoes" ? "shoes" : "accessory";
+const SLOT_LIMITS: Record<Slot, number> = { jacket: 1, top: 2, bottom: 1, shoes: 1, accessory: 3 };
+const SLOT_NAMES: Record<Slot, string> = { jacket: "the jacket", top: "a top", bottom: "the bottom", shoes: "the shoes", accessory: "an accessory" };
+
 const KINDS: { value: TrayCategory; label: string }[] = [
   { value: "top", label: "Top" },
   { value: "bottom", label: "Bottom" },
@@ -89,6 +97,7 @@ async function preparePicture(source: Blob): Promise<Picture> {
  */
 export default function CreatePage() {
   const router = useRouter();
+  const { showToast } = useToast();
   const [access, setAccess] = useState<{ canPost: boolean; username: string | null } | null>(null);
   const [picture, setPicture] = useState<Picture | null>(null);
   // "Build an outfit": choosing pieces (before the picture is made from them).
@@ -167,8 +176,19 @@ export default function CreatePage() {
     setShowCloset(false);
   }
 
-  const pick = (draft: Draft) =>
-    setItems((list) => (list.some((it) => it.key === draft.key) ? list.filter((it) => it.key !== draft.key) : list.length < MAX_POST_ITEMS ? [...list, draft] : list));
+  /**
+   * Picks or unpicks a piece, keeping it one outfit: a second jacket, bottom/dress or pair of shoes swaps out the one
+   * already there (a third top or fourth accessory swaps out the oldest), with a short note.
+   */
+  function pick(draft: Draft) {
+    if (items.some((it) => it.key === draft.key)) return setItems((list) => list.filter((it) => it.key !== draft.key));
+    const slot = slotOf(draft.role);
+    const same = items.filter((it) => slotOf(it.role) === slot);
+    const out = same.length >= SLOT_LIMITS[slot] ? same[0] : null;
+    if (!out && items.length >= MAX_POST_ITEMS) return showToast(`Up to ${MAX_POST_ITEMS} pieces`);
+    setItems((list) => [...list.filter((it) => it.key !== out?.key), draft]);
+    if (out) showToast(`Swapped ${SLOT_NAMES[slot]}`);
+  }
 
   /** A piece from any store: its page is read for the picture, name, store and price (no AI), and kept in Shopping too. */
   async function addLink() {
