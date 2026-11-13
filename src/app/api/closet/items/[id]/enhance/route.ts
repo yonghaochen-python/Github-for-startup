@@ -22,7 +22,7 @@ const STATUS = { not_configured: 503, declined: 422, busy: 429, failed: 502, too
 
 async function loadItem(userId: string, ctx: Ctx) {
   const { id } = await ctx.params;
-  return prisma.clothingItem.findFirst({ where: { id, userId }, select: { id: true, imageUrl: true, plainUrl: true, enhancedUrl: true } });
+  return prisma.clothingItem.findFirst({ where: { id, userId }, select: { id: true, imageUrl: true, plainUrl: true, enhancedUrl: true, description: true, color: true } });
 }
 
 /** The picture enhancement works from: the plain one (never an enhanced one). */
@@ -49,7 +49,7 @@ export async function POST(request: Request, ctx: Ctx) {
   try {
     const body = (await request.json().catch(() => ({}))) as { mode?: unknown };
     const mode: EnhanceMode = body.mode === "flat" ? "flat" : "tidy";
-    const result = await enhancePicture(user.id, { bytes: new Uint8Array(await object.arrayBuffer()), type: object.httpMetadata?.contentType ?? "image/jpeg" }, mode);
+    const result = await enhancePicture(user.id, { bytes: new Uint8Array(await object.arrayBuffer()), type: object.httpMetadata?.contentType ?? "image/jpeg" }, mode, `${item.description}${item.color ? ` (color: ${item.color})` : ""}`.slice(0, 200));
     if (result.reused) await track(user.id, "enhance_reused");
     else if (!result.practice) {
       // The real cost when BFL says it, otherwise the set rate (recorded as an estimate).

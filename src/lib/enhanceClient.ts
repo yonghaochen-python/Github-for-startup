@@ -49,6 +49,55 @@ function lab(r: number, g: number, b: number): [number, number, number] {
   return [116 * y - 16, 500 * (x - y), 200 * (y - z)];
 }
 
+/** The garment's main color: the per-channel median of a cut-out's visible pixels (so a little jeans or skin in a worn
+ * photo doesn't move it). Null without a cut-out or with too little to measure. */
+async function mainColor(image: Blob): Promise<[number, number, number] | null> {
+  const bitmap = await createImageBitmap(image);
+  const side = 128;
+  const canvas = new OffscreenCanvas(side, side);
+  const ctx = canvas.getContext("2d")!;
+  ctx.drawImage(bitmap, 0, 0, side, side);
+  bitmap.close();
+  const { data } = ctx.getImageData(0, 0, side, side);
+  const ch: number[][] = [[], [], []];
+  for (let i = 0; i < data.length; i += 4) {
+    if (data[i + 3] < 200) continue;
+    ch[0].push(data[i]);
+    ch[1].push(data[i + 1]);
+    ch[2].push(data[i + 2]);
+  }
+  if (ch[0].length < 200 || ch[0].length > side * side * 0.97) return null;
+  const median = (v: number[]) => v.sort((a, b) => a - b)[v.length >> 1];
+  return [median(ch[0]), median(ch[1]), median(ch[2])];
+}
+
+/**
+ * AI pictures often come out a little duller than the real piece. This nudges the enhanced cut-out's colors back
+ * toward the garment's main color in the person's own picture (gently, within limits, so prints and shading stay).
+ * Returns the picture unchanged when either color can't be measured.
+ */
+async function matchColor(result: Blob, own: Blob): Promise<Blob> {
+  const [target, got] = await Promise.all([mainColor(own), mainColor(result)]);
+  if (!target || !got) return result;
+  const gain = target.map((t, i) => Math.min(1.35, Math.max(0.75, (t + 4) / (got[i] + 4))));
+  if (gain.every((g) => Math.abs(g - 1) < 0.02)) return result;
+  const bitmap = await createImageBitmap(result);
+  const canvas = new OffscreenCanvas(bitmap.width, bitmap.height);
+  const ctx = canvas.getContext("2d")!;
+  ctx.drawImage(bitmap, 0, 0);
+  bitmap.close();
+  const img = ctx.getImageData(0, 0, canvas.width, canvas.height);
+  const d = img.data;
+  for (let i = 0; i < d.length; i += 4) {
+    if (d[i + 3] === 0) continue;
+    d[i] = Math.min(255, d[i] * gain[0]);
+    d[i + 1] = Math.min(255, d[i + 1] * gain[1]);
+    d[i + 2] = Math.min(255, d[i + 2] * gain[2]);
+  }
+  ctx.putImageData(img, 0, 0);
+  return canvas.convertToBlob({ type: "image/png" });
+}
+
 /**
  * The average color of the garment in a picture: the visible pixels of a cut-out, or the middle of a photo with a
  * background. Null when there's too little to measure.
@@ -94,9 +143,11 @@ export async function previewEnhancement(item: Item, mode: "tidy" | "flat" = "ti
   if (!res.ok || !data.image) throw new Error(data.error ?? "Couldn't enhance this picture right now. Your picture is unchanged.");
   const made = await toBlob(data.image);
   // The same background removal as every closet piece (free, on this device); the white-background version if it can't.
-  const png = (await cutOut(made).catch(() => null)) ?? (await asPng(made));
+  const cut = (await cutOut(made).catch(() => null)) ?? (await asPng(made));
   const plainUrl = item.enhancedUrl && item.imageUrl === item.enhancedUrl ? (item.plainUrl ?? item.imageUrl) : item.imageUrl;
   const plain = await fetch(plainUrl).then((r) => (r.ok ? r.blob() : null)).catch(() => null);
+  // Colors brought back to the real piece's (AI pictures tend to come out a little duller).
+  const png = plain ? await matchColor(cut, plain).catch(() => cut) : cut;
   const [a, b] = await Promise.all([plain ? garmentColor(plain).catch(() => null) : null, garmentColor(png).catch(() => null)]);
   const drift = a && b ? Math.round(Math.hypot(a[0] - b[0], a[1] - b[1], a[2] - b[2])) : null;
   return { png, url: URL.createObjectURL(png), practice: Boolean(data.practice), reused: Boolean(data.reused), drift };

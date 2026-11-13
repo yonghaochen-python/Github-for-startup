@@ -63,11 +63,17 @@ export const FLAT_PROMPT = [
  * stay plain in the picture; the brand is kept as text on the piece (read from the label when it was added) and that's
  * what search uses. One rule for every piece, so a single press gives a usable result.
  */
-export function flatPrompt(): string {
-  return `${FLAT_PROMPT} Show any small sewn-in label (inside the neck or waistband) plain, with no letters or numbers on it; never write or invent label text.`;
+export function flatPrompt(about?: string | null): string {
+  // What the piece is (from its closet details), so a cropped, oversized or long piece keeps that shape even when the
+  // photo hides it (sleeves pushed up, someone wearing it).
+  const piece = about?.replace(/["\\]/g, "").trim();
+  const what = piece
+    ? ` The item is: "${piece}". Keep its real length and proportions: a cropped piece stays cropped and ends where a cropped piece ends, an oversized or boxy piece stays roomy, long stays long; sleeves at their real full length even if they are pushed up in the photo.`
+    : " Keep its real length and proportions; sleeves at their real full length even if they are pushed up in the photo.";
+  return `${FLAT_PROMPT}${what} Match the color's exact brightness and saturation as it looks in the photo: never duller, greyer or paler. Show any small sewn-in label (inside the neck or waistband) plain, with no letters or numbers on it; never write or invent label text.`;
 }
 /** Changing an instruction gets its own kept copies (an old result is never shown for a new instruction). */
-export const FLAT_VERSION = "flux3-768-flat-v5";
+export const FLAT_VERSION = "flux3-768-flat-v6";
 export type EnhanceMode = "tidy" | "flat";
 
 export class EnhanceError extends Error {
@@ -93,8 +99,11 @@ export type EnhanceResult = {
 const practiceMode = () => (process.env.ENHANCE_PROVIDER ?? (isDevMode() ? "mock" : "bfl")) === "mock";
 
 /** Where a picture's result is kept: per person, by a fingerprint of the exact bytes plus the instruction version. */
-export function enhanceKey(userId: string, bytes: Uint8Array, mode: EnhanceMode = "tidy"): string {
-  const hash = createHash("sha256").update(mode === "flat" ? FLAT_VERSION : ENHANCE_VERSION).update(bytes).digest("hex");
+export function enhanceKey(userId: string, bytes: Uint8Array, mode: EnhanceMode = "tidy", about = ""): string {
+  const hash = createHash("sha256")
+    .update(mode === "flat" ? `${FLAT_VERSION}|${about}` : ENHANCE_VERSION)
+    .update(bytes)
+    .digest("hex");
   return `private/enhance/${userId}/${hash}`;
 }
 
@@ -173,10 +182,15 @@ async function runFlux3(bytes: Uint8Array, prompt: string): Promise<{ bytes: Uin
  * The tidied version of one picture: the kept copy when this exact picture was enhanced before, otherwise one new
  * FLUX 3 call (kept right away, so it's never paid for twice even if the page is closed).
  */
-export async function enhancePicture(userId: string, source: { bytes: Uint8Array; type: string }, mode: EnhanceMode = "tidy"): Promise<EnhanceResult> {
+export async function enhancePicture(
+  userId: string,
+  source: { bytes: Uint8Array; type: string },
+  mode: EnhanceMode = "tidy",
+  about: string | null = null
+): Promise<EnhanceResult> {
   if (source.bytes.length > MAX_SOURCE_BYTES) throw new EnhanceError("too_large", "This picture is too large to enhance.");
   // Practice copies are kept apart, so a real enhancement is never skipped because of a practice one.
-  const key = enhanceKey(userId, source.bytes, mode) + (practiceMode() ? "-practice" : "");
+  const key = enhanceKey(userId, source.bytes, mode, about ?? "") + (practiceMode() ? "-practice" : "");
   const kept = await env.UPLOADS.get(key).catch(() => null);
   if (kept) {
     const type = kept.httpMetadata?.contentType ?? "image/jpeg";
@@ -186,7 +200,7 @@ export async function enhancePicture(userId: string, source: { bytes: Uint8Array
     await env.UPLOADS.put(key, source.bytes, { httpMetadata: { contentType: source.type }, customMetadata: { practice: "1" } });
     return { imageDataUrl: toDataUrl(source.bytes, source.type), practice: true, reused: false, costMicros: null };
   }
-  const made = await runFlux3(source.bytes, mode === "flat" ? flatPrompt() : ENHANCE_PROMPT);
+  const made = await runFlux3(source.bytes, mode === "flat" ? flatPrompt(about) : ENHANCE_PROMPT);
   await env.UPLOADS.put(key, made.bytes, { httpMetadata: { contentType: made.type }, customMetadata: { version: mode === "flat" ? FLAT_VERSION : ENHANCE_VERSION } });
   return { imageDataUrl: toDataUrl(made.bytes, made.type), practice: false, reused: false, costMicros: made.costMicros };
 }
