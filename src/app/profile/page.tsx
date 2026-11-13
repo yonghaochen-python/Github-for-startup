@@ -12,6 +12,7 @@ import { resetTips } from "@/components/Tips";
 import { CreditsCard } from "@/components/Credits";
 import { ConfirmButton } from "@/components/ConfirmButton";
 import { InviteCard } from "@/components/InviteCard";
+import { PublicProfileEditor } from "@/components/PublicProfileEditor";
 
 type Outfit = { id: string; isFavorite: boolean };
 
@@ -61,6 +62,7 @@ export default function ProfilePage() {
             </div>
             <CreditsCard />
             <InviteCard />
+            <PublicProfileEditor />
             <ul className="mt-8 grid grid-cols-3 gap-3 border-t border-black/[0.07] pt-6">
               {stats.map(({ label, value, href, Icon }) => (
                 <li key={label}>

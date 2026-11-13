@@ -9,6 +9,7 @@ import { deletePortrait } from "@/lib/portrait";
 import { deleteSavedSearches } from "@/lib/styleSearchCache";
 import { deleteEnhanceCopies } from "@/lib/enhance";
 import { deleteStripeCustomer } from "@/lib/billing";
+import { deleteAvatar } from "@/lib/profiles";
 
 /**
  * Permanently deletes an account and everything in it: the saved photo, the current look, every outfit's try-on
@@ -43,6 +44,7 @@ export async function deleteAccount(userId: string): Promise<void> {
   await deletePortrait(userId);
   await deleteSavedSearches(userId);
   await deleteEnhanceCopies(userId);
+  await deleteAvatar(userId);
 
   // Stripe's billing messages stay (they hold no card details) but no longer point at the account.
   await prisma.billingEvent.updateMany({ where: { userId }, data: { userId: null } });

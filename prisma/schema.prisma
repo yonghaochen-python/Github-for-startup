@@ -36,6 +36,11 @@ model User {
   inviteCode           String?   @unique
   /// Whose code this account joined with (that account's id). Set once; empty if no code was used.
   invitedById          String?
+  /// Public profile (social feed): the @handle in lowercase (unique; empty until picked), a short bio, and where the
+  /// public profile picture is stored (a small square copy, never the private try-on photo). The email is never public.
+  username             String?   @unique
+  bio                  String?
+  avatarKey            String?
 
   items    ClothingItem[]
   outfits  Outfit[]
