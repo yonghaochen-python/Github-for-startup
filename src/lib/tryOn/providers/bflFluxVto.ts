@@ -23,7 +23,13 @@ const POLL_INTERVAL_MS = 1_000;
 const PREFIX = "The person of image 1, maintaining exactly their face and pose, wearing";
 /** Logos and prints are what try-on AI most often redraws (a small side logo turned into a big front one). */
 const KEEP_DETAILS =
-  " Keep every logo, print, text and graphic exactly as it is in image 2: the same size, position and color. Don't add, move or enlarge any logo.";
+  " Keep every logo, print, text and graphic exactly as it is in image 2: the same size, position and color. Don't add, move or enlarge any logo." +
+  // Try-on models tend to fit clothes snugly and give shorts and skirts an average length; the person's own pieces must
+  // look like themselves.
+  " Copy each garment's fit, length and cut exactly from image 2, sized to this person: an oversized, boxy or loose piece" +
+  " stays oversized (dropped shoulders, roomy body, long sleeves), never tight; shorts, skirts and dresses keep their exact" +
+  " length and rise (short shorts stay short and high-waisted stays high on the waist); a women's cut stays a women's cut." +
+  " Don't shrink, stretch, lengthen or restyle any garment to fit the body differently from image 2.";
 
 const toBase64 = ({ bytes }: ImageBytes) => Buffer.from(bytes).toString("base64");
 

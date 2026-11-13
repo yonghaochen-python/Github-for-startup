@@ -28,7 +28,13 @@ const CLASSIFY_SCHEMA = {
     material: { type: "string", description: "Best guess, e.g. 'cotton', 'denim', 'leather'" },
     formality: { type: "string", enum: FORMALITIES },
     season: { type: "string", enum: SEASONS },
-    description: { type: "string", description: "Short shopper-style description, under 10 words" },
+    description: {
+      type: "string",
+      // The photo try-on reads this, so fit and length matter (an oversized hoodie or short shorts otherwise come out
+      // fitted or longer).
+      description:
+        "Short shopper-style description, under 12 words. Start with the fit when it's visible (oversized, relaxed, fitted, cropped, boxy, slim, wide-leg) and, for bottoms, skirts and dresses, the length and rise (mini, short, knee-length, midi, maxi; high-waisted, low-rise). Example: 'Oversized navy zip-up hoodie' or 'High-waisted short navy suede shorts'.",
+    },
     brand: {
       type: "string",
       description:
