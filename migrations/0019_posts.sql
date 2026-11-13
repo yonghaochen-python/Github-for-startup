@@ -39,6 +39,8 @@ CREATE TABLE "PostItem" (
     "brand" TEXT,
     "store" TEXT,
     "link" TEXT,
+    -- As the store shows it, e.g. "$49" (store pieces added by link).
+    "price" TEXT,
     "imageKey" TEXT,
     "closetItemId" TEXT,
     CONSTRAINT "PostItem_postId_fkey" FOREIGN KEY ("postId") REFERENCES "Post" ("id") ON DELETE CASCADE ON UPDATE CASCADE,

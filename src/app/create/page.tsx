@@ -5,12 +5,30 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import type { ClothingItem, Outfit } from "@/components/OutfitCard";
 import { CAPTION_MAX, MAX_POST_ITEMS, MAX_TAGS, OCCASION_TAGS, STYLE_TAGS } from "@/lib/postRules";
+import { outfitBoard, shrinkPicture } from "@/lib/outfitBoard";
+import { ROLE_FOR, type TrayCategory, type TrayItem } from "@/lib/shopCatalog";
+import { keepShopTryOn, readShopTryOns } from "@/lib/shopWishlist";
 import { PageShell, btnPrimary, btnSecondary, btnText, eyebrow } from "@/components/ui";
 
-type Draft = { name: string; brand: string; store: string; link: string; category: string | null; closetItemId: string | null; thumb: string | null };
+type Draft = {
+  name: string;
+  brand: string;
+  store: string;
+  link: string;
+  price: string;
+  category: string | null;
+  /** Where it goes in a built outfit's picture (layering role). */
+  role: string;
+  closetItemId: string | null;
+  thumb: string | null;
+  /** A store piece's own picture, posted with it. */
+  shopPicture: string | null;
+  /** Where it came from in "Build an outfit" (so it can be picked again or taken out). */
+  key: string;
+};
 type Picture = { blob: Blob; url: string; width: number; height: number };
 
-const blankItem = (): Draft => ({ name: "", brand: "", store: "", link: "", category: null, closetItemId: null, thumb: null });
+const blankItem = (): Draft => ({ name: "", brand: "", store: "", link: "", price: "", category: null, role: "accessory", closetItemId: null, thumb: null, shopPicture: null, key: `new-${Math.random()}` });
 const shortName = (d: string) => d.split(/[,;(]/)[0].trim().slice(0, 60);
 /** A closet piece as the API sends it (with its brand, when known). */
 type ClosetPiece = ClothingItem & { brand?: string | null };
@@ -19,10 +37,36 @@ const fromCloset = (c: ClosetPiece): Draft => ({
   brand: c.brand ?? "",
   store: "",
   link: "",
+  price: "",
   category: c.category,
+  role: c.layeringRole,
   closetItemId: c.id,
   thumb: c.imageUrl,
+  shopPicture: null,
+  key: `closet-${c.id}`,
 });
+/** A Shopping piece (from another store): its store, price and link come along. */
+const fromShop = (t: TrayItem): Draft => ({
+  name: t.name.slice(0, 60),
+  brand: "",
+  store: t.label,
+  link: t.productUrl ?? "",
+  price: t.price ?? "",
+  category: t.category,
+  role: t.layeringRole,
+  closetItemId: null,
+  thumb: t.imageUrl,
+  shopPicture: t.imageUrl,
+  key: `shop-${t.key}`,
+});
+const KINDS: { value: TrayCategory; label: string }[] = [
+  { value: "top", label: "Top" },
+  { value: "bottom", label: "Bottom" },
+  { value: "dress", label: "Dress" },
+  { value: "outerwear", label: "Jacket" },
+  { value: "shoes", label: "Shoes" },
+  { value: "accessory", label: "Accessory" },
+];
 
 /** Shrinks the photo on this device (long side 1440 px, WebP), which also drops its location data. */
 async function preparePicture(source: Blob): Promise<Picture> {
@@ -39,11 +83,24 @@ async function preparePicture(source: Blob): Promise<Picture> {
   return { blob, url: URL.createObjectURL(blob), width, height };
 }
 
-/** Post an outfit: a photo (new, or a saved look's try-on), a caption, tags and optional pieces, then "Post publicly". */
+/**
+ * Post an outfit: a photo (new, or a saved look's try-on), or an outfit built from pieces (your closet, Shopping, or
+ * any store link, laid out into one picture on this device), then a caption, tags and "Post publicly".
+ */
 export default function CreatePage() {
   const router = useRouter();
   const [access, setAccess] = useState<{ canPost: boolean; username: string | null } | null>(null);
   const [picture, setPicture] = useState<Picture | null>(null);
+  // "Build an outfit": choosing pieces (before the picture is made from them).
+  const [building, setBuilding] = useState(false);
+  const [source, setSource] = useState<"closet" | "shop" | "link">("closet");
+  const [shopPieces, setShopPieces] = useState<TrayItem[]>([]);
+  const [link, setLink] = useState("");
+  const [linkKind, setLinkKind] = useState<TrayCategory>("top");
+  const [linkBusy, setLinkBusy] = useState(false);
+  const [boardBusy, setBoardBusy] = useState(false);
+  // The picture was made from the chosen pieces ("Change" goes back to them).
+  const [built, setBuilt] = useState(false);
   const [saved, setSaved] = useState<Outfit[] | null>(null);
   const [showSaved, setShowSaved] = useState(false);
   const [closet, setCloset] = useState<ClosetPiece[] | null>(null);
@@ -71,6 +128,7 @@ export default function CreatePage() {
     setError(null);
     try {
       setPicture(await preparePicture(source));
+      setBuilt(false);
     } catch (err) {
       setError(err instanceof Error ? err.message : "Couldn't read that photo.");
     }
@@ -101,6 +159,57 @@ export default function CreatePage() {
     setCloset(res?.ok ? ((await res.json()) as { items: ClosetPiece[] }).items : []);
   }
 
+  function startBuilding() {
+    setError(null);
+    setBuilding(true);
+    setShopPieces(readShopTryOns());
+    void openCloset();
+    setShowCloset(false);
+  }
+
+  const pick = (draft: Draft) =>
+    setItems((list) => (list.some((it) => it.key === draft.key) ? list.filter((it) => it.key !== draft.key) : list.length < MAX_POST_ITEMS ? [...list, draft] : list));
+
+  /** A piece from any store: its page is read for the picture, name, store and price (no AI), and kept in Shopping too. */
+  async function addLink() {
+    setError(null);
+    setLinkBusy(true);
+    const res = await fetch("/api/shop/import", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ url: link.trim() }) }).catch(() => null);
+    const data = res ? ((await res.json().catch(() => ({}))) as { product?: { productUrl: string | null; retailer: string; name: string | null; price: string | null; currency: string | null; imageDataUrl: string }; error?: string }) : {};
+    setLinkBusy(false);
+    if (!res?.ok || !data.product) return setError(data.error ?? "Couldn't read that link.");
+    const p = data.product;
+    const item: TrayItem = {
+      key: `ext-${Date.now()}`,
+      name: p.name ?? "Piece",
+      label: p.retailer,
+      category: linkKind,
+      layeringRole: ROLE_FOR[linkKind],
+      color: "",
+      imageUrl: p.imageDataUrl,
+      price: p.price ? `${p.currency === "USD" || !p.currency ? "$" : ""}${p.price}${p.currency && p.currency !== "USD" ? ` ${p.currency}` : ""}` : null,
+      productUrl: p.productUrl,
+    };
+    setShopPieces(keepShopTryOn(item));
+    pick(fromShop(item));
+    setLink("");
+  }
+
+  /** Lays the chosen pieces out into the post's picture (on this device). */
+  async function makeBoard() {
+    setError(null);
+    setBoardBusy(true);
+    try {
+      const board = await outfitBoard(items.filter((it) => it.thumb).map((it) => ({ imageUrl: it.thumb!, role: it.role })));
+      setPicture({ ...board, url: URL.createObjectURL(board.blob) });
+      setBuilt(true);
+      setBuilding(false);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Couldn't make the picture.");
+    }
+    setBoardBusy(false);
+  }
+
   const toggle = (list: string[], set: (v: string[]) => void, tag: string) =>
     set(list.includes(tag) ? list.filter((t) => t !== tag) : list.length < MAX_TAGS ? [...list, tag] : list);
   const setItem = (i: number, patch: Partial<Draft>) => setItems((list) => list.map((it, j) => (j === i ? { ...it, ...patch } : it)));
@@ -111,6 +220,15 @@ export default function CreatePage() {
     setError(null);
     const form = new FormData();
     form.append("picture", picture.blob, "post.webp");
+    const kept = items.filter((it) => it.name.trim());
+    // Store pieces' own pictures, by their position in the posted list.
+    await Promise.all(
+      kept.map(async (it, i) => {
+        if (it.closetItemId || !it.shopPicture) return;
+        const blob = await shrinkPicture(it.shopPicture);
+        if (blob) form.append(`itemPicture-${i}`, blob, `piece-${i}.webp`);
+      })
+    );
     form.append(
       "data",
       JSON.stringify({
@@ -119,7 +237,7 @@ export default function CreatePage() {
         occasionTags: occasions,
         width: picture.width,
         height: picture.height,
-        items: items.filter((it) => it.name.trim()).map(({ name, brand, store, link, category, closetItemId }) => ({ name, brand, store, link, category, closetItemId })),
+        items: kept.map(({ name, brand, store, link, price, category, closetItemId }) => ({ name, brand, store, link, price, category, closetItemId })),
       })
     );
     const res = await fetch("/api/posts", { method: "POST", body: form }).catch(() => null);
@@ -168,12 +286,18 @@ export default function CreatePage() {
             <div className="relative overflow-hidden rounded-[18px] bg-[#f1efeb]">
               {/* eslint-disable-next-line @next/next/no-img-element -- the person's own photo, not uploaded yet */}
               <img src={picture.url} alt="Your outfit photo" className="mx-auto max-h-[60vh] w-auto" />
-              <button onClick={() => setPicture(null)} className="absolute right-3 top-3 rounded-full bg-white/95 px-3.5 py-1.5 text-[12px] font-semibold text-[#121821] shadow">
+              <button
+                onClick={() => {
+                  setPicture(null);
+                  if (built) setBuilding(true);
+                }}
+                className="absolute right-3 top-3 rounded-full bg-white/95 px-3.5 py-1.5 text-[12px] font-semibold text-[#121821] shadow">
                 Change
               </button>
             </div>
           ) : (
-            <div className="grid grid-cols-2 gap-3">
+            !building && (
+            <div className="grid grid-cols-3 gap-3">
               <button onClick={() => fileInput.current?.click()} className="flex aspect-[3/4] flex-col items-center justify-center rounded-[18px] bg-white text-[14px] font-semibold text-[#121821] shadow-[inset_0_0_0_1px_rgba(18,24,33,0.12)]">
                 <span className="text-[28px] font-light">＋</span>
                 Photo
@@ -182,7 +306,12 @@ export default function CreatePage() {
                 <span className="text-[24px]">🔖</span>
                 A saved look
               </button>
+              <button onClick={startBuilding} className="flex aspect-[3/4] flex-col items-center justify-center rounded-[18px] bg-white px-2 text-center text-[14px] font-semibold text-[#121821] shadow-[inset_0_0_0_1px_rgba(18,24,33,0.12)]">
+                <span className="text-[24px]">👗</span>
+                Build an outfit
+              </button>
             </div>
+            )
           )}
           <input
             ref={fileInput}
@@ -216,6 +345,100 @@ export default function CreatePage() {
             </div>
           )}
         </section>
+
+        {building && !picture && (
+          <section className="mt-6">
+            <div role="tablist" aria-label="Where pieces come from" className="inline-flex rounded-full bg-white p-1 shadow-[inset_0_0_0_1px_rgba(18,24,33,0.1)]">
+              {(
+                [
+                  ["closet", "My closet"],
+                  ["shop", "Shopping"],
+                  ["link", "Store link"],
+                ] as const
+              ).map(([value, label]) => (
+                <button
+                  key={value}
+                  role="tab"
+                  aria-selected={source === value}
+                  onClick={() => setSource(value)}
+                  className={`rounded-full px-4 py-1.5 text-[12.5px] font-semibold ${source === value ? "bg-[#121821] text-white" : "text-[#4f5b66]"}`}
+                >
+                  {label}
+                </button>
+              ))}
+            </div>
+
+            <div className="mt-3 rounded-[18px] bg-white p-3 shadow-[inset_0_0_0_1px_rgba(18,24,33,0.08)]">
+              {source === "link" ? (
+                <div className="flex flex-col gap-2 p-1">
+                  <input value={link} onChange={(e) => setLink(e.target.value)} placeholder="Paste a product link from any store" inputMode="url" className={field} />
+                  <div className="flex flex-wrap gap-1.5">
+                    {KINDS.map((k) => (
+                      <button key={k.value} type="button" onClick={() => setLinkKind(k.value)} aria-pressed={linkKind === k.value} className={chip(linkKind === k.value)}>
+                        {k.label}
+                      </button>
+                    ))}
+                  </div>
+                  <button onClick={addLink} disabled={!link.trim() || linkBusy || items.length >= MAX_POST_ITEMS} className={`${btnSecondary} self-start`}>
+                    {linkBusy ? "Reading…" : "Add piece"}
+                  </button>
+                </div>
+              ) : (
+                (() => {
+                  const list: Draft[] = source === "closet" ? (closet ?? []).map(fromCloset) : shopPieces.map(fromShop);
+                  if (source === "closet" && !closet) return <p className="p-2 text-[13px] text-[#5d6874]">Loading…</p>;
+                  if (list.length === 0)
+                    return (
+                      <p className="p-2 text-[13px] text-[#5d6874]">
+                        {source === "shop" ? "No Shopping pieces yet. Add one with a store link." : "Your closet is empty."}
+                      </p>
+                    );
+                  return (
+                    <ul className="grid max-h-72 grid-cols-4 gap-2 overflow-y-auto">
+                      {list.map((d) => {
+                        const on = items.some((it) => it.key === d.key);
+                        return (
+                          <li key={d.key}>
+                            <button type="button" onClick={() => pick(d)} aria-pressed={on} aria-label={d.name} className={`block w-full overflow-hidden rounded-[10px] bg-[#f4f3f0] ${on ? "ring-2 ring-[#121821]" : ""}`}>
+                              {/* eslint-disable-next-line @next/next/no-img-element -- the person's own pieces */}
+                              <img src={d.thumb ?? ""} alt="" className="aspect-square w-full object-contain p-1" />
+                            </button>
+                          </li>
+                        );
+                      })}
+                    </ul>
+                  );
+                })()
+              )}
+            </div>
+
+            {items.length > 0 && (
+              <div className="mt-3 flex items-center gap-2 overflow-x-auto">
+                {items.map((it) => (
+                  <button key={it.key} type="button" onClick={() => pick(it)} aria-label={`Remove ${it.name}`} className="relative shrink-0">
+                    {/* eslint-disable-next-line @next/next/no-img-element -- the chosen pieces */}
+                    <img src={it.thumb ?? ""} alt="" className="h-14 w-14 rounded-[10px] bg-white object-contain p-0.5" />
+                    <span className="absolute -right-1 -top-1 flex h-5 w-5 items-center justify-center rounded-full bg-[#121821] text-[10px] text-white">✕</span>
+                  </button>
+                ))}
+              </div>
+            )}
+            <div className="mt-4 flex gap-2">
+              <button onClick={makeBoard} disabled={!items.some((it) => it.thumb) || boardBusy} className={`${btnPrimary} flex-1`}>
+                {boardBusy ? "Laying it out…" : `Make the outfit (${items.length})`}
+              </button>
+              <button
+                onClick={() => {
+                  setBuilding(false);
+                  setItems([]);
+                }}
+                className={btnSecondary}
+              >
+                Back
+              </button>
+            </div>
+          </section>
+        )}
 
         {picture && (
           <>
@@ -303,7 +526,10 @@ export default function CreatePage() {
                     <input value={it.brand} onChange={(e) => setItem(i, { brand: e.target.value })} placeholder="Brand" className={field} />
                     <input value={it.store} onChange={(e) => setItem(i, { store: e.target.value })} placeholder="Store" className={field} />
                   </div>
-                  <input value={it.link} onChange={(e) => setItem(i, { link: e.target.value })} placeholder="Shopping link (optional)" inputMode="url" className={`${field} mt-2`} />
+                  <div className="mt-2 grid grid-cols-[1fr_88px] gap-2">
+                    <input value={it.link} onChange={(e) => setItem(i, { link: e.target.value })} placeholder="Shopping link (optional)" inputMode="url" className={field} />
+                    <input value={it.price} onChange={(e) => setItem(i, { price: e.target.value })} placeholder="Price" className={field} />
+                  </div>
                 </li>
               ))}
             </ul>

@@ -53,7 +53,10 @@ function cleanLink(v: unknown): string | null {
   }
 }
 
-export type NewPostItem = { name?: unknown; category?: unknown; brand?: unknown; store?: unknown; link?: unknown; closetItemId?: unknown };
+export type NewPostItem = { name?: unknown; category?: unknown; brand?: unknown; store?: unknown; link?: unknown; price?: unknown; closetItemId?: unknown };
+/** A store piece's own picture (prepared on the device), by the piece's position in the list. */
+export type ItemPictures = Map<number, File>;
+export const ITEM_IMAGE_MAX_BYTES = 600 * 1024;
 export type NewPost = { caption?: unknown; styleTags?: unknown; occasionTags?: unknown; width?: unknown; height?: unknown; items?: unknown };
 
 async function putImage(prefix: string, bytes: Uint8Array, type: string): Promise<string> {
@@ -72,7 +75,7 @@ async function copyClosetPicture(userId: string, closetItemId: string): Promise<
 }
 
 /** Publishes a post. Only what the person typed or chose is stored; the picture becomes its own public copy. */
-export async function createPost(userId: string, picture: File, data: NewPost): Promise<string> {
+export async function createPost(userId: string, picture: File, data: NewPost, itemPictures: ItemPictures = new Map()): Promise<string> {
   if (!IMAGE_TYPES[picture.type]) throw new Error("Use a JPG, PNG or WebP picture.");
   if (picture.size > POST_IMAGE_MAX_BYTES) throw new Error("That picture is too large.");
   const width = Math.round(Number(data.width));
@@ -80,8 +83,17 @@ export async function createPost(userId: string, picture: File, data: NewPost): 
   if (!(width > 0 && height > 0 && width <= 4000 && height <= 4000)) throw new Error("That picture couldn't be read.");
 
   const rawItems = Array.isArray(data.items) ? (data.items as NewPostItem[]).slice(0, MAX_POST_ITEMS) : [];
-  const items: { name: string; category: string | null; brand: string | null; store: string | null; link: string | null; closetItemId: string | null }[] = [];
-  for (const it of rawItems) {
+  const items: {
+    name: string;
+    category: string | null;
+    brand: string | null;
+    store: string | null;
+    link: string | null;
+    price: string | null;
+    closetItemId: string | null;
+    picture: File | null;
+  }[] = [];
+  for (const [index, it] of rawItems.entries()) {
     const name = oneLine(it?.name, ITEM_TEXT_MAX);
     if (!name) continue;
     const closetItemId = typeof it.closetItemId === "string" ? it.closetItemId : null;
@@ -93,12 +105,23 @@ export async function createPost(userId: string, picture: File, data: NewPost): 
       brand: oneLine(it.brand, ITEM_TEXT_MAX),
       store: oneLine(it.store, ITEM_TEXT_MAX),
       link: cleanLink(it.link),
+      price: oneLine(it.price, 24),
       closetItemId: owned?.id ?? null,
+      // A store piece's own picture (closet pieces use a copy of the closet picture instead).
+      picture: owned ? null : (itemPictures.get(index) ?? null),
     });
   }
 
   const imageKey = await putImage("post-", new Uint8Array(await picture.arrayBuffer()), picture.type);
-  const itemKeys = await Promise.all(items.map((it) => (it.closetItemId ? copyClosetPicture(userId, it.closetItemId).catch(() => null) : null)));
+  const itemKeys = await Promise.all(
+    items.map(async (it) => {
+      if (it.closetItemId) return copyClosetPicture(userId, it.closetItemId).catch(() => null);
+      if (it.picture && IMAGE_TYPES[it.picture.type] && it.picture.size <= ITEM_IMAGE_MAX_BYTES) {
+        return putImage("postitem-", new Uint8Array(await it.picture.arrayBuffer()), it.picture.type);
+      }
+      return null;
+    })
+  );
   const post = await prisma.post.create({
     data: {
       userId,
@@ -108,7 +131,19 @@ export async function createPost(userId: string, picture: File, data: NewPost): 
       caption: caption(data.caption),
       styleTags: JSON.stringify(tags(data.styleTags, STYLE_TAGS)),
       occasionTags: JSON.stringify(tags(data.occasionTags, OCCASION_TAGS)),
-      items: { create: items.map((it, i) => ({ ...it, position: i, imageKey: itemKeys[i] })) },
+      items: {
+        create: items.map((it, i) => ({
+          name: it.name,
+          category: it.category,
+          brand: it.brand,
+          store: it.store,
+          link: it.link,
+          price: it.price,
+          closetItemId: it.closetItemId,
+          position: i,
+          imageKey: itemKeys[i],
+        })),
+      },
     },
     select: { id: true },
   });
@@ -140,7 +175,7 @@ export const postSelect = {
   createdAt: true,
   status: true,
   user: { select: { username: true, displayName: true, avatarKey: true } },
-  items: { orderBy: { position: "asc" as const }, select: { name: true, category: true, brand: true, store: true, link: true, imageKey: true } },
+  items: { orderBy: { position: "asc" as const }, select: { name: true, category: true, brand: true, store: true, link: true, price: true, imageKey: true } },
 };
 type PostRow = Awaited<ReturnType<typeof prisma.post.findFirst<{ select: typeof postSelect }>>>;
 
@@ -156,7 +191,15 @@ export function toPublic(row: NonNullable<PostRow>, viewer?: { id: string; role:
     likeCount: row.likeCount,
     createdAt: row.createdAt.toISOString(),
     creator: { username: row.user.username ?? "virm", displayName: row.user.displayName, avatarUrl: avatarUrl(row.user.avatarKey) },
-    items: row.items.map((it) => ({ name: it.name, category: it.category, brand: it.brand, store: it.store, link: it.link, imageUrl: it.imageKey ? `/uploads/${it.imageKey}` : null })),
+    items: row.items.map((it) => ({
+      name: it.name,
+      category: it.category,
+      brand: it.brand,
+      store: it.store,
+      link: it.link,
+      price: it.price,
+      imageUrl: it.imageKey ? `/uploads/${it.imageKey}` : null,
+    })),
     ...(viewer && (viewer.id === row.userId || viewer.role === "admin") ? { mine: true } : {}),
   };
 }

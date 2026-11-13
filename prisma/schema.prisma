@@ -370,6 +370,8 @@ model PostItem {
   brand        String?
   store        String?
   link         String?
+  /// As the store shows it, e.g. "$49".
+  price        String?
   imageKey     String?
   closetItemId String?
 

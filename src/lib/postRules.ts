@@ -23,7 +23,15 @@ export const FEED_PAGE = 10;
 export const HIDE_AFTER_REPORTS = 3;
 
 /** What anyone may see of a post (never the owner's email or which closet piece an item came from). */
-export type PublicPostItem = { name: string; category: string | null; brand: string | null; store: string | null; link: string | null; imageUrl: string | null };
+export type PublicPostItem = {
+  name: string;
+  category: string | null;
+  brand: string | null;
+  store: string | null;
+  link: string | null;
+  price: string | null;
+  imageUrl: string | null;
+};
 export type PublicPost = {
   id: string;
   imageUrl: string;

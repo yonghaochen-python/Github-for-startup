@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import { asResponse, requireUser } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
-import { canUserPost, createPost, POSTS_PER_DAY, postsToday, type NewPost } from "@/lib/posts";
+import { canUserPost, createPost, POSTS_PER_DAY, postsToday, type ItemPictures, type NewPost } from "@/lib/posts";
 import { track } from "@/lib/analytics";
 
 const noStore = { "cache-control": "private, no-store" };
@@ -30,7 +30,13 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: "Something was wrong with the post." }, { status: 400, headers: noStore });
   }
   try {
-    const id = await createPost(user.id, picture, data);
+    // Store pieces' own pictures arrive as "itemPicture-<position>".
+    const itemPictures: ItemPictures = new Map();
+    for (const [name, value] of form?.entries() ?? []) {
+      const m = /^itemPicture-(\d{1,2})$/.exec(name);
+      if (m && value instanceof File) itemPictures.set(Number(m[1]), value);
+    }
+    const id = await createPost(user.id, picture, data, itemPictures);
     await track(user.id, "post_created");
     return NextResponse.json({ id }, { status: 201, headers: noStore });
   } catch (err) {

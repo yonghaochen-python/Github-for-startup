@@ -119,7 +119,9 @@ export default function PostPage() {
                 )}
                 <span className="min-w-0 flex-1">
                   <span className="block truncate text-[13.5px] font-medium text-[#121821]">{it.name}</span>
-                  {(it.brand || it.store) && <span className="block truncate text-[12px] text-[#5d6874]">{[...new Set([it.brand, it.store].filter(Boolean))].join(" · ")}</span>}
+                  {(it.brand || it.store || it.price) && (
+                    <span className="block truncate text-[12px] text-[#5d6874]">{[...new Set([it.brand, it.store].filter(Boolean)), it.price].filter(Boolean).join(" · ")}</span>
+                  )}
                 </span>
                 {it.link && (
                   <a href={it.link} target="_blank" rel="noopener noreferrer nofollow ugc" className="shrink-0 rounded-full bg-[#121821] px-3 py-1.5 text-[12px] font-semibold text-white">
