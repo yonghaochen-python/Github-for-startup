@@ -5,7 +5,7 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import type { ClothingItem, Outfit } from "@/components/OutfitCard";
 import { CAPTION_MAX, MAX_POST_ITEMS, MAX_TAGS, OCCASION_TAGS, STYLE_TAGS } from "@/lib/postRules";
-import { outfitBoard, shrinkPicture } from "@/lib/outfitBoard";
+import { outfitBoard, shrinkPicture, withoutBackground } from "@/lib/outfitBoard";
 import { ROLE_FOR, type TrayCategory, type TrayItem } from "@/lib/shopCatalog";
 import { keepShopTryOn, readShopTryOns } from "@/lib/shopWishlist";
 import { PageShell, btnPrimary, btnSecondary, btnText, eyebrow } from "@/components/ui";
@@ -102,9 +102,10 @@ export default function CreatePage() {
   const [picture, setPicture] = useState<Picture | null>(null);
   // "Build an outfit": choosing pieces (before the picture is made from them).
   const [building, setBuilding] = useState(false);
-  const [source, setSource] = useState<"closet" | "shop" | "link">("closet");
+  const [source, setSource] = useState<"closet" | "shop">("closet");
   const [shopPieces, setShopPieces] = useState<TrayItem[]>([]);
   const [link, setLink] = useState("");
+  const storePhoto = useRef<HTMLInputElement | null>(null);
   const [linkKind, setLinkKind] = useState<TrayCategory>("top");
   const [linkBusy, setLinkBusy] = useState(false);
   const [boardBusy, setBoardBusy] = useState(false);
@@ -197,7 +198,8 @@ export default function CreatePage() {
     const res = await fetch("/api/shop/import", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ url: link.trim() }) }).catch(() => null);
     const data = res ? ((await res.json().catch(() => ({}))) as { product?: { productUrl: string | null; retailer: string; name: string | null; price: string | null; currency: string | null; imageDataUrl: string }; error?: string }) : {};
     setLinkBusy(false);
-    if (!res?.ok || !data.product) return setError(data.error ?? "Couldn't read that link.");
+    // Many stores block reading their pages: a photo or screenshot of the piece works instead.
+    if (!res?.ok || !data.product) return setError("That store didn't let us read the link. Add a photo or screenshot of the piece instead.");
     const p = data.product;
     const item: TrayItem = {
       key: `ext-${Date.now()}`,
@@ -206,7 +208,8 @@ export default function CreatePage() {
       category: linkKind,
       layeringRole: ROLE_FOR[linkKind],
       color: "",
-      imageUrl: p.imageDataUrl,
+      // The background is removed on this device (free), like closet pieces.
+      imageUrl: await withoutBackground(p.imageDataUrl),
       price: p.price ? `${p.currency === "USD" || !p.currency ? "$" : ""}${p.price}${p.currency && p.currency !== "USD" ? ` ${p.currency}` : ""}` : null,
       productUrl: p.productUrl,
     };
@@ -215,12 +218,41 @@ export default function CreatePage() {
     setLink("");
   }
 
+  /** A store piece from a photo or screenshot (shrunk on this device; kept in Shopping too). Name it in the list below. */
+  async function addStorePhoto(file: File) {
+    setError(null);
+    try {
+      const bitmap = await createImageBitmap(file);
+      const scale = Math.min(1, 800 / Math.max(bitmap.width, bitmap.height));
+      const canvas = document.createElement("canvas");
+      canvas.width = Math.round(bitmap.width * scale);
+      canvas.height = Math.round(bitmap.height * scale);
+      canvas.getContext("2d")?.drawImage(bitmap, 0, 0, canvas.width, canvas.height);
+      bitmap.close();
+      const item: TrayItem = {
+        key: `ext-${Date.now()}`,
+        name: KINDS.find((k) => k.value === linkKind)?.label ?? "Piece",
+        label: "",
+        category: linkKind,
+        layeringRole: ROLE_FOR[linkKind],
+        color: "",
+        imageUrl: await withoutBackground(canvas.toDataURL("image/png")),
+        price: null,
+        productUrl: null,
+      };
+      setShopPieces(keepShopTryOn(item));
+      pick(fromShop(item));
+    } catch {
+      setError("Couldn't read that photo.");
+    }
+  }
+
   /** Lays the chosen pieces out into the post's picture (on this device). */
   async function makeBoard() {
     setError(null);
     setBoardBusy(true);
     try {
-      const board = await outfitBoard(items.filter((it) => it.thumb).map((it) => ({ imageUrl: it.thumb!, role: it.role })));
+      const board = await outfitBoard(items.filter((it) => it.thumb).map((it) => ({ imageUrl: it.thumb!, role: it.role, name: it.name })));
       setPicture({ ...board, url: URL.createObjectURL(board.blob) });
       setBuilt(true);
       setBuilding(false);
@@ -373,7 +405,6 @@ export default function CreatePage() {
                 [
                   ["closet", "My closet"],
                   ["shop", "Shopping"],
-                  ["link", "Store link"],
                 ] as const
               ).map(([value, label]) => (
                 <button
@@ -389,28 +420,45 @@ export default function CreatePage() {
             </div>
 
             <div className="mt-3 rounded-[18px] bg-white p-3 shadow-[inset_0_0_0_1px_rgba(18,24,33,0.08)]">
-              {source === "link" ? (
-                <div className="flex flex-col gap-2 p-1">
-                  <input value={link} onChange={(e) => setLink(e.target.value)} placeholder="Paste a product link from any store" inputMode="url" className={field} />
-                  <div className="flex flex-wrap gap-1.5">
+              {source === "shop" && (
+                <div className="mb-3 flex flex-col gap-2 border-b border-black/[0.06] p-1 pb-3">
+                  <div className="flex gap-2">
+                    <input value={link} onChange={(e) => setLink(e.target.value)} placeholder="Paste a store link" inputMode="url" className={field} />
+                    <button onClick={addLink} disabled={!link.trim() || linkBusy || items.length >= MAX_POST_ITEMS} className={`${btnSecondary} !min-h-[40px] shrink-0 !px-4`}>
+                      {linkBusy ? "…" : "Add"}
+                    </button>
+                  </div>
+                  <div className="flex flex-wrap items-center gap-1.5">
                     {KINDS.map((k) => (
                       <button key={k.value} type="button" onClick={() => setLinkKind(k.value)} aria-pressed={linkKind === k.value} className={chip(linkKind === k.value)}>
                         {k.label}
                       </button>
                     ))}
+                    <button type="button" onClick={() => storePhoto.current?.click()} className={`${btnText} ml-auto text-[12.5px]`}>
+                      or a photo
+                    </button>
                   </div>
-                  <button onClick={addLink} disabled={!link.trim() || linkBusy || items.length >= MAX_POST_ITEMS} className={`${btnSecondary} self-start`}>
-                    {linkBusy ? "Reading…" : "Add piece"}
-                  </button>
+                  <input
+                    ref={storePhoto}
+                    type="file"
+                    accept="image/jpeg,image/png,image/webp"
+                    hidden
+                    onChange={(e) => {
+                      const file = e.target.files?.[0];
+                      e.target.value = "";
+                      if (file) void addStorePhoto(file);
+                    }}
+                  />
                 </div>
-              ) : (
+              )}
+              {(
                 (() => {
                   const list: Draft[] = source === "closet" ? (closet ?? []).map(fromCloset) : shopPieces.map(fromShop);
                   if (source === "closet" && !closet) return <p className="p-2 text-[13px] text-[#5d6874]">Loading…</p>;
                   if (list.length === 0)
                     return (
                       <p className="p-2 text-[13px] text-[#5d6874]">
-                        {source === "shop" ? "No Shopping pieces yet. Add one with a store link." : "Your closet is empty."}
+                        {source === "shop" ? "Paste a store link or add a photo of a piece." : "Your closet is empty."}
                       </p>
                     );
                   return (
