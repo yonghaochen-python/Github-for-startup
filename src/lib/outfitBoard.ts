@@ -50,27 +50,36 @@ async function loadImage(url: string): Promise<ImageBitmap | null> {
 }
 
 /** Draws each picture fitted inside its box, centered, keeping its shape. */
-function drawFitted(ctx: CanvasRenderingContext2D, img: ImageBitmap, x: number, y: number, w: number, h: number) {
-  const scale = Math.min(w / img.width, h / img.height);
-  const dw = img.width * scale;
-  const dh = img.height * scale;
-  ctx.drawImage(img, x + (w - dw) / 2, y + (h - dh) / 2, dw, dh);
+/** Where a picture lands when fitted inside a box (kept in shape, centered), as fractions of the board. */
+function fitted(img: { width: number; height: number }, [l, t, r, b]: Box): { x: number; y: number; w: number; h: number } {
+  const bw = (r - l) * WIDTH;
+  const bh = (b - t) * HEIGHT;
+  const scale = Math.min(bw / img.width, bh / img.height);
+  const w = img.width * scale;
+  const h = img.height * scale;
+  return { x: (l * WIDTH + (bw - w) / 2) / WIDTH, y: (t * HEIGHT + (bh - h) / 2) / HEIGHT, w: w / WIDTH, h: h / HEIGHT };
 }
 
-/** The outfit picture (WebP) and its size. Pieces without a picture are left out of it. */
-export async function outfitBoard(pieces: BoardPiece[]): Promise<{ blob: Blob; width: number; height: number }> {
-  const loaded = (
-    await Promise.all(pieces.map(async (p) => ({ role: p.role, name: p.name ?? "", img: await loadImage(await withoutBackground(p.imageUrl)) })))
-  ).filter((p): p is { role: string; name: string; img: ImageBitmap } => p.img !== null);
-  if (loaded.length === 0) throw new Error("Add pieces with pictures first.");
+/**
+ * One piece on the board: its picture (background removed) and where it is, as fractions of the board (x, y = top
+ * left; w, h = size). The list's order is the stacking order: later pieces lie on top. People can move, resize and
+ * restack these before the picture is drawn.
+ */
+export type BoardLayer = { src: string; key: string; x: number; y: number; w: number; h: number };
+export const BOARD_RATIO = WIDTH / HEIGHT;
+export const BOARD_BACKGROUND = BACKGROUND;
 
-  const canvas = document.createElement("canvas");
-  canvas.width = WIDTH;
-  canvas.height = HEIGHT;
-  const ctx = canvas.getContext("2d");
-  if (!ctx) throw new Error("Couldn't make the picture.");
-  ctx.fillStyle = BACKGROUND;
-  ctx.fillRect(0, 0, WIDTH, HEIGHT);
+/** The automatic arrangement: every piece placed (backgrounds removed). Pieces without a picture are left out. */
+export async function layoutBoard(pieces: (BoardPiece & { key: string })[]): Promise<BoardLayer[]> {
+  const loaded = (
+    await Promise.all(
+      pieces.map(async (p) => {
+        const src = await withoutBackground(p.imageUrl);
+        return { role: p.role, name: p.name ?? "", key: p.key, src, img: await loadImage(src) };
+      })
+    )
+  ).filter((p): p is { role: string; name: string; key: string; src: string; img: ImageBitmap } => p.img !== null);
+  if (loaded.length === 0) throw new Error("Add pieces with pictures first.");
 
   const of = (roles: string[]) => loaded.filter((p) => roles.includes(p.role));
   const jacket = of(["outer_layer"])[0];
@@ -82,26 +91,27 @@ export async function outfitBoard(pieces: BoardPiece[]): Promise<{ blob: Blob; w
 
   // Placed in drawing order, so later pieces lie on top. The left column, worn order: the inner top (peeking out at the
   // neckline), the bottoms or dress, then the jacket over them, shoes underneath.
-  const placed: { img: ImageBitmap; box: Box }[] = [];
+  type Loaded = (typeof loaded)[number];
+  const placed: { piece: Loaded; box: Box }[] = [];
   const outerPiece = jacket ?? (tops.length > 1 ? tops[tops.length - 1] : undefined);
   const innerTops = jacket ? tops : tops.slice(0, outerPiece ? -1 : undefined);
   const inner = innerTops[0];
   const JACKET: Box = [0.04, 0.09, 0.54, 0.44];
-  if (dress) placed.push({ img: dress.img, box: outerPiece ? [0.12, 0.14, 0.54, 0.74] : [0.1, 0.06, 0.56, 0.72] });
+  if (dress) placed.push({ piece: dress, box: outerPiece ? [0.12, 0.14, 0.54, 0.74] : [0.1, 0.06, 0.56, 0.72] });
   // Under a jacket, the top sits up and to the right so it shows beside the jacket (not hidden behind it).
-  if (inner) placed.push({ img: inner.img, box: outerPiece ? [0.33, 0.04, 0.66, 0.34] : JACKET });
+  if (inner) placed.push({ piece: inner, box: outerPiece ? [0.33, 0.04, 0.66, 0.34] : JACKET });
   // Long trousers (taller than wide) get the height down to the bottom, and the shoes move to the right column.
   const longBottom = Boolean(!dress && bottom && bottom.img.height / bottom.img.width > 1.3);
   if (!dress && bottom) {
     const upperBody = Boolean(inner || outerPiece);
     const box: Box = longBottom ? (upperBody ? [0.12, 0.32, 0.54, 0.96] : [0.12, 0.06, 0.54, 0.9]) : upperBody ? [0.13, 0.34, 0.53, 0.68] : [0.13, 0.08, 0.53, 0.62];
-    placed.push({ img: bottom.img, box });
+    placed.push({ piece: bottom, box });
   }
-  if (outerPiece) placed.push({ img: outerPiece.img, box: JACKET });
+  if (outerPiece) placed.push({ piece: outerPiece, box: JACKET });
   // Any other top goes in the right column's free spot.
   const extraTops = innerTops.slice(1);
   // Shoes: under the clothes on the left, or under the bag on the right when long trousers take the left.
-  if (shoes) placed.push({ img: shoes.img, box: longBottom ? [0.62, 0.66, 0.96, 0.88] : [0.08, 0.7, 0.5, 0.95] });
+  if (shoes) placed.push({ piece: shoes, box: longBottom ? [0.62, 0.66, 0.96, 0.88] : [0.08, 0.7, 0.5, 0.95] });
 
   // The right column: accessories by kind (from their names); anything else in the next free spot.
   const used = new Set<Box>();
@@ -111,19 +121,33 @@ export async function outfitBoard(pieces: BoardPiece[]): Promise<{ blob: Blob; w
     box ??= FREE_BOXES.find((b) => !used.has(b));
     if (!box) continue;
     used.add(box);
-    placed.push({ img: a.img, box });
+    placed.push({ piece: a, box });
   }
 
-  // A soft shadow lifts each piece off the white, so overlaps read clearly.
+  const layers = placed.map(({ piece, box }) => ({ src: piece.src, key: piece.key, ...fitted(piece.img, box) }));
+  for (const p of loaded) p.img.close();
+  return layers;
+}
+
+/** Draws the board (in stacking order) into the post's picture (WebP). */
+export async function renderBoard(layers: BoardLayer[]): Promise<{ blob: Blob; width: number; height: number }> {
+  const canvas = document.createElement("canvas");
+  canvas.width = WIDTH;
+  canvas.height = HEIGHT;
+  const ctx = canvas.getContext("2d");
+  if (!ctx) throw new Error("Couldn't make the picture.");
+  ctx.fillStyle = BACKGROUND;
+  ctx.fillRect(0, 0, WIDTH, HEIGHT);
+  // A soft shadow lifts each piece off the background, so overlaps read clearly.
   ctx.shadowColor = "rgba(18, 24, 33, 0.14)";
   ctx.shadowBlur = 16;
   ctx.shadowOffsetY = 6;
-  for (const { img, box } of placed) {
-    const [l, t, r, b] = box;
-    drawFitted(ctx, img, l * WIDTH, t * HEIGHT, (r - l) * WIDTH, (b - t) * HEIGHT);
+  for (const layer of layers) {
+    const img = await loadImage(layer.src);
+    if (!img) continue;
+    ctx.drawImage(img, layer.x * WIDTH, layer.y * HEIGHT, layer.w * WIDTH, layer.h * HEIGHT);
+    img.close();
   }
-  for (const p of loaded) p.img.close();
-
   const blob = await new Promise<Blob>((resolve, reject) => canvas.toBlob((b) => (b ? resolve(b) : reject(new Error("Couldn't make the picture."))), "image/webp", 0.9));
   return { blob, width: WIDTH, height: HEIGHT };
 }

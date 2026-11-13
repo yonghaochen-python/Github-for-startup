@@ -5,7 +5,8 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import type { ClothingItem, Outfit } from "@/components/OutfitCard";
 import { CAPTION_MAX, MAX_POST_ITEMS, MAX_TAGS, OCCASION_TAGS, STYLE_TAGS } from "@/lib/postRules";
-import { outfitBoard, shrinkPicture, withoutBackground } from "@/lib/outfitBoard";
+import { layoutBoard, renderBoard, shrinkPicture, withoutBackground, type BoardLayer } from "@/lib/outfitBoard";
+import { BoardEditor } from "@/components/BoardEditor";
 import { ROLE_FOR, type TrayCategory, type TrayItem } from "@/lib/shopCatalog";
 import { keepShopTryOn, readShopTryOns } from "@/lib/shopWishlist";
 import { PageShell, btnPrimary, btnSecondary, btnText, eyebrow } from "@/components/ui";
@@ -111,6 +112,8 @@ export default function CreatePage() {
   const [boardBusy, setBoardBusy] = useState(false);
   // The picture was made from the chosen pieces ("Change" goes back to them).
   const [built, setBuilt] = useState(false);
+  // Arranging the built outfit (move, resize, layer) before its picture is drawn.
+  const [layers, setLayers] = useState<BoardLayer[] | null>(null);
   const [saved, setSaved] = useState<Outfit[] | null>(null);
   const [showSaved, setShowSaved] = useState(false);
   const [closet, setCloset] = useState<ClosetPiece[] | null>(null);
@@ -248,14 +251,27 @@ export default function CreatePage() {
   }
 
   /** Lays the chosen pieces out into the post's picture (on this device). */
+  /** Arranges the chosen pieces automatically (backgrounds removed); then they can be moved, resized and layered. */
   async function makeBoard() {
     setError(null);
     setBoardBusy(true);
     try {
-      const board = await outfitBoard(items.filter((it) => it.thumb).map((it) => ({ imageUrl: it.thumb!, role: it.role, name: it.name })));
+      setLayers(await layoutBoard(items.filter((it) => it.thumb).map((it) => ({ imageUrl: it.thumb!, role: it.role, name: it.name, key: it.key }))));
+      setBuilding(false);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Couldn't make the picture.");
+    }
+    setBoardBusy(false);
+  }
+
+  /** Done arranging: draws the post's picture from the arrangement (on this device). */
+  async function finishBoard() {
+    if (!layers) return;
+    setBoardBusy(true);
+    try {
+      const board = await renderBoard(layers);
       setPicture({ ...board, url: URL.createObjectURL(board.blob) });
       setBuilt(true);
-      setBuilding(false);
     } catch (err) {
       setError(err instanceof Error ? err.message : "Couldn't make the picture.");
     }
@@ -341,14 +357,14 @@ export default function CreatePage() {
               <button
                 onClick={() => {
                   setPicture(null);
-                  if (built) setBuilding(true);
+                  if (!built) setLayers(null);
                 }}
                 className="absolute right-3 top-3 rounded-full bg-white/95 px-3.5 py-1.5 text-[12px] font-semibold text-[#121821] shadow">
                 Change
               </button>
             </div>
           ) : (
-            !building && (
+            !building && !layers && (
             <div className="grid grid-cols-3 gap-3">
               <button onClick={() => fileInput.current?.click()} className="flex aspect-[3/4] flex-col items-center justify-center rounded-[18px] bg-white text-[14px] font-semibold text-[#121821] shadow-[inset_0_0_0_1px_rgba(18,24,33,0.12)]">
                 <span className="text-[28px] font-light">＋</span>
@@ -397,6 +413,30 @@ export default function CreatePage() {
             </div>
           )}
         </section>
+
+        {layers && !picture && !building && (
+          <section className="mt-6">
+            <BoardEditor layers={layers} onChange={setLayers} />
+            <div className="mt-3 flex gap-2">
+              <button onClick={finishBoard} disabled={boardBusy} className={`${btnPrimary} flex-1`}>
+                {boardBusy ? "Saving…" : "Done"}
+              </button>
+              <button onClick={makeBoard} disabled={boardBusy} className={btnSecondary}>
+                Reset
+              </button>
+              <button
+                onClick={() => {
+                  setLayers(null);
+                  setBuilding(true);
+                }}
+                disabled={boardBusy}
+                className={btnSecondary}
+              >
+                Pieces
+              </button>
+            </div>
+          </section>
+        )}
 
         {building && !picture && (
           <section className="mt-6">
