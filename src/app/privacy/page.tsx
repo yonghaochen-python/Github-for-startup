@@ -75,6 +75,18 @@ export default function PrivacyPage() {
         )}
       </ul>
 
+      <h2>Public profile and posts</h2>
+      <ul>
+        <li>
+          Nothing you add to Virm is public unless you choose it. If you pick a username or post an outfit, anyone can see your username, display name,
+          bio, profile picture and the posts you made (photo, caption, tags and the pieces you listed).
+        </li>
+        <li>Your email, closet, try-on photo and everything else stay private, and posting an outfit never publishes your closet.</li>
+        <li>Photos are shrunk on your device before posting, which also removes their location data.</li>
+        <li>If you report a post, the person who posted it isn&apos;t told who reported it.</li>
+        <li>Deleting a post deletes its pictures. Deleting your account deletes your profile and all your posts.</li>
+      </ul>
+
       <h2>Your photos</h2>
       <ul>
         <li>Your full-body photo and try-on pictures are private: only you can see them, after logging in.</li>

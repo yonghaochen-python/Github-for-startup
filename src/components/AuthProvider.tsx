@@ -139,7 +139,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   }, []);
 
   // A shared "Share looks" link opens for anyone who has it.
-  const isPublicPath = PUBLIC_PATHS.includes(pathname ?? "/") || (pathname ?? "").startsWith("/pick/") || (pathname ?? "").startsWith("/u/");
+  const isPublicPath = PUBLIC_PATHS.includes(pathname ?? "/") || (pathname ?? "").startsWith("/pick/") || (pathname ?? "").startsWith("/u/") || (pathname ?? "").startsWith("/p/");
 
   // Signed-out visits to a protected URL go to login; an explicit logout goes to the public intro instead.
   useEffect(() => {

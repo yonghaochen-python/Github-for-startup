@@ -41,6 +41,8 @@ model User {
   username             String?   @unique
   bio                  String?
   avatarKey            String?
+  /// May post while posting is limited to testers (admins always can).
+  canPost              Boolean   @default(false)
 
   items    ClothingItem[]
   outfits  Outfit[]
@@ -53,6 +55,8 @@ model User {
   feedback Feedback[]
   plans    OutfitPlan[]
   subscriptions Subscription[]
+  posts         Post[]
+  postReports   PostReport[]
 
   @@index([trialCardFingerprint])
   @@index([invitedById])
@@ -195,6 +199,7 @@ model ClothingItem {
 
   user        User         @relation(fields: [userId], references: [id], onDelete: Cascade)
   outfitItems OutfitItem[]
+  postItems   PostItem[]
 }
 
 model Outfit {
@@ -322,4 +327,70 @@ model BillingEvent {
   processedAt DateTime?
 
   @@index([type, receivedAt])
+}
+
+/// Social feed: one public outfit post. The picture is its own public copy (post-<id>), never a closet or private photo.
+model Post {
+  id           String   @id @default(cuid())
+  userId       String
+  imageKey     String
+  width        Int
+  height       Int
+  caption      String?
+  /// JSON arrays of short tags.
+  styleTags    String   @default("[]")
+  occasionTags String   @default("[]")
+  /// published | hidden (reported, waiting for review) | removed
+  status       String   @default("published")
+  likeCount    Int      @default(0)
+  saveCount    Int      @default(0)
+  reportCount  Int      @default(0)
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  user    User         @relation(fields: [userId], references: [id], onDelete: Cascade)
+  items   PostItem[]
+  reports PostReport[]
+
+  @@index([status, createdAt])
+  @@index([userId, createdAt])
+}
+
+/// A piece in a post as typed. closetItemId privately notes the closet piece it came from (never shown).
+model PostItem {
+  id           String  @id @default(cuid())
+  postId       String
+  position     Int
+  name         String
+  category     String?
+  brand        String?
+  store        String?
+  link         String?
+  imageKey     String?
+  closetItemId String?
+
+  post       Post          @relation(fields: [postId], references: [id], onDelete: Cascade)
+  closetItem ClothingItem? @relation(fields: [closetItemId], references: [id], onDelete: SetNull)
+
+  @@index([postId])
+}
+
+/// One person's report of a post; reviewed in the admin dashboard.
+model PostReport {
+  id         String    @id @default(cuid())
+  postId     String
+  reporterId String
+  /// nudity | harassment | hate | spam | not_mine | other
+  reason     String
+  note       String?
+  /// open | dismissed | actioned
+  status     String    @default("open")
+  createdAt  DateTime  @default(now())
+  reviewedAt DateTime?
+
+  post     Post @relation(fields: [postId], references: [id], onDelete: Cascade)
+  reporter User @relation(fields: [reporterId], references: [id], onDelete: Cascade)
+
+  @@unique([postId, reporterId])
+  @@index([status, createdAt])
 }

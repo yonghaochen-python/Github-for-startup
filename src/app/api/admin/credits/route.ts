@@ -20,7 +20,7 @@ export async function GET(request: Request) {
   }
   const email = new URL(request.url).searchParams.get("email")?.trim().toLowerCase();
   if (email) {
-    const account = await prisma.user.findUnique({ where: { email }, select: { id: true, email: true, role: true } });
+    const account = await prisma.user.findUnique({ where: { email }, select: { id: true, email: true, role: true, canPost: true } });
     if (!account) return NextResponse.json({ error: "No account with that email." }, { status: 404, headers: noStore });
     const [balances, recent] = await Promise.all([
       getBalances(account.id),
@@ -31,7 +31,7 @@ export async function GET(request: Request) {
         select: { kind: true, type: true, source: true, amount: true, status: true, outcome: true, note: true, createdAt: true },
       }),
     ]);
-    return NextResponse.json({ account: { email: account.email, admin: account.role === "admin", svip: account.role === SVIP_ROLE }, balances, recent }, { headers: noStore });
+    return NextResponse.json({ account: { email: account.email, admin: account.role === "admin", svip: account.role === SVIP_ROLE, canPost: account.canPost }, balances, recent }, { headers: noStore });
   }
 
   const groups = await prisma.creditEntry.groupBy({ by: ["kind", "status", "source"], where: { type: "use" }, _count: { _all: true } });
@@ -66,7 +66,9 @@ export async function POST(request: Request) {
   const account = email ? await prisma.user.findUnique({ where: { email }, select: { id: true, role: true } }) : null;
   if (!account) return NextResponse.json({ error: "No account with that email." }, { status: 404, headers: noStore });
 
-  if (body.action === "svip" || body.action === "unsvip") {
+  if (body.action === "allowPosting" || body.action === "stopPosting") {
+    await prisma.user.update({ where: { id: account.id }, data: { canPost: body.action === "allowPosting" } });
+  } else if (body.action === "svip" || body.action === "unsvip") {
     // Only between a normal account and SVIP: an admin is never changed here.
     if (account.role === "admin") return NextResponse.json({ error: "That's an admin account." }, { status: 400, headers: noStore });
     await prisma.user.update({ where: { id: account.id }, data: { role: body.action === "svip" ? SVIP_ROLE : "user" } });

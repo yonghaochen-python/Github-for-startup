@@ -18,7 +18,7 @@ const field = "min-h-[40px] rounded-[10px] bg-[#f4f5f6] px-3 text-[13px] text-[#
 export function CreditsAdmin() {
   const [summary, setSummary] = useState<{ summary: Summary; unclearLive: number } | null>(null);
   const [email, setEmail] = useState("");
-  const [account, setAccount] = useState<{ email: string; admin: boolean; svip?: boolean; balances: Balances; recent: Entry[] } | null>(null);
+  const [account, setAccount] = useState<{ email: string; admin: boolean; svip?: boolean; canPost?: boolean; balances: Balances; recent: Entry[] } | null>(null);
   const [plan, setPlan] = useState<PlanKey>("free");
   const [kind, setKind] = useState<"photo" | "live">("photo");
   const [amount, setAmount] = useState("5");
@@ -38,7 +38,7 @@ export function CreditsAdmin() {
     const res = await fetch(`/api/admin/credits?email=${encodeURIComponent(email.trim())}`, { cache: "no-store" });
     const data = (await res.json().catch(() => ({}))) as {
       error?: string;
-      account: { email: string; admin: boolean; svip?: boolean };
+      account: { email: string; admin: boolean; svip?: boolean; canPost?: boolean };
       balances: Balances;
       recent: Entry[];
     };
@@ -109,6 +109,10 @@ export function CreditsAdmin() {
                 {/* SVIP: no monthly limits (photo, live, clothing photos, Style It); live stays at 10 a day. Not an admin. */}
                 <button onClick={() => act({ action: account.svip ? "unsvip" : "svip" })} className={btnSecondary}>
                   {account.svip ? "Remove SVIP" : "Make SVIP"}
+                </button>
+                {/* While posting is limited to testers. */}
+                <button onClick={() => act({ action: account.canPost ? "stopPosting" : "allowPosting" })} className={btnSecondary}>
+                  {account.canPost ? "Stop posting" : "Allow posting"}
                 </button>
               </div>
             )}

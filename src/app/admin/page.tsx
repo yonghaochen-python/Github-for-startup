@@ -4,6 +4,7 @@ import { useCallback, useEffect, useState } from "react";
 import Link from "next/link";
 import type { AdminStats } from "@/lib/adminStats";
 import { CONVERSION_DAYS } from "@/lib/plans";
+import { PostsAdmin } from "@/components/admin/PostsAdmin";
 import { STYLIST_FEEDBACK } from "@/components/Feedback";
 import { STUDIO_MODULES } from "@/lib/studioModules";
 
@@ -419,6 +420,10 @@ export default function AdminPage() {
               </div>
             );
           })()}
+        </Section>
+
+        <Section title="Posts" description="Posts hidden after reports, or with open reports. Testers get posting from Credits → look up → Allow posting.">
+          <PostsAdmin />
         </Section>
 
         <Section

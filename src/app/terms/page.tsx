@@ -23,6 +23,18 @@ export default function TermsPage() {
         <li>Only upload photos you have the right to use. Don&apos;t upload photos of other people without their permission.</li>
       </ul>
 
+      <h2>Posting outfits (community rules)</h2>
+      <ul>
+        <li>Posting is always your choice: only the photo, caption, tags and pieces you post are public. Your closet stays private.</li>
+        <li>Only post photos you took or have the right to share. Don&apos;t post photos of other people without their permission.</li>
+        <li>No nudity or sexual content, no harassment, hate or threats, no spam or misleading links.</li>
+        <li>You keep ownership of your posts. You let Virm show them in the app and on shared links for as long as they&apos;re up.</li>
+        <li>
+          Anyone can report a post. Reported posts may be hidden while we review them, and we remove posts and may stop accounts from posting when
+          they break these rules. You can delete your own posts any time.
+        </li>
+      </ul>
+
       <h2>Fair use</h2>
       <p>Don&apos;t use Virm for anything illegal, harmful or sexual, or to impersonate someone, or to try to break or overload it.</p>
 

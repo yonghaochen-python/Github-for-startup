@@ -1,9 +1,11 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import Link from "next/link";
+import type { PublicPost } from "@/lib/postRules";
 import { useParams } from "next/navigation";
 import type { PublicProfile } from "@/lib/profiles";
-import { PageShell } from "@/components/ui";
+import { PageShell, btnPrimary } from "@/components/ui";
 import { Avatar } from "@/components/Avatar";
 
 const joined = (iso: string) => new Date(iso).toLocaleDateString(undefined, { month: "long", year: "numeric" });
@@ -12,6 +14,9 @@ const joined = (iso: string) => new Date(iso).toLocaleDateString(undefined, { mo
 export default function ProfilePage() {
   const { username } = useParams<{ username: string }>();
   const [profile, setProfile] = useState<PublicProfile | null | "missing">(null);
+  const [posts, setPosts] = useState<PublicPost[]>([]);
+  // Your own profile, when you may post: the way to make a new post.
+  const [mineCanPost, setMineCanPost] = useState(false);
 
   useEffect(() => {
     let gone = false;
@@ -19,6 +24,14 @@ export default function ProfilePage() {
       .then(async (res) => (res.ok ? ((await res.json()) as { profile: PublicProfile }).profile : "missing"))
       .then((p) => !gone && setProfile(p))
       .catch(() => !gone && setProfile("missing"));
+    fetch(`/api/profiles/${encodeURIComponent(username)}/posts`, { cache: "no-store" })
+      .then(async (res) => (res.ok ? ((await res.json()) as { posts: PublicPost[] }).posts : []))
+      .then((p) => !gone && setPosts(p))
+      .catch(() => {});
+    fetch("/api/me/can-post", { cache: "no-store" })
+      .then(async (res) => (res.ok ? ((await res.json()) as { canPost: boolean; username: string | null }) : null))
+      .then((me) => !gone && setMineCanPost(Boolean(me?.canPost && me.username === username.toLowerCase())))
+      .catch(() => {});
     return () => {
       gone = true;
     };
@@ -38,7 +51,25 @@ export default function ProfilePage() {
             <p className={`${profile.displayName ? "mt-1.5 text-[14px] text-[#5d6874]" : "mt-4 font-display text-[30px] text-[#121821]"}`}>@{profile.username}</p>
             {profile.bio && <p className="mt-3 whitespace-pre-line text-[14px] leading-relaxed text-[#26313a]">{profile.bio}</p>}
             <p className="mt-3 text-[12px] text-[#5d6874]">Joined {joined(profile.joined)}</p>
+            {mineCanPost && (
+              <Link href="/create" className={`${btnPrimary} mt-5`}>
+                ＋ Post an outfit
+              </Link>
+            )}
           </section>
+        )}
+        {/* Their posts, newest first, as a grid of pictures. */}
+        {profile && profile !== "missing" && posts.length > 0 && (
+          <ul className="mx-auto mt-8 grid max-w-3xl grid-cols-3 gap-1 sm:gap-2">
+            {posts.map((p) => (
+              <li key={p.id}>
+                <Link href={`/p/${p.id}`} className="block overflow-hidden bg-[#f1efeb] sm:rounded-[10px]">
+                  {/* eslint-disable-next-line @next/next/no-img-element -- a public post picture */}
+                  <img src={p.imageUrl} alt={p.caption ?? "Outfit"} loading="lazy" className="aspect-[3/4] w-full object-cover" />
+                </Link>
+              </li>
+            ))}
+          </ul>
         )}
       </PageShell>
     </main>
