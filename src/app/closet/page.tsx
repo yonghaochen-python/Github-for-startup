@@ -16,6 +16,7 @@ import { CheckIcon, PlusIcon, SparkleIcon } from "@/components/Icons";
 import { EmptyState, ErrorNote, PageHeader, PageShell, btnPrimary, btnSecondary, btnText } from "@/components/ui";
 import { Tips, type Tip } from "@/components/Tips";
 import { keepItemBackground, removeBackgroundsAfterAdding, removeItemBackground } from "@/lib/cutoutClient";
+import { warmUpCutout } from "@/lib/cutout";
 import { DRIFT_WARNING, keepEnhancement, previewEnhancement, showPicture, type EnhancePreview } from "@/lib/enhanceClient";
 import { useAuth } from "@/components/AuthProvider";
 import { ShelfRow } from "@/components/ShelfRow";
@@ -598,6 +599,8 @@ function ItemDetail({
   }, [preview]);
 
   async function enhance(mode: "tidy" | "flat" = "tidy") {
+    // The background remover loads while the AI works, so it's ready the moment the picture arrives.
+    warmUpCutout();
     setEnhanceError(null);
     setEnhancing(mode === "flat" ? "flattening" : "working");
     try {
@@ -749,7 +752,7 @@ function ItemDetail({
                     disabled={enhancing !== null || backgroundWorking}
                     className="flex items-center gap-1.5 whitespace-nowrap rounded-full bg-[#121821] px-4 py-2 text-[12px] font-semibold text-white shadow-[0_4px_14px_rgba(18,24,33,0.18)] disabled:opacity-70"
                   >
-                    <SparkleIcon className="h-3.5 w-3.5" /> {enhancing !== null && enhancing !== "saving" && enhancing !== "switching" ? "Enhancing…" : "Enhance with AI"}
+                    <SparkleIcon className="h-3.5 w-3.5" /> {enhancing !== null && enhancing !== "saving" && enhancing !== "switching" ? "Enhancing… about a minute" : "Enhance with AI"}
                   </button>
                 )}
               </div>

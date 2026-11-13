@@ -7,6 +7,7 @@ import type { ClothingItem, Outfit } from "@/components/OutfitCard";
 import { CAPTION_MAX, MAX_POST_ITEMS, MAX_TAGS, OCCASION_TAGS, STYLE_TAGS } from "@/lib/postRules";
 import { layoutBoard, renderBoard, shrinkPicture, withoutBackground, type BoardLayer } from "@/lib/outfitBoard";
 import { BoardEditor } from "@/components/BoardEditor";
+import { warmUpCutout } from "@/lib/cutout";
 import { ROLE_FOR, type TrayCategory, type TrayItem } from "@/lib/shopCatalog";
 import { keepShopTryOn, readShopTryOns } from "@/lib/shopWishlist";
 import { PageShell, btnPrimary, btnSecondary, btnText, eyebrow } from "@/components/ui";
@@ -173,6 +174,8 @@ export default function CreatePage() {
   }
 
   function startBuilding() {
+    // The background remover starts loading now, so making the outfit is quicker.
+    warmUpCutout();
     setError(null);
     setBuilding(true);
     setShopPieces(readShopTryOns());
