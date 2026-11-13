@@ -730,7 +730,9 @@ function ItemDetail({
               )}
               <div className="absolute bottom-3 left-1/2 flex -translate-x-1/2 flex-wrap justify-center gap-2">
                 {/* Remove background / Keep background: the original photo is always kept. Changes apply to the piece's own picture. */}
-                {!enhancedShown && (
+                {/* Admins: Enhance with AI does it all (lays the piece flat and removes the background), so it's the one
+                    button until the piece is enhanced. Everyone else: the free background switch. */}
+                {!enhancedShown && !(isAdmin && !item.enhancedUrl) && (
                   <button
                     onClick={onToggleBackground}
                     disabled={backgroundWorking || enhancing !== null}
