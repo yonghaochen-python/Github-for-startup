@@ -3,7 +3,7 @@ import { MAX_LIVE_SECONDS } from "@/lib/aiCosts";
 import { createDecartClient } from "@decartai/sdk";
 import { randomUUID } from "node:crypto";
 import { asResponse, requireUser } from "@/lib/auth";
-import { accountPlan, limitMessage, liveUsesToday, reserveCredit, settleCredit } from "@/lib/credits";
+import { accountPlan, limitMessage, liveUsesToday, reserveCredit, settleCredit, SVIP_ROLE } from "@/lib/credits";
 import { TRIAL_LIVE_PER_DAY } from "@/lib/plans";
 
 /**
@@ -20,6 +20,8 @@ const MAX_SESSION_SECONDS = MAX_LIVE_SECONDS;
 const SESSIONS_PER_DAY = 3;
 /** Caps the whole site's Decart spend per day: about 50 × 20 s × $0.02 ≈ $20 at most. */
 const SITE_SESSIONS_PER_DAY = 50;
+/** SVIP: no monthly limit, but still at most this many live sessions a day (each is billed by the second). */
+const SVIP_SESSIONS_PER_DAY = 10;
 const MODEL = "lucy-vton-latest";
 const noStore = { "cache-control": "private, no-store" };
 
@@ -37,7 +39,7 @@ export async function POST(request: Request) {
   if (!admin) {
     // During the 7-day trial, live try-on is at most one session a day (checked here, on the server).
     const { trial } = await accountPlan(user.id);
-    const perDay = trial ? TRIAL_LIVE_PER_DAY : SESSIONS_PER_DAY;
+    const perDay = user.role === SVIP_ROLE ? SVIP_SESSIONS_PER_DAY : trial ? TRIAL_LIVE_PER_DAY : SESSIONS_PER_DAY;
     const [mine, everyone] = await Promise.all([liveUsesToday(user.id), liveUsesToday()]);
     if (mine >= perDay) {
       const error = trial

@@ -564,7 +564,7 @@ export function LiveTryOn({
               <>
                 <span className="min-w-0 flex-1">
                   {liveLeft === "admin"
-                    ? "Uses Decart credits, about $0.02 a second. Runs up to 20 seconds, then stops."
+                    ? "Not limited. Runs up to 20 seconds, then stops."
                     : liveLeft === 0
                       ? "No live sessions left this month."
                       : `Uses 1 live session${liveLeft === null ? "" : ` (${liveLeft} left this month)`}. Runs up to 20 seconds, then stops.`}

@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import { asResponse, requireAdmin } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
-import { adjustExtraCredits, getBalances, setPlan } from "@/lib/credits";
+import { adjustExtraCredits, getBalances, setPlan, SVIP_ROLE } from "@/lib/credits";
 import { isPlanKey } from "@/lib/plans";
 
 const noStore = { "cache-control": "private, no-store" };
@@ -31,7 +31,7 @@ export async function GET(request: Request) {
         select: { kind: true, type: true, source: true, amount: true, status: true, outcome: true, note: true, createdAt: true },
       }),
     ]);
-    return NextResponse.json({ account: { email: account.email, admin: account.role === "admin" }, balances, recent }, { headers: noStore });
+    return NextResponse.json({ account: { email: account.email, admin: account.role === "admin", svip: account.role === SVIP_ROLE }, balances, recent }, { headers: noStore });
   }
 
   const groups = await prisma.creditEntry.groupBy({ by: ["kind", "status", "source"], where: { type: "use" }, _count: { _all: true } });
@@ -63,10 +63,14 @@ export async function POST(request: Request) {
   }
   const body = (await request.json().catch(() => ({}))) as { email?: unknown; action?: unknown; plan?: unknown; kind?: unknown; amount?: unknown; note?: unknown };
   const email = typeof body.email === "string" ? body.email.trim().toLowerCase() : "";
-  const account = email ? await prisma.user.findUnique({ where: { email }, select: { id: true } }) : null;
+  const account = email ? await prisma.user.findUnique({ where: { email }, select: { id: true, role: true } }) : null;
   if (!account) return NextResponse.json({ error: "No account with that email." }, { status: 404, headers: noStore });
 
-  if (body.action === "setPlan") {
+  if (body.action === "svip" || body.action === "unsvip") {
+    // Only between a normal account and SVIP: an admin is never changed here.
+    if (account.role === "admin") return NextResponse.json({ error: "That's an admin account." }, { status: 400, headers: noStore });
+    await prisma.user.update({ where: { id: account.id }, data: { role: body.action === "svip" ? SVIP_ROLE : "user" } });
+  } else if (body.action === "setPlan") {
     if (!isPlanKey(body.plan)) return NextResponse.json({ error: "Unknown plan." }, { status: 400, headers: noStore });
     await setPlan(account.id, body.plan);
   } else if (body.action === "adjust") {

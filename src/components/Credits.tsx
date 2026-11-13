@@ -105,7 +105,7 @@ export function CreditsCard() {
           <p className="mt-1 text-[11.5px] leading-snug text-[#5d6874]">
             Monthly allowances reset {day(b.period.end)}; extra credits don&apos;t expire.
             {b.plan === "plus" ? " Unused photo and live try-ons carry over one month." : ""} Reopening anything you already made is free.
-            {b.exempt ? " Admin account: not limited." : b.enforcement === "count" ? " Limits aren't applied yet." : ""}
+            {b.exempt ? (b.svip ? " SVIP: not limited." : " Admin account: not limited.") : b.enforcement === "count" ? " Limits aren't applied yet." : ""}
           </p>
         </>
       )}
@@ -126,7 +126,7 @@ export function CreditsLine({ kind, report }: { kind: CreditKind; report?: strin
   return (
     <p className="mt-2 text-center text-[11.5px] text-[#5d6874]">
       {b.exempt
-        ? `Admin · not limited (${k.planUsed + k.overLimit} ${noun} used this month)`
+        ? `${b.svip ? "SVIP" : "Admin"} · not limited`
         : trialLeft !== null && trialLeft > 0
           ? `${trialLeft} trial ${KIND_NAMES[tk]} left · trial ends ${day(b.trial!.endsAt)}`
           : `${trialLeft === 0 ? (coveredBefore ? "Your trial already covered this report · this one uses a photo credit · " : `Trial ${KIND_NAMES[tk]} used up · `) : ""}${

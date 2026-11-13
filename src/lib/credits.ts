@@ -39,6 +39,11 @@ export function addMonths(anchor: Date, n: number): Date {
 }
 
 /** The monthly period containing `now`, counted from the anchor. */
+/** SVIP: a normal account (no admin tools) with no monthly limits; set by an admin. */
+export const SVIP_ROLE = "svip";
+/** Accounts that are never stopped by monthly limits: admins and SVIP. */
+export const isUnlimited = (role: string | null | undefined) => role === "admin" || role === SVIP_ROLE;
+
 export function currentPeriod(anchor: Date, now = new Date()): { start: Date; end: Date } {
   if (now < anchor) return { start: anchor, end: addMonths(anchor, 1) };
   let n = (now.getUTCFullYear() - anchor.getUTCFullYear()) * 12 + (now.getUTCMonth() - anchor.getUTCMonth());
@@ -86,6 +91,8 @@ export type Balances = {
   enforcement: Enforcement;
   /** Admins are never limited. */
   exempt: boolean;
+  /** SVIP (not limited, but not an admin). */
+  svip: boolean;
   /** This month's photo credits used, by what made them (sent by /api/me/credits). */
   photoUsed?: { tryOns: number; reports: number };
 };
@@ -211,14 +218,15 @@ export async function getBalances(userId: string): Promise<Balances> {
     style,
     trial: trialBalance,
     enforcement: enforcement(),
-    exempt: role === "admin",
+    exempt: isUnlimited(role),
+    svip: role === SVIP_ROLE,
   };
 }
 
 /* ---------- Using credits ---------- */
 
 export type Reservation =
-  | { ok: true; duplicate: boolean; source?: "trial" | "rollover" | "plan" | "extra" | "over" | "admin"; trialUsedUp?: boolean }
+  | { ok: true; duplicate: boolean; source?: "trial" | "rollover" | "plan" | "extra" | "over" | "admin" | "svip"; trialUsedUp?: boolean }
   | { ok: false; reason: "no_credits"; allowance: number; resetsAt: string };
 
 /** What the trial may cover for this request: its kind (reports have their own), and for reports, the report type. */
@@ -248,7 +256,7 @@ export async function reserveCredit(
 
   // The trial first, while it runs (admins are recorded as admin, never from the trial).
   let trialUsedUp = false;
-  if (account.role !== "admin" && trial && options.trial && options.trial.allowed !== false) {
+  if (!isUnlimited(account.role) && trial && options.trial && options.trial.allowed !== false) {
     const tk = options.trial.kind;
     const ends = dbDate(trial.endsAt);
     const inserted = await prisma.$executeRaw`
@@ -273,7 +281,7 @@ export async function reserveCredit(
   const balance = await kindBalance(userId, kind, info);
   // Carried-over try-ons first (they expire soonest), then this month's allowance, then extra credits.
   const source =
-    account.role === "admin" ? "admin" : balance.rolloverLeft > 0 ? "rollover" : balance.planLeft > 0 ? "plan" : balance.extraLeft > 0 ? "extra" : "over";
+    account.role === "admin" ? "admin" : account.role === SVIP_ROLE ? "svip" : balance.rolloverLeft > 0 ? "rollover" : balance.planLeft > 0 ? "plan" : balance.extraLeft > 0 ? "extra" : "over";
   const refused = { ok: false as const, reason: "no_credits" as const, allowance: balance.allowance, resetsAt: period.end.toISOString() };
   if (source === "over" && block) return refused;
 
@@ -286,7 +294,7 @@ export async function reserveCredit(
     SELECT ${randomUUID()}, ${userId}, ${kind}, 'use', ${source}, -1, 'reserved', ${requestId}, ${now}
     WHERE NOT EXISTS (SELECT 1 FROM "CreditEntry" WHERE "userId" = ${userId} AND "requestId" = ${requestId})
       AND (
-        ${source} IN ('admin', 'over')
+        ${source} IN ('admin', 'svip', 'over')
         OR (${source} = 'rollover' AND (
           SELECT COUNT(*) FROM "CreditEntry"
           WHERE "userId" = ${userId} AND "kind" = ${kind} AND "type" = 'use' AND "source" = 'rollover'

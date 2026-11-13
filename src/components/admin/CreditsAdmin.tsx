@@ -18,7 +18,7 @@ const field = "min-h-[40px] rounded-[10px] bg-[#f4f5f6] px-3 text-[13px] text-[#
 export function CreditsAdmin() {
   const [summary, setSummary] = useState<{ summary: Summary; unclearLive: number } | null>(null);
   const [email, setEmail] = useState("");
-  const [account, setAccount] = useState<{ email: string; admin: boolean; balances: Balances; recent: Entry[] } | null>(null);
+  const [account, setAccount] = useState<{ email: string; admin: boolean; svip?: boolean; balances: Balances; recent: Entry[] } | null>(null);
   const [plan, setPlan] = useState<PlanKey>("free");
   const [kind, setKind] = useState<"photo" | "live">("photo");
   const [amount, setAmount] = useState("5");
@@ -38,7 +38,7 @@ export function CreditsAdmin() {
     const res = await fetch(`/api/admin/credits?email=${encodeURIComponent(email.trim())}`, { cache: "no-store" });
     const data = (await res.json().catch(() => ({}))) as {
       error?: string;
-      account: { email: string; admin: boolean };
+      account: { email: string; admin: boolean; svip?: boolean };
       balances: Balances;
       recent: Entry[];
     };
@@ -92,7 +92,7 @@ export function CreditsAdmin() {
         {account && (
           <div className="mt-4 flex flex-col gap-3 text-[12.5px] text-[#26313a]">
             <p>
-              <b>{account.email}</b> {account.admin && "· admin (not limited)"} · {PLAN_NAMES[account.balances.plan]} · period{" "}
+              <b>{account.email}</b> {account.admin && "· admin (not limited)"} {account.svip && "· SVIP (not limited)"} · {PLAN_NAMES[account.balances.plan]} · period{" "}
               {new Date(account.balances.period.start).toLocaleDateString()} – {new Date(account.balances.period.end).toLocaleDateString()}
             </p>
             {(["photo", "live"] as const).map((k) => {
@@ -104,6 +104,14 @@ export function CreditsAdmin() {
                 </p>
               );
             })}
+            {!account.admin && (
+              <div className="flex flex-wrap items-center gap-2">
+                {/* SVIP: no monthly limits (photo, live, clothing photos, Style It); live stays at 10 a day. Not an admin. */}
+                <button onClick={() => act({ action: account.svip ? "unsvip" : "svip" })} className={btnSecondary}>
+                  {account.svip ? "Remove SVIP" : "Make SVIP"}
+                </button>
+              </div>
+            )}
             <div className="flex flex-wrap items-center gap-2">
               <select value={plan} onChange={(e) => setPlan(e.target.value as PlanKey)} aria-label="Plan" className={field}>
                 {PLAN_KEYS.map((p) => (
