@@ -10,6 +10,7 @@ import { useToast } from "@/components/Toast";
 import { REPORT_REASONS, type PublicPost } from "@/lib/postRules";
 import { PageShell } from "@/components/ui";
 import { PostActions } from "@/components/feed/PostActions";
+import { TryThisOutfit } from "@/components/feed/TryThisOutfit";
 
 /** One outfit post: big photo, who posted it, caption, tags and pieces. Open to everyone. */
 export default function PostPage() {
@@ -95,6 +96,10 @@ export default function PostPage() {
             ))}
           </div>
         )}
+
+        <div className="mt-4">
+          <TryThisOutfit post={post} />
+        </div>
 
         {post.caption && <p className="mt-3 whitespace-pre-line text-[15px] leading-relaxed text-[#121821]">{post.caption}</p>}
         {tags.length > 0 && (

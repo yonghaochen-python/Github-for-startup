@@ -51,3 +51,19 @@ export type PublicPost = {
   disliked?: boolean;
   saved?: boolean;
 };
+
+/**
+ * "Try this outfit": one piece of a post, with the viewer's closest closet piece (only ever their own). `close` = a
+ * near match (same kind and color or shape), otherwise just the nearest of that kind.
+ */
+export type TryPostPiece = {
+  name: string;
+  category: string | null;
+  role: string;
+  /** The post's own picture of the piece, if it has one. */
+  theirs: string | null;
+  mine: { id: string; imageUrl: string; description: string; close: boolean } | null;
+};
+/** Handed from a post to Studio (kept for this browser tab). */
+export const TRY_POST_KEY = "virm-try-post";
+export type TryPostHandoff = { closetIds: string[]; theirs: { name: string; imageUrl: string; category: string; role: string }[] };

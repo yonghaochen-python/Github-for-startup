@@ -24,7 +24,7 @@ const NEUTRAL = /black|white|cream|ivory|off-white|gray|grey|charcoal|denim|beig
 
 const rgb = (hex: string) => [1, 3, 5].map((i) => parseInt(hex.slice(i, i + 2), 16));
 /** Perceptual-ish distance between two colors (0 = same, about 1 = far apart). */
-function distance(a: string, b: string) {
+export function distance(a: string, b: string) {
   const [r1, g1, b1] = rgb(a);
   const [r2, g2, b2] = rgb(b);
   const r = (r1 + r2) / 2;

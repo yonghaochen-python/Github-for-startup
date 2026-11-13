@@ -30,6 +30,7 @@ import { LiveTryOn, type ShopPick } from "@/components/LiveTryOn";
 import { CreditsLine, refreshCredits } from "@/components/Credits";
 import { LIVE_SHOP_KEY, SHOP_OUTFIT_KEY, isRetiredDemo, shopPiece, type TrayItem } from "@/lib/shopCatalog";
 import { readShopTryOns } from "@/lib/shopWishlist";
+import { TRY_POST_KEY, type TryPostHandoff } from "@/lib/postRules";
 import { Tips, tipsSeen, type Tip } from "@/components/Tips";
 import { Feedback } from "@/components/Feedback";
 
@@ -120,6 +121,16 @@ export default function StudioPage() {
   const hasPhoto = Boolean(user?.photoVersion);
   // Arriving from Shopping (?shop=1): its picks are worn to start with and kept in a "Shop picks" tab.
   const fromShop = searchParams.get("shop") === "1";
+  // Arriving from a Discover post's "Try this outfit" (?post=1): the closet matches and the post's own pieces chosen.
+  const [fromPost] = useState<TryPostHandoff | null>(() => {
+    if (typeof window === "undefined" || searchParams.get("post") !== "1") return null;
+    try {
+      const kept = JSON.parse(sessionStorage.getItem(TRY_POST_KEY) ?? "null") as TryPostHandoff | null;
+      return kept && Array.isArray(kept.closetIds) && Array.isArray(kept.theirs) ? kept : null;
+    } catch {
+      return null;
+    }
+  });
   // Photo (try-on on the saved photo) or Live (the camera mirror); either way it's the same look.
   const [mode, setModeState] = useState<"photo" | "live">(searchParams.get("mode") === "live" ? "live" : "photo");
   const [shopPicks, setShopPicks] = useState<ShopPick[]>([]);
@@ -168,8 +179,10 @@ export default function StudioPage() {
   const [look, setLook] = useState<Look>(EMPTY_LOOK);
   // Which look to start from: the one asked for, else the latest try-on.
   // A look sent from the AI Stylist (?items=id,id,…): those closet pieces are worn to start with.
-  const [startItems] = useState(() => (fromShop ? [] : (searchParams.get("items") ?? "").split(",").filter(Boolean).slice(0, 8)));
-  const [startId] = useState(() => (fromShop || startItems.length ? null : searchParams.get("outfit") || user?.look?.outfitId || null));
+  const [startItems] = useState(() =>
+    fromPost ? fromPost.closetIds.filter((id) => typeof id === "string").slice(0, 8) : fromShop ? [] : (searchParams.get("items") ?? "").split(",").filter(Boolean).slice(0, 8)
+  );
+  const [startId] = useState(() => (fromShop || fromPost || startItems.length ? null : searchParams.get("outfit") || user?.look?.outfitId || null));
   const [loadingLook, setLoadingLook] = useState(Boolean(startId));
   const [tab, setTab] = useState(TABS[0].value);
   // The mirror piece being replaced (the next closet or Shop tap takes its place).
@@ -338,8 +351,10 @@ export default function StudioPage() {
     if (wornStart.current || !closet || !startItems.length) return;
     wornStart.current = true;
     const chosen = startItems.flatMap((id) => closet.find((item) => item.id === id) ?? []);
+    // A post's own pieces (already worn) stay on; the closet pieces join them.
     // eslint-disable-next-line react-hooks/set-state-in-effect -- applied once, after the closet loads
-    if (chosen.length) setPieces(chosen.reduce<ClothingItem[]>((worn, piece) => withPiece(worn, piece), []));
+    if (chosen.length) setPieces((worn) => chosen.reduce<ClothingItem[]>((all, piece) => withPiece(all, piece), fromPost ? worn : []));
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- fromPost is read once
   }, [closet, startItems]);
 
   // Shopping's "Your outfit" (kept on this device) is listed first in the Shop panel on every visit. Arriving from
@@ -372,6 +387,13 @@ export default function StudioPage() {
         const picks = JSON.parse(sessionStorage.getItem(LIVE_SHOP_KEY) ?? "[]") as ShopPick[];
         if (Array.isArray(picks)) sent = picks.filter((p) => !isRetiredDemo(p.id));
       } catch {}
+    }
+    // A post's own pieces: worn to start with, and kept in the Shop panel to swap back in.
+    if (fromPost) {
+      sent = fromPost.theirs
+        .filter((t) => t && typeof t.imageUrl === "string" && t.imageUrl.startsWith("/uploads/"))
+        .slice(0, 8)
+        .map((t, i) => ({ id: `shop-post-${i}-${t.imageUrl.slice(-12)}`, imageUrl: t.imageUrl, category: t.category, description: t.name, layeringRole: t.role as ClothingItem["layeringRole"] }));
     }
     const all = [...outfit, ...sent.filter((p) => !outfit.some((o) => o.id === p.id))];
     /* eslint-disable react-hooks/set-state-in-effect -- browser-only storage, read after the first render */

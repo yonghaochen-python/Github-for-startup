@@ -4,6 +4,7 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import { Avatar } from "@/components/Avatar";
 import { PostActions } from "@/components/feed/PostActions";
+import { TryThisOutfit } from "@/components/feed/TryThisOutfit";
 import { useAuth } from "@/components/AuthProvider";
 import type { PublicPost } from "@/lib/postRules";
 
@@ -81,6 +82,7 @@ export default function FeedPage() {
               </Link>
               {p.caption && <p className="mt-2 line-clamp-2 max-w-[78%] text-[14px] leading-snug">{p.caption}</p>}
               {p.styleTags.length > 0 && <p className="mt-1 text-[12px] text-white/80">{p.styleTags.join(" · ")}</p>}
+              <TryThisOutfit post={p} variant="feed" />
             </div>
             <div className="absolute bottom-6 right-3 text-white drop-shadow md:hidden">
               <PostActions post={p} vertical onDisliked={() => remove(p.id)} />
@@ -95,6 +97,9 @@ export default function FeedPage() {
                 <PostActions post={p} onDisliked={() => remove(p.id)} />
               </div>
               {p.caption && <p className="mt-2 line-clamp-2 text-[13px] text-[#4f5b66]">{p.caption}</p>}
+              <div className="mt-3">
+                <TryThisOutfit post={p} />
+              </div>
             </div>
           </li>
         ))}
