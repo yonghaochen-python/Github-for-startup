@@ -38,7 +38,10 @@ export async function POST(request: Request, ctx: Ctx) {
   }
   const item = await loadItem(user.id, ctx);
   if (!item) return NextResponse.json({ error: "Item not found." }, { status: 404, headers: noStore });
-  const source = plainOf(item);
+  // The AI gets the original photo, not a cut-out: a cut-out's rough or see-through edges (often at the sleeves) would
+  // be copied into the result. The result's background is removed on the device afterwards, as before.
+  const plain = plainOf(item);
+  const source = isCutout(plain) ? ((await cutoutOriginal(plain).catch(() => null)) ?? plain) : plain;
   if (!source.startsWith("/uploads/")) return NextResponse.json({ error: "This picture can't be enhanced." }, { status: 400, headers: noStore });
   const object = await env.UPLOADS.get(source.replace(/^\/uploads\//, "")).catch(() => null);
   if (!object) return NextResponse.json({ error: "The picture couldn't be found." }, { status: 404, headers: noStore });

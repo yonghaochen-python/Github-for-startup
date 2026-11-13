@@ -44,7 +44,7 @@ export const ENHANCE_PROMPT = [
  * always sees it beside their own picture and chooses; the original is never replaced on its own.
  */
 export const FLAT_PROMPT = [
-  "This photo shows one clothing item that is folded, rolled, bunched up, hanging, or held up and stretched by hands.",
+  "This photo shows one clothing item, possibly wrinkled, folded, bunched up, hanging, or held up and stretched by hands.",
   "Show the same item laid out completely flat as a clean e-commerce flat-lay product photo: front view, symmetrical,",
   "relaxed to its natural size and shape (not stretched), sleeves and legs straightened out at their natural full",
   "length, smoothed with no wrinkles, evenly lit, on a plain pure white background. Remove the hands, fingers, hanger,",
@@ -67,7 +67,7 @@ export function flatPrompt(): string {
   return `${FLAT_PROMPT} Show any small sewn-in label (inside the neck or waistband) plain, with no letters or numbers on it; never write or invent label text.`;
 }
 /** Changing an instruction gets its own kept copies (an old result is never shown for a new instruction). */
-export const FLAT_VERSION = "flux3-768-flat-v4";
+export const FLAT_VERSION = "flux3-768-flat-v5";
 export type EnhanceMode = "tidy" | "flat";
 
 export class EnhanceError extends Error {
