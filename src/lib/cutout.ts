@@ -41,6 +41,8 @@ function loadSession(): Promise<InferenceSession> {
 /** Starts downloading the model early (e.g. when Add Clothes opens), so the first cut-out feels quicker. */
 export function warmUpCutout(): void {
   loadSession().catch(() => {});
+  // The second model (which tells worn clothes from skin and hair) too, so neither loads while someone waits.
+  loadSegmenter().catch(() => {});
 }
 
 /** The model's guess, per pixel at 320×320, of how much belongs to the piece (0–1). */
