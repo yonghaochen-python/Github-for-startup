@@ -17,6 +17,8 @@ export const REPORT_REASONS = [
   { value: "other", label: "Something else" },
 ] as const;
 export type ReportReason = (typeof REPORT_REASONS)[number]["value"];
+/** Posts per feed page. */
+export const FEED_PAGE = 10;
 /** Reports from this many different people hide a post until it's reviewed. */
 export const HIDE_AFTER_REPORTS = 3;
 
@@ -36,4 +38,8 @@ export type PublicPost = {
   items: PublicPostItem[];
   /** Only for the viewer: they made it (may delete), or they're an admin. */
   mine?: boolean;
+  /** Only for the signed-in viewer: their own like / private dislike / save. */
+  liked?: boolean;
+  disliked?: boolean;
+  saved?: boolean;
 };

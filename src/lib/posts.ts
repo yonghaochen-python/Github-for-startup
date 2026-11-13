@@ -11,6 +11,7 @@ import {
   OCCASION_TAGS,
   REPORT_REASONS,
   STYLE_TAGS,
+  FEED_PAGE,
   type PublicPost,
   type ReportReason,
 } from "@/lib/postRules";
@@ -126,7 +127,7 @@ const parseTags = (json: string): string[] => {
   }
 };
 
-const postSelect = {
+export const postSelect = {
   id: true,
   userId: true,
   imageKey: true,
@@ -143,7 +144,7 @@ const postSelect = {
 };
 type PostRow = Awaited<ReturnType<typeof prisma.post.findFirst<{ select: typeof postSelect }>>>;
 
-function toPublic(row: NonNullable<PostRow>, viewer?: { id: string; role: string } | null): PublicPost {
+export function toPublic(row: NonNullable<PostRow>, viewer?: { id: string; role: string } | null): PublicPost {
   return {
     id: row.id,
     imageUrl: `/uploads/${row.imageKey}`,
@@ -166,7 +167,8 @@ export async function getPost(id: string, viewer?: { id: string; role: string } 
   if (!row || row.status === "removed") return null;
   const owner = viewer && (viewer.id === row.userId || viewer.role === "admin");
   if (row.status !== "published" && !owner) return null;
-  return toPublic(row, viewer);
+  const [post] = await withViewerState([toPublic(row, viewer)], viewer?.id);
+  return post;
 }
 
 /** A profile's published posts, newest first. */
@@ -177,7 +179,7 @@ export async function postsBy(username: string, viewer?: { id: string; role: str
     take: 60,
     select: postSelect,
   });
-  return rows.map((r) => toPublic(r, viewer));
+  return withViewerState(rows.map((r) => toPublic(r, viewer)), viewer?.id);
 }
 
 /** Deletes a post and its pictures (by its owner or an admin). */
@@ -215,4 +217,81 @@ export async function reportPost(postId: string, reporterId: string, reason: Rep
     data: { reportCount: { increment: 1 }, ...(open >= HIDE_AFTER_REPORTS && post.status === "published" ? { status: "hidden" } : {}) },
   });
   return "ok";
+}
+
+/** Adds the viewer's own like / dislike / save to each post (nothing for signed-out visitors). */
+export async function withViewerState(posts: PublicPost[], viewerId?: string | null): Promise<PublicPost[]> {
+  if (!viewerId || posts.length === 0) return posts;
+  const ids = posts.map((p) => p.id);
+  const [reactions, saves] = await Promise.all([
+    prisma.postReaction.findMany({ where: { userId: viewerId, postId: { in: ids } }, select: { postId: true, kind: true } }),
+    prisma.postSave.findMany({ where: { userId: viewerId, postId: { in: ids } }, select: { postId: true } }),
+  ]);
+  const kindOf = new Map(reactions.map((r) => [r.postId, r.kind]));
+  const savedIds = new Set(saves.map((s) => s.postId));
+  return posts.map((p) => ({ ...p, liked: kindOf.get(p.id) === "like", disliked: kindOf.get(p.id) === "dislike", saved: savedIds.has(p.id) }));
+}
+
+/**
+ * The feed: published posts, newest first, 10 at a time (cursor = the last post's id). A signed-in person never sees
+ * posts they disliked. Version 1 ranking is simply "newest"; For You comes later.
+ */
+export async function feedPage(viewer: { id: string; role: string } | null, cursor: string | null): Promise<{ posts: PublicPost[]; next: string | null }> {
+  const after = cursor ? await prisma.post.findUnique({ where: { id: cursor }, select: { createdAt: true, id: true } }) : null;
+  const rows = await prisma.post.findMany({
+    where: {
+      status: "published",
+      ...(viewer ? { reactions: { none: { userId: viewer.id, kind: "dislike" } } } : {}),
+      ...(after ? { OR: [{ createdAt: { lt: after.createdAt } }, { createdAt: after.createdAt, id: { lt: after.id } }] } : {}),
+    },
+    orderBy: [{ createdAt: "desc" }, { id: "desc" }],
+    take: FEED_PAGE + 1,
+    select: postSelect,
+  });
+  const page = rows.slice(0, FEED_PAGE);
+  return { posts: await withViewerState(page.map((r) => toPublic(r, viewer)), viewer?.id), next: rows.length > FEED_PAGE ? page[page.length - 1].id : null };
+}
+
+/**
+ * Sets this person's reaction to a post: "like", "dislike" (private) or null (none). The shown like count is kept in
+ * step on the post. A dislike also takes back a like, and the reverse.
+ */
+export async function setReaction(userId: string, postId: string, kind: "like" | "dislike" | null): Promise<{ likeCount: number } | null> {
+  const post = await prisma.post.findFirst({ where: { id: postId, status: "published" }, select: { id: true } });
+  if (!post) return null;
+  const before = await prisma.postReaction.findUnique({ where: { userId_postId: { userId, postId } }, select: { kind: true } });
+  if ((before?.kind ?? null) !== kind) {
+    if (kind) await prisma.postReaction.upsert({ where: { userId_postId: { userId, postId } }, create: { userId, postId, kind }, update: { kind } });
+    else await prisma.postReaction.delete({ where: { userId_postId: { userId, postId } } }).catch(() => {});
+    const change = (kind === "like" ? 1 : 0) - (before?.kind === "like" ? 1 : 0);
+    if (change) await prisma.post.update({ where: { id: postId }, data: { likeCount: { increment: change } } });
+  }
+  const after = await prisma.post.findUnique({ where: { id: postId }, select: { likeCount: true } });
+  return { likeCount: Math.max(0, after?.likeCount ?? 0) };
+}
+
+/** Saves a post to (or takes it out of) this person's Saved → Inspiration. */
+export async function setSaved(userId: string, postId: string, saved: boolean): Promise<boolean> {
+  const post = await prisma.post.findFirst({ where: { id: postId, status: "published" }, select: { id: true } });
+  if (!post) return false;
+  const had = await prisma.postSave.findUnique({ where: { userId_postId: { userId, postId } }, select: { postId: true } });
+  if (saved && !had) {
+    await prisma.postSave.create({ data: { userId, postId } }).catch(() => {});
+    await prisma.post.update({ where: { id: postId }, data: { saveCount: { increment: 1 } } });
+  } else if (!saved && had) {
+    await prisma.postSave.delete({ where: { userId_postId: { userId, postId } } }).catch(() => {});
+    await prisma.post.update({ where: { id: postId }, data: { saveCount: { decrement: 1 } } });
+  }
+  return true;
+}
+
+/** This person's saved posts (still published), most recently saved first. */
+export async function savedPosts(viewer: { id: string; role: string }): Promise<PublicPost[]> {
+  const saves = await prisma.postSave.findMany({
+    where: { userId: viewer.id, post: { status: "published" } },
+    orderBy: { createdAt: "desc" },
+    take: 100,
+    select: { post: { select: postSelect } },
+  });
+  return withViewerState(saves.map((s) => toPublic(s.post, viewer)), viewer.id);
 }

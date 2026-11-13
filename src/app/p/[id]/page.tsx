@@ -9,6 +9,7 @@ import { ConfirmButton } from "@/components/ConfirmButton";
 import { useToast } from "@/components/Toast";
 import { REPORT_REASONS, type PublicPost } from "@/lib/postRules";
 import { PageShell } from "@/components/ui";
+import { PostActions } from "@/components/feed/PostActions";
 
 /** One outfit post: big photo, who posted it, caption, tags and pieces. Open to everyone. */
 export default function PostPage() {
@@ -39,24 +40,6 @@ export default function PostPage() {
         </PageShell>
       </main>
     );
-  }
-
-  async function share() {
-    const url = `${location.origin}/p/${post && post !== "missing" ? post.id : ""}`;
-    if (navigator.share) {
-      try {
-        await navigator.share({ title: "VIRM", url });
-        return;
-      } catch (err) {
-        if ((err as Error).name === "AbortError") return;
-      }
-    }
-    try {
-      await navigator.clipboard.writeText(url);
-      showToast("Link copied");
-    } catch {
-      showToast(url);
-    }
   }
 
   async function report(reason: string) {
@@ -92,9 +75,7 @@ export default function PostPage() {
         </div>
 
         <div className="mt-3 flex items-center gap-4 text-[13px] font-semibold text-[#121821]">
-          <button onClick={share} className="underline-offset-4 hover:underline">
-            ↗ Share
-          </button>
+          <PostActions post={post} />
           <span className="ml-auto flex items-center gap-4">
             {post.mine ? (
               <ConfirmButton label="Delete" question="Delete this post?" confirmLabel="Delete" onConfirm={remove} className="text-[#5d6874]" />
