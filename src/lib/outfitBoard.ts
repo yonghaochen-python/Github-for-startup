@@ -3,17 +3,18 @@
 import { cutOut } from "@/lib/cutout";
 
 /**
- * "Build an outfit": a styled collage on white, like a fashion moodboard. Pieces are big and overlap: the jacket at the
- * top left with the top lying across it, the bottoms running down the middle, shoes at the bottom right, and
- * accessories tucked around the edges (hat top right, sunglasses top left, bag over the left side, jewelry on the
- * right). Backgrounds are removed first. Made on the device from the pieces' own pictures: no AI, no cost.
+ * "Build an outfit": an organized outfit board, like the ones shared on fashion sites. The clothes stack down the left
+ * the way they're worn (the top peeking out under the jacket's neckline, the jacket's hem over the bottoms' waist,
+ * shoes underneath); bag, shoes and small accessories sit in a tidy column on the right. Every piece gets a box sized
+ * for its kind, so they read at believable sizes and each one stays clearly visible. Backgrounds are removed first.
+ * Made on the device from the pieces' own pictures: no AI, no cost.
  */
 
 export type BoardPiece = { imageUrl: string; role: string; name?: string };
 
 const WIDTH = 1080;
 const HEIGHT = 1350;
-const BACKGROUND = "#ffffff";
+const BACKGROUND = "#ecebe8";
 
 /** A box on the picture, as fractions of the width and height: left, top, right, bottom. */
 type Box = [number, number, number, number];
@@ -29,13 +30,14 @@ function accessoryKind(name: string): "hat" | "glasses" | "bag" | "jewelry" | "o
 }
 
 /** Where each accessory kind goes, and the free spots used for the rest (in order). */
+/** The right-hand column: small things at the top, the bag in the middle (shoes go under it). */
 const ACCESSORY_BOX: Record<"hat" | "glasses" | "bag" | "jewelry", Box> = {
-  hat: [0.66, 0.02, 0.99, 0.2],
-  glasses: [0.12, 0.05, 0.38, 0.16],
-  bag: [0.03, 0.46, 0.44, 0.78],
-  jewelry: [0.76, 0.46, 0.99, 0.6],
+  hat: [0.66, 0.04, 0.94, 0.17],
+  glasses: [0.68, 0.06, 0.92, 0.15],
+  jewelry: [0.7, 0.2, 0.9, 0.33],
+  bag: [0.63, 0.37, 0.95, 0.6],
 };
-const FREE_BOXES: Box[] = [ACCESSORY_BOX.bag, ACCESSORY_BOX.hat, ACCESSORY_BOX.jewelry, ACCESSORY_BOX.glasses];
+const FREE_BOXES: Box[] = [ACCESSORY_BOX.bag, ACCESSORY_BOX.jewelry, ACCESSORY_BOX.hat, [0.7, 0.88, 0.92, 0.98]];
 
 async function loadImage(url: string): Promise<ImageBitmap | null> {
   try {
@@ -78,30 +80,32 @@ export async function outfitBoard(pieces: BoardPiece[]): Promise<{ blob: Blob; w
   const shoes = of(["shoes"])[0];
   const accessories = loaded.filter((p) => !["outer_layer", "mid_layer", "base_layer", "one_piece", "bottom", "shoes"].includes(p.role));
 
-  // Placed in drawing order, so later pieces lie on top: bottoms, jacket, tops, shoes, then accessories.
+  // Placed in drawing order, so later pieces lie on top. The left column, worn order: the inner top (peeking out at the
+  // neckline), the bottoms or dress, then the jacket over them, shoes underneath.
   const placed: { img: ImageBitmap; box: Box }[] = [];
-  const hasTopHalf = Boolean(jacket || tops.length);
-  if (dress) placed.push({ img: dress.img, box: hasTopHalf ? [0.26, 0.24, 0.74, 0.96] : [0.22, 0.06, 0.78, 0.9] });
-  else if (bottom) placed.push({ img: bottom.img, box: hasTopHalf ? [0.3, 0.38, 0.74, 0.98] : [0.25, 0.08, 0.75, 0.92] });
-  const below = Boolean(dress || bottom);
-  // Upper body: the jacket (or the first top) big at the top left, the next top across it on the right.
-  const upper = [jacket, ...tops].filter((p): p is (typeof loaded)[number] => Boolean(p)).slice(0, 3);
-  const upperBoxes: Box[] = below
-    ? [
-        [0.1, 0.06, 0.66, 0.46],
-        [0.5, 0.18, 0.86, 0.52],
-        [0.44, 0.04, 0.72, 0.26],
-      ]
-    : [
-        [0.08, 0.08, 0.66, 0.6],
-        [0.46, 0.26, 0.9, 0.7],
-        [0.44, 0.04, 0.74, 0.3],
-      ];
-  upper.forEach((p, i) => placed.push({ img: p.img, box: upperBoxes[i] }));
-  if (shoes) placed.push({ img: shoes.img, box: [0.56, 0.62, 0.99, 0.9] });
-  // Accessories: each kind in its own spot; anything else (or a second of a kind) in the next free spot.
+  const outerPiece = jacket ?? (tops.length > 1 ? tops[tops.length - 1] : undefined);
+  const innerTops = jacket ? tops : tops.slice(0, outerPiece ? -1 : undefined);
+  const inner = innerTops[0];
+  const JACKET: Box = [0.04, 0.09, 0.54, 0.44];
+  if (dress) placed.push({ img: dress.img, box: outerPiece ? [0.12, 0.14, 0.54, 0.74] : [0.1, 0.06, 0.56, 0.72] });
+  // Under a jacket, the top sits up and to the right so it shows beside the jacket (not hidden behind it).
+  if (inner) placed.push({ img: inner.img, box: outerPiece ? [0.33, 0.04, 0.66, 0.34] : JACKET });
+  // Long trousers (taller than wide) get the height down to the bottom, and the shoes move to the right column.
+  const longBottom = Boolean(!dress && bottom && bottom.img.height / bottom.img.width > 1.3);
+  if (!dress && bottom) {
+    const upperBody = Boolean(inner || outerPiece);
+    const box: Box = longBottom ? (upperBody ? [0.12, 0.32, 0.54, 0.96] : [0.12, 0.06, 0.54, 0.9]) : upperBody ? [0.13, 0.34, 0.53, 0.68] : [0.13, 0.08, 0.53, 0.62];
+    placed.push({ img: bottom.img, box });
+  }
+  if (outerPiece) placed.push({ img: outerPiece.img, box: JACKET });
+  // Any other top goes in the right column's free spot.
+  const extraTops = innerTops.slice(1);
+  // Shoes: under the clothes on the left, or under the bag on the right when long trousers take the left.
+  if (shoes) placed.push({ img: shoes.img, box: longBottom ? [0.62, 0.66, 0.96, 0.88] : [0.08, 0.7, 0.5, 0.95] });
+
+  // The right column: accessories by kind (from their names); anything else in the next free spot.
   const used = new Set<Box>();
-  for (const a of accessories) {
+  for (const a of [...accessories, ...extraTops]) {
     const kind = accessoryKind(a.name);
     let box: Box | undefined = kind !== "other" && !used.has(ACCESSORY_BOX[kind]) ? ACCESSORY_BOX[kind] : undefined;
     box ??= FREE_BOXES.find((b) => !used.has(b));
@@ -111,9 +115,9 @@ export async function outfitBoard(pieces: BoardPiece[]): Promise<{ blob: Blob; w
   }
 
   // A soft shadow lifts each piece off the white, so overlaps read clearly.
-  ctx.shadowColor = "rgba(18, 24, 33, 0.16)";
-  ctx.shadowBlur = 22;
-  ctx.shadowOffsetY = 8;
+  ctx.shadowColor = "rgba(18, 24, 33, 0.14)";
+  ctx.shadowBlur = 16;
+  ctx.shadowOffsetY = 6;
   for (const { img, box } of placed) {
     const [l, t, r, b] = box;
     drawFitted(ctx, img, l * WIDTH, t * HEIGHT, (r - l) * WIDTH, (b - t) * HEIGHT);
