@@ -24,6 +24,14 @@ export const HomeIcon = (p: IconProps) => (
   </Svg>
 );
 
+/** Discover: a compass. */
+export const CompassIcon = (p: IconProps) => (
+  <Svg {...p}>
+    <circle cx="12" cy="12" r="8.5" />
+    <path d="m15.5 8.5-2 5-5 2 2-5z" />
+  </Svg>
+);
+
 export const ClosetIcon = (p: IconProps) => (
   <Svg {...p}>
     <path d="M12 6.5a1.75 1.75 0 1 1 1.75-1.75c0 .9-.6 1.3-1.15 1.7-.4.3-.6.6-.6 1.05v.5" />

@@ -4,17 +4,18 @@ import { useEffect, useId, useRef, useState } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useAuth } from "@/components/AuthProvider";
-import { BagIcon, BookmarkIcon, CalendarIcon, ClosetIcon, HomeIcon, MirrorIcon, PaletteIcon, UserIcon } from "@/components/Icons";
+import { BagIcon, BookmarkIcon, CalendarIcon, ClosetIcon, CompassIcon, HomeIcon, MirrorIcon, PaletteIcon, UserIcon } from "@/components/Icons";
 import { MirrorImage } from "@/components/SavedPhoto";
 import { PricingSheet } from "@/components/Pricing";
 import { useBillingStatus } from "@/lib/useBillingStatus";
 
-type Section = "home" | "shop" | "closet" | "studio" | "stylist" | "planner" | "saved" | "profile";
+type Section = "home" | "discover" | "shop" | "closet" | "studio" | "stylist" | "planner" | "saved" | "profile";
 type NavLink = { section: Section; href: string; label: string; short: string; Icon: typeof HomeIcon };
 
-/** The four main places: in the top bar on computers, and the bottom bar on phones. */
+/** The main places: in the top bar on computers, and the bottom bar on phones. */
 const PRIMARY: NavLink[] = [
   { section: "home", href: "/", label: "Home", short: "Home", Icon: HomeIcon },
+  { section: "discover", href: "/feed", label: "Discover", short: "Discover", Icon: CompassIcon },
   { section: "closet", href: "/closet", label: "My Closet", short: "Closet", Icon: ClosetIcon },
   { section: "studio", href: "/studio", label: "Studio", short: "Studio", Icon: MirrorIcon },
   { section: "planner", href: "/planner", label: "Planner", short: "Planner", Icon: CalendarIcon },
@@ -30,6 +31,8 @@ const SECONDARY: NavLink[] = [
 function sectionFor(pathname: string | null): Section | null {
   const p = pathname ?? "/";
   if (p === "/") return "home";
+  // The outfit feed, posts, public profiles and posting.
+  if (p.startsWith("/feed") || p.startsWith("/p/") || p.startsWith("/u/") || p.startsWith("/create")) return "discover";
   if (p.startsWith("/shop")) return "shop";
   if (p.startsWith("/closet")) return "closet";
   if (p.startsWith("/stylist")) return "stylist";
@@ -293,7 +296,7 @@ export function MobileTabBar() {
         aria-label="Main"
         className="site-tabbar fixed inset-x-0 bottom-0 z-30 border-t border-black/[0.06] pb-[env(safe-area-inset-bottom)] backdrop-blur-xl md:hidden"
       >
-        <ul className="grid grid-cols-4">
+        <ul className="grid grid-cols-5">
           {PRIMARY.map(({ section, href, short, Icon }) => {
             const active = current === section;
             return (

@@ -49,7 +49,7 @@ export type EventName =
   | "plus_checkout_started"
   /** Billing: a monthly Plus payment failed (Stripe retries it). */
   | "plus_payment_failed"
-  | `visit_${"home" | "shop" | "closet" | "studio" | "stylist" | "tryon" | "saved" | "profile" | "planner"}`;
+  | `visit_${"home" | "discover" | "shop" | "closet" | "studio" | "stylist" | "tryon" | "saved" | "profile" | "planner"}`;
 
 export async function track(
   userId: string | null,

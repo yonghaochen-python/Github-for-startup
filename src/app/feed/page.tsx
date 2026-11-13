@@ -4,6 +4,7 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import { Avatar } from "@/components/Avatar";
 import { PostActions } from "@/components/feed/PostActions";
+import { useAuth } from "@/components/AuthProvider";
 import type { PublicPost } from "@/lib/postRules";
 
 /**
@@ -15,6 +16,18 @@ export default function FeedPage() {
   const [next, setNext] = useState<string | null | undefined>(undefined);
   const [loading, setLoading] = useState(false);
   const end = useRef<HTMLDivElement | null>(null);
+  const { status } = useAuth();
+  // Posting: a round ＋ over the feed for signed-in people.
+  const createButton =
+    status === "signedIn" ? (
+      <Link
+        href="/create"
+        aria-label="Post an outfit"
+        className="fixed right-4 top-[76px] z-20 flex h-11 w-11 items-center justify-center rounded-full bg-white text-[24px] font-light leading-none text-[#121821] shadow-[0_6px_18px_rgba(0,0,0,0.25)] md:right-8 md:top-[92px]"
+      >
+        ＋
+      </Link>
+    ) : null;
 
   const loadMore = useCallback(async () => {
     if (loading || next === null) return;
@@ -40,6 +53,7 @@ export default function FeedPage() {
   if (next !== undefined && posts.length === 0) {
     return (
       <main className="flex flex-1 items-center justify-center px-6 py-24 text-center">
+        {createButton}
         <p className="text-[15px] text-[#4f5b66]">No outfits yet. Check back soon.</p>
       </main>
     );
@@ -47,6 +61,7 @@ export default function FeedPage() {
 
   return (
     <main className="flex-1 md:pb-20">
+      {createButton}
       {/* Phones: full-screen cards that snap; computers: columns. */}
       <ul className="h-[calc(100dvh-64px-72px-env(safe-area-inset-bottom))] snap-y snap-mandatory overflow-y-auto md:mx-auto md:h-auto md:max-w-[1180px] md:columns-3 md:gap-5 md:overflow-visible md:px-6 md:pt-8 lg:columns-4">
         {posts.map((p) => (
