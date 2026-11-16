@@ -2,7 +2,8 @@
 
 import { useEffect, useRef, useState } from "react";
 import Link from "next/link";
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
+import { CREATE_OPTIONS, CreateOptionRow, takeHandedPhoto, type CreateStart } from "@/components/CreateMenu";
 import type { ClothingItem, Outfit } from "@/components/OutfitCard";
 import { CAPTION_MAX, MAX_POST_ITEMS, MAX_TAGS, OCCASION_TAGS, STYLE_TAGS } from "@/lib/postRules";
 import { layoutBoard, renderBoard, shrinkPicture, withoutBackground, type BoardLayer } from "@/lib/outfitBoard";
@@ -98,7 +99,13 @@ async function preparePicture(source: Blob): Promise<Picture> {
  * Post an outfit: a photo (new, or a saved look's try-on), or an outfit built from pieces (your closet, Shopping, or
  * any store link, laid out into one picture on this device), then a caption, tags and "Post publicly".
  */
+/** Each choice in the ＋ menu opens a fresh New post (even when one is already open), so it starts that way of posting. */
 export default function CreatePage() {
+  const searchParams = useSearchParams();
+  return <CreatePost key={searchParams.toString()} />;
+}
+
+function CreatePost() {
   const router = useRouter();
   const { showToast } = useToast();
   const [access, setAccess] = useState<{ canPost: boolean; username: string | null } | null>(null);
@@ -128,6 +135,26 @@ export default function CreatePage() {
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const fileInput = useRef<HTMLInputElement | null>(null);
+
+  // Arriving from the ＋ menu (?start=photo|look|build): go straight to that way of posting (a photo picked there comes
+  // along in memory). Once per visit.
+  const searchParams = useSearchParams();
+  const started = useRef(false);
+  useEffect(() => {
+    if (started.current) return;
+    started.current = true;
+    const start = searchParams.get("start") as CreateStart | null;
+    const begin = () => {
+      if (start === "photo") {
+        const file = takeHandedPhoto();
+        if (file) void takePhoto(file);
+      } else if (start === "look") void openSaved();
+      else if (start === "build") startBuilding();
+    };
+    // After this render (the choices it opens are state of their own).
+    queueMicrotask(begin);
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- once per visit
+  }, []);
 
   useEffect(() => {
     fetch("/api/me/can-post", { cache: "no-store" })
@@ -372,21 +399,20 @@ export default function CreatePage() {
               </button>
             </div>
           ) : (
-            !building && !layers && (
-            <div className="grid grid-cols-3 gap-3">
-              <button onClick={() => fileInput.current?.click()} className="flex aspect-[3/4] flex-col items-center justify-center rounded-[18px] bg-white text-[14px] font-semibold text-[#121821] shadow-[inset_0_0_0_1px_rgba(18,24,33,0.12)]">
-                <span className="text-[28px] font-light">＋</span>
-                Photo
-              </button>
-              <button onClick={openSaved} className="flex aspect-[3/4] flex-col items-center justify-center rounded-[18px] bg-white text-[14px] font-semibold text-[#121821] shadow-[inset_0_0_0_1px_rgba(18,24,33,0.12)]">
-                <span className="text-[24px]">🔖</span>
-                A saved look
-              </button>
-              <button onClick={startBuilding} className="flex aspect-[3/4] flex-col items-center justify-center rounded-[18px] bg-white px-2 text-center text-[14px] font-semibold text-[#121821] shadow-[inset_0_0_0_1px_rgba(18,24,33,0.12)]">
-                <span className="text-[24px]">👗</span>
-                Build an outfit
-              </button>
-            </div>
+            !building && !layers && !showSaved && (
+            // The same three choices as the ＋ menu.
+            <ul className="rounded-[22px] bg-white p-2 shadow-[0_1px_0_rgba(18,24,33,0.03),0_14px_36px_rgba(18,30,45,0.06)]">
+              {CREATE_OPTIONS.map((o) => (
+                <li key={o.start}>
+                  <CreateOptionRow
+                    title={o.title}
+                    sub={o.sub}
+                    Icon={o.Icon}
+                    onClick={o.start === "photo" ? () => fileInput.current?.click() : o.start === "look" ? openSaved : startBuilding}
+                  />
+                </li>
+              ))}
+            </ul>
             )
           )}
           <input
@@ -400,8 +426,14 @@ export default function CreatePage() {
               if (file) void takePhoto(file);
             }}
           />
-          {showSaved && (
-            <div className="mt-3 rounded-[18px] bg-white p-3 shadow-[inset_0_0_0_1px_rgba(18,24,33,0.08)]">
+          {showSaved && !picture && (
+            <div className="rounded-[18px] bg-white p-3 shadow-[inset_0_0_0_1px_rgba(18,24,33,0.08)]">
+              <div className="flex items-center justify-between px-1 pb-2">
+                <p className="text-[14px] font-semibold text-[#121821]">Your saved looks</p>
+                <button onClick={() => setShowSaved(false)} className="text-[12.5px] font-semibold text-[#5d6874]">
+                  Other ways to post
+                </button>
+              </div>
               {!saved ? (
                 <p className="p-2 text-[13px] text-[#5d6874]">Loading…</p>
               ) : saved.length === 0 ? (

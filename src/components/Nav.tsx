@@ -7,6 +7,7 @@ import { useAuth } from "@/components/AuthProvider";
 import { BagIcon, BookmarkIcon, CalendarIcon, ClosetIcon, CompassIcon, MirrorIcon, PaletteIcon, PlusIcon, UserIcon } from "@/components/Icons";
 import { MirrorImage } from "@/components/SavedPhoto";
 import { PricingSheet } from "@/components/Pricing";
+import { CreateMenu } from "@/components/CreateMenu";
 import { useBillingStatus } from "@/lib/useBillingStatus";
 
 type Section = "discover" | "create" | "shop" | "closet" | "studio" | "stylist" | "planner" | "saved" | "profile";
@@ -231,6 +232,7 @@ export function Nav() {
   const current = sectionFor(pathname);
   useSectionVisit(current, Boolean(user));
   const [plansOpen, setPlansOpen] = useState(false);
+  const [creating, setCreating] = useState(false);
   const subscribed = Boolean(useBillingStatus()?.subscribed);
 
   if (pathname === "/login") return null;
@@ -266,14 +268,18 @@ export function Nav() {
           {/* Not for Plus members (they manage Plus from Profile). */}
           {/* Computers: posting, one tap from anywhere. */}
           {user && (
-            <Link
-              href="/create"
-              aria-current={current === "create" ? "page" : undefined}
-              className="hidden min-h-[40px] items-center gap-1.5 rounded-full bg-white px-4 text-[12.5px] font-semibold text-[#121821] shadow-[inset_0_0_0_1px_rgba(18,24,33,0.14)] hover:shadow-[inset_0_0_0_1px_rgba(18,24,33,0.3)] md:flex"
+            <button
+              onClick={() => setCreating(true)}
+              aria-haspopup="dialog"
+              className={`hidden min-h-[40px] items-center gap-1.5 rounded-full px-4 text-[12.5px] font-semibold md:flex ${
+                current === "create"
+                  ? "bg-[#121821] text-white"
+                  : "bg-white text-[#121821] shadow-[inset_0_0_0_1px_rgba(18,24,33,0.14)] hover:shadow-[inset_0_0_0_1px_rgba(18,24,33,0.3)]"
+              }`}
             >
               <PlusIcon className="h-4 w-4" />
               Create
-            </Link>
+            </button>
           )}
           {/* Phones: Studio (the bottom bar has Discover, Closet, ＋, Planner and Profile). */}
           {user && (
@@ -309,6 +315,7 @@ export function Nav() {
         </div>
       </div>
       {plansOpen && <PricingSheet onClose={() => setPlansOpen(false)} />}
+      {creating && <CreateMenu onClose={() => setCreating(false)} />}
     </header>
   );
 }
@@ -317,6 +324,7 @@ export function Nav() {
 export function MobileTabBar() {
   const pathname = usePathname();
   const { user } = useAuth();
+  const [creating, setCreating] = useState(false);
   if (!user || pathname === "/login") return null;
   const current = sectionFor(pathname);
 
@@ -332,14 +340,14 @@ export function MobileTabBar() {
             if (tab === "create") {
               return (
                 <li key="create" className="flex items-center justify-center">
-                  <Link
-                    href="/create"
-                    aria-label="Post an outfit"
-                    aria-current={current === "create" ? "page" : undefined}
+                  <button
+                    onClick={() => setCreating(true)}
+                    aria-label="Create a post"
+                    aria-haspopup="dialog"
                     className="flex h-11 w-14 items-center justify-center rounded-[16px] bg-[#121821] text-white shadow-[0_6px_16px_rgba(18,24,33,0.25)] transition-transform active:scale-95"
                   >
                     <PlusIcon className="h-[22px] w-[22px]" />
-                  </Link>
+                  </button>
                 </li>
               );
             }
@@ -362,6 +370,7 @@ export function MobileTabBar() {
           })}
         </ul>
       </nav>
+      {creating && <CreateMenu onClose={() => setCreating(false)} />}
     </>
   );
 }
