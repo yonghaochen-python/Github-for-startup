@@ -10,6 +10,7 @@ import { BoardEditor } from "@/components/BoardEditor";
 import { warmUpCutout } from "@/lib/cutout";
 import { ROLE_FOR, type TrayCategory, type TrayItem } from "@/lib/shopCatalog";
 import { keepShopTryOn, readShopTryOns } from "@/lib/shopWishlist";
+import { BackButton } from "@/components/BackButton";
 import { PageShell, btnPrimary, btnSecondary, btnText, eyebrow } from "@/components/ui";
 import { useToast } from "@/components/Toast";
 
@@ -313,7 +314,8 @@ export default function CreatePage() {
     );
     const res = await fetch("/api/posts", { method: "POST", body: form }).catch(() => null);
     const data = res ? ((await res.json().catch(() => ({}))) as { id?: string; error?: string }) : {};
-    if (res?.ok && data.id) return router.push(`/p/${data.id}`);
+    // Replace the form in history, so Back from the new post goes where they were before.
+    if (res?.ok && data.id) return router.replace(`/p/${data.id}`);
     setError(data.error ?? "Couldn't post right now. Please try again.");
     setBusy(false);
   }
@@ -349,7 +351,10 @@ export default function CreatePage() {
   return (
     <main className="flex-1 pb-24">
       <PageShell className="max-w-xl pt-8">
-        <h1 className="font-display text-[36px] leading-none text-[#121821]">New post</h1>
+        <div className="flex items-center gap-3">
+          <BackButton disabled={busy} />
+          <h1 className="font-display text-[36px] leading-none text-[#121821]">New post</h1>
+        </div>
 
         {/* The photo */}
         <section className="mt-6">

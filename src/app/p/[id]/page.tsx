@@ -5,6 +5,7 @@ import Link from "next/link";
 import { useParams, useRouter } from "next/navigation";
 import { useAuth } from "@/components/AuthProvider";
 import { Avatar } from "@/components/Avatar";
+import { BackButton } from "@/components/BackButton";
 import { ConfirmButton } from "@/components/ConfirmButton";
 import { useToast } from "@/components/Toast";
 import { REPORT_REASONS, type PublicPost } from "@/lib/postRules";
@@ -65,10 +66,13 @@ export default function PostPage() {
   return (
     <main className="flex-1 pb-24">
       <PageShell className="max-w-xl pt-6">
-        <Link href={`/u/${post.creator.username}`} className="flex items-center gap-2.5">
-          <Avatar url={post.creator.avatarUrl} name={post.creator.displayName ?? post.creator.username} size={36} />
-          <span className="text-[14px] font-semibold text-[#121821]">@{post.creator.username}</span>
-        </Link>
+        <div className="flex items-center gap-3">
+          <BackButton />
+          <Link href={`/u/${post.creator.username}`} className="flex min-w-0 items-center gap-2.5">
+            <Avatar url={post.creator.avatarUrl} name={post.creator.displayName ?? post.creator.username} size={36} />
+            <span className="truncate text-[14px] font-semibold text-[#121821]">@{post.creator.username}</span>
+          </Link>
+        </div>
 
         <div className="mt-3 overflow-hidden rounded-[18px] bg-[#f1efeb]">
           {/* eslint-disable-next-line @next/next/no-img-element -- a public post picture */}
