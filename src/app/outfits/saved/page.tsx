@@ -35,7 +35,7 @@ function SavedInspiration() {
         title="Nothing saved yet"
         body="Press 🔖 on an outfit in the feed to keep it here."
         action={
-          <Link href="/feed" className={btnPrimary}>
+          <Link href="/" className={btnPrimary}>
             Browse outfits
           </Link>
         }

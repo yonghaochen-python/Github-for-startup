@@ -4,21 +4,28 @@ import { useEffect, useId, useRef, useState } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useAuth } from "@/components/AuthProvider";
-import { BagIcon, BookmarkIcon, CalendarIcon, ClosetIcon, CompassIcon, HomeIcon, MirrorIcon, PaletteIcon, UserIcon } from "@/components/Icons";
+import { BagIcon, BookmarkIcon, CalendarIcon, ClosetIcon, CompassIcon, MirrorIcon, PaletteIcon, PlusIcon, UserIcon } from "@/components/Icons";
 import { MirrorImage } from "@/components/SavedPhoto";
 import { PricingSheet } from "@/components/Pricing";
 import { useBillingStatus } from "@/lib/useBillingStatus";
 
-type Section = "home" | "discover" | "shop" | "closet" | "studio" | "stylist" | "planner" | "saved" | "profile";
-type NavLink = { section: Section; href: string; label: string; short: string; Icon: typeof HomeIcon };
+type Section = "discover" | "create" | "shop" | "closet" | "studio" | "stylist" | "planner" | "saved" | "profile";
+type NavLink = { section: Section; href: string; label: string; short: string; Icon: typeof CompassIcon };
 
-/** The main places: in the top bar on computers, and the bottom bar on phones. */
+/** Computers: the main places in the top bar (Discover first; posting is the Create button beside them). */
 const PRIMARY: NavLink[] = [
-  { section: "home", href: "/", label: "Home", short: "Home", Icon: HomeIcon },
-  { section: "discover", href: "/feed", label: "Discover", short: "Discover", Icon: CompassIcon },
+  { section: "discover", href: "/", label: "Discover", short: "Discover", Icon: CompassIcon },
   { section: "closet", href: "/closet", label: "My Closet", short: "Closet", Icon: ClosetIcon },
   { section: "studio", href: "/studio", label: "Studio", short: "Studio", Icon: MirrorIcon },
   { section: "planner", href: "/planner", label: "Planner", short: "Planner", Icon: CalendarIcon },
+];
+/** Phones: the bottom bar, with posting (＋) in the middle. Studio is the mirror icon in the top bar there. */
+const PHONE_TABS: (NavLink | "create")[] = [
+  PRIMARY[0],
+  PRIMARY[1],
+  "create",
+  PRIMARY[3],
+  { section: "profile", href: "/profile", label: "Profile", short: "Profile", Icon: UserIcon },
 ];
 /** Everything else: in More on computers, and in the menu under the person's photo on phones. */
 const SECONDARY: NavLink[] = [
@@ -30,9 +37,9 @@ const SECONDARY: NavLink[] = [
 /** Which main section a URL belongs to, so exactly one tab is lit everywhere in the app. */
 function sectionFor(pathname: string | null): Section | null {
   const p = pathname ?? "/";
-  if (p === "/") return "home";
-  // The outfit feed, posts, public profiles and posting.
-  if (p.startsWith("/feed") || p.startsWith("/p/") || p.startsWith("/u/") || p.startsWith("/create")) return "discover";
+  // Discover: the feed (the first page), posts and public profiles. Posting lights the ＋.
+  if (p === "/" || p.startsWith("/feed") || p.startsWith("/p/") || p.startsWith("/u/")) return "discover";
+  if (p.startsWith("/create")) return "create";
   if (p.startsWith("/shop")) return "shop";
   if (p.startsWith("/closet")) return "closet";
   if (p.startsWith("/stylist")) return "stylist";
@@ -45,7 +52,7 @@ function sectionFor(pathname: string | null): Section | null {
 
 function Wordmark() {
   return (
-    <Link href="/" className="group flex shrink-0 items-baseline gap-3 leading-none" aria-label="Virm home">
+    <Link href="/" className="group flex shrink-0 items-baseline gap-3 leading-none" aria-label="Virm: Discover">
       <span className="font-display text-[34px] tracking-[-1px] text-[#121821] sm:text-[36px]">
         Vir<em className="font-normal">m</em>
       </span>
@@ -257,6 +264,30 @@ export function Nav() {
         <div className="ml-auto flex shrink-0 items-center gap-2 sm:gap-3">
           {/* Plans, one tap away on every page; they open over the page instead of leaving it. */}
           {/* Not for Plus members (they manage Plus from Profile). */}
+          {/* Computers: posting, one tap from anywhere. */}
+          {user && (
+            <Link
+              href="/create"
+              aria-current={current === "create" ? "page" : undefined}
+              className="hidden min-h-[40px] items-center gap-1.5 rounded-full bg-white px-4 text-[12.5px] font-semibold text-[#121821] shadow-[inset_0_0_0_1px_rgba(18,24,33,0.14)] hover:shadow-[inset_0_0_0_1px_rgba(18,24,33,0.3)] md:flex"
+            >
+              <PlusIcon className="h-4 w-4" />
+              Create
+            </Link>
+          )}
+          {/* Phones: Studio (the bottom bar has Discover, Closet, ＋, Planner and Profile). */}
+          {user && (
+            <Link
+              href="/studio"
+              aria-label="Studio"
+              aria-current={current === "studio" ? "page" : undefined}
+              className={`flex h-10 w-10 items-center justify-center rounded-full md:hidden ${
+                current === "studio" ? "bg-[#121821] text-white" : "bg-white text-[#121821] shadow-[inset_0_0_0_1px_rgba(18,24,33,0.12)]"
+              }`}
+            >
+              <MirrorIcon className="h-[19px] w-[19px]" />
+            </Link>
+          )}
           {user && !subscribed && (
             <button
               onClick={() => setPlansOpen(true)}
@@ -282,7 +313,7 @@ export function Nav() {
   );
 }
 
-/** Phone navigation: the four main places, always one tap away at the bottom of the screen. */
+/** Phone navigation: Discover, My Closet, ＋ (post), Planner and Profile, always one tap away at the bottom. */
 export function MobileTabBar() {
   const pathname = usePathname();
   const { user } = useAuth();
@@ -297,7 +328,22 @@ export function MobileTabBar() {
         className="site-tabbar fixed inset-x-0 bottom-0 z-30 border-t border-black/[0.06] pb-[env(safe-area-inset-bottom)] backdrop-blur-xl md:hidden"
       >
         <ul className="grid grid-cols-5">
-          {PRIMARY.map(({ section, href, short, Icon }) => {
+          {PHONE_TABS.map((tab) => {
+            if (tab === "create") {
+              return (
+                <li key="create" className="flex items-center justify-center">
+                  <Link
+                    href="/create"
+                    aria-label="Post an outfit"
+                    aria-current={current === "create" ? "page" : undefined}
+                    className="flex h-11 w-14 items-center justify-center rounded-[16px] bg-[#121821] text-white shadow-[0_6px_16px_rgba(18,24,33,0.25)] transition-transform active:scale-95"
+                  >
+                    <PlusIcon className="h-[22px] w-[22px]" />
+                  </Link>
+                </li>
+              );
+            }
+            const { section, href, short, Icon } = tab;
             const active = current === section;
             return (
               <li key={section}>

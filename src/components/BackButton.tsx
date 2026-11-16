@@ -4,7 +4,7 @@ import { useRouter } from "next/navigation";
 import { ArrowLeftIcon } from "@/components/Icons";
 
 /** A round back arrow: the page before (inside Virm), or `fallback` when this page was opened directly. */
-export function BackButton({ fallback = "/feed", disabled = false }: { fallback?: string; disabled?: boolean }) {
+export function BackButton({ fallback = "/", disabled = false }: { fallback?: string; disabled?: boolean }) {
   const router = useRouter();
   function back() {
     const fromVirm = typeof document !== "undefined" && document.referrer.startsWith(location.origin);
