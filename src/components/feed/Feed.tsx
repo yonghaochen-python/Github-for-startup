@@ -15,7 +15,7 @@ import type { PublicPost } from "@/lib/postRules";
 /**
  * Discover, the outfit feed (Virm's first page).
  * - Phones: one outfit per screen, swiped up. The picture fills the top; who posted it, the caption, tags, Pieces and
- *   Try this outfit sit underneath (never over the clothes); like / save / share / ⋯ are small circles on the right.
+ *   Recreate with My Closet sit underneath (never over the clothes); like / save / share / ⋯ are small circles on the right.
  * - Computers: an editorial grid in columns, with search at the top.
  * Two lists: For You (everyone, newest first) and Following (people you follow). Search looks through captions, tags,
  * @usernames and the pieces' names, brands and stores. Posts marked "not for me" leave the feed. No AI, nothing paid.

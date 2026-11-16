@@ -16,7 +16,7 @@ import {
 type Choice = "mine" | "theirs" | null;
 
 /**
- * "Try this outfit": the post's pieces, each matched to the closest piece in your closet. Pick yours or theirs for
+ * "Recreate with My Closet": the post's pieces, each matched to the closest piece in your closet. Pick yours or theirs for
  * each, then it opens in Studio dressed that way. Free: the try-on only runs (and counts) when you press Try On there.
  */
 export function TryThisOutfit({
@@ -95,23 +95,23 @@ export function TryThisOutfit({
         onClick={start}
         className={
           variant === "feed"
-            ? "inline-flex items-center rounded-full bg-white px-4 py-2 text-[12.5px] font-semibold text-[#121821] shadow-sm md:bg-[#121821] md:text-white"
+            ? "inline-flex items-center whitespace-nowrap rounded-full bg-white px-4 py-2 text-[12.5px] font-semibold text-[#121821] shadow-sm md:bg-[#121821] md:text-white"
             : "w-full rounded-full bg-[#121821] px-5 py-3 text-[14.5px] font-semibold text-white"
         }
       >
-        Try this outfit
+        Recreate with My Closet
       </button>
       {/* Drawn at the top of the page: on the feed the button sits in a layer that lets taps through. */}
       {open &&
         createPortal(
           <Dialog
-            label="Try this outfit"
+            label="Recreate with My Closet"
             onClose={() => setOpen(false)}
             className="max-h-[88dvh] w-full max-w-md overflow-y-auto rounded-[22px] bg-white p-4 shadow-xl"
           >
             <div className="flex items-center justify-between">
               <h2 className="text-[17px] font-semibold text-[#121821]">
-                Try this outfit
+                Recreate with My Closet
               </h2>
               <button
                 onClick={() => setOpen(false)}

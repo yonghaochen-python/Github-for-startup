@@ -65,7 +65,7 @@ A personal beauty and fashion consultation, made from a head-and-shoulders photo
 ### Discover (the outfit feed) **(not live yet)**
 - **The feed:** one outfit per screen on phones (swipe up), columns on computers. Anyone can look, even without an account.
 - **On each post:** ♥ like (count shown), 👎 not for me (private, only you know), ↗ share, 🔖 save. Saved posts go to **Saved Looks → Inspiration**.
-- **Try this outfit:** each piece of the post is matched to the closest piece in your closet. Pick **Yours** or **Theirs** for each, then **Open in Studio** dresses you in it. Matching is free; nothing is made until you press Try On.
+- **Recreate with My Closet:** each piece of the post is matched to the closest piece in your closet. Pick **Yours** or **Theirs** for each, then **Open in Studio** dresses you in it. Matching is free; nothing is made until you press Try On.
 - **Post an outfit (＋):**
   - **Photo:** your own outfit picture.
   - **A saved look:** one of your try-ons.
@@ -144,7 +144,7 @@ How it works · Pricing · About · Contact · Privacy · Terms · Reset passwor
 ## Latest updates
 
 **Demo only (not live yet):**
-- Discover: the outfit feed, posting (Photo, A saved look, Build an outfit with the story-style board), profiles, likes / saves / private dislikes, reports and Admin → Posts, **Try this outfit**, back arrows. Needs `bash scripts/go-live-social.sh` (adds the new database tables, then publishes).
+- Discover: the outfit feed, posting (Photo, A saved look, Build an outfit with the story-style board), profiles, likes / saves / private dislikes, reports and Admin → Posts, **Recreate with My Closet**, back arrows. Needs `bash scripts/go-live-social.sh` (adds the new database tables, then publishes).
 
 **Live since November 10–13, 2026:**
 - Payments (Stripe), free trial, invite-code 14-day trial, Plus rollover, limits enforced.

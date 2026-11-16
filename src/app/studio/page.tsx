@@ -121,7 +121,7 @@ export default function StudioPage() {
   const hasPhoto = Boolean(user?.photoVersion);
   // Arriving from Shopping (?shop=1): its picks are worn to start with and kept in a "Shop picks" tab.
   const fromShop = searchParams.get("shop") === "1";
-  // Arriving from a Discover post's "Try this outfit" (?post=1): the closet matches and the post's own pieces chosen.
+  // Arriving from a Discover post's "Recreate with My Closet" (?post=1): the closet matches and the post's own pieces chosen.
   const [fromPost] = useState<TryPostHandoff | null>(() => {
     if (typeof window === "undefined" || searchParams.get("post") !== "1") return null;
     try {

@@ -3,7 +3,7 @@ import { colorOfWords, distance } from "@/lib/colorMatch";
 import type { TryPostPiece } from "@/lib/postRules";
 
 /**
- * "Try this outfit": for each piece in a post, the closest piece in the viewer's own closet (same kind, then the
+ * "Recreate with My Closet": for each piece in a post, the closest piece in the viewer's own closet (same kind, then the
  * nearest color, shared words like "puffer" or "pleated", same brand). Plain matching on what's already stored: no AI,
  * no cost. Which closet piece the poster used is never shown; only the viewer's own pieces come back.
  */

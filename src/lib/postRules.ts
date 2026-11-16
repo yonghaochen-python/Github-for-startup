@@ -62,7 +62,7 @@ export type PublicPost = {
 };
 
 /**
- * "Try this outfit": one piece of a post, with the viewer's closest closet piece (only ever their own). `close` = a
+ * "Recreate with My Closet": one piece of a post, with the viewer's closest closet piece (only ever their own). `close` = a
  * near match (same kind and color or shape), otherwise just the nearest of that kind.
  */
 export type TryPostPiece = {

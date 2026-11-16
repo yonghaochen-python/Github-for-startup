@@ -39,7 +39,7 @@ export function PieceRow({ it }: { it: PublicPost["items"][number] }) {
 
 /**
  * "Pieces": what the outfit is made of, in a sheet over the feed (the outfit stays where it was). `children` goes at
- * the foot, for Try this outfit.
+ * the foot, for Recreate with My Closet.
  */
 export function PiecesButton({ post, children }: { post: PublicPost; children?: React.ReactNode }) {
   const [open, setOpen] = useState(false);
