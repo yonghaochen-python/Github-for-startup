@@ -279,11 +279,36 @@ export async function withViewerState(posts: PublicPost[], viewerId?: string | n
  * The feed: published posts, newest first, 10 at a time (cursor = the last post's id). A signed-in person never sees
  * posts they disliked. Version 1 ranking is simply "newest"; For You comes later.
  */
-export async function feedPage(viewer: { id: string; role: string } | null, cursor: string | null): Promise<{ posts: PublicPost[]; next: string | null }> {
+/** What a search looks in: captions, tags, @usernames, and the pieces' names, brands and stores. */
+function searchWhere(query: string | null) {
+  const q = (query ?? "").replace(/^@/, "").replace(/\s+/g, " ").trim().slice(0, 40);
+  if (!q) return {};
+  // Its own group, so it never clashes with the page's "after this post" condition.
+  return {
+    AND: [
+      {
+        OR: [
+          { caption: { contains: q } },
+          { styleTags: { contains: q } },
+          { occasionTags: { contains: q } },
+          { user: { username: { contains: q } } },
+          { items: { some: { OR: [{ name: { contains: q } }, { brand: { contains: q } }, { store: { contains: q } }] } } },
+        ],
+      },
+    ],
+  };
+}
+
+export async function feedPage(
+  viewer: { id: string; role: string } | null,
+  cursor: string | null,
+  query: string | null = null
+): Promise<{ posts: PublicPost[]; next: string | null }> {
   const after = cursor ? await prisma.post.findUnique({ where: { id: cursor }, select: { createdAt: true, id: true } }) : null;
   const rows = await prisma.post.findMany({
     where: {
       status: "published",
+      ...searchWhere(query),
       ...(viewer ? { reactions: { none: { userId: viewer.id, kind: "dislike" } } } : {}),
       ...(after ? { OR: [{ createdAt: { lt: after.createdAt } }, { createdAt: after.createdAt, id: { lt: after.id } }] } : {}),
     },

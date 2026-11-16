@@ -95,7 +95,7 @@ export function TryThisOutfit({
         onClick={start}
         className={
           variant === "feed"
-            ? "pointer-events-auto mt-3 rounded-full bg-white px-4 py-2 text-[13px] font-semibold text-[#121821] shadow"
+            ? "inline-flex items-center rounded-full bg-white px-4 py-2 text-[12.5px] font-semibold text-[#121821] shadow-sm md:bg-[#121821] md:text-white"
             : "w-full rounded-full bg-[#121821] px-5 py-3 text-[14.5px] font-semibold text-white"
         }
       >

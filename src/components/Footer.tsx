@@ -1,3 +1,6 @@
+"use client";
+
+import { usePathname } from "next/navigation";
 import Link from "next/link";
 
 const LINKS = [
@@ -9,10 +12,14 @@ const LINKS = [
   { href: "/contact", label: "Contact" },
 ];
 
-/** On every page: the trust links and the "private by design" promise. */
+/**
+ * On every page: the trust links and the "private by design" promise. Not under Discover on phones, where the feed
+ * fills the screen (the links are on every other page, and on computers).
+ */
 export function Footer() {
+  const pathname = usePathname();
   return (
-    <footer className="site-footer border-t border-black/[0.06]">
+    <footer className={`site-footer border-t border-black/[0.06] ${pathname === "/" ? "max-md:hidden" : ""}`}>
       <div className="mx-auto flex w-full max-w-[1280px] flex-col gap-4 px-5 py-8 sm:px-8 lg:flex-row lg:items-center lg:justify-between">
         <p className="whitespace-nowrap text-[13px] font-semibold text-[#26313a]">
           Private by design <span className="font-normal text-[#4f5b66]">· Your closet stays yours.</span>
