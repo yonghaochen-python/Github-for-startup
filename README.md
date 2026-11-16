@@ -4,13 +4,14 @@ Virm is an AI wardrobe app. You put your clothes in a digital closet, get outfit
 
 - **Live site:** https://virm-virtualmirror.yonghaochen.workers.dev
 - **Made for phones first**, then computers. A bottom tab bar on phones, a top bar on computers.
-- **Menu:** Home · Shopping · My Closet · Studio · AI Stylist · Saved Looks · Profile
+- **Menu:** Home · Discover · My Closet · Studio · Planner (more: Shopping · AI Stylist · Saved Looks · Profile)
+- **Live vs. demo:** everything below is in the demo on your computer. Items marked **(not live yet)** aren't on the live site yet.
 
 ---
 
 ## What's in the demo
 
-**Getting around:** four main places, **Home · My Closet · Studio · Planner** (top bar on computers, bottom bar on phones). **More** holds Shopping, AI Stylist and Saved Looks; your photo opens Profile, Admin and Log out (on phones it also holds Shopping, AI Stylist and Saved Looks). Works with a keyboard and screen readers, and up to 400% zoom.
+**Getting around:** five main places, **Home · Discover · My Closet · Studio · Planner** (top bar on computers, bottom bar on phones). Discover is **(not live yet)**; on the live site it's four. **More** holds Shopping, AI Stylist and Saved Looks; your photo opens Profile, Admin and Log out (on phones it also holds Shopping, AI Stylist and Saved Looks). Works with a keyboard and screen readers, and up to 400% zoom.
 
 ### Home
 - Signed in: a greeting beside your photo, **Your Next Step** (one suggestion based on where you are), **This Week** (your planned outfits), **My Closet** and **Saved Looks** with real counts, and **Recent** (the last two weeks).
@@ -22,6 +23,7 @@ Virm is an AI wardrobe app. You put your clothes in a digital closet, get outfit
 - **Add clothes:** one photo per piece, or one photo of several pieces laid out flat. The AI finds each piece and fills in its type, color, material, season and how it's layered.
 - **Edit** or **remove** any piece. Filters are behind a small icon.
 - **Remove background** per piece, done on your phone or computer (free, nothing uploaded). **Keep background** undoes it.
+- **Enhance with AI** (admins only): one button lays the piece neatly flat and removes the background. It starts from your original photo, keeps the piece's real length (a cropped top stays cropped) and matches its color to your photo. About a minute, about $0.04 each. Switch between the AI picture and your own any time; try-ons always use your own picture.
 - Light yellow by day, deep blue at night.
 
 ### Studio (try clothes on)
@@ -60,6 +62,20 @@ A personal beauty and fashion consultation, made from a head-and-shoulders photo
 - A new photo doesn't remake anything: older reports are marked **From earlier photo**, each with a **Refresh** button.
 - A report that's being made keeps going if you leave the page.
 
+### Discover (the outfit feed) **(not live yet)**
+- **The feed:** one outfit per screen on phones (swipe up), columns on computers. Anyone can look, even without an account.
+- **On each post:** ♥ like (count shown), 👎 not for me (private, only you know), ↗ share, 🔖 save. Saved posts go to **Saved Looks → Inspiration**.
+- **Try this outfit:** each piece of the post is matched to the closest piece in your closet. Pick **Yours** or **Theirs** for each, then **Open in Studio** dresses you in it. Matching is free; nothing is made until you press Try On.
+- **Post an outfit (＋):**
+  - **Photo:** your own outfit picture.
+  - **A saved look:** one of your try-ons.
+  - **Build an outfit:** choose pieces from your closet, from Shopping, or any store (paste a link or add a photo). Backgrounds are removed on your device and the pieces are laid out as a neat outfit board. Move, pinch to resize and layer them like a story post. One outfit per post: 1 jacket, up to 2 tops, 1 bottom or dress, 1 pair of shoes, up to 3 accessories.
+  - Add a caption, style and occasion tags, and each piece's name, brand, store, price and link (**Shop** button on the post).
+  - 10 posts a day per person. A back arrow at the top; after posting you land on your post.
+- **Profiles:** @username, bio and picture at **/u/username**, with a grid of that person's posts. Set them up in Profile.
+- **Safety:** Report a post (nudity, harassment, hate, someone else's photo, spam, other). 3 reports hide it until an admin reviews it in **Admin → Posts**. Owners and admins can delete posts.
+- **Privacy:** posts use their own public copies of pictures. Your closet, emails and private photos are never shown, and nobody sees which closet piece a post came from.
+
 ### Shopping
 - **Your Shopping Try-Ons:** pieces you've added from stores, with store, name and price. Kept apart from My Closet, and saved on your device.
 - Tap a piece → **Add to Studio**: it joins the look you already have there. Nothing is made by AI until you press Try On.
@@ -89,22 +105,26 @@ A personal beauty and fashion consultation, made from a head-and-shoulders photo
 - Your account, your saved try-on photo, credits left this month, Log out. On phones, Admin is here too for admins.
 
 ### Plans and credits (Upgrade)
-| Plan | Price | Photo credits / month | Live sessions / month |
-|---|---|---|---|
-| Free | $0 | 10 | 2 |
-| Plus | $14.99 | 60 | 15 |
-| Pro | $24.99 | 100 | 30 |
+| Plan | Price | Photo try-ons | Live try-ons | Clothing photos | Style it |
+|---|---|---|---|---|---|
+| Free | $0 | 10 / month | 2 / month | 30 / month | 10 / month |
+| Plus | $14.99 / month | 60 / month | 15 / month | 150 / month | 60 / month |
 
-- A photo try-on or an AI Stylist analysis uses 1 photo credit. A credit is used only if it works.
-- **Live sessions are limited now.** Also 3 a day per person and 50 a day for the whole site.
-- **Photo credits are only counted for now, not limited.**
-- **No payments yet.** Paid buttons say "Coming soon."
+- **Payments are live** (Stripe). Limits are enforced: when you run out, Virm offers the trial or Plus.
+- **Free trial of Plus:** 7 days (15 photo, 3 live, 4 AI Stylist reports, 40 clothing photos, 20 Style it). With a **friend's invite code**, 14 days with double the amounts. A card is saved but nothing is charged unless you choose Plus. Only before your first paid month.
+- **Plus rollover:** unused photo and live try-ons carry over one month (up to one month's worth), on top of the new month's.
+- **Manage Plus** in Profile opens Stripe to change the card or cancel (Plus lasts to the end of the paid month).
+- A photo try-on or an AI Stylist analysis uses 1 photo credit, only if it works. Live try-on is also capped at 3 a day per person and 50 a day for the whole site.
+- **SVIP** (set by an admin): no monthly limits, but live try-on is still capped at 10 a day. Not an admin.
 - **Bad ratings:** the first Bad rating each month on a real photo or live try-on gives +2 photo and +2 live credits as a thank-you.
+- Pro ($24.99) exists but is hidden until Plus proves itself.
 
 ### Admin (admins only)
 - Sign-ups, usage and AI costs, and a cost calculator per plan.
 - **AI Stylist usage:** analyses per type, people, AI cost and failures, plus which feedback options people picked.
-- A tool to give test credits.
+- A tool to give test credits, and **Make SVIP / Remove SVIP** by email.
+- **Trials & Plus:** trials started, trial-to-paid, Plus members.
+- **Posts** **(not live yet)**: reported posts to review, and who may post.
 
 ### Other pages
 How it works · Pricing · About · Contact · Privacy · Terms · Reset password.
@@ -116,10 +136,22 @@ How it works · Pricing · About · Contact · Privacy · Terms · Reset passwor
 - Background removal and the person trim happen on your device.
 - Photos go to an AI provider only when you ask for a try-on or an analysis.
 - Backups made before big changes are deleted within 30 days.
+- Payments are handled by Stripe; Virm never sees your card number.
+- Discover posts are public on purpose; everything else stays private. **(not live yet)**
 
 ---
 
-## Latest updates (live since November 5, 2026)
+## Latest updates
+
+**Demo only (not live yet):**
+- Discover: the outfit feed, posting (Photo, A saved look, Build an outfit with the story-style board), profiles, likes / saves / private dislikes, reports and Admin → Posts, **Try this outfit**, back arrows. Needs `bash scripts/go-live-social.sh` (adds the new database tables, then publishes).
+
+**Live since November 10–13, 2026:**
+- Payments (Stripe), free trial, invite-code 14-day trial, Plus rollover, limits enforced.
+- SVIP accounts.
+- Enhance with AI (admins): one button, original photo, keeps length and color.
+
+**Live since November 5, 2026:**
 
 - Studio fitting room: tap a numbered piece to **Replace** or **Remove** it; the photo always says what it is (AI try-on, Earlier try-on, Your photo); quick theme chips; a color filter in the closet; a bottom drawer on phones.
 - New Home: signed-in dashboard and a new signed-out page; **Try it free** rebuilt as a demo fitting room.
@@ -152,6 +184,8 @@ How it works · Pricing · About · Contact · Privacy · Terms · Reset passwor
 - **Claude** (Anthropic): reading clothes, outfit ideas, AI Stylist analyses.
 - **Black Forest Labs FLUX** virtual try-on: photo try-on.
 - **Decart**: live try-on.
+- **Black Forest Labs FLUX 3**: Enhance with AI (admins).
+- **Stripe**: payments and trials.
 - On-device and free: **MediaPipe** (person and face finding, recolor previews) and a small background-removal model (u2netp).
 
 **Run it on your computer**
