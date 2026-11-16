@@ -23,6 +23,9 @@ export type EventName =
   /** Social feed: a post was published / reported. */
   | "post_created"
   | "post_reported"
+  /** A comment was written / reported. */
+  | "comment_created"
+  | "comment_reported"
   /** Signed up with a friend's invite code (their trial will be 14 days). */
   | "signup_with_invite"
   /** A friend's invite code was entered after sign-up (before the trial). */

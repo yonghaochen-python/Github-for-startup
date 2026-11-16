@@ -44,6 +44,8 @@ export type PublicPost = {
   styleTags: string[];
   occasionTags: string[];
   likeCount: number;
+  /** Published comments. */
+  commentCount: number;
   createdAt: string;
   creator: { username: string; displayName: string | null; avatarUrl: string | null };
   items: PublicPostItem[];
@@ -55,6 +57,8 @@ export type PublicPost = {
   liked?: boolean;
   disliked?: boolean;
   saved?: boolean;
+  /** Only for the signed-in viewer (not on their own posts): whether they follow whoever posted it. */
+  followsCreator?: boolean;
 };
 
 /**
@@ -76,3 +80,18 @@ export type TryPostHandoff = { closetIds: string[]; theirs: { name: string; imag
 /** Editing a post: at most this many layers, and this large a picture per layer (prepared on the device). */
 export const MAX_BOARD_LAYERS = 24;
 export const BOARD_LAYER_MAX_BYTES = 3 * 1024 * 1024;
+
+/** Comments: how long, and how many a person may write a day (spam protection). */
+export const COMMENT_MAX = 300;
+export const COMMENTS_PER_DAY = 60;
+/** A comment as anyone may see it. `canDelete`: the viewer wrote it, owns the post, or is an admin. */
+export type PublicComment = {
+  id: string;
+  body: string;
+  createdAt: string;
+  creator: { username: string; displayName: string | null; avatarUrl: string | null };
+  mine?: boolean;
+  canDelete?: boolean;
+};
+/** Following on a profile: the counts, and whether the viewer follows them (null when signed out or it's them). */
+export type FollowState = { followers: number; following: number; followed: boolean | null };

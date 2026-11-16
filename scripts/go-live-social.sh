@@ -1,7 +1,8 @@
 #!/bin/bash
 # Go live with Discover (the social outfit feed): public profiles (0018), posts + reports (0019), likes + saves (0020),
-# editing posts + "only me" piece details (0021), the Discover tab, posting open to everyone, and "Build an outfit".
-# All four database changes only ADD things; nothing existing changes. Safe to run again: anything already added is
+# editing posts + "only me" piece details (0021), following + comments (0022), the Discover tab, posting open to
+# everyone, and "Build an outfit".
+# All five database changes only ADD things; nothing existing changes. Safe to run again: anything already added is
 # skipped. It stops at the first problem, and nothing is pushed unless every step succeeds. No keys needed.
 set -u
 cd "$(dirname "$0")/.." || exit 1
@@ -78,9 +79,23 @@ has_column PostItem detailsPrivate || q 'ALTER TABLE "PostItem" ADD COLUMN "deta
 record 0021_post_edit.sql || stop "couldn't record 0021."
 echo "✓ 0021 done"
 
+echo "→ 0022: following and comments…"
+q 'CREATE TABLE IF NOT EXISTS "Follow" ("followerId" TEXT NOT NULL, "followingId" TEXT NOT NULL, "createdAt" DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP, PRIMARY KEY ("followerId", "followingId"), CONSTRAINT "Follow_followerId_fkey" FOREIGN KEY ("followerId") REFERENCES "User" ("id") ON DELETE CASCADE ON UPDATE CASCADE, CONSTRAINT "Follow_followingId_fkey" FOREIGN KEY ("followingId") REFERENCES "User" ("id") ON DELETE CASCADE ON UPDATE CASCADE);' >/dev/null &&
+q 'CREATE INDEX IF NOT EXISTS "Follow_followingId_idx" ON "Follow"("followingId");' >/dev/null &&
+q 'CREATE TABLE IF NOT EXISTS "PostComment" ("id" TEXT NOT NULL PRIMARY KEY, "postId" TEXT NOT NULL, "userId" TEXT NOT NULL, "body" TEXT NOT NULL, "status" TEXT NOT NULL DEFAULT '"'"'published'"'"', "reportCount" INTEGER NOT NULL DEFAULT 0, "createdAt" DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP, CONSTRAINT "PostComment_postId_fkey" FOREIGN KEY ("postId") REFERENCES "Post" ("id") ON DELETE CASCADE ON UPDATE CASCADE, CONSTRAINT "PostComment_userId_fkey" FOREIGN KEY ("userId") REFERENCES "User" ("id") ON DELETE CASCADE ON UPDATE CASCADE);' >/dev/null &&
+q 'CREATE INDEX IF NOT EXISTS "PostComment_postId_createdAt_idx" ON "PostComment"("postId", "createdAt");' >/dev/null &&
+q 'CREATE INDEX IF NOT EXISTS "PostComment_userId_createdAt_idx" ON "PostComment"("userId", "createdAt");' >/dev/null &&
+q 'CREATE INDEX IF NOT EXISTS "PostComment_status_idx" ON "PostComment"("status");' >/dev/null &&
+q 'CREATE TABLE IF NOT EXISTS "CommentReport" ("id" TEXT NOT NULL PRIMARY KEY, "commentId" TEXT NOT NULL, "reporterId" TEXT NOT NULL, "reason" TEXT NOT NULL, "status" TEXT NOT NULL DEFAULT '"'"'open'"'"', "createdAt" DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP, "reviewedAt" DATETIME, CONSTRAINT "CommentReport_commentId_fkey" FOREIGN KEY ("commentId") REFERENCES "PostComment" ("id") ON DELETE CASCADE ON UPDATE CASCADE, CONSTRAINT "CommentReport_reporterId_fkey" FOREIGN KEY ("reporterId") REFERENCES "User" ("id") ON DELETE CASCADE ON UPDATE CASCADE);' >/dev/null &&
+q 'CREATE UNIQUE INDEX IF NOT EXISTS "CommentReport_commentId_reporterId_key" ON "CommentReport"("commentId", "reporterId");' >/dev/null &&
+q 'CREATE INDEX IF NOT EXISTS "CommentReport_status_createdAt_idx" ON "CommentReport"("status", "createdAt");' >/dev/null ||
+  stop "couldn't add the following and comments tables."
+record 0022_follows_comments.sql || stop "couldn't record 0022."
+echo "✓ 0022 done"
+
 echo "→ Checking everything is in place…"
 for c in username bio avatarKey canPost; do has_column User "$c" || stop "User.$c isn't showing."; done
-for o in User_username_key Post PostItem PostReport PostReaction PostSave; do has_object "$o" || stop "$o isn't showing."; done
+for o in User_username_key Post PostItem PostReport PostReaction PostSave Follow PostComment CommentReport; do has_object "$o" || stop "$o isn't showing."; done
 has_column PostItem price || stop "PostItem.price isn't showing."
 has_column Post board || stop "Post.board isn't showing."
 has_column PostItem detailsPrivate || stop "PostItem.detailsPrivate isn't showing."

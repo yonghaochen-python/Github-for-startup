@@ -12,6 +12,8 @@ import { REPORT_REASONS, type PublicPost } from "@/lib/postRules";
 import { PageShell } from "@/components/ui";
 import { PostActions } from "@/components/feed/PostActions";
 import { TryThisOutfit } from "@/components/feed/TryThisOutfit";
+import { CommentList } from "@/components/feed/Comments";
+import { FollowButton } from "@/components/feed/FollowButton";
 
 /** One outfit post: big photo, who posted it, caption, tags and pieces. Open to everyone. */
 export default function PostPage() {
@@ -21,6 +23,7 @@ export default function PostPage() {
   const { showToast } = useToast();
   const [post, setPost] = useState<PublicPost | null | "missing">(null);
   const [reporting, setReporting] = useState(false);
+  const [commentCount, setCommentCount] = useState(0);
 
   useEffect(() => {
     let gone = false;
@@ -72,6 +75,11 @@ export default function PostPage() {
             <Avatar url={post.creator.avatarUrl} name={post.creator.displayName ?? post.creator.username} size={36} />
             <span className="truncate text-[14px] font-semibold text-[#121821]">@{post.creator.username}</span>
           </Link>
+          {post.followsCreator !== undefined || status !== "signedIn" ? (
+            <span className="ml-auto">
+              <FollowButton username={post.creator.username} followed={Boolean(post.followsCreator)} />
+            </span>
+          ) : null}
         </div>
 
         <div className="mt-3 overflow-hidden rounded-[18px] bg-[#f1efeb]">
@@ -147,6 +155,14 @@ export default function PostPage() {
             ))}
           </ul>
         )}
+
+        {/* Comments */}
+        <section className="mt-8">
+          <h2 className="text-[15px] font-semibold text-[#121821]">Comments{commentCount ? ` · ${commentCount}` : ""}</h2>
+          <div className="mt-1 rounded-[16px] bg-white px-4 py-3 shadow-[0_1px_0_rgba(18,24,33,0.03),0_10px_28px_rgba(18,30,45,0.05)]">
+            <CommentList postId={post.id} onCount={setCommentCount} />
+          </div>
+        </section>
       </PageShell>
     </main>
   );

@@ -48,12 +48,15 @@ export function PostActions({
   vertical = false,
   compact = false,
   onDisliked,
+  afterLike,
 }: {
   post: PublicPost;
   vertical?: boolean;
   /** Feed cards on computers: like, share and save only (Not for me is on the post's page). */
   compact?: boolean;
   onDisliked?: () => void;
+  /** Phone feed: shown just under Like (the comments circle). */
+  afterLike?: React.ReactNode;
 }) {
   const { status } = useAuth();
   const router = useRouter();
@@ -143,6 +146,7 @@ export function PostActions({
           </span>
           {likes > 0 && <span className="text-[11.5px] font-semibold text-white [text-shadow:0_1px_3px_rgba(0,0,0,0.6)]">{likes}</span>}
         </button>
+        {afterLike}
         <button onClick={toggleSave} aria-pressed={saved} aria-label={saved ? "Saved" : "Save"} className={circle}>
           <Bookmark on={saved} />
         </button>

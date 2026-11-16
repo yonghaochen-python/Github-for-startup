@@ -59,6 +59,10 @@ model User {
   postReports   PostReport[]
   postReactions PostReaction[]
   postSaves     PostSave[]
+  following      Follow[]        @relation("FollowFollower")
+  followers      Follow[]        @relation("FollowFollowing")
+  comments       PostComment[]
+  commentReports CommentReport[]
 
   @@index([trialCardFingerprint])
   @@index([invitedById])
@@ -357,6 +361,7 @@ model Post {
   reports   PostReport[]
   reactions PostReaction[]
   saves     PostSave[]
+  comments  PostComment[]
 
   @@index([status, createdAt])
   @@index([userId, createdAt])
@@ -431,4 +436,53 @@ model PostSave {
 
   @@id([userId, postId])
   @@index([userId, createdAt])
+}
+
+/// Who follows whom (the Following feed and follower counts).
+model Follow {
+  followerId  String
+  followingId String
+  createdAt   DateTime @default(now())
+
+  follower  User @relation("FollowFollower", fields: [followerId], references: [id], onDelete: Cascade)
+  following User @relation("FollowFollowing", fields: [followingId], references: [id], onDelete: Cascade)
+
+  @@id([followerId, followingId])
+  @@index([followingId])
+}
+
+/// A comment on a post. status: published | hidden (reported, waiting for review) | removed
+model PostComment {
+  id          String   @id @default(cuid())
+  postId      String
+  userId      String
+  body        String
+  status      String   @default("published")
+  reportCount Int      @default(0)
+  createdAt   DateTime @default(now())
+
+  post    Post            @relation(fields: [postId], references: [id], onDelete: Cascade)
+  user    User            @relation(fields: [userId], references: [id], onDelete: Cascade)
+  reports CommentReport[]
+
+  @@index([postId, createdAt])
+  @@index([userId, createdAt])
+  @@index([status])
+}
+
+/// One report per person per comment. status: open | dismissed | actioned
+model CommentReport {
+  id         String    @id @default(cuid())
+  commentId  String
+  reporterId String
+  reason     String
+  status     String    @default("open")
+  createdAt  DateTime  @default(now())
+  reviewedAt DateTime?
+
+  comment  PostComment @relation(fields: [commentId], references: [id], onDelete: Cascade)
+  reporter User        @relation(fields: [reporterId], references: [id], onDelete: Cascade)
+
+  @@unique([commentId, reporterId])
+  @@index([status, createdAt])
 }

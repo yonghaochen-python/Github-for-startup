@@ -384,6 +384,7 @@ export const postSelect = {
   likeCount: true,
   createdAt: true,
   status: true,
+  _count: { select: { comments: { where: { status: "published" } } } },
   user: { select: { username: true, displayName: true, avatarKey: true } },
   items: {
     orderBy: { position: "asc" as const },
@@ -403,6 +404,7 @@ export function toPublic(row: NonNullable<PostRow>, viewer?: { id: string; role:
     styleTags: parseTags(row.styleTags),
     occasionTags: parseTags(row.occasionTags),
     likeCount: row.likeCount,
+    commentCount: row._count.comments,
     createdAt: row.createdAt.toISOString(),
     creator: { username: row.user.username ?? "virm", displayName: row.user.displayName, avatarUrl: avatarUrl(row.user.avatarKey) },
     items: row.items.map((it) => {
@@ -485,13 +487,23 @@ export async function reportPost(postId: string, reporterId: string, reason: Rep
 export async function withViewerState(posts: PublicPost[], viewerId?: string | null): Promise<PublicPost[]> {
   if (!viewerId || posts.length === 0) return posts;
   const ids = posts.map((p) => p.id);
-  const [reactions, saves] = await Promise.all([
+  const creators = [...new Set(posts.map((p) => p.creator.username))];
+  const [reactions, saves, follows, me] = await Promise.all([
     prisma.postReaction.findMany({ where: { userId: viewerId, postId: { in: ids } }, select: { postId: true, kind: true } }),
     prisma.postSave.findMany({ where: { userId: viewerId, postId: { in: ids } }, select: { postId: true } }),
+    prisma.follow.findMany({ where: { followerId: viewerId, following: { username: { in: creators } } }, select: { following: { select: { username: true } } } }),
+    prisma.user.findUnique({ where: { id: viewerId }, select: { username: true } }),
   ]);
   const kindOf = new Map(reactions.map((r) => [r.postId, r.kind]));
   const savedIds = new Set(saves.map((s) => s.postId));
-  return posts.map((p) => ({ ...p, liked: kindOf.get(p.id) === "like", disliked: kindOf.get(p.id) === "dislike", saved: savedIds.has(p.id) }));
+  const followed = new Set(follows.map((f) => f.following.username));
+  return posts.map((p) => ({
+    ...p,
+    liked: kindOf.get(p.id) === "like",
+    disliked: kindOf.get(p.id) === "dislike",
+    saved: savedIds.has(p.id),
+    ...(p.creator.username !== me?.username ? { followsCreator: followed.has(p.creator.username) } : {}),
+  }));
 }
 
 /**
@@ -523,13 +535,17 @@ function searchWhere(query: string | null) {
 export async function feedPage(
   viewer: { id: string; role: string } | null,
   cursor: string | null,
-  query: string | null = null
+  query: string | null = null,
+  following = false
 ): Promise<{ posts: PublicPost[]; next: string | null }> {
+  // Following: only people the viewer follows (nothing when signed out).
+  if (following && !viewer) return { posts: [], next: null };
   const after = cursor ? await prisma.post.findUnique({ where: { id: cursor }, select: { createdAt: true, id: true } }) : null;
   const rows = await prisma.post.findMany({
     where: {
       status: "published",
       ...searchWhere(query),
+      ...(following && viewer ? { user: { followers: { some: { followerId: viewer.id } } } } : {}),
       ...(viewer ? { reactions: { none: { userId: viewer.id, kind: "dislike" } } } : {}),
       ...(after ? { OR: [{ createdAt: { lt: after.createdAt } }, { createdAt: after.createdAt, id: { lt: after.id } }] } : {}),
     },

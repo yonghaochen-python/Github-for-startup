@@ -6,6 +6,8 @@ import { Avatar } from "@/components/Avatar";
 import { PostActions } from "@/components/feed/PostActions";
 import { PiecesButton } from "@/components/feed/PiecesSheet";
 import { TryThisOutfit } from "@/components/feed/TryThisOutfit";
+import { CommentsButton } from "@/components/feed/Comments";
+import { FollowButton } from "@/components/feed/FollowButton";
 import { SearchIcon } from "@/components/Icons";
 import { useAuth } from "@/components/AuthProvider";
 import type { PublicPost } from "@/lib/postRules";
@@ -15,7 +17,7 @@ import type { PublicPost } from "@/lib/postRules";
  * - Phones: one outfit per screen, swiped up. The picture fills the top; who posted it, the caption, tags, Pieces and
  *   Try this outfit sit underneath (never over the clothes); like / save / share / ⋯ are small circles on the right.
  * - Computers: an editorial grid in columns, with search at the top.
- * For You is newest first for now (Following arrives with following people). Search looks through captions, tags,
+ * Two lists: For You (everyone, newest first) and Following (people you follow). Search looks through captions, tags,
  * @usernames and the pieces' names, brands and stores. Posts marked "not for me" leave the feed. No AI, nothing paid.
  */
 export function Feed() {
@@ -28,8 +30,17 @@ export function Feed() {
   const [searching, setSearching] = useState(false);
   const [typed, setTyped] = useState("");
   const [query, setQuery] = useState("");
-  // Each search starts a new list; answers to an older one are ignored.
+  // Each search (or tab) starts a new list; answers to an older one are ignored.
   const run = useRef(0);
+  const [tab, setTab] = useState<"foryou" | "following">("foryou");
+  function switchTab(next: "foryou" | "following") {
+    if (next === tab) return;
+    run.current++;
+    setTab(next);
+    setPosts([]);
+    setNext(undefined);
+    setLoading(false);
+  }
 
   useEffect(() => {
     const t = setTimeout(() => {
@@ -51,13 +62,14 @@ export function Feed() {
     const params = new URLSearchParams();
     if (next) params.set("cursor", next);
     if (query) params.set("q", query);
+    if (tab === "following") params.set("tab", "following");
     const res = await fetch(`/api/feed${params.size ? `?${params}` : ""}`, { cache: "no-store" }).catch(() => null);
     const data = res?.ok ? ((await res.json()) as { posts: PublicPost[]; next: string | null }) : { posts: [], next: null };
     if (mine !== run.current) return;
     setPosts((list) => [...list, ...data.posts.filter((p) => !list.some((q) => q.id === p.id))]);
     setNext(data.next);
     setLoading(false);
-  }, [loading, next, query]);
+  }, [loading, next, query, tab]);
 
   // Pages load as the end comes near (the first right away, since an empty list's end is already in view).
   useEffect(() => {
@@ -74,7 +86,41 @@ export function Feed() {
     setTyped("");
   };
   const empty = next !== undefined && posts.length === 0;
-  const emptyText = query ? `No outfits match "${query}".` : "No outfits yet. Check back soon.";
+  const emptyText = query
+    ? `No outfits match "${query}".`
+    : tab === "following"
+      ? status === "signedIn"
+        ? "Follow people to see their outfits here."
+        : "Sign up to follow people."
+      : "No outfits yet. Check back soon.";
+  const tabs = (dark: boolean) => (
+    <div role="tablist" aria-label="Which outfits" className="flex items-center gap-4">
+      {(
+        [
+          ["following", "Following"],
+          ["foryou", "For You"],
+        ] as const
+      )
+        // Following needs an account; signed-out visitors just see For You.
+        .filter(([value]) => status === "signedIn" || value === "foryou")
+        .map(([value, label]) => (
+        <button
+          key={value}
+          role="tab"
+          aria-selected={tab === value}
+          onClick={() => switchTab(value)}
+          className={
+            dark
+              ? `px-0.5 text-[15px] font-semibold [text-shadow:0_1px_3px_rgba(0,0,0,0.5)] ${tab === value ? "text-white" : "text-white/60"}`
+              : `font-display text-[34px] leading-none ${tab === value ? "text-[#121821]" : "text-[#121821]/30 hover:text-[#121821]/60"}`
+          }
+        >
+          {label}
+          {dark && <span aria-hidden className={`mx-auto mt-0.5 block h-[2px] w-5 rounded-full ${tab === value ? "bg-white" : "bg-transparent"}`} />}
+        </button>
+      ))}
+    </div>
+  );
 
   const searchBox = (dark: boolean) => (
     <form
@@ -103,7 +149,8 @@ export function Feed() {
     <main className="flex-1 md:pb-20">
       {/* Computers: a quiet header row, then the grid. */}
       <div className="mx-auto hidden max-w-[1240px] items-center gap-6 px-8 pt-8 md:flex">
-        <h1 className="font-display text-[34px] leading-none text-[#121821]">For You</h1>
+        <h1 className="sr-only">Discover</h1>
+        {tabs(false)}
         {status === "signedOut" && (
           <div className="flex items-center gap-2">
             <Link href="/login?create=1" className="rounded-full bg-[#121821] px-4 py-2 text-[12.5px] font-semibold text-white">
@@ -134,10 +181,7 @@ export function Feed() {
             </>
           ) : (
             <>
-              <span className="px-1 text-[15px] font-semibold text-white [text-shadow:0_1px_3px_rgba(0,0,0,0.5)]">
-                For You
-                <span aria-hidden className="mx-auto mt-0.5 block h-[2px] w-5 rounded-full bg-white" />
-              </span>
+              <div className="px-1">{tabs(true)}</div>
               {status === "signedOut" && (
                 <div className="mx-auto flex items-center gap-1 whitespace-nowrap rounded-full bg-white/95 p-1 shadow-[0_6px_18px_rgba(0,0,0,0.18)]">
                   <Link href="/login?create=1" className="rounded-full bg-[#121821] px-3.5 py-1.5 text-[12px] font-semibold text-white">
@@ -183,7 +227,7 @@ export function Feed() {
                       />
                     </Link>
                     <div className="absolute bottom-3 right-3 md:hidden">
-                      <PostActions post={p} vertical onDisliked={() => remove(p.id)} />
+                      <PostActions post={p} vertical onDisliked={() => remove(p.id)} afterLike={<CommentsButton post={p} />} />
                     </div>
                   </div>
 
@@ -194,6 +238,11 @@ export function Feed() {
                         <Avatar url={p.creator.avatarUrl} name={p.creator.displayName ?? p.creator.username} size={28} />
                         <span className="truncate text-[13.5px] font-semibold">@{p.creator.username}</span>
                       </Link>
+                      {p.followsCreator === false && (
+                        <span className="md:hidden">
+                          <FollowButton username={p.creator.username} followed={false} tone="dark" />
+                        </span>
+                      )}
                       <div className="ml-auto hidden md:block">
                         <PostActions post={p} compact />
                       </div>
