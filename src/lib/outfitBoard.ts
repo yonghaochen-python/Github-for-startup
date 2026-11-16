@@ -280,3 +280,44 @@ export async function withoutBackground(url: string): Promise<string> {
     return url;
   }
 }
+
+/**
+ * The layout ready to send with a post (kept privately, so it can be rearranged later): each picture once, as
+ * "layer-<n>", and layers pointing at them by number. Large pictures are made smaller here first.
+ */
+export async function packBoard(board: Board): Promise<{ json: string; files: Blob[] }> {
+  const files: Blob[] = [];
+  const numbers = new Map<string, number>();
+  const layers = [];
+  for (const layer of board.layers) {
+    const { src, key: _key, ...rest } = layer;
+    void _key;
+    if (layer.text !== undefined) {
+      layers.push({ ...rest, img: null });
+      continue;
+    }
+    if (!numbers.has(src)) {
+      const blob = await fetch(src)
+        .then((r) => (r.ok ? r.blob() : null))
+        .catch(() => null);
+      if (!blob) continue;
+      numbers.set(src, files.length);
+      files.push(await fitForUpload(blob));
+    }
+    layers.push({ ...rest, img: numbers.get(src)! });
+  }
+  return { json: JSON.stringify({ width: board.width, height: board.height, background: board.background, layers }), files };
+}
+
+/** WebP, PNG or JPEG under about 1.5 MB (bigger or other pictures are redrawn as WebP, keeping see-through parts). */
+async function fitForUpload(blob: Blob): Promise<Blob> {
+  if (["image/webp", "image/png", "image/jpeg"].includes(blob.type) && blob.size <= 1.5 * 1024 * 1024) return blob;
+  const img = await createImageBitmap(blob);
+  const scale = Math.min(1, 1440 / Math.max(img.width, img.height));
+  const canvas = document.createElement("canvas");
+  canvas.width = Math.round(img.width * scale);
+  canvas.height = Math.round(img.height * scale);
+  canvas.getContext("2d")?.drawImage(img, 0, 0, canvas.width, canvas.height);
+  img.close();
+  return new Promise((resolve, reject) => canvas.toBlob((b) => (b ? resolve(b) : reject(new Error("Couldn't save the layout."))), "image/webp", 0.9));
+}

@@ -1,7 +1,7 @@
 #!/bin/bash
 # Go live with Discover (the social outfit feed): public profiles (0018), posts + reports (0019), likes + saves (0020),
-# the Discover tab, posting open to everyone, and "Build an outfit".
-# All three database changes only ADD things; nothing existing changes. Safe to run again: anything already added is
+# editing posts + "only me" piece details (0021), the Discover tab, posting open to everyone, and "Build an outfit".
+# All four database changes only ADD things; nothing existing changes. Safe to run again: anything already added is
 # skipped. It stops at the first problem, and nothing is pushed unless every step succeeds. No keys needed.
 set -u
 cd "$(dirname "$0")/.." || exit 1
@@ -71,10 +71,19 @@ q 'CREATE INDEX IF NOT EXISTS "PostSave_userId_createdAt_idx" ON "PostSave"("use
 record 0020_post_reactions.sql || stop "couldn't record 0020."
 echo "✓ 0020 done"
 
+echo "→ 0021: editing posts and \"only me\" piece details…"
+has_column Post board || q 'ALTER TABLE "Post" ADD COLUMN "board" TEXT;' >/dev/null || stop "couldn't add Post.board."
+has_column PostItem detailsPrivate || q 'ALTER TABLE "PostItem" ADD COLUMN "detailsPrivate" BOOLEAN NOT NULL DEFAULT false;' >/dev/null ||
+  stop "couldn't add PostItem.detailsPrivate."
+record 0021_post_edit.sql || stop "couldn't record 0021."
+echo "✓ 0021 done"
+
 echo "→ Checking everything is in place…"
 for c in username bio avatarKey canPost; do has_column User "$c" || stop "User.$c isn't showing."; done
 for o in User_username_key Post PostItem PostReport PostReaction PostSave; do has_object "$o" || stop "$o isn't showing."; done
 has_column PostItem price || stop "PostItem.price isn't showing."
+has_column Post board || stop "Post.board isn't showing."
+has_column PostItem detailsPrivate || stop "PostItem.detailsPrivate isn't showing."
 echo "✓ All in place"
 
 echo "→ Pushing the code (this starts the live build)…"

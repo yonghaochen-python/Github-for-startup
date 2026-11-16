@@ -5,8 +5,8 @@ import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
 import { CREATE_OPTIONS, CreateOptionRow, takeHandedPhoto, type CreateStart } from "@/components/CreateMenu";
 import type { ClothingItem, Outfit } from "@/components/OutfitCard";
-import { CAPTION_MAX, MAX_POST_ITEMS, MAX_TAGS, OCCASION_TAGS, STYLE_TAGS } from "@/lib/postRules";
-import { layoutBoard, newBoard, pictureSize, renderBoard, shrinkPicture, withoutBackground, type Board, type BoardLayer } from "@/lib/outfitBoard";
+import { CAPTION_MAX, MAX_POST_ITEMS, MAX_TAGS, OCCASION_TAGS, STYLE_TAGS, type PublicPost } from "@/lib/postRules";
+import { layoutBoard, newBoard, packBoard, pictureSize, renderBoard, shrinkPicture, withoutBackground, type Board, type BoardLayer } from "@/lib/outfitBoard";
 import { PostPreview } from "@/components/feed/PostPreview";
 import { Dialog } from "@/components/Dialog";
 import { createPortal } from "react-dom";
@@ -33,10 +33,14 @@ type Draft = {
   shopPicture: string | null;
   /** Where it came from in "Build an outfit" (so it can be picked again or taken out). */
   key: string;
+  /** Editing: the piece already on the post (keeps its picture). */
+  postItemId: string | null;
+  /** "Only me": brand, store, link and price shown only to you. */
+  detailsPrivate: boolean;
 };
 type Picture = { blob: Blob; url: string; width: number; height: number };
 
-const blankItem = (): Draft => ({ name: "", brand: "", store: "", link: "", price: "", category: null, role: "accessory", closetItemId: null, thumb: null, shopPicture: null, key: `new-${Math.random()}` });
+const blankItem = (): Draft => ({ name: "", brand: "", store: "", link: "", price: "", category: null, role: "accessory", closetItemId: null, thumb: null, shopPicture: null, key: `new-${Math.random()}`, postItemId: null, detailsPrivate: false });
 const shortName = (d: string) => d.split(/[,;(]/)[0].trim().slice(0, 60);
 /** A closet piece as the API sends it (with its brand, when known). */
 type ClosetPiece = ClothingItem & { brand?: string | null };
@@ -52,6 +56,8 @@ const fromCloset = (c: ClosetPiece): Draft => ({
   thumb: c.imageUrl,
   shopPicture: null,
   key: `closet-${c.id}`,
+  postItemId: null,
+  detailsPrivate: false,
 });
 /** A Shopping piece (from another store): its store, price and link come along. */
 const fromShop = (t: TrayItem): Draft => ({
@@ -66,6 +72,8 @@ const fromShop = (t: TrayItem): Draft => ({
   thumb: t.imageUrl,
   shopPicture: t.imageUrl,
   key: `shop-${t.key}`,
+  postItemId: null,
+  detailsPrivate: false,
 });
 /** One outfit: at most this many of each kind (a dress counts as the bottom). */
 type Slot = "jacket" | "top" | "bottom" | "shoes" | "accessory";
@@ -130,6 +138,11 @@ function CreatePost() {
   // Adding (or replacing) a piece from inside the editor.
   const [picker, setPicker] = useState<{ replace: string | null } | null>(null);
   const [previewing, setPreviewing] = useState(false);
+  // Editing a published post (?edit=<id>): only what changed is sent again.
+  const editId = useSearchParams().get("edit");
+  const [editMissing, setEditMissing] = useState(false);
+  const [pictureChanged, setPictureChanged] = useState(false);
+  const [boardChanged, setBoardChanged] = useState(false);
   const [saved, setSaved] = useState<Outfit[] | null>(null);
   const [showSaved, setShowSaved] = useState(false);
   const [closet, setCloset] = useState<ClosetPiece[] | null>(null);
@@ -163,6 +176,50 @@ function CreatePost() {
     // eslint-disable-next-line react-hooks/exhaustive-deps -- once per visit
   }, []);
 
+  // Editing: the post as it is now (its pieces with their ids and "only me" choices, which only its owner gets), and
+  // the layout behind it if it was made in the editor.
+  useEffect(() => {
+    if (!editId) return;
+    let gone = false;
+    (async () => {
+      const res = await fetch(`/api/posts/${encodeURIComponent(editId)}`, { cache: "no-store" }).catch(() => null);
+      const post = res?.ok ? ((await res.json()) as { post: PublicPost }).post : null;
+      const image = post?.editable ? await fetch(post.imageUrl).then((r) => (r.ok ? r.blob() : null)).catch(() => null) : null;
+      if (gone) return;
+      if (!post?.editable || !image) return setEditMissing(true);
+      const url = URL.createObjectURL(image);
+      urls.current.push(url);
+      setPicture({ blob: image, url, width: post.width, height: post.height });
+      setCaption(post.caption ?? "");
+      setStyles(post.styleTags);
+      setOccasions(post.occasionTags);
+      setItems(
+        post.items.map((it, i) => ({
+          name: it.name,
+          brand: it.brand ?? "",
+          store: it.store ?? "",
+          link: it.link ?? "",
+          price: it.price ?? "",
+          category: it.category,
+          role: "accessory",
+          closetItemId: null,
+          thumb: it.imageUrl,
+          shopPicture: null,
+          key: `kept-${i}`,
+          postItemId: it.id ?? null,
+          detailsPrivate: Boolean(it.detailsPrivate),
+        }))
+      );
+      const saved = await fetch(`/api/posts/${encodeURIComponent(editId)}/board`, { cache: "no-store" })
+        .then((r) => (r.ok ? (r.json() as Promise<{ board: Board | null }>) : { board: null }))
+        .catch(() => ({ board: null }));
+      if (!gone && saved.board) setBoard({ ...saved.board, layers: saved.board.layers.map((l, i) => ({ ...l, key: l.flat ? "photo" : `saved-${i}` })) });
+    })();
+    return () => {
+      gone = true;
+    };
+  }, [editId]);
+
   useEffect(() => {
     fetch("/api/me/can-post", { cache: "no-store" })
       .then(async (res) => (res.ok ? ((await res.json()) as { canPost: boolean; username: string | null }) : { canPost: false, username: null }))
@@ -180,6 +237,8 @@ function CreatePost() {
       urls.current.push(next.url);
       setPicture(next);
       setBoard(null);
+      setPictureChanged(true);
+      setBoardChanged(true);
     } catch (err) {
       setError(err instanceof Error ? err.message : "Couldn't read that photo.");
     }
@@ -320,6 +379,8 @@ function CreatePost() {
       const url = URL.createObjectURL(drawn.blob);
       urls.current.push(url);
       setPicture({ ...drawn, url });
+      setPictureChanged(true);
+      setBoardChanged(true);
       setEditing(false);
     } catch (err) {
       setError(err instanceof Error ? err.message : "Couldn't make the picture.");
@@ -383,12 +444,20 @@ function CreatePost() {
     setBusy(true);
     setError(null);
     const form = new FormData();
-    form.append("picture", picture.blob, "post.webp");
+    if (!editId || pictureChanged) form.append("picture", picture.blob, "post.webp");
+    // The layout, kept privately so it can be rearranged later (only when it's new or changed).
+    if (board && (!editId || boardChanged)) {
+      try {
+        const packed = await packBoard(board);
+        form.append("board", packed.json);
+        packed.files.forEach((f, n) => form.append(`layer-${n}`, f, `layer-${n}`));
+      } catch {}
+    }
     const kept = items.filter((it) => it.name.trim());
     // Store pieces' own pictures, by their position in the posted list.
     await Promise.all(
       kept.map(async (it, i) => {
-        if (it.closetItemId || !it.shopPicture) return;
+        if (it.closetItemId || it.postItemId || !it.shopPicture) return;
         const blob = await shrinkPicture(it.shopPicture);
         if (blob) form.append(`itemPicture-${i}`, blob, `piece-${i}.webp`);
       })
@@ -401,9 +470,26 @@ function CreatePost() {
         occasionTags: occasions,
         width: picture.width,
         height: picture.height,
-        items: kept.map(({ name, brand, store, link, price, category, closetItemId }) => ({ name, brand, store, link, price, category, closetItemId })),
+        items: kept.map(({ name, brand, store, link, price, category, closetItemId, postItemId, detailsPrivate }) => ({
+          name,
+          brand,
+          store,
+          link,
+          price,
+          category,
+          closetItemId,
+          detailsPrivate,
+          id: postItemId ?? undefined,
+        })),
       })
     );
+    if (editId) {
+      const res = await fetch(`/api/posts/${encodeURIComponent(editId)}`, { method: "PATCH", body: form }).catch(() => null);
+      if (res?.ok) return router.replace(`/p/${editId}`);
+      const data = res ? ((await res.json().catch(() => ({}))) as { error?: string }) : {};
+      setError(data.error ?? "Couldn't save the changes. Please try again.");
+      return setBusy(false);
+    }
     const res = await fetch("/api/posts", { method: "POST", body: form }).catch(() => null);
     const data = res ? ((await res.json().catch(() => ({}))) as { id?: string; error?: string }) : {};
     // Replace the form in history, so Back from the new post goes where they were before.
@@ -413,6 +499,15 @@ function CreatePost() {
   }
 
   if (!access) return <main className="flex-1" />;
+  if (editMissing) {
+    return (
+      <main className="flex-1 pb-20">
+        <PageShell className="pt-14 text-center">
+          <p className="text-[15px] text-[#4f5b66]">You can only edit your own posts.</p>
+        </PageShell>
+      </main>
+    );
+  }
   if (!access.canPost) {
     return (
       <main className="flex-1 pb-20">
@@ -445,7 +540,7 @@ function CreatePost() {
       <PageShell className="max-w-xl pt-8">
         <div className="flex items-center gap-3">
           <BackButton disabled={busy} />
-          <h1 className="font-display text-[36px] leading-none text-[#121821]">New post</h1>
+          <h1 className="font-display text-[36px] leading-none text-[#121821]">{editId ? "Edit post" : "New post"}</h1>
         </div>
 
         {/* The photo */}
@@ -458,20 +553,22 @@ function CreatePost() {
                 <button onClick={editPicture} className="rounded-full bg-[#121821] px-3.5 py-1.5 text-[12px] font-semibold text-white shadow">
                   Edit
                 </button>
-                <button
-                  onClick={() => {
-                    setPicture(null);
-                    setBoard(null);
-                    setItems([]);
-                  }}
-                  className="rounded-full bg-white/95 px-3.5 py-1.5 text-[12px] font-semibold text-[#121821] shadow"
-                >
-                  Start over
-                </button>
+                {!editId && (
+                  <button
+                    onClick={() => {
+                      setPicture(null);
+                      setBoard(null);
+                      setItems([]);
+                    }}
+                    className="rounded-full bg-white/95 px-3.5 py-1.5 text-[12px] font-semibold text-[#121821] shadow"
+                  >
+                    Start over
+                  </button>
+                )}
               </div>
             </div>
           ) : (
-            !picture && !building && !board && !showSaved && (
+            !editId && !picture && !building && !board && !showSaved && (
             // The same three choices as the ＋ menu.
             <ul className="rounded-[22px] bg-white p-2 shadow-[0_1px_0_rgba(18,24,33,0.03),0_14px_36px_rgba(18,30,45,0.06)]">
               {CREATE_OPTIONS.map((o) => (
@@ -765,6 +862,15 @@ function CreatePost() {
                     <input value={it.link} onChange={(e) => setItem(i, { link: e.target.value })} placeholder="Shopping link (optional)" inputMode="url" className={field} />
                     <input value={it.price} onChange={(e) => setItem(i, { price: e.target.value })} placeholder="Price" className={field} />
                   </div>
+                  {/* The name and picture are always public; these details can be kept to yourself. */}
+                  <button
+                    type="button"
+                    onClick={() => setItem(i, { detailsPrivate: !it.detailsPrivate })}
+                    aria-pressed={it.detailsPrivate}
+                    className={`mt-2 rounded-full px-3 py-1 text-[11.5px] font-semibold ${it.detailsPrivate ? "bg-[#121821] text-white" : "text-[#5d6874] shadow-[inset_0_0_0_1px_rgba(18,24,33,0.14)]"}`}
+                  >
+                    {it.detailsPrivate ? "Details: only you" : "Details: everyone"}
+                  </button>
                 </li>
               ))}
             </ul>
@@ -795,9 +901,11 @@ function CreatePost() {
             error={error}
             onClose={() => setPreviewing(false)}
             onPost={post}
-            canPost={publicOk}
+            canPost={editId ? true : publicOk}
+            postLabel={editId ? "Save" : "Post"}
           >
-            {/* Nothing becomes public without this. */}
+            {/* Nothing becomes public without this (an edited post is already public). */}
+            {!editId && (
             <label className="flex cursor-pointer items-start gap-2.5 text-[12.5px] leading-snug text-[#4f5b66]">
               <input type="checkbox" checked={publicOk} onChange={(e) => setPublicOk(e.target.checked)} className="mt-0.5 h-4 w-4 shrink-0 accent-[#121821]" />
               <span>
@@ -809,6 +917,7 @@ function CreatePost() {
                 .
               </span>
             </label>
+            )}
           </PostPreview>
         )}
         {error && !picture && (

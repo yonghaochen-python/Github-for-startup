@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { env } from "cloudflare:workers";
 import { asResponse, requireAdmin } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
+import { postStorageKeys } from "@/lib/posts";
 
 const noStore = { "cache-control": "private, no-store" };
 
@@ -49,7 +50,7 @@ export async function POST(request: Request) {
   }
   const body = (await request.json().catch(() => ({}))) as { postId?: unknown; action?: unknown };
   const postId = typeof body.postId === "string" ? body.postId : "";
-  const post = postId ? await prisma.post.findUnique({ where: { id: postId }, select: { imageKey: true, items: { select: { imageKey: true } } } }) : null;
+  const post = postId ? await prisma.post.findUnique({ where: { id: postId }, select: { imageKey: true, board: true, items: { select: { imageKey: true } } } }) : null;
   if (!post) return NextResponse.json({ error: "Not found." }, { status: 404, headers: noStore });
   const now = new Date();
   if (body.action === "restore" || body.action === "dismiss") {
@@ -57,9 +58,8 @@ export async function POST(request: Request) {
     if (body.action === "restore") await prisma.post.update({ where: { id: postId }, data: { status: "published" } });
   } else if (body.action === "remove") {
     await prisma.postReport.updateMany({ where: { postId, status: "open" }, data: { status: "actioned", reviewedAt: now } });
-    await prisma.post.update({ where: { id: postId }, data: { status: "removed" } });
-    const keys = [post.imageKey, ...post.items.map((i) => i.imageKey).filter((k): k is string => Boolean(k))];
-    await env.UPLOADS.delete(keys).catch(() => {});
+    await prisma.post.update({ where: { id: postId }, data: { status: "removed", board: null } });
+    await env.UPLOADS.delete(postStorageKeys(post)).catch(() => {});
   } else {
     return NextResponse.json({ error: "Unknown action." }, { status: 400, headers: noStore });
   }

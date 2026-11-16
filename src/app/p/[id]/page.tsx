@@ -82,6 +82,11 @@ export default function PostPage() {
         <div className="mt-3 flex items-center gap-4 text-[13px] font-semibold text-[#121821]">
           <PostActions post={post} />
           <span className="ml-auto flex items-center gap-4">
+            {post.editable && (
+              <Link href={`/create?edit=${post.id}`} className="text-[#121821]">
+                Edit
+              </Link>
+            )}
             {post.mine ? (
               <ConfirmButton label="Delete" question="Delete this post?" confirmLabel="Delete" onConfirm={remove} className="text-[#5d6874]" />
             ) : status === "signedIn" ? (
@@ -131,6 +136,7 @@ export default function PostPage() {
                   {(it.brand || it.store || it.price) && (
                     <span className="block truncate text-[12px] text-[#5d6874]">{[...new Set([it.brand, it.store].filter(Boolean)), it.price].filter(Boolean).join(" · ")}</span>
                   )}
+                  {it.detailsPrivate && <span className="block text-[11px] text-[#8a949e]">Details: only you</span>}
                 </span>
                 {it.link && (
                   <a href={it.link} target="_blank" rel="noopener noreferrer nofollow ugc" className="shrink-0 rounded-full bg-[#121821] px-3 py-1.5 text-[12px] font-semibold text-white">

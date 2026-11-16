@@ -31,6 +31,9 @@ export type PublicPostItem = {
   link: string | null;
   price: string | null;
   imageUrl: string | null;
+  /** Only for the post's owner: which piece this is (for editing), and whether its details are "only me". */
+  id?: string;
+  detailsPrivate?: boolean;
 };
 export type PublicPost = {
   id: string;
@@ -46,6 +49,8 @@ export type PublicPost = {
   items: PublicPostItem[];
   /** Only for the viewer: they made it (may delete), or they're an admin. */
   mine?: boolean;
+  /** Only for the person who posted it: they may edit it (admins may not). */
+  editable?: boolean;
   /** Only for the signed-in viewer: their own like / private dislike / save. */
   liked?: boolean;
   disliked?: boolean;
@@ -67,3 +72,7 @@ export type TryPostPiece = {
 /** Handed from a post to Studio (kept for this browser tab). */
 export const TRY_POST_KEY = "virm-try-post";
 export type TryPostHandoff = { closetIds: string[]; theirs: { name: string; imageUrl: string; category: string; role: string }[] };
+
+/** Editing a post: at most this many layers, and this large a picture per layer (prepared on the device). */
+export const MAX_BOARD_LAYERS = 24;
+export const BOARD_LAYER_MAX_BYTES = 3 * 1024 * 1024;

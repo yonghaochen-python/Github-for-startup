@@ -347,6 +347,8 @@ model Post {
   likeCount    Int      @default(0)
   saveCount    Int      @default(0)
   reportCount  Int      @default(0)
+  /// The editor layout behind the picture (JSON), for its owner only; its pictures live under private/board/.
+  board        String?
   createdAt    DateTime @default(now())
   updatedAt    DateTime @updatedAt
 
@@ -374,6 +376,8 @@ model PostItem {
   price        String?
   imageKey     String?
   closetItemId String?
+  /// "Only me": brand, store, link and price are shown only to the post's owner.
+  detailsPrivate Boolean @default(false)
 
   post       Post          @relation(fields: [postId], references: [id], onDelete: Cascade)
   closetItem ClothingItem? @relation(fields: [closetItemId], references: [id], onDelete: SetNull)

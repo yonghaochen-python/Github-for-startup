@@ -53,7 +53,7 @@ export async function matchPost(postId: string, viewer: { id: string; role: stri
       status: true,
       items: {
         orderBy: { position: "asc" },
-        select: { name: true, category: true, brand: true, imageKey: true, closetItemId: true, closetItem: { select: { userId: true, layeringRole: true } } },
+        select: { name: true, category: true, brand: true, detailsPrivate: true, imageKey: true, closetItemId: true, closetItem: { select: { userId: true, layeringRole: true } } },
       },
     },
   });
@@ -68,7 +68,8 @@ export async function matchPost(postId: string, viewer: { id: string; role: stri
   return post.items.map((it) => {
     // The poster's own role for the piece when it came from their closet (kept private; only the role is used).
     const role = it.closetItem?.layeringRole ?? roleOf(it.category, it.name);
-    const item = { name: it.name, brand: it.brand, role };
+    // An "only me" brand is only used for the person who posted it.
+    const item = { name: it.name, brand: it.detailsPrivate && post.userId !== viewer.id ? null : it.brand, role };
     // Trying their own post: their exact piece.
     const own = it.closetItemId && it.closetItem?.userId === viewer.id ? closet.find((c) => c.id === it.closetItemId) : undefined;
     let best: { c: Candidate; s: number } | null = own ? { c: own, s: 99 } : null;

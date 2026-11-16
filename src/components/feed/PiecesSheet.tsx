@@ -26,6 +26,7 @@ export function PieceRow({ it }: { it: PublicPost["items"][number] }) {
       <span className="min-w-0 flex-1">
         <span className="block truncate text-[14px] font-medium text-[#121821]">{it.name}</span>
         {details && <span className="block truncate text-[12px] text-[#5d6874]">{details}</span>}
+        {it.detailsPrivate && <span className="block text-[11px] text-[#8a949e]">Details: only you</span>}
       </span>
       {it.link && (
         <a href={it.link} target="_blank" rel="noopener noreferrer nofollow ugc" className="shrink-0 rounded-full bg-[#121821] px-3.5 py-1.5 text-[12px] font-semibold text-white">

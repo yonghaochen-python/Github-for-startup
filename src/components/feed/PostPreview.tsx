@@ -18,6 +18,7 @@ export function PostPreview({
   onClose,
   onPost,
   canPost,
+  postLabel = "Post",
   children,
 }: {
   imageUrl: string;
@@ -30,6 +31,7 @@ export function PostPreview({
   onClose: () => void;
   onPost: () => void;
   canPost: boolean;
+  postLabel?: string;
   children?: React.ReactNode;
 }) {
   return createPortal(
@@ -59,7 +61,7 @@ export function PostPreview({
       </div>
       <div className="flex gap-2 border-t border-black/[0.06] p-3">
         <button onClick={onPost} disabled={!canPost || busy} className="flex-1 rounded-full bg-[#121821] py-3 text-[14.5px] font-semibold text-white disabled:opacity-40">
-          {busy ? "Posting…" : "Post"}
+          {busy ? "One moment…" : postLabel}
         </button>
         <button onClick={onClose} disabled={busy} className="rounded-full px-5 py-3 text-[14px] font-semibold text-[#121821] shadow-[inset_0_0_0_1px_rgba(18,24,33,0.14)]">
           Edit
