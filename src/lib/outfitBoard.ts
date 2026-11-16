@@ -61,13 +61,70 @@ function fitted(img: { width: number; height: number }, [l, t, r, b]: Box): { x:
 }
 
 /**
- * One piece on the board: its picture (background removed) and where it is, as fractions of the board (x, y = top
- * left; w, h = size). The list's order is the stacking order: later pieces lie on top. People can move, resize and
- * restack these before the picture is drawn.
+ * One layer on the board, as fractions of the board (x, y = top left of its box; w, h = its size). The list's order is
+ * the stacking order: later layers lie on top. People can move, resize, rotate, crop and restack these; nothing is
+ * drawn until they're done.
+ * - A picture (`src`): a piece (background removed), the post's own photo, or any picture added from the device.
+ *   `crop` is the part of the picture shown (left, top, right, bottom as fractions of the picture).
+ * - Text (`text`): drawn in one of the TEXT_STYLES, its size following the box's height.
  */
-export type BoardLayer = { src: string; key: string; x: number; y: number; w: number; h: number };
+export type BoardLayer = {
+  key: string;
+  src: string;
+  x: number;
+  y: number;
+  w: number;
+  h: number;
+  /** Turned this many degrees clockwise around its center. */
+  rot?: number;
+  crop?: [number, number, number, number];
+  /** No soft shadow (the post's own photo, laid flat under everything). */
+  flat?: boolean;
+  text?: string;
+  color?: string;
+  font?: TextStyle;
+};
+export type TextStyle = "serif" | "sans" | "bold";
+export const TEXT_STYLES: { value: TextStyle; label: string }[] = [
+  { value: "serif", label: "Classic" },
+  { value: "sans", label: "Clean" },
+  { value: "bold", label: "Bold" },
+];
+export const TEXT_COLORS = ["#121821", "#ffffff", "#a1312a", "#b8860b", "#3f5d4a", "#2f4a6d"];
+/** The board's own colors (the first is the original stone). */
+export const BOARD_COLORS = [BACKGROUND, "#ffffff", "#f3ece2", "#ead9d3", "#dbe3d6", "#d6dee8", "#121821"];
+
+/** A board: its size in pixels (the post picture's size), its color, and its layers. */
+export type Board = { width: number; height: number; background: string; layers: BoardLayer[] };
 export const BOARD_RATIO = WIDTH / HEIGHT;
 export const BOARD_BACKGROUND = BACKGROUND;
+export const newBoard = (layers: BoardLayer[]): Board => ({ width: WIDTH, height: HEIGHT, background: BACKGROUND, layers });
+
+/** The font for a text style, in pixels (the page's own fonts, so it looks the same on the board and in the post). */
+export function textFont(style: TextStyle | undefined, px: number): string {
+  const css = typeof document === "undefined" ? null : getComputedStyle(document.documentElement);
+  const serif = css?.getPropertyValue("--font-instrument-serif").trim() || "Georgia";
+  const sans = css?.getPropertyValue("--font-dm-sans").trim() || "Arial";
+  if (style === "serif") return `400 ${px}px ${serif}, Georgia, serif`;
+  if (style === "bold") return `700 ${px}px ${sans}, Arial, sans-serif`;
+  return `500 ${px}px ${sans}, Arial, sans-serif`;
+}
+/** Text size in pixels for a box this tall (fraction of the board) holding this many lines. */
+export const textPx = (h: number, lines: number, boardHeight: number) => (h * boardHeight) / Math.max(1, lines) / 1.2;
+const linesOf = (layer: BoardLayer) => (layer.font === "bold" ? (layer.text ?? "").toUpperCase() : (layer.text ?? "")).split("\n");
+
+/** The box a text layer needs at a given font size (in pixels), as fractions of the board. */
+export function measureText(text: string, style: TextStyle, px: number, board: { width: number; height: number }): { w: number; h: number } {
+  const ctx = document.createElement("canvas").getContext("2d");
+  const lines = (style === "bold" ? text.toUpperCase() : text).split("\n");
+  let widest = px;
+  if (ctx) {
+    ctx.font = textFont(style, px);
+    if (style === "bold") ctx.letterSpacing = `${px * 0.04}px`;
+    for (const line of lines) widest = Math.max(widest, ctx.measureText(line).width);
+  }
+  return { w: (widest + px * 0.4) / board.width, h: (lines.length * px * 1.2) / board.height };
+}
 
 /** The automatic arrangement: every piece placed (backgrounds removed). Pieces without a picture are left out. */
 export async function layoutBoard(pieces: (BoardPiece & { key: string })[]): Promise<BoardLayer[]> {
@@ -130,26 +187,59 @@ export async function layoutBoard(pieces: (BoardPiece & { key: string })[]): Pro
 }
 
 /** Draws the board (in stacking order) into the post's picture (WebP). */
-export async function renderBoard(layers: BoardLayer[]): Promise<{ blob: Blob; width: number; height: number }> {
+export async function renderBoard(board: Board): Promise<{ blob: Blob; width: number; height: number }> {
+  const { width: W, height: H } = board;
   const canvas = document.createElement("canvas");
-  canvas.width = WIDTH;
-  canvas.height = HEIGHT;
+  canvas.width = W;
+  canvas.height = H;
   const ctx = canvas.getContext("2d");
   if (!ctx) throw new Error("Couldn't make the picture.");
-  ctx.fillStyle = BACKGROUND;
-  ctx.fillRect(0, 0, WIDTH, HEIGHT);
-  // A soft shadow lifts each piece off the background, so overlaps read clearly.
-  ctx.shadowColor = "rgba(18, 24, 33, 0.14)";
-  ctx.shadowBlur = 16;
-  ctx.shadowOffsetY = 6;
-  for (const layer of layers) {
-    const img = await loadImage(layer.src);
-    if (!img) continue;
-    ctx.drawImage(img, layer.x * WIDTH, layer.y * HEIGHT, layer.w * WIDTH, layer.h * HEIGHT);
-    img.close();
+  ctx.fillStyle = board.background;
+  ctx.fillRect(0, 0, W, H);
+  // The page's fonts must be ready before text is drawn.
+  await document.fonts?.ready.catch(() => undefined);
+  for (const layer of board.layers) {
+    const w = layer.w * W;
+    const h = layer.h * H;
+    ctx.save();
+    ctx.translate(layer.x * W + w / 2, layer.y * H + h / 2);
+    ctx.rotate(((layer.rot ?? 0) * Math.PI) / 180);
+    if (layer.text !== undefined) {
+      const lines = linesOf(layer);
+      const px = textPx(layer.h, lines.length, H);
+      ctx.font = textFont(layer.font, px);
+      if (layer.font === "bold") ctx.letterSpacing = `${px * 0.04}px`;
+      ctx.fillStyle = layer.color ?? "#121821";
+      ctx.textAlign = "center";
+      ctx.textBaseline = "middle";
+      lines.forEach((line, i) => ctx.fillText(line, 0, (i - (lines.length - 1) / 2) * px * 1.2));
+    } else {
+      const img = await loadImage(layer.src);
+      if (img) {
+        // A soft shadow lifts each piece off the background, so overlaps read clearly.
+        if (!layer.flat) {
+          ctx.shadowColor = "rgba(18, 24, 33, 0.14)";
+          ctx.shadowBlur = 16;
+          ctx.shadowOffsetY = 6;
+        }
+        const [l, t, r, b] = layer.crop ?? [0, 0, 1, 1];
+        ctx.drawImage(img, l * img.width, t * img.height, (r - l) * img.width, (b - t) * img.height, -w / 2, -h / 2, w, h);
+        img.close();
+      }
+    }
+    ctx.restore();
   }
   const blob = await new Promise<Blob>((resolve, reject) => canvas.toBlob((b) => (b ? resolve(b) : reject(new Error("Couldn't make the picture."))), "image/webp", 0.9));
-  return { blob, width: WIDTH, height: HEIGHT };
+  return { blob, width: W, height: H };
+}
+
+/** A picture's natural size (for adding it to the board at its own shape). */
+export async function pictureSize(url: string): Promise<{ width: number; height: number } | null> {
+  const img = await loadImage(url);
+  if (!img) return null;
+  const size = { width: img.width, height: img.height };
+  img.close();
+  return size;
 }
 
 /** A store piece's picture, shrunk for the post (square-ish, WebP, at most 640 px). */
@@ -165,7 +255,7 @@ export async function shrinkPicture(url: string, side = 640): Promise<Blob | nul
   return new Promise((resolve) => canvas.toBlob((b) => resolve(b), "image/webp", 0.86));
 }
 
-const isCutout = (url: string) => url.startsWith("/uploads/cut-") || url.startsWith("data:image/png;cut");
+export const isCutout = (url: string) => url.startsWith("/uploads/cut-") || url.startsWith("data:image/png;cut");
 
 const toDataUrl = (blob: Blob) =>
   new Promise<string>((resolve, reject) => {

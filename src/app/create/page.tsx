@@ -6,7 +6,10 @@ import { useRouter, useSearchParams } from "next/navigation";
 import { CREATE_OPTIONS, CreateOptionRow, takeHandedPhoto, type CreateStart } from "@/components/CreateMenu";
 import type { ClothingItem, Outfit } from "@/components/OutfitCard";
 import { CAPTION_MAX, MAX_POST_ITEMS, MAX_TAGS, OCCASION_TAGS, STYLE_TAGS } from "@/lib/postRules";
-import { layoutBoard, renderBoard, shrinkPicture, withoutBackground, type BoardLayer } from "@/lib/outfitBoard";
+import { layoutBoard, newBoard, pictureSize, renderBoard, shrinkPicture, withoutBackground, type Board, type BoardLayer } from "@/lib/outfitBoard";
+import { PostPreview } from "@/components/feed/PostPreview";
+import { Dialog } from "@/components/Dialog";
+import { createPortal } from "react-dom";
 import { BoardEditor } from "@/components/BoardEditor";
 import { warmUpCutout } from "@/lib/cutout";
 import { ROLE_FOR, type TrayCategory, type TrayItem } from "@/lib/shopCatalog";
@@ -119,10 +122,14 @@ function CreatePost() {
   const [linkKind, setLinkKind] = useState<TrayCategory>("top");
   const [linkBusy, setLinkBusy] = useState(false);
   const [boardBusy, setBoardBusy] = useState(false);
-  // The picture was made from the chosen pieces ("Change" goes back to them).
-  const [built, setBuilt] = useState(false);
-  // Arranging the built outfit (move, resize, layer) before its picture is drawn.
-  const [layers, setLayers] = useState<BoardLayer[] | null>(null);
+  // The board behind the picture (a built outfit, or a photo opened in the editor), kept so it can be edited again.
+  const [board, setBoard] = useState<Board | null>(null);
+  const [editing, setEditing] = useState(false);
+  // The board as it was when editing began (Cancel goes back to it).
+  const before = useRef<Board | null>(null);
+  // Adding (or replacing) a piece from inside the editor.
+  const [picker, setPicker] = useState<{ replace: string | null } | null>(null);
+  const [previewing, setPreviewing] = useState(false);
   const [saved, setSaved] = useState<Outfit[] | null>(null);
   const [showSaved, setShowSaved] = useState(false);
   const [closet, setCloset] = useState<ClosetPiece[] | null>(null);
@@ -162,15 +169,17 @@ function CreatePost() {
       .then(setAccess)
       .catch(() => setAccess({ canPost: false, username: null }));
   }, []);
-  useEffect(() => () => {
-    if (picture) URL.revokeObjectURL(picture.url);
-  }, [picture]);
+  // Photos made on this page stay until it closes (the editor may still be using an earlier one).
+  const urls = useRef<string[]>([]);
+  useEffect(() => () => urls.current.forEach((u) => URL.revokeObjectURL(u)), []);
 
   async function takePhoto(source: Blob) {
     setError(null);
     try {
-      setPicture(await preparePicture(source));
-      setBuilt(false);
+      const next = await preparePicture(source);
+      urls.current.push(next.url);
+      setPicture(next);
+      setBoard(null);
     } catch (err) {
       setError(err instanceof Error ? err.message : "Couldn't read that photo.");
     }
@@ -196,6 +205,9 @@ function CreatePost() {
 
   async function openCloset() {
     setShowCloset(true);
+    await loadCloset();
+  }
+  async function loadCloset() {
     if (closet) return;
     const res = await fetch("/api/closet/items", { cache: "no-store" }).catch(() => null);
     setCloset(res?.ok ? ((await res.json()) as { items: ClosetPiece[] }).items : []);
@@ -287,7 +299,11 @@ function CreatePost() {
     setError(null);
     setBoardBusy(true);
     try {
-      setLayers(await layoutBoard(items.filter((it) => it.thumb).map((it) => ({ imageUrl: it.thumb!, role: it.role, name: it.name, key: it.key }))));
+      const layers = await layoutBoard(items.filter((it) => it.thumb).map((it) => ({ imageUrl: it.thumb!, role: it.role, name: it.name, key: it.key })));
+      // Reset keeps the chosen color.
+      setBoard((b) => ({ ...newBoard(layers), background: b?.background ?? newBoard([]).background }));
+      before.current = null;
+      setEditing(true);
       setBuilding(false);
     } catch (err) {
       setError(err instanceof Error ? err.message : "Couldn't make the picture.");
@@ -297,16 +313,65 @@ function CreatePost() {
 
   /** Done arranging: draws the post's picture from the arrangement (on this device). */
   async function finishBoard() {
-    if (!layers) return;
+    if (!board) return;
     setBoardBusy(true);
     try {
-      const board = await renderBoard(layers);
-      setPicture({ ...board, url: URL.createObjectURL(board.blob) });
-      setBuilt(true);
+      const drawn = await renderBoard(board);
+      const url = URL.createObjectURL(drawn.blob);
+      urls.current.push(url);
+      setPicture({ ...drawn, url });
+      setEditing(false);
     } catch (err) {
       setError(err instanceof Error ? err.message : "Couldn't make the picture.");
     }
     setBoardBusy(false);
+  }
+
+  /** Opens the photo in the editor (the photo lies flat under everything; text, pictures and pieces go on top). */
+  function editPicture() {
+    if (!picture) return;
+    const start = board ?? { width: picture.width, height: picture.height, background: "#ecebe8", layers: [{ key: "photo", src: picture.url, x: 0, y: 0, w: 1, h: 1, flat: true }] };
+    before.current = board;
+    setBoard(start);
+    setEditing(true);
+  }
+
+  function cancelEditing() {
+    setBoard(before.current);
+    setEditing(false);
+  }
+
+  /** A piece added (or swapped in) from inside the editor: it joins the pieces list too. */
+  async function placePiece(draft: Draft) {
+    const replace = picker?.replace ?? null;
+    setPicker(null);
+    if (!board || !draft.thumb) return;
+    if (items.some((it) => it.key === draft.key)) return showToast("Already on the board");
+    if (!replace && items.length >= MAX_POST_ITEMS) return showToast(`Up to ${MAX_POST_ITEMS} pieces`);
+    setBoardBusy(true);
+    const src = await withoutBackground(draft.thumb);
+    const size = await pictureSize(src);
+    setBoardBusy(false);
+    if (!size) return showToast("Couldn't open that piece's picture");
+    const shape = (board.width * size.height) / (size.width * board.height);
+    setBoard((b) => {
+      if (!b) return b;
+      const old = replace ? b.layers.find((l) => l.key === replace) : null;
+      if (old) {
+        // Same middle, width and turn; the height follows the new piece's shape.
+        const h = old.w * shape;
+        const layer: BoardLayer = { key: draft.key, src, x: old.x, y: old.y + (old.h - h) / 2, w: old.w, h, rot: old.rot };
+        return { ...b, layers: b.layers.map((l) => (l.key === replace ? layer : l)) };
+      }
+      let w = 0.36;
+      let h = w * shape;
+      if (h > 0.5) {
+        w *= 0.5 / h;
+        h = 0.5;
+      }
+      return { ...b, layers: [...b.layers, { key: draft.key, src, x: 0.5 - w / 2, y: 0.5 - h / 2, w, h }] };
+    });
+    setItems((list) => (replace ? list.map((it) => (it.key === replace ? draft : it)) : [...list, draft]));
   }
 
   const toggle = (list: string[], set: (v: string[]) => void, tag: string) =>
@@ -385,21 +450,28 @@ function CreatePost() {
 
         {/* The photo */}
         <section className="mt-6">
-          {picture ? (
+          {picture && !editing ? (
             <div className="relative overflow-hidden rounded-[18px] bg-[#f1efeb]">
               {/* eslint-disable-next-line @next/next/no-img-element -- the person's own photo, not uploaded yet */}
               <img src={picture.url} alt="Your outfit photo" className="mx-auto max-h-[60vh] w-auto" />
-              <button
-                onClick={() => {
-                  setPicture(null);
-                  if (!built) setLayers(null);
-                }}
-                className="absolute right-3 top-3 rounded-full bg-white/95 px-3.5 py-1.5 text-[12px] font-semibold text-[#121821] shadow">
-                Change
-              </button>
+              <div className="absolute right-3 top-3 flex gap-2">
+                <button onClick={editPicture} className="rounded-full bg-[#121821] px-3.5 py-1.5 text-[12px] font-semibold text-white shadow">
+                  Edit
+                </button>
+                <button
+                  onClick={() => {
+                    setPicture(null);
+                    setBoard(null);
+                    setItems([]);
+                  }}
+                  className="rounded-full bg-white/95 px-3.5 py-1.5 text-[12px] font-semibold text-[#121821] shadow"
+                >
+                  Start over
+                </button>
+              </div>
             </div>
           ) : (
-            !building && !layers && !showSaved && (
+            !picture && !building && !board && !showSaved && (
             // The same three choices as the ＋ menu.
             <ul className="rounded-[22px] bg-white p-2 shadow-[0_1px_0_rgba(18,24,33,0.03),0_14px_36px_rgba(18,30,45,0.06)]">
               {CREATE_OPTIONS.map((o) => (
@@ -454,50 +526,82 @@ function CreatePost() {
           )}
         </section>
 
-        {layers && !picture && !building && (
+        {board && editing && (
           <section className="mt-6">
-            <BoardEditor layers={layers} onChange={setLayers} />
+            <BoardEditor
+              board={board}
+              onChange={setBoard}
+              onAddPiece={() => {
+                void loadCloset();
+                setShopPieces(readShopTryOns());
+                setPicker({ replace: null });
+              }}
+              onReplace={(key) => {
+                void loadCloset();
+                setShopPieces(readShopTryOns());
+                setPicker({ replace: key });
+              }}
+              onDeleted={(key) => setItems((list) => list.filter((it) => it.key !== key))}
+            />
             <div className="mt-3 flex gap-2">
               <button onClick={finishBoard} disabled={boardBusy} className={`${btnPrimary} flex-1`}>
-                {boardBusy ? "Saving…" : "Done"}
+                {boardBusy ? "One moment…" : "Done"}
               </button>
-              <button onClick={makeBoard} disabled={boardBusy} className={btnSecondary}>
-                Reset
-              </button>
-              <button
-                onClick={() => {
-                  setLayers(null);
-                  setBuilding(true);
-                }}
-                disabled={boardBusy}
-                className={btnSecondary}
-              >
-                Pieces
-              </button>
+              {/* Editing a picture that's already made: Cancel keeps it as it was. */}
+              {picture ? (
+                <button onClick={cancelEditing} disabled={boardBusy} className={btnSecondary}>
+                  Cancel
+                </button>
+              ) : (
+                <>
+                  <button onClick={makeBoard} disabled={boardBusy} className={btnSecondary}>
+                    Reset
+                  </button>
+                  <button
+                    onClick={() => {
+                      setBoard(null);
+                      setEditing(false);
+                      setBuilding(true);
+                    }}
+                    disabled={boardBusy}
+                    className={btnSecondary}
+                  >
+                    Pieces
+                  </button>
+                </>
+              )}
             </div>
           </section>
         )}
+        {picker &&
+          createPortal(
+            <Dialog label={picker.replace ? "Replace piece" : "Add a piece"} onClose={() => setPicker(null)} className="max-h-[85dvh] w-full max-w-md overflow-y-auto rounded-[22px] bg-white p-4 shadow-xl">
+              <div className="flex items-center justify-between">
+                <h2 className="text-[17px] font-semibold text-[#121821]">{picker.replace ? "Replace with" : "Add a piece"}</h2>
+                <button onClick={() => setPicker(null)} aria-label="Close" className="grid h-8 w-8 place-items-center rounded-full text-[20px] text-[#5d6874]">
+                  ×
+                </button>
+              </div>
+              <SourceTabs source={source} onChange={setSource} />
+              <div className="mt-3">
+                {source === "closet" && !closet ? (
+                  <p className="p-2 text-[13px] text-[#5d6874]">Loading…</p>
+                ) : (
+                  <PieceGrid
+                    list={source === "closet" ? (closet ?? []).map(fromCloset) : shopPieces.map(fromShop)}
+                    isOn={(d) => items.some((it) => it.key === d.key)}
+                    onPick={(d) => void placePiece(d)}
+                    empty={source === "shop" ? "Pieces you try on from Shopping show here." : "Your closet is empty."}
+                  />
+                )}
+              </div>
+            </Dialog>,
+            document.body
+          )}
 
         {building && !picture && (
           <section className="mt-6">
-            <div role="tablist" aria-label="Where pieces come from" className="inline-flex rounded-full bg-white p-1 shadow-[inset_0_0_0_1px_rgba(18,24,33,0.1)]">
-              {(
-                [
-                  ["closet", "My closet"],
-                  ["shop", "Shopping"],
-                ] as const
-              ).map(([value, label]) => (
-                <button
-                  key={value}
-                  role="tab"
-                  aria-selected={source === value}
-                  onClick={() => setSource(value)}
-                  className={`rounded-full px-4 py-1.5 text-[12.5px] font-semibold ${source === value ? "bg-[#121821] text-white" : "text-[#4f5b66]"}`}
-                >
-                  {label}
-                </button>
-              ))}
-            </div>
+            <SourceTabs source={source} onChange={setSource} />
 
             <div className="mt-3 rounded-[18px] bg-white p-3 shadow-[inset_0_0_0_1px_rgba(18,24,33,0.08)]">
               {source === "shop" && (
@@ -531,32 +635,15 @@ function CreatePost() {
                   />
                 </div>
               )}
-              {(
-                (() => {
-                  const list: Draft[] = source === "closet" ? (closet ?? []).map(fromCloset) : shopPieces.map(fromShop);
-                  if (source === "closet" && !closet) return <p className="p-2 text-[13px] text-[#5d6874]">Loading…</p>;
-                  if (list.length === 0)
-                    return (
-                      <p className="p-2 text-[13px] text-[#5d6874]">
-                        {source === "shop" ? "Paste a store link or add a photo of a piece." : "Your closet is empty."}
-                      </p>
-                    );
-                  return (
-                    <ul className="grid max-h-72 grid-cols-4 gap-2 overflow-y-auto">
-                      {list.map((d) => {
-                        const on = items.some((it) => it.key === d.key);
-                        return (
-                          <li key={d.key}>
-                            <button type="button" onClick={() => pick(d)} aria-pressed={on} aria-label={d.name} className={`block w-full overflow-hidden rounded-[10px] bg-[#f4f3f0] ${on ? "ring-2 ring-[#121821]" : ""}`}>
-                              {/* eslint-disable-next-line @next/next/no-img-element -- the person's own pieces */}
-                              <img src={d.thumb ?? ""} alt="" className="aspect-square w-full object-contain p-1" />
-                            </button>
-                          </li>
-                        );
-                      })}
-                    </ul>
-                  );
-                })()
+              {source === "closet" && !closet ? (
+                <p className="p-2 text-[13px] text-[#5d6874]">Loading…</p>
+              ) : (
+                <PieceGrid
+                  list={source === "closet" ? (closet ?? []).map(fromCloset) : shopPieces.map(fromShop)}
+                  isOn={(d) => items.some((it) => it.key === d.key)}
+                  onPick={pick}
+                  empty={source === "shop" ? "Paste a store link or add a photo of a piece." : "Your closet is empty."}
+                />
               )}
             </div>
 
@@ -588,7 +675,7 @@ function CreatePost() {
           </section>
         )}
 
-        {picture && (
+        {picture && !editing && (
           <>
             <textarea
               value={caption}
@@ -682,8 +769,36 @@ function CreatePost() {
               ))}
             </ul>
 
+            {error && !previewing && (
+              <p role="alert" className="mt-3 text-[13px] text-[#a1312a]">
+                {error}
+              </p>
+            )}
+            <div className="mt-6 flex gap-2">
+              <button onClick={() => setPreviewing(true)} disabled={busy} className={`${btnPrimary} flex-1`}>
+                Preview
+              </button>
+              <button onClick={() => router.back()} disabled={busy} className={btnSecondary}>
+                Cancel
+              </button>
+            </div>
+          </>
+        )}
+        {previewing && picture && (
+          <PostPreview
+            imageUrl={picture.url}
+            username={access.username}
+            caption={caption}
+            tags={[...styles, ...occasions]}
+            pieces={items.filter((it) => it.name.trim()).length}
+            busy={busy}
+            error={error}
+            onClose={() => setPreviewing(false)}
+            onPost={post}
+            canPost={publicOk}
+          >
             {/* Nothing becomes public without this. */}
-            <label className="mt-6 flex cursor-pointer items-start gap-2.5 text-[13px] leading-snug text-[#4f5b66]">
+            <label className="flex cursor-pointer items-start gap-2.5 text-[12.5px] leading-snug text-[#4f5b66]">
               <input type="checkbox" checked={publicOk} onChange={(e) => setPublicOk(e.target.checked)} className="mt-0.5 h-4 w-4 shrink-0 accent-[#121821]" />
               <span>
                 Post publicly as <b className="text-[#121821]">@{access.username}</b>. Anyone can see this photo, caption and pieces. Your closet stays private. Follow
@@ -694,20 +809,7 @@ function CreatePost() {
                 .
               </span>
             </label>
-            {error && (
-              <p role="alert" className="mt-3 text-[13px] text-[#a1312a]">
-                {error}
-              </p>
-            )}
-            <div className="mt-4 flex gap-2">
-              <button onClick={post} disabled={!publicOk || busy} className={`${btnPrimary} flex-1`}>
-                {busy ? "Posting…" : "Post"}
-              </button>
-              <button onClick={() => router.back()} disabled={busy} className={btnSecondary}>
-                Cancel
-              </button>
-            </div>
-          </>
+          </PostPreview>
         )}
         {error && !picture && (
           <p role="alert" className="mt-3 text-[13px] text-[#a1312a]">
@@ -716,5 +818,48 @@ function CreatePost() {
         )}
       </PageShell>
     </main>
+  );
+}
+
+function SourceTabs({ source, onChange }: { source: "closet" | "shop"; onChange: (s: "closet" | "shop") => void }) {
+  return (
+    <div role="tablist" aria-label="Where pieces come from" className="mt-2 inline-flex rounded-full bg-white p-1 shadow-[inset_0_0_0_1px_rgba(18,24,33,0.1)]">
+      {(
+        [
+          ["closet", "My closet"],
+          ["shop", "Shopping"],
+        ] as const
+      ).map(([value, label]) => (
+        <button
+          key={value}
+          role="tab"
+          aria-selected={source === value}
+          onClick={() => onChange(value)}
+          className={`rounded-full px-4 py-1.5 text-[12.5px] font-semibold ${source === value ? "bg-[#121821] text-white" : "text-[#4f5b66]"}`}
+        >
+          {label}
+        </button>
+      ))}
+    </div>
+  );
+}
+
+/** Pieces to choose from (closet or Shopping), as a grid of pictures. */
+function PieceGrid({ list, isOn, onPick, empty }: { list: Draft[]; isOn: (d: Draft) => boolean; onPick: (d: Draft) => void; empty: string }) {
+  if (list.length === 0) return <p className="p-2 text-[13px] text-[#5d6874]">{empty}</p>;
+  return (
+    <ul className="grid max-h-72 grid-cols-4 gap-2 overflow-y-auto">
+      {list.map((d) => {
+        const on = isOn(d);
+        return (
+          <li key={d.key}>
+            <button type="button" onClick={() => onPick(d)} aria-pressed={on} aria-label={d.name} className={`block w-full overflow-hidden rounded-[10px] bg-[#f4f3f0] ${on ? "ring-2 ring-[#121821]" : ""}`}>
+              {/* eslint-disable-next-line @next/next/no-img-element -- the person's own pieces */}
+              <img src={d.thumb ?? ""} alt="" className="aspect-square w-full object-contain p-1" />
+            </button>
+          </li>
+        );
+      })}
+    </ul>
   );
 }
