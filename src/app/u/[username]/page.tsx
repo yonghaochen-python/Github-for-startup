@@ -9,7 +9,7 @@ import { PageShell, btnPrimary } from "@/components/ui";
 import { Avatar } from "@/components/Avatar";
 import { FollowButton } from "@/components/feed/FollowButton";
 import { useAuth } from "@/components/AuthProvider";
-import type { FollowState } from "@/lib/postRules";
+import { FOLLOWING_ON, type FollowState } from "@/lib/postRules";
 
 const joined = (iso: string) => new Date(iso).toLocaleDateString(undefined, { month: "long", year: "numeric" });
 
@@ -64,22 +64,26 @@ export default function ProfilePage() {
                 <span>
                   <b className="font-semibold text-[#121821]">{posts.length}</b> {posts.length === 1 ? "post" : "posts"}
                 </span>
-                <span>
-                  <b className="font-semibold text-[#121821]">{follow.followers}</b> {follow.followers === 1 ? "follower" : "followers"}
-                </span>
-                <span>
-                  <b className="font-semibold text-[#121821]">{follow.following}</b> following
-                </span>
+                {FOLLOWING_ON && (
+                  <>
+                    <span>
+                      <b className="font-semibold text-[#121821]">{follow.followers}</b> {follow.followers === 1 ? "follower" : "followers"}
+                    </span>
+                    <span>
+                      <b className="font-semibold text-[#121821]">{follow.following}</b> following
+                    </span>
+                  </>
+                )}
               </p>
             )}
             <p className="mt-2 text-[12px] text-[#5d6874]">Joined {joined(profile.joined)}</p>
-            {follow && follow.followed !== null && (
+            {FOLLOWING_ON && follow && follow.followed !== null && (
               <div className="mt-4">
                 <FollowButton key={String(follow.followed)} username={profile.username} followed={follow.followed} onChange={(state) => state && setFollow(state)} />
               </div>
             )}
             {/* Signed out: Follow asks them to sign up. */}
-            {follow && follow.followed === null && status === "signedOut" && (
+            {FOLLOWING_ON && follow && follow.followed === null && status === "signedOut" && (
               <div className="mt-4">
                 <FollowButton username={profile.username} followed={false} />
               </div>

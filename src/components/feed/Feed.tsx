@@ -15,7 +15,7 @@ import { FeedVideo } from "@/components/feed/FeedVideo";
 import { PlusIcon, SearchIcon } from "@/components/Icons";
 import { CreateMenu } from "@/components/CreateMenu";
 import { useAuth } from "@/components/AuthProvider";
-import type { PublicPost } from "@/lib/postRules";
+import { FOLLOWING_ON, type PublicPost } from "@/lib/postRules";
 
 /**
  * Discover, the outfit feed (Virm's first page).
@@ -207,8 +207,8 @@ export function Feed() {
           ["foryou", "For You"],
         ] as const
       )
-        // Following needs an account; signed-out visitors just see For You.
-        .filter(([value]) => status === "signedIn" || value === "foryou")
+        // Following needs an account (and is off for now); otherwise just For You.
+        .filter(([value]) => (FOLLOWING_ON && status === "signedIn") || value === "foryou")
         .map(([value, label]) => (
         <button
           key={value}
@@ -515,7 +515,7 @@ export function Feed() {
                         <Avatar url={p.creator.avatarUrl} name={p.creator.displayName ?? p.creator.username} size={28} />
                         <span className="truncate text-[13.5px] font-semibold">@{p.creator.username}</span>
                       </Link>
-                      {p.followsCreator === false && (
+                      {FOLLOWING_ON && p.followsCreator === false && (
                         <span className="md:hidden">
                           <FollowButton username={p.creator.username} followed={false} tone="dark" />
                         </span>

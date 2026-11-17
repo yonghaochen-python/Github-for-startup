@@ -8,7 +8,7 @@ import { Avatar } from "@/components/Avatar";
 import { BackButton } from "@/components/BackButton";
 import { ConfirmButton } from "@/components/ConfirmButton";
 import { useToast } from "@/components/Toast";
-import { REPORT_REASONS, type PublicPost } from "@/lib/postRules";
+import { REPORT_REASONS, type PublicPost, FOLLOWING_ON } from "@/lib/postRules";
 import { PageShell } from "@/components/ui";
 import { PostActions } from "@/components/feed/PostActions";
 import { TryThisOutfit } from "@/components/feed/TryThisOutfit";
@@ -75,7 +75,7 @@ export default function PostPage() {
             <Avatar url={post.creator.avatarUrl} name={post.creator.displayName ?? post.creator.username} size={36} />
             <span className="truncate text-[14px] font-semibold text-[#121821]">@{post.creator.username}</span>
           </Link>
-          {post.followsCreator !== undefined || status !== "signedIn" ? (
+          {FOLLOWING_ON && (post.followsCreator !== undefined || status !== "signedIn") ? (
             <span className="ml-auto">
               <FollowButton username={post.creator.username} followed={Boolean(post.followsCreator)} />
             </span>

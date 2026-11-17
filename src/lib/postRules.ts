@@ -102,3 +102,9 @@ export type FollowState = { followers: number; following: number; followed: bool
 export const POST_VIDEO_MAX_BYTES = 50 * 1024 * 1024;
 export const POST_VIDEO_MAX_SECONDS = 60;
 export const POST_VIDEO_TYPES: Record<string, "mp4" | "mov" | "webm"> = { "video/mp4": "mp4", "video/quicktime": "mov", "video/webm": "webm" };
+
+/**
+ * Following people (the Following tab, Follow buttons and follower counts). Off for now: the feature is built (and its
+ * table goes live with Discover), just not shown. Set to true to bring it back.
+ */
+export const FOLLOWING_ON = false;
