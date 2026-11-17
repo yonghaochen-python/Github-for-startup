@@ -83,8 +83,12 @@ export default function PostPage() {
         </div>
 
         <div className="mt-3 overflow-hidden rounded-[18px] bg-[#f1efeb]">
-          {/* eslint-disable-next-line @next/next/no-img-element -- a public post picture */}
-          <img src={post.imageUrl} alt={post.caption ?? "Outfit"} width={post.width} height={post.height} className="h-auto w-full" />
+          {post.videoUrl ? (
+            <video src={post.videoUrl} poster={post.imageUrl} controls autoPlay muted loop playsInline preload="metadata" aria-label={post.caption ?? "Outfit video"} className="mx-auto max-h-[80dvh] w-auto" />
+          ) : (
+            // eslint-disable-next-line @next/next/no-img-element -- a public post picture
+            <img src={post.imageUrl} alt={post.caption ?? "Outfit"} width={post.width} height={post.height} className="h-auto w-full" />
+          )}
         </div>
 
         <div className="mt-3 flex items-center gap-4 text-[13px] font-semibold text-[#121821]">

@@ -353,6 +353,9 @@ model Post {
   reportCount  Int      @default(0)
   /// The editor layout behind the picture (JSON), for its owner only; its pictures live under private/board/.
   board        String?
+  /// A video post's video (public copy, postvideo-…); the picture is its cover frame. Null for picture posts.
+  videoKey     String?
+  videoMs      Int?
   createdAt    DateTime @default(now())
   updatedAt    DateTime @updatedAt
 

@@ -3,12 +3,14 @@
 import { useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
-import { CREATE_OPTIONS, CreateOptionRow, takeHandedPhoto, type CreateStart } from "@/components/CreateMenu";
+import { CREATE_OPTIONS, CreateOptionRow, takeHandedPhoto, takeHandedVideo, type CreateStart } from "@/components/CreateMenu";
+import { grabFrame, readVideo, uploadVideo, type ChosenVideo } from "@/lib/postVideoClient";
 import type { ClothingItem, Outfit } from "@/components/OutfitCard";
 import { CAPTION_MAX, MAX_POST_ITEMS, MAX_TAGS, OCCASION_TAGS, STYLE_TAGS, type PublicPost } from "@/lib/postRules";
 import { layoutBoard, newBoard, packBoard, pictureSize, renderBoard, shrinkPicture, withoutBackground, type Board, type BoardLayer } from "@/lib/outfitBoard";
 import { PostPreview } from "@/components/feed/PostPreview";
 import { Dialog } from "@/components/Dialog";
+import { VideoIcon } from "@/components/Icons";
 import { createPortal } from "react-dom";
 import { BoardEditor } from "@/components/BoardEditor";
 import { warmUpCutout } from "@/lib/cutout";
@@ -140,9 +142,20 @@ function CreatePost() {
   const [previewing, setPreviewing] = useState(false);
   // Editing a published post (?edit=<id>): only what changed is sent again.
   const editId = useSearchParams().get("edit");
-  const [editMissing, setEditMissing] = useState(false);
+  // Editing couldn't start: not your post, or it couldn't be opened (a connection problem).
+  const [editMissing, setEditMissing] = useState<"notYours" | "failed" | null>(null);
   const [pictureChanged, setPictureChanged] = useState(false);
   const [boardChanged, setBoardChanged] = useState(false);
+  // A video post: the video (stays on the device until Post), its cover's moment, and sending progress.
+  const [video, setVideo] = useState<ChosenVideo | null>(null);
+  const [coverAt, setCoverAt] = useState(0);
+  const [sent, setSent] = useState<number | null>(null);
+  // Editing a video post: its video as posted (it stays; the words and pieces can change).
+  const [postedVideo, setPostedVideo] = useState<string | null>(null);
+  // Saved Live Try On recordings (private), offered only when there are some.
+  const [recordings, setRecordings] = useState<{ id: string; savedAt: string }[] | null>(null);
+  const [showRecordings, setShowRecordings] = useState(false);
+  const videoInput = useRef<HTMLInputElement | null>(null);
   const [saved, setSaved] = useState<Outfit[] | null>(null);
   const [showSaved, setShowSaved] = useState(false);
   const [closet, setCloset] = useState<ClosetPiece[] | null>(null);
@@ -168,6 +181,9 @@ function CreatePost() {
       if (start === "photo") {
         const file = takeHandedPhoto();
         if (file) void takePhoto(file);
+      } else if (start === "video") {
+        const file = takeHandedVideo();
+        if (file) void takeVideo(file);
       } else if (start === "look") void openSaved();
       else if (start === "build") startBuilding();
     };
@@ -186,10 +202,12 @@ function CreatePost() {
       const post = res?.ok ? ((await res.json()) as { post: PublicPost }).post : null;
       const image = post?.editable ? await fetch(post.imageUrl).then((r) => (r.ok ? r.blob() : null)).catch(() => null) : null;
       if (gone) return;
-      if (!post?.editable || !image) return setEditMissing(true);
+      if (post && !post.editable) return setEditMissing("notYours");
+      if (!post || !image) return setEditMissing("failed");
       const url = URL.createObjectURL(image);
       urls.current.push(url);
       setPicture({ blob: image, url, width: post.width, height: post.height });
+      if (post.videoUrl) setPostedVideo(post.videoUrl);
       setCaption(post.caption ?? "");
       setStyles(post.styleTags);
       setOccasions(post.occasionTags);
@@ -220,6 +238,15 @@ function CreatePost() {
     };
   }, [editId]);
 
+  // Saved Live Try On recordings, for "Share a Live Try On video" (new posts only).
+  useEffect(() => {
+    if (editId) return;
+    fetch("/api/me/live-videos", { cache: "no-store" })
+      .then(async (res) => (res.ok ? ((await res.json()) as { videos: { id: string; savedAt: string }[] }).videos : []))
+      .then(setRecordings)
+      .catch(() => setRecordings([]));
+  }, [editId]);
+
   useEffect(() => {
     fetch("/api/me/can-post", { cache: "no-store" })
       .then(async (res) => (res.ok ? ((await res.json()) as { canPost: boolean; username: string | null }) : { canPost: false, username: null }))
@@ -242,6 +269,63 @@ function CreatePost() {
     } catch (err) {
       setError(err instanceof Error ? err.message : "Couldn't read that photo.");
     }
+  }
+
+  /** A video: checked here (type, 50 MB, a minute, that it plays), with a frame near the start as its cover. */
+  async function takeVideo(file: Blob) {
+    setError(null);
+    setShowRecordings(false);
+    try {
+      const chosen = await readVideo(file);
+      urls.current.push(chosen.url);
+      const at = Math.min(0.5, chosen.ms / 2000);
+      const cover = await grabFrame(chosen.url, at);
+      const url = URL.createObjectURL(cover.blob);
+      urls.current.push(url);
+      coverShown.current = at;
+      setVideo(chosen);
+      setCoverAt(at);
+      setPicture({ ...cover, url });
+      setBoard(null);
+      setPictureChanged(true);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Couldn't read that video.");
+    }
+  }
+
+  /** Another moment of the video as its cover. */
+  async function chooseCover(seconds: number) {
+    if (!video) return;
+    try {
+      const cover = await grabFrame(video.url, seconds);
+      const url = URL.createObjectURL(cover.blob);
+      urls.current.push(url);
+      setPicture({ ...cover, url });
+    } catch {}
+  }
+
+  // The cover follows the slider, a moment after it stops moving.
+  const coverShown = useRef(0);
+  useEffect(() => {
+    if (!video || coverAt === coverShown.current) return;
+    const t = setTimeout(() => {
+      coverShown.current = coverAt;
+      void chooseCover(coverAt);
+    }, 250);
+    return () => clearTimeout(t);
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- only when the slider moves
+  }, [coverAt, video]);
+
+  async function openRecordings() {
+    setShowRecordings(true);
+  }
+
+  /** One of your saved Live Try On recordings (private until you post it, and only if you choose to). */
+  async function pickRecording(id: string) {
+    const res = await fetch(`/api/me/live-videos/${encodeURIComponent(id)}`).catch(() => null);
+    if (!res?.ok) return setError("Couldn't open that recording.");
+    const blob = await res.blob();
+    await takeVideo(new File([blob], id, { type: blob.type || (id.endsWith(".webm") ? "video/webm" : "video/mp4") }));
   }
 
   async function openSaved() {
@@ -443,6 +527,19 @@ function CreatePost() {
     if (!picture) return;
     setBusy(true);
     setError(null);
+    // A video goes first, straight to storage (with progress); the post then claims it.
+    let videoKey: string | null = null;
+    if (video && !editId) {
+      try {
+        setSent(0);
+        videoKey = await uploadVideo(video, setSent);
+      } catch (err) {
+        setSent(null);
+        setError(err instanceof Error ? err.message : "Couldn't send the video.");
+        return setBusy(false);
+      }
+      setSent(null);
+    }
     const form = new FormData();
     if (!editId || pictureChanged) form.append("picture", picture.blob, "post.webp");
     // The layout, kept privately so it can be rearranged later (only when it's new or changed).
@@ -470,6 +567,7 @@ function CreatePost() {
         occasionTags: occasions,
         width: picture.width,
         height: picture.height,
+        ...(videoKey && video ? { videoKey, videoMs: video.ms } : {}),
         items: kept.map(({ name, brand, store, link, price, category, closetItemId, postItemId, detailsPrivate }) => ({
           name,
           brand,
@@ -494,6 +592,8 @@ function CreatePost() {
     const data = res ? ((await res.json().catch(() => ({}))) as { id?: string; error?: string }) : {};
     // Replace the form in history, so Back from the new post goes where they were before.
     if (res?.ok && data.id) return router.replace(`/p/${data.id}`);
+    // The sent video didn't become a post: throw it away.
+    if (videoKey) void fetch(`/api/posts/video?key=${encodeURIComponent(videoKey)}`, { method: "DELETE" }).catch(() => {});
     setError(data.error ?? "Couldn't post right now. Please try again.");
     setBusy(false);
   }
@@ -503,7 +603,9 @@ function CreatePost() {
     return (
       <main className="flex-1 pb-20">
         <PageShell className="pt-14 text-center">
-          <p className="text-[15px] text-[#4f5b66]">You can only edit your own posts.</p>
+          <p className="text-[15px] text-[#4f5b66]">
+            {editMissing === "notYours" ? "You can only edit your own posts." : "Couldn't open this post. Please try again."}
+          </p>
         </PageShell>
       </main>
     );
@@ -545,7 +647,45 @@ function CreatePost() {
 
         {/* The photo */}
         <section className="mt-6">
-          {picture && !editing ? (
+          {picture && !editing && (video || postedVideo) ? (
+            // A video post: the video, and (new posts) a slider to choose its cover.
+            <div>
+              <div className="relative overflow-hidden rounded-[18px] bg-[#0b0f14]">
+                <video src={video?.url ?? postedVideo ?? undefined} poster={picture.url} controls muted playsInline loop className="mx-auto max-h-[60vh] w-auto" />
+                {!editId && (
+                  <button
+                    onClick={() => {
+                      setVideo(null);
+                      setPicture(null);
+                      setItems([]);
+                    }}
+                    className="absolute right-3 top-3 rounded-full bg-white/95 px-3.5 py-1.5 text-[12px] font-semibold text-[#121821] shadow"
+                  >
+                    Start over
+                  </button>
+                )}
+              </div>
+              {video && (
+                <div className="mt-3 flex items-center gap-3">
+                  {/* eslint-disable-next-line @next/next/no-img-element -- the chosen cover, on this device */}
+                  <img src={picture.url} alt="Cover" className="h-14 w-11 shrink-0 rounded-[8px] bg-[#f1efeb] object-cover" />
+                  <label className="min-w-0 flex-1 text-[12px] font-semibold text-[#5d6874]">
+                    Cover
+                    <input
+                      type="range"
+                      min={0}
+                      max={video.ms / 1000}
+                      step={0.1}
+                      value={coverAt}
+                      onChange={(e) => setCoverAt(Number(e.target.value))}
+                      className="mt-1 block w-full accent-[#121821]"
+                    />
+                  </label>
+                </div>
+              )}
+              {video?.hevc && <p className="mt-2 text-[11.5px] text-[#8a949e]">Filmed in HEVC: some Android phones may not play it.</p>}
+            </div>
+          ) : picture && !editing ? (
             <div className="relative overflow-hidden rounded-[18px] bg-[#f1efeb]">
               {/* eslint-disable-next-line @next/next/no-img-element -- the person's own photo, not uploaded yet */}
               <img src={picture.url} alt="Your outfit photo" className="mx-auto max-h-[60vh] w-auto" />
@@ -568,8 +708,8 @@ function CreatePost() {
               </div>
             </div>
           ) : (
-            !editId && !picture && !building && !board && !showSaved && (
-            // The same three choices as the ＋ menu.
+            !editId && !picture && !building && !board && !showSaved && !showRecordings && (
+            // The same choices as the ＋ menu (and your Live Try On recordings, when you have some).
             <ul className="rounded-[22px] bg-white p-2 shadow-[0_1px_0_rgba(18,24,33,0.03),0_14px_36px_rgba(18,30,45,0.06)]">
               {CREATE_OPTIONS.map((o) => (
                 <li key={o.start}>
@@ -577,12 +717,55 @@ function CreatePost() {
                     title={o.title}
                     sub={o.sub}
                     Icon={o.Icon}
-                    onClick={o.start === "photo" ? () => fileInput.current?.click() : o.start === "look" ? openSaved : startBuilding}
+                    onClick={
+                      o.start === "photo"
+                        ? () => fileInput.current?.click()
+                        : o.start === "video"
+                          ? () => videoInput.current?.click()
+                          : o.start === "look"
+                            ? openSaved
+                            : startBuilding
+                    }
                   />
                 </li>
               ))}
+              {recordings && recordings.length > 0 && (
+                <li>
+                  <CreateOptionRow title="Share a Live Try On video" sub="One of your saved recordings" Icon={VideoIcon} onClick={openRecordings} />
+                </li>
+              )}
             </ul>
             )
+          )}
+          <input
+            ref={videoInput}
+            type="file"
+            accept="video/mp4,video/quicktime,video/webm,.mov,.mp4,.webm"
+            hidden
+            onChange={(e) => {
+              const file = e.target.files?.[0];
+              e.target.value = "";
+              if (file) void takeVideo(file);
+            }}
+          />
+          {showRecordings && !picture && (
+            <div className="rounded-[18px] bg-white p-3 shadow-[inset_0_0_0_1px_rgba(18,24,33,0.08)]">
+              <div className="flex items-center justify-between px-1 pb-2">
+                <p className="text-[14px] font-semibold text-[#121821]">Your Live Try On videos</p>
+                <button onClick={() => setShowRecordings(false)} className="text-[12.5px] font-semibold text-[#5d6874]">
+                  Other ways to post
+                </button>
+              </div>
+              <ul className="grid grid-cols-3 gap-2">
+                {(recordings ?? []).map((r) => (
+                  <li key={r.id}>
+                    <button onClick={() => pickRecording(r.id)} aria-label={`Recording from ${new Date(r.savedAt).toLocaleDateString()}`} className="block w-full overflow-hidden rounded-[12px] bg-[#0b0f14]">
+                      <video src={`/api/me/live-videos/${encodeURIComponent(r.id)}#t=0.5`} muted playsInline preload="metadata" className="pointer-events-none aspect-[3/4] w-full object-cover" />
+                    </button>
+                  </li>
+                ))}
+              </ul>
+            </div>
           )}
           <input
             ref={fileInput}
@@ -893,6 +1076,8 @@ function CreatePost() {
         {previewing && picture && (
           <PostPreview
             imageUrl={picture.url}
+            videoUrl={video?.url ?? postedVideo ?? undefined}
+            progress={sent}
             username={access.username}
             caption={caption}
             tags={[...styles, ...occasions]}

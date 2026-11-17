@@ -26,6 +26,8 @@ export type EventName =
   /** A comment was written / reported. */
   | "comment_created"
   | "comment_reported"
+  /** A video for a post was sent (counted for the daily limit). */
+  | "post_video_uploaded"
   /** Signed up with a friend's invite code (their trial will be 14 days). */
   | "signup_with_invite"
   /** A friend's invite code was entered after sign-up (before the trial). */

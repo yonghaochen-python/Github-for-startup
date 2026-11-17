@@ -108,6 +108,13 @@ export const CameraIcon = (p: IconProps) => (
   </Svg>
 );
 
+export const VideoIcon = (p: IconProps) => (
+  <Svg {...p}>
+    <rect x="3.5" y="6.5" width="12" height="11" rx="1.5" />
+    <path d="M15.5 10.5 20.5 7.5v9l-5-3" />
+  </Svg>
+);
+
 export const CheckIcon = (p: IconProps) => (
   <Svg {...p}>
     <path d="m5 12.5 4.5 4.5L19 7.5" />

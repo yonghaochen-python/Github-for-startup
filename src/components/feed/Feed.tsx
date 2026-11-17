@@ -8,6 +8,7 @@ import { PiecesButton } from "@/components/feed/PiecesSheet";
 import { TryThisOutfit } from "@/components/feed/TryThisOutfit";
 import { CommentsButton } from "@/components/feed/Comments";
 import { FollowButton } from "@/components/feed/FollowButton";
+import { FeedVideo } from "@/components/feed/FeedVideo";
 import { SearchIcon } from "@/components/Icons";
 import { useAuth } from "@/components/AuthProvider";
 import type { PublicPost } from "@/lib/postRules";
@@ -214,17 +215,26 @@ export function Feed() {
               return (
                 <li key={p.id} className="flex h-full snap-start snap-always flex-col md:mb-8 md:block md:h-auto md:break-inside-avoid">
                   {/* The outfit: as large as the screen allows, never covered by text. */}
-                  <div className="relative min-h-0 flex-1 md:flex-none">
-                    <Link href={`/p/${p.id}`} className="group block h-full overflow-hidden md:h-auto md:rounded-[20px] md:bg-[#f1efeb]">
-                      {/* eslint-disable-next-line @next/next/no-img-element -- a public post picture */}
-                      <img
-                        src={p.imageUrl}
-                        alt={p.caption ?? "Outfit"}
-                        width={p.width}
-                        height={p.height}
-                        loading="lazy"
-                        className="h-full w-full object-contain md:h-auto md:object-cover md:transition-transform md:duration-700 md:ease-out md:group-hover:scale-[1.02]"
-                      />
+                  <div className="relative min-h-0 flex-1 md:flex-none" style={{ "--r": `${p.width} / ${p.height}` } as React.CSSProperties}>
+                    <Link href={`/p/${p.id}`} className="group relative block h-full overflow-hidden md:h-auto md:rounded-[20px] md:bg-[#f1efeb]">
+                      {p.videoUrl ? (
+                        <FeedVideo
+                          src={p.videoUrl}
+                          poster={p.imageUrl}
+                          alt={p.caption ?? "Outfit video"}
+                          className="h-full w-full object-contain md:aspect-[var(--r)] md:h-auto md:object-cover"
+                        />
+                      ) : (
+                        // eslint-disable-next-line @next/next/no-img-element -- a public post picture
+                        <img
+                          src={p.imageUrl}
+                          alt={p.caption ?? "Outfit"}
+                          width={p.width}
+                          height={p.height}
+                          loading="lazy"
+                          className="h-full w-full object-contain md:h-auto md:object-cover md:transition-transform md:duration-700 md:ease-out md:group-hover:scale-[1.02]"
+                        />
+                      )}
                     </Link>
                     <div className="absolute bottom-3 right-3 md:hidden">
                       <PostActions post={p} vertical onDisliked={() => remove(p.id)} afterLike={<CommentsButton post={p} />} />

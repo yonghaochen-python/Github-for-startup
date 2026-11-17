@@ -1,8 +1,8 @@
 #!/bin/bash
 # Go live with Discover (the social outfit feed): public profiles (0018), posts + reports (0019), likes + saves (0020),
-# editing posts + "only me" piece details (0021), following + comments (0022), the Discover tab, posting open to
-# everyone, and "Build an outfit".
-# All five database changes only ADD things; nothing existing changes. Safe to run again: anything already added is
+# editing posts + "only me" piece details (0021), following + comments (0022), video posts (0023), the Discover tab,
+# posting open to everyone, and "Build an outfit".
+# All six database changes only ADD things; nothing existing changes. Safe to run again: anything already added is
 # skipped. It stops at the first problem, and nothing is pushed unless every step succeeds. No keys needed.
 set -u
 cd "$(dirname "$0")/.." || exit 1
@@ -93,12 +93,19 @@ q 'CREATE INDEX IF NOT EXISTS "CommentReport_status_createdAt_idx" ON "CommentRe
 record 0022_follows_comments.sql || stop "couldn't record 0022."
 echo "✓ 0022 done"
 
+echo "→ 0023: video posts…"
+has_column Post videoKey || q 'ALTER TABLE "Post" ADD COLUMN "videoKey" TEXT;' >/dev/null || stop "couldn't add Post.videoKey."
+has_column Post videoMs || q 'ALTER TABLE "Post" ADD COLUMN "videoMs" INTEGER;' >/dev/null || stop "couldn't add Post.videoMs."
+record 0023_post_video.sql || stop "couldn't record 0023."
+echo "✓ 0023 done"
+
 echo "→ Checking everything is in place…"
 for c in username bio avatarKey canPost; do has_column User "$c" || stop "User.$c isn't showing."; done
 for o in User_username_key Post PostItem PostReport PostReaction PostSave Follow PostComment CommentReport; do has_object "$o" || stop "$o isn't showing."; done
 has_column PostItem price || stop "PostItem.price isn't showing."
 has_column Post board || stop "Post.board isn't showing."
 has_column PostItem detailsPrivate || stop "PostItem.detailsPrivate isn't showing."
+for c in videoKey videoMs; do has_column Post "$c" || stop "Post.$c isn't showing."; done
 echo "✓ All in place"
 
 echo "→ Pushing the code (this starts the live build)…"

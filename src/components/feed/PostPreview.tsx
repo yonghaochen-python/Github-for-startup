@@ -9,6 +9,8 @@ import { Dialog } from "@/components/Dialog";
  */
 export function PostPreview({
   imageUrl,
+  videoUrl,
+  progress = null,
   username,
   caption,
   tags,
@@ -22,6 +24,10 @@ export function PostPreview({
   children,
 }: {
   imageUrl: string;
+  /** A video post: shown playing (muted), as on Discover. */
+  videoUrl?: string;
+  /** Sending the video: 0–1. */
+  progress?: number | null;
   username: string;
   caption: string;
   tags: string[];
@@ -39,8 +45,12 @@ export function PostPreview({
       {/* Like the feed: the outfit on dark, the words under it. */}
       <div className="min-h-0 overflow-y-auto">
         <div className="bg-[#0b0f14]">
-          {/* eslint-disable-next-line @next/next/no-img-element -- the person's own picture, not uploaded yet */}
-          <img src={imageUrl} alt="Your post" className="mx-auto max-h-[52dvh] w-auto object-contain" />
+          {videoUrl ? (
+            <video src={videoUrl} poster={imageUrl} autoPlay muted loop playsInline className="mx-auto max-h-[52dvh] w-auto object-contain" />
+          ) : (
+            // eslint-disable-next-line @next/next/no-img-element -- the person's own picture, not uploaded yet
+            <img src={imageUrl} alt="Your post" className="mx-auto max-h-[52dvh] w-auto object-contain" />
+          )}
           <div className="px-4 pb-4 pt-3 text-white">
             <p className="text-[13.5px] font-semibold">@{username}</p>
             {caption.trim() && <p className="mt-1 line-clamp-2 text-[14px] leading-snug text-white/90">{caption}</p>}
@@ -61,7 +71,7 @@ export function PostPreview({
       </div>
       <div className="flex gap-2 border-t border-black/[0.06] p-3">
         <button onClick={onPost} disabled={!canPost || busy} className="flex-1 rounded-full bg-[#121821] py-3 text-[14.5px] font-semibold text-white disabled:opacity-40">
-          {busy ? "One moment…" : postLabel}
+          {progress !== null ? `Sending video ${Math.round(progress * 100)}%` : busy ? "One moment…" : postLabel}
         </button>
         <button onClick={onClose} disabled={busy} className="rounded-full px-5 py-3 text-[14px] font-semibold text-[#121821] shadow-[inset_0_0_0_1px_rgba(18,24,33,0.14)]">
           Edit

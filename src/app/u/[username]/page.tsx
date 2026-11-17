@@ -96,9 +96,16 @@ export default function ProfilePage() {
           <ul className="mx-auto mt-8 grid max-w-3xl grid-cols-3 gap-1 sm:gap-2">
             {posts.map((p) => (
               <li key={p.id}>
-                <Link href={`/p/${p.id}`} className="block overflow-hidden bg-[#f1efeb] sm:rounded-[10px]">
-                  {/* eslint-disable-next-line @next/next/no-img-element -- a public post picture */}
+                <Link href={`/p/${p.id}`} className="relative block overflow-hidden bg-[#f1efeb] sm:rounded-[10px]">
+                  {/* eslint-disable-next-line @next/next/no-img-element -- a public post picture (a video post's cover) */}
                   <img src={p.imageUrl} alt={p.caption ?? "Outfit"} loading="lazy" className="aspect-[3/4] w-full object-cover" />
+                  {p.videoUrl && (
+                    <span aria-label="Video" className="absolute right-1.5 top-1.5 flex h-6 w-6 items-center justify-center rounded-full bg-black/45 text-white">
+                      <svg viewBox="0 0 24 24" className="h-3 w-3" fill="currentColor" aria-hidden>
+                        <path d="M8 5.5v13l10.5-6.5z" />
+                      </svg>
+                    </span>
+                  )}
                 </Link>
               </li>
             ))}

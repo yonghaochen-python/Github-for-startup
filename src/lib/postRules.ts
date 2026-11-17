@@ -38,6 +38,8 @@ export type PublicPostItem = {
 export type PublicPost = {
   id: string;
   imageUrl: string;
+  /** A video post's video (the picture is its cover). */
+  videoUrl?: string;
   width: number;
   height: number;
   caption: string | null;
@@ -95,3 +97,8 @@ export type PublicComment = {
 };
 /** Following on a profile: the counts, and whether the viewer follows them (null when signed out or it's them). */
 export type FollowState = { followers: number; following: number; followed: boolean | null };
+
+/** Video posts: MP4, MOV (iPhone) or WebM, at most a minute and 50 MB. */
+export const POST_VIDEO_MAX_BYTES = 50 * 1024 * 1024;
+export const POST_VIDEO_MAX_SECONDS = 60;
+export const POST_VIDEO_TYPES: Record<string, "mp4" | "mov" | "webm"> = { "video/mp4": "mp4", "video/quicktime": "mov", "video/webm": "webm" };

@@ -50,7 +50,7 @@ export async function POST(request: Request) {
   }
   const body = (await request.json().catch(() => ({}))) as { postId?: unknown; action?: unknown };
   const postId = typeof body.postId === "string" ? body.postId : "";
-  const post = postId ? await prisma.post.findUnique({ where: { id: postId }, select: { imageKey: true, board: true, items: { select: { imageKey: true } } } }) : null;
+  const post = postId ? await prisma.post.findUnique({ where: { id: postId }, select: { imageKey: true, board: true, videoKey: true, items: { select: { imageKey: true } } } }) : null;
   if (!post) return NextResponse.json({ error: "Not found." }, { status: 404, headers: noStore });
   const now = new Date();
   if (body.action === "restore" || body.action === "dismiss") {

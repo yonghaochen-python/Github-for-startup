@@ -2,6 +2,7 @@ import { randomUUID } from "node:crypto";
 import { env } from "cloudflare:workers";
 import { prisma } from "@/lib/prisma";
 import { avatarUrl } from "@/lib/profiles";
+import { canClaimVideo } from "@/lib/postVideo";
 import {
   CAPTION_MAX,
   HIDE_AFTER_REPORTS,
@@ -14,6 +15,7 @@ import {
   FEED_PAGE,
   BOARD_LAYER_MAX_BYTES,
   MAX_BOARD_LAYERS,
+  POST_VIDEO_MAX_SECONDS,
   type PublicPost,
   type ReportReason,
 } from "@/lib/postRules";
@@ -70,7 +72,17 @@ export type NewPostItem = {
 /** A store piece's own picture (prepared on the device), by the piece's position in the list. */
 export type ItemPictures = Map<number, File>;
 export const ITEM_IMAGE_MAX_BYTES = 600 * 1024;
-export type NewPost = { caption?: unknown; styleTags?: unknown; occasionTags?: unknown; width?: unknown; height?: unknown; items?: unknown };
+export type NewPost = {
+  caption?: unknown;
+  styleTags?: unknown;
+  occasionTags?: unknown;
+  width?: unknown;
+  height?: unknown;
+  items?: unknown;
+  /** A video post: the video already sent (/api/posts/video) and its length; the picture is its cover. */
+  videoKey?: unknown;
+  videoMs?: unknown;
+};
 
 async function putImage(prefix: string, bytes: Uint8Array, type: string): Promise<string> {
   const key = `${prefix}${randomUUID()}.${IMAGE_TYPES[type] ?? "jpg"}`;
@@ -251,8 +263,9 @@ const parseBoard = (json: string | null): StoredBoard | null => {
 export const boardKeys = (json: string | null): string[] => [...new Set((parseBoard(json)?.layers ?? []).map((l) => l.src).filter((k) => k.startsWith("private/board/")))];
 
 /** Every stored picture of a post: its own, its pieces', and its layout's. */
-export const postStorageKeys = (post: { imageKey: string; board: string | null; items: { imageKey: string | null }[] }): string[] => [
+export const postStorageKeys = (post: { imageKey: string; board: string | null; videoKey?: string | null; items: { imageKey: string | null }[] }): string[] => [
   post.imageKey,
+  ...(post.videoKey ? [post.videoKey] : []),
   ...post.items.map((i) => i.imageKey).filter((k): k is string => Boolean(k)),
   ...boardKeys(post.board),
 ];
@@ -266,6 +279,10 @@ export async function createPost(
   board: { raw: unknown; pictures: BoardPictures } | null = null
 ): Promise<string> {
   const { width, height } = checkPicture(picture, data);
+  // A video post: the video must be one this person just sent, not used by any post.
+  const videoKey = data.videoKey ? String(data.videoKey) : null;
+  if (videoKey && !(await canClaimVideo(userId, videoKey))) throw new Error("Please add the video again.");
+  const videoMs = videoKey ? Math.max(0, Math.min(POST_VIDEO_MAX_SECONDS * 1000 + 999, Math.round(Number(data.videoMs) || 0))) : null;
   const items = await cleanItems(userId, data.items, itemPictures);
   const imageKey = await putImage("post-", new Uint8Array(await picture.arrayBuffer()), picture.type);
   const itemKeys = await itemImageKeys(userId, items);
@@ -279,6 +296,8 @@ export async function createPost(
       styleTags: JSON.stringify(tags(data.styleTags, STYLE_TAGS)),
       occasionTags: JSON.stringify(tags(data.occasionTags, OCCASION_TAGS)),
       board: board ? await saveBoard(userId, board.raw, board.pictures) : null,
+      videoKey,
+      videoMs,
       items: { create: itemRows(items, itemKeys) },
     },
     select: { id: true },
@@ -300,9 +319,14 @@ export async function updatePost(
 ): Promise<boolean> {
   const post = await prisma.post.findUnique({
     where: { id: postId },
-    select: { userId: true, status: true, imageKey: true, board: true, items: { select: { id: true, imageKey: true, closetItemId: true } } },
+    select: { userId: true, status: true, imageKey: true, board: true, videoKey: true, items: { select: { id: true, imageKey: true, closetItemId: true } } },
   });
   if (!post || post.userId !== userId || post.status === "removed") return false;
+  // A video post keeps its video and cover; only the words and pieces change.
+  if (post.videoKey) {
+    picture = null;
+    board = null;
+  }
   const size = picture ? checkPicture(picture, data) : null;
   const items = await cleanItems(userId, data.items, itemPictures, post.items);
   const imageKey = picture ? await putImage("post-", new Uint8Array(await picture.arrayBuffer()), picture.type) : post.imageKey;
@@ -324,7 +348,7 @@ export async function updatePost(
   ]);
   // What the post no longer uses.
   const before = postStorageKeys(post);
-  const now = new Set(postStorageKeys({ imageKey, board: newBoard, items: itemKeys.map((k) => ({ imageKey: k })) }));
+  const now = new Set(postStorageKeys({ imageKey, board: newBoard, videoKey: post.videoKey, items: itemKeys.map((k) => ({ imageKey: k })) }));
   const unused = before.filter((k) => !now.has(k));
   if (unused.length) await env.UPLOADS.delete(unused).catch(() => {});
   return true;
@@ -376,6 +400,7 @@ export const postSelect = {
   id: true,
   userId: true,
   imageKey: true,
+  videoKey: true,
   width: true,
   height: true,
   caption: true,
@@ -398,6 +423,7 @@ export function toPublic(row: NonNullable<PostRow>, viewer?: { id: string; role:
   return {
     id: row.id,
     imageUrl: `/uploads/${row.imageKey}`,
+    ...(row.videoKey ? { videoUrl: `/uploads/${row.videoKey}` } : {}),
     width: row.width,
     height: row.height,
     caption: row.caption,
@@ -449,7 +475,7 @@ export async function postsBy(username: string, viewer?: { id: string; role: str
 
 /** Deletes a post and its pictures (by its owner or an admin). */
 export async function deletePost(id: string, actor: { id: string; role: string }): Promise<boolean> {
-  const post = await prisma.post.findUnique({ where: { id }, select: { userId: true, imageKey: true, board: true, items: { select: { imageKey: true } } } });
+  const post = await prisma.post.findUnique({ where: { id }, select: { userId: true, imageKey: true, board: true, videoKey: true, items: { select: { imageKey: true } } } });
   if (!post || (post.userId !== actor.id && actor.role !== "admin")) return false;
   await prisma.post.delete({ where: { id } });
   await env.UPLOADS.delete(postStorageKeys(post)).catch(() => {});
@@ -458,7 +484,7 @@ export async function deletePost(id: string, actor: { id: string; role: string }
 
 /** Every post of an account and their pictures (account deleted). */
 export async function deleteAllPosts(userId: string): Promise<void> {
-  const posts = await prisma.post.findMany({ where: { userId }, select: { imageKey: true, board: true, items: { select: { imageKey: true } } } });
+  const posts = await prisma.post.findMany({ where: { userId }, select: { imageKey: true, board: true, videoKey: true, items: { select: { imageKey: true } } } });
   const keys = posts.flatMap(postStorageKeys);
   for (let i = 0; i < keys.length; i += 1000) await env.UPLOADS.delete(keys.slice(i, i + 1000)).catch(() => {});
 }
