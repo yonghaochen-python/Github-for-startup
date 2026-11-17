@@ -9,7 +9,8 @@ import { TryThisOutfit } from "@/components/feed/TryThisOutfit";
 import { CommentsButton } from "@/components/feed/Comments";
 import { FollowButton } from "@/components/feed/FollowButton";
 import { FeedVideo } from "@/components/feed/FeedVideo";
-import { SearchIcon } from "@/components/Icons";
+import { PlusIcon, SearchIcon } from "@/components/Icons";
+import { CreateMenu } from "@/components/CreateMenu";
 import { useAuth } from "@/components/AuthProvider";
 import type { PublicPost } from "@/lib/postRules";
 
@@ -110,6 +111,12 @@ export function Feed() {
   const sliding = () => typeof window !== "undefined" && window.matchMedia("(max-width: 767px)").matches;
   const atTop = () => sliding() && (list.current?.scrollTop ?? 0) <= 0;
 
+  // Posting lives here: slide right on a phone (or press ＋) to open Create.
+  const [creating, setCreating] = useState(false);
+  const [swipe, setSwipe] = useState(0);
+  const swipeFrom = useRef<{ x: number; y: number; dir: "x" | "y" | null } | null>(null);
+  const SWIPE_TO_CREATE = 80;
+
   const remove = (id: string) => setPosts((list) => list.filter((p) => p.id !== id));
   const closeSearch = () => {
     setSearching(false);
@@ -192,9 +199,35 @@ export function Feed() {
           </div>
         )}
         <div className="ml-auto flex w-full max-w-[340px]">{searchBox(false)}</div>
+        {status === "signedIn" && (
+          <button
+            onClick={() => setCreating(true)}
+            aria-haspopup="dialog"
+            className="flex min-h-[40px] shrink-0 items-center gap-1.5 rounded-full bg-[#121821] px-4 text-[12.5px] font-semibold text-white hover:bg-[#2a3542]"
+          >
+            <PlusIcon className="h-4 w-4" /> New post
+          </button>
+        )}
       </div>
 
       <div
+        onTouchStart={(e) => {
+          swipeFrom.current = status === "signedIn" ? { x: e.touches[0].clientX, y: e.touches[0].clientY, dir: null } : null;
+        }}
+        onTouchMove={(e) => {
+          const from = swipeFrom.current;
+          if (!from) return;
+          const dx = e.touches[0].clientX - from.x;
+          const dy = e.touches[0].clientY - from.y;
+          // Decide once which way the finger is going: sideways (to the right) opens Create; up and down scrolls posts.
+          if (!from.dir && Math.hypot(dx, dy) > 10) from.dir = Math.abs(dx) > Math.abs(dy) * 1.3 && dx > 0 ? "x" : "y";
+          if (from.dir === "x") setSwipe(Math.max(0, Math.min(140, dx)));
+        }}
+        onTouchEnd={() => {
+          if (swipe >= SWIPE_TO_CREATE) setCreating(true);
+          setSwipe(0);
+          swipeFrom.current = null;
+        }}
         className={`relative md:h-auto ${
           // Phones: the feed fills the screen between the top bar and the bottom menu (none when signed out).
           status === "signedIn" ? "h-[calc(100dvh-65px-64px-env(safe-area-inset-bottom))]" : "h-[calc(100dvh-65px)]"
@@ -222,10 +255,20 @@ export function Feed() {
                   </Link>
                 </div>
               )}
+              {status === "signedIn" && (
+                <button
+                  onClick={() => setCreating(true)}
+                  aria-label="New post"
+                  aria-haspopup="dialog"
+                  className="ml-auto flex h-10 w-10 items-center justify-center rounded-full bg-black/35 text-white backdrop-blur-md"
+                >
+                  <PlusIcon className="h-[19px] w-[19px]" />
+                </button>
+              )}
               <button
                 onClick={() => setSearching(true)}
                 aria-label="Search"
-                className="ml-auto flex h-10 w-10 items-center justify-center rounded-full bg-black/35 text-white backdrop-blur-md"
+                className={`${status === "signedIn" ? "" : "ml-auto "}flex h-10 w-10 items-center justify-center rounded-full bg-black/35 text-white backdrop-blur-md`}
               >
                 <SearchIcon className="h-[18px] w-[18px]" />
               </button>
@@ -233,6 +276,14 @@ export function Feed() {
           )}
         </div>
 
+        {/* Slide right to post: "New post" comes in from the left edge with the finger. */}
+        {swipe > 0 && (
+          <div aria-hidden className="pointer-events-none absolute inset-y-0 left-0 z-20 flex items-center md:hidden" style={{ transform: `translateX(${swipe - 120}px)`, opacity: Math.min(1, swipe / SWIPE_TO_CREATE) }}>
+            <span className={`flex items-center gap-2 rounded-r-full py-3 pl-6 pr-5 text-[13px] font-semibold shadow-[0_8px_24px_rgba(0,0,0,0.3)] ${swipe >= SWIPE_TO_CREATE ? "bg-white text-[#121821]" : "bg-white/80 text-[#121821]"}`}>
+              <PlusIcon className="h-4 w-4" /> New post
+            </span>
+          </div>
+        )}
         {/* Pull to refresh: a small round arrow that comes down with the pull and turns while the newest posts load. */}
         {(pull > 0 || refreshing) && (
           <div
@@ -269,6 +320,8 @@ export function Feed() {
             }}
             onTouchMove={(e) => {
               if (pullFrom.current === null || refreshing) return;
+              // A sideways slide (to post) is never a pull.
+              if (swipeFrom.current?.dir === "x") return setPull(0);
               const dy = e.touches[0].clientY - pullFrom.current;
               setPull(dy > 0 && atTop() ? Math.min(110, dy * 0.5) : 0);
             }}
@@ -353,6 +406,7 @@ export function Feed() {
           </ul>
         )}
         {empty && <div ref={end} aria-hidden className="h-px" />}
+        {creating && <CreateMenu onClose={() => setCreating(false)} />}
       </div>
     </main>
   );

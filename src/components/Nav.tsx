@@ -4,12 +4,11 @@ import { useEffect, useId, useRef, useState } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useAuth } from "@/components/AuthProvider";
-import { BagIcon, BookmarkIcon, CalendarIcon, CompassIcon, MirrorIcon, PaletteIcon, PlusIcon, SparkleIcon, UserIcon } from "@/components/Icons";
+import { BagIcon, BookmarkIcon, CalendarIcon, CompassIcon, MirrorIcon, PaletteIcon, SparkleIcon, UserIcon } from "@/components/Icons";
 import { PricingSheet } from "@/components/Pricing";
-import { CreateMenu } from "@/components/CreateMenu";
 import { useBillingStatus } from "@/lib/useBillingStatus";
 
-type Section = "mystyle" | "discover" | "create" | "shop" | "studio" | "stylist" | "planner" | "saved" | "profile";
+type Section = "mystyle" | "discover" | "shop" | "studio" | "stylist" | "planner" | "saved" | "profile";
 type NavLink = { section: Section; href: string; label: string; short: string; Icon: typeof CompassIcon };
 
 const STUDIO: NavLink = { section: "studio", href: "/studio", label: "Studio", short: "Studio", Icon: MirrorIcon };
@@ -17,10 +16,10 @@ const DISCOVER: NavLink = { section: "discover", href: "/discover", label: "Disc
 const MY_STYLE: NavLink = { section: "mystyle", href: "/", label: "My Style", short: "My Style", Icon: SparkleIcon };
 const PLANNER: NavLink = { section: "planner", href: "/planner", label: "Planner", short: "Planner", Icon: CalendarIcon };
 /**
- * The four main places, the same on phones (the bottom bar) and computers (the top bar): Studio, Discover, ＋ (post)
- * and My Style. Profile is the person's photo at the top right.
+ * The three main places, the same on phones (the bottom bar) and computers (the top bar): Studio, Discover and My
+ * Style. Posting lives inside Discover (slide right, or its ＋). Profile is the person's photo at the top right.
  */
-const MAIN_TABS: (NavLink | "create")[] = [STUDIO, DISCOVER, "create", MY_STYLE];
+const MAIN_TABS: NavLink[] = [STUDIO, DISCOVER, MY_STYLE];
 /** Everything else: in the menu under the person's photo. */
 const SECONDARY: NavLink[] = [
   PLANNER,
@@ -32,10 +31,9 @@ const SECONDARY: NavLink[] = [
 /** Which main section a URL belongs to, so exactly one tab is lit everywhere in the app. */
 function sectionFor(pathname: string | null): Section | null {
   const p = pathname ?? "/";
-  // My Style is the first page; Discover is the feed, posts and public profiles. Posting lights the ＋.
+  // My Style is the first page; Discover is the feed, posts, public profiles and posting.
   if (p === "/") return "mystyle";
-  if (p.startsWith("/discover") || p.startsWith("/feed") || p.startsWith("/p/") || p.startsWith("/u/")) return "discover";
-  if (p.startsWith("/create")) return "create";
+  if (p.startsWith("/discover") || p.startsWith("/feed") || p.startsWith("/p/") || p.startsWith("/u/") || p.startsWith("/create")) return "discover";
   if (p.startsWith("/shop")) return "shop";
   // My Closet lives in Studio.
   if (p.startsWith("/closet")) return "studio";
@@ -216,7 +214,6 @@ export function Nav() {
   const current = sectionFor(pathname);
   useSectionVisit(current, Boolean(user));
   const [plansOpen, setPlansOpen] = useState(false);
-  const [creating, setCreating] = useState(false);
   const subscribed = Boolean(useBillingStatus()?.subscribed);
 
   if (pathname === "/login") return null;
@@ -229,21 +226,6 @@ export function Nav() {
         {user && (
           <nav aria-label="Main" className="hidden min-w-0 flex-1 items-center justify-center gap-1 md:flex">
             {MAIN_TABS.map((tab) => {
-              if (tab === "create") {
-                return (
-                  <button
-                    key="create"
-                    onClick={() => setCreating(true)}
-                    aria-label="Create a post"
-                    aria-haspopup="dialog"
-                    className={`mx-2 flex h-10 w-12 items-center justify-center rounded-[14px] text-white shadow-[0_6px_16px_rgba(18,24,33,0.22)] transition-transform active:scale-95 ${
-                      current === "create" ? "bg-[#2a3542]" : "bg-[#121821] hover:bg-[#2a3542]"
-                    }`}
-                  >
-                    <PlusIcon className="h-5 w-5" />
-                  </button>
-                );
-              }
               const { section, href, label } = tab;
               const active = current === section;
               return (
@@ -286,7 +268,6 @@ export function Nav() {
         </div>
       </div>
       {plansOpen && <PricingSheet onClose={() => setPlansOpen(false)} />}
-      {creating && <CreateMenu onClose={() => setCreating(false)} />}
     </header>
   );
 }
@@ -295,7 +276,6 @@ export function Nav() {
 export function MobileTabBar() {
   const pathname = usePathname();
   const { user } = useAuth();
-  const [creating, setCreating] = useState(false);
   if (!user || pathname === "/login") return null;
   const current = sectionFor(pathname);
 
@@ -306,22 +286,8 @@ export function MobileTabBar() {
         aria-label="Main"
         className="site-tabbar fixed inset-x-0 bottom-0 z-30 border-t border-black/[0.06] pb-[env(safe-area-inset-bottom)] backdrop-blur-xl md:hidden"
       >
-        <ul className="grid grid-cols-4">
+        <ul className="grid grid-cols-3">
           {MAIN_TABS.map((tab) => {
-            if (tab === "create") {
-              return (
-                <li key="create" className="flex items-center justify-center">
-                  <button
-                    onClick={() => setCreating(true)}
-                    aria-label="Create a post"
-                    aria-haspopup="dialog"
-                    className="flex h-11 w-14 items-center justify-center rounded-[16px] bg-[#121821] text-white shadow-[0_6px_16px_rgba(18,24,33,0.25)] transition-transform active:scale-95"
-                  >
-                    <PlusIcon className="h-[22px] w-[22px]" />
-                  </button>
-                </li>
-              );
-            }
             const { section, href, short, Icon } = tab;
             const active = current === section;
             return (
@@ -341,7 +307,6 @@ export function MobileTabBar() {
           })}
         </ul>
       </nav>
-      {creating && <CreateMenu onClose={() => setCreating(false)} />}
     </>
   );
 }

@@ -5,7 +5,7 @@ Virm is an AI wardrobe app. You put your clothes in a digital closet, get outfit
 - **Live site:** https://virm-virtualmirror.yonghaochen.workers.dev
 - **Made for phones first**, then computers. A bottom tab bar on phones, a top bar on computers.
 - **Menu (live):** Home · My Closet · Studio · Planner (more: Shopping · AI Stylist · Saved Looks · Profile)
-- **Menu (demo, not live yet):** **Studio · Discover · ＋ · My Style**, the same on phones (bottom bar) and computers (top bar). Your photo at the top right holds Planner, Shopping, AI Stylist, Saved Looks, Profile, Admin and Log out.
+- **Menu (demo, not live yet):** **Studio · Discover · My Style**, the same on phones (bottom bar) and computers (top bar). Posting lives in Discover: slide right, or its ＋ (computers: **New post**). Your photo at the top right holds Planner, Shopping, AI Stylist, Saved Looks, Profile, Admin and Log out.
 - **Live vs. demo:** everything below is in the demo on your computer. Items marked **(not live yet)** aren't on the live site yet.
 
 ---
@@ -14,7 +14,7 @@ Virm is an AI wardrobe app. You put your clothes in a digital closet, get outfit
 
 **Getting around (live):** **Home · My Closet · Studio · Planner** (top bar on computers, bottom bar on phones). **More** holds Shopping, AI Stylist and Saved Looks; your photo opens Profile, Admin and Log out. Works with a keyboard and screen readers, and up to 400% zoom.
 
-**Getting around (demo, not live yet):** **My Style** is the first page. **Studio · Discover · ＋ · My Style** on phones and computers alike; Profile and everything else is under your photo at the top right (it shows your profile photo, never your Studio photo). My Closet lives inside Studio.
+**Getting around (demo, not live yet):** **My Style** is the first page. **Studio · Discover · My Style** on phones and computers alike (posting is inside Discover); Profile and everything else is under your photo at the top right (it shows your profile photo, never your Studio photo). My Closet lives inside Studio.
 
 ### My Style **(not live yet)**
 What's yours, in one place. Nothing here uses AI or costs anything.
