@@ -3,7 +3,6 @@
 import { useEffect, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { useAuth } from "@/components/AuthProvider";
 import { NextStep } from "@/components/NextStep";
 import { DayFlatLay } from "@/components/planner/DayFlatLay";
 import { ArrowRightIcon, MirrorIcon, SearchIcon } from "@/components/Icons";
@@ -39,11 +38,9 @@ const card = "rounded-[22px] bg-white shadow-[0_1px_0_rgba(18,24,33,0.03),0_14px
  * your own closet; Style it (paid AI) only runs in Studio, when you press it here.
  */
 export function MyStyle() {
-  const { user } = useAuth();
   const [closet, setCloset] = useState<ClothingItem[] | null>(null);
   // The Style Profile's colors (null without one; undefined while loading).
   const [palette, setPalette] = useState<Palette | null | undefined>(undefined);
-  const [hour] = useState(() => new Date().getHours());
 
   useEffect(() => {
     let gone = false;
@@ -60,18 +57,12 @@ export function MyStyle() {
     };
   }, []);
 
-  const first = user?.displayName?.trim().split(/\s+/)[0];
-  const greeting = hour < 12 ? "Good morning" : hour < 18 ? "Good afternoon" : "Good evening";
   const hasClothes = Boolean(closet && closet.length >= 2);
 
   return (
     <main className="flex-1 pb-20">
       <PageShell className="max-w-3xl! pt-8">
-        <p className="text-[13px] font-medium text-[#5d6874]">
-          {greeting}
-          {first ? `, ${first}` : ""}
-        </p>
-        <h1 className="mt-1 font-display text-[44px] leading-none text-[#121821]">My Style</h1>
+        <h1 className="font-display text-[44px] leading-none text-[#121821]">My Style</h1>
 
         <div className="mt-6">
           <NextStep />
