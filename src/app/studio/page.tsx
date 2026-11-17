@@ -48,8 +48,6 @@ const STUDIO_TIPS: Tip[] = [
 ];
 
 /** The closet tabs, in the order people dress. */
-/** One-tap themes for Style it. */
-const QUICK_THEMES = ["Old money", "First date", "Office chic", "Weekend brunch", "Minimalist", "Casual streetwear", "Dinner outfit"];
 
 const TABS = [
   { value: "top", label: "Tops" },
@@ -841,24 +839,6 @@ export default function StudioPage() {
             {styling ? "Styling…" : "Style it"}
           </button>
         </form>
-        {/* Quick themes: one tap styles it (a saved search shows again for free). */}
-        <div className="-mx-1 flex w-full gap-2 overflow-x-auto px-1 pb-1 [scrollbar-width:none] lg:order-last [&::-webkit-scrollbar]:hidden" aria-label="Quick themes">
-          {QUICK_THEMES.map((t) => (
-            <button
-              key={t}
-              onClick={() => {
-                setTheme(t);
-                styleTheme(undefined, false, t);
-              }}
-              disabled={styling}
-              className={`shrink-0 rounded-full border px-3.5 py-1.5 text-[12px] font-medium backdrop-blur-md transition ${
-                theme.trim().toLowerCase() === t.toLowerCase() ? "border-[#121821] bg-[#121821] text-white" : "border-black/10 bg-white/80 text-[#2b3540] hover:bg-white"
-              }`}
-            >
-              {t}
-            </button>
-          ))}
-        </div>
         </div>
 
         {error && (
