@@ -4,29 +4,21 @@ import { useEffect, useId, useRef, useState } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useAuth } from "@/components/AuthProvider";
-import { BagIcon, BookmarkIcon, CalendarIcon, CompassIcon, MirrorIcon, PaletteIcon, SparkleIcon, UserIcon } from "@/components/Icons";
+import { CompassIcon, MirrorIcon, SparkleIcon, UserIcon } from "@/components/Icons";
 import { PricingSheet } from "@/components/Pricing";
 import { useBillingStatus } from "@/lib/useBillingStatus";
 
-type Section = "mystyle" | "discover" | "shop" | "studio" | "stylist" | "planner" | "saved" | "profile";
+type Section = "mystyle" | "discover" | "studio" | "profile";
 type NavLink = { section: Section; href: string; label: string; short: string; Icon: typeof CompassIcon };
 
 const STUDIO: NavLink = { section: "studio", href: "/studio", label: "Studio", short: "Studio", Icon: MirrorIcon };
 const DISCOVER: NavLink = { section: "discover", href: "/discover", label: "Discover", short: "Discover", Icon: CompassIcon };
 const MY_STYLE: NavLink = { section: "mystyle", href: "/", label: "My Style", short: "My Style", Icon: SparkleIcon };
-const PLANNER: NavLink = { section: "planner", href: "/planner", label: "Planner", short: "Planner", Icon: CalendarIcon };
 /**
  * The three main places, the same on phones (the bottom bar) and computers (the top bar): Studio, Discover and My
  * Style. Posting lives inside Discover (slide right, or its ＋). Profile is the person's photo at the top right.
  */
 const MAIN_TABS: NavLink[] = [STUDIO, DISCOVER, MY_STYLE];
-/** Everything else: in the menu under the person's photo. */
-const SECONDARY: NavLink[] = [
-  PLANNER,
-  { section: "shop", href: "/shop", label: "Shopping", short: "Shop", Icon: BagIcon },
-  { section: "stylist", href: "/stylist", label: "AI Stylist", short: "Stylist", Icon: PaletteIcon },
-  { section: "saved", href: "/outfits/saved", label: "Saved Looks", short: "Saved", Icon: BookmarkIcon },
-];
 
 /** Which main section a URL belongs to, so exactly one tab is lit everywhere in the app. */
 function sectionFor(pathname: string | null): Section | null {
@@ -34,12 +26,12 @@ function sectionFor(pathname: string | null): Section | null {
   // My Style is the first page; Discover is the feed, posts, public profiles and posting.
   if (p === "/") return "mystyle";
   if (p.startsWith("/discover") || p.startsWith("/feed") || p.startsWith("/p/") || p.startsWith("/u/") || p.startsWith("/create")) return "discover";
-  if (p.startsWith("/shop")) return "shop";
+  // Shopping belongs to the closet (Unowned), in Studio.
+  if (p.startsWith("/shop")) return "studio";
   // My Closet lives in Studio.
   if (p.startsWith("/closet")) return "studio";
-  if (p.startsWith("/stylist")) return "stylist";
-  if (p.startsWith("/outfits/saved")) return "saved";
-  if (p.startsWith("/planner")) return "planner";
+  // AI Stylist, Saved Looks and the Planner are all reached from My Style.
+  if (p.startsWith("/stylist") || p.startsWith("/outfits/saved") || p.startsWith("/planner")) return "mystyle";
   if (p.startsWith("/studio") || p.startsWith("/outfits") || p === "/try-on") return "studio";
   if (p.startsWith("/profile")) return "profile";
   return null;
@@ -113,8 +105,8 @@ const menuItem = (active: boolean) =>
   `flex min-h-[44px] items-center gap-3 rounded-[12px] px-3 text-[14px] font-medium ${active ? "bg-[#f1efeb] text-[#121821]" : "text-[#29343a] hover:bg-[#f6f5f2]"}`;
 
 /**
- * The person's profile photo (or initial) on the right: Profile, Admin for admins, and Log out. On phones it also holds
- * Planner, Shopping, AI Stylist and Saved Looks (the bottom bar has the four main places).
+ * The person's profile photo (or initial) on the right: Profile, Admin for admins, and Log out. (Planner, AI Stylist and
+ * Saved Looks are on My Style; Shopping is in the closet's Unowned.)
  */
 /** Sent by the profile editor when the profile photo changes (detail: its new address, or null when removed). */
 export const PROFILE_PHOTO_EVENT = "virm-profile-photo";
@@ -148,7 +140,7 @@ function AccountMenu({ current }: { current: Section | null }) {
   if (!user) return null;
   const initial = (user.displayName?.trim() || user.email).charAt(0).toUpperCase();
   // Lit on Profile, Admin, and the pages in this menu.
-  const lit = current === "profile" || Boolean(pathname?.startsWith("/admin")) || SECONDARY.some((l) => l.section === current);
+  const lit = current === "profile" || Boolean(pathname?.startsWith("/admin"));
   return (
     <div className="relative">
       <button
@@ -171,15 +163,6 @@ function AccountMenu({ current }: { current: Section | null }) {
       {open && (
         <div ref={panel} id={panelId} className={menuPanel}>
           <ul>
-            {/* The places that aren't among the four main ones. */}
-            {SECONDARY.map(({ section, href, label, Icon }) => (
-              <li key={section}>
-                <Link href={href} aria-current={current === section ? "page" : undefined} className={menuItem(current === section)}>
-                  <Icon className="h-[18px] w-[18px] text-[#4f5b66]" />
-                  {label}
-                </Link>
-              </li>
-            ))}
             <li>
               <Link href="/profile" aria-current={current === "profile" ? "page" : undefined} className={menuItem(current === "profile")}>
                 <UserIcon className="h-[18px] w-[18px] text-[#4f5b66]" />
