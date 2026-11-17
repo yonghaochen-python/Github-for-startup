@@ -4,16 +4,19 @@ Virm is an AI wardrobe app. You put your clothes in a digital closet, get outfit
 
 - **Live site:** https://virm-virtualmirror.yonghaochen.workers.dev
 - **Made for phones first**, then computers. A bottom tab bar on phones, a top bar on computers.
-- **Menu:** Home · Discover · My Closet · Studio · Planner (more: Shopping · AI Stylist · Saved Looks · Profile)
+- **Menu (live):** Home · My Closet · Studio · Planner (more: Shopping · AI Stylist · Saved Looks · Profile)
+- **Menu (demo, not live yet):** Discover · My Closet · ＋ · Planner · Profile on phones (Studio is the mirror icon at the top); Discover · My Closet · Studio · Planner · More and a **Create** button on computers
 - **Live vs. demo:** everything below is in the demo on your computer. Items marked **(not live yet)** aren't on the live site yet.
 
 ---
 
 ## What's in the demo
 
-**Getting around:** five main places, **Home · Discover · My Closet · Studio · Planner** (top bar on computers, bottom bar on phones). Discover is **(not live yet)**; on the live site it's four. **More** holds Shopping, AI Stylist and Saved Looks; your photo opens Profile, Admin and Log out (on phones it also holds Shopping, AI Stylist and Saved Looks). Works with a keyboard and screen readers, and up to 400% zoom.
+**Getting around (live):** **Home · My Closet · Studio · Planner** (top bar on computers, bottom bar on phones). **More** holds Shopping, AI Stylist and Saved Looks; your photo opens Profile, Admin and Log out. Works with a keyboard and screen readers, and up to 400% zoom.
 
-### Home
+**Getting around (demo, not live yet):** Discover is the first page. Phones: **Discover · My Closet · ＋ · Planner · Profile**, with Studio as the mirror icon in the top bar. Computers: **Discover · My Closet · Studio · Planner · More** and a **Create** button. Your Next Step and What's New move into Profile. Planned next, as its own step: a **My Style** landing page (your outfit recommendations with a small Discover strip), with Discover staying its own tab.
+
+### Home (live; replaced by Discover in the demo)
 - Signed in: a greeting beside your photo, **Your Next Step** (one suggestion based on where you are), **This Week** (your planned outfits), **My Closet** and **Saved Looks** with real counts, and **Recent** (the last two weeks).
 - Signed out: **Your wardrobe. Reimagined.** with **Try It Free**, Create Account and Log In, and demo looks on a model.
 - **Try it free:** Studio's mirror with a demo model and 20 ready-made looks. Tap a piece to see every look made with it. No AI, no account, nothing saved.
@@ -63,18 +66,29 @@ A personal beauty and fashion consultation, made from a head-and-shoulders photo
 - A report that's being made keeps going if you leave the page.
 
 ### Discover (the outfit feed) **(not live yet)**
-- **The feed:** one outfit per screen on phones (swipe up), columns on computers. Anyone can look, even without an account.
-- **On each post:** ♥ like (count shown), 👎 not for me (private, only you know), ↗ share, 🔖 save. Saved posts go to **Saved Looks → Inspiration**.
+Discover is for inspiration; Virm is still about your closet and your AI stylist. Every post with pieces leads back to your own closet.
+- **The feed:** one outfit per screen on phones (swipe up), the picture filling the screen with the words underneath (never over the clothes); an editorial grid on computers. Anyone can look, even without an account.
+- **Following · For You** at the top (Following only when signed in) and **search** (captions, tags, @people, pieces, brands, stores).
+- **Circles on the right:** ♥ like (count), 💬 comments (count), 🔖 save (to **Saved Looks → Inspiration**), ↗ share, ⋯ (**Not for me** — private — or **Report**).
+- **Pieces** sheet: each piece with its picture, brand, store, price and **Shop** link.
 - **Recreate with My Closet:** each piece of the post is matched to the closest piece in your closet. Pick **Yours** or **Theirs** for each, then **Open in Studio** dresses you in it. Matching is free; nothing is made until you press Try On.
-- **Post an outfit (＋):**
-  - **Photo:** your own outfit picture.
-  - **A saved look:** one of your try-ons.
-  - **Build an outfit:** choose pieces from your closet, from Shopping, or any store (paste a link or add a photo). Backgrounds are removed on your device and the pieces are laid out as a neat outfit board. Move, pinch to resize and layer them like a story post. One outfit per post: 1 jacket, up to 2 tops, 1 bottom or dress, 1 pair of shoes, up to 3 accessories.
-  - Add a caption, style and occasion tags, and each piece's name, brand, store, price and link (**Shop** button on the post).
-  - 10 posts a day per person. A back arrow at the top; after posting you land on your post.
-- **Profiles:** @username, bio and picture at **/u/username**, with a grid of that person's posts. Set them up in Profile.
-- **Safety:** Report a post (nudity, harassment, hate, someone else's photo, spam, other). 3 reports hide it until an admin reviews it in **Admin → Posts**. Owners and admins can delete posts.
-- **Privacy:** posts use their own public copies of pictures. Your closet, emails and private photos are never shown, and nobody sees which closet piece a post came from.
+- **Videos** play muted only while on screen; the speaker button turns sound on (one at a time).
+- **Follow** people from their posts, the feed or their profile (posts, followers and following counts).
+- **Comments** under each post and in a sheet from the feed. The writer and the post's owner can delete a comment; anyone can report one.
+
+**Posting (＋ on phones, Create on computers)** — no AI needed for any of it:
+- **Upload a photo** · **Upload a video** (MP4, MOV or WebM, up to a minute and 50 MB; pick the cover from any moment) · **Share a saved look** · **Build an outfit** (pieces from your closet, Shopping, or any store link or photo, laid out as an outfit board) · **Share a Live Try On video** (one of your saved recordings, only if you pick it).
+- **The editor** (built outfits, and photos too): drag to move, pinch or drag the corner to resize, twist or drag the round handle to turn, **Crop** by the edges, **Cut out** (background removed on your device), **Replace** a piece, **Back / Forward**, **Delete**, **＋ Piece / ＋ Picture / ＋ Text** (3 styles, 6 colors) and the board's **Background** color.
+- Caption, style and occasion tags, and each piece's name, brand, store, price and link. **Details: only you** keeps a piece's brand, store, link and price to yourself (its name and picture stay public).
+- **Preview** shows the post as it will look on Discover, with the "Post publicly" check, before **Post**.
+- **Edit** your own posts later (caption, tags, pieces, and rearranging the picture). Nobody can edit someone else's post, admins included.
+- 10 posts, 60 comments and 20 video uploads a day per person. Back arrows at the top; after posting you land on your post.
+- **Profiles:** @username, bio and picture at **/u/username**, with a grid of that person's posts (▶ marks videos). Set them up in Profile.
+
+**Safety and privacy**
+- Report a post or comment (nudity, harassment, hate, someone else's photo, spam, other). 3 reports hide it until an admin reviews it in **Admin → Posts**. Owners and admins can delete posts.
+- Posts use their own public copies of pictures and videos. Your closet, emails and private photos are never shown, nobody sees which closet piece a post came from, and an editor layout is kept privately for its owner.
+- Videos play as filmed (no paid video service). iPhone HEVC videos get a note: some Android phones may not play them.
 
 ### Shopping
 - **Your Shopping Try-Ons:** pieces you've added from stores, with store, name and price. Kept apart from My Closet, and saved on your device.
@@ -124,7 +138,7 @@ A personal beauty and fashion consultation, made from a head-and-shoulders photo
 - **AI Stylist usage:** analyses per type, people, AI cost and failures, plus which feedback options people picked.
 - A tool to give test credits, and **Make SVIP / Remove SVIP** by email.
 - **Trials & Plus:** trials started, trial-to-paid, Plus members.
-- **Posts** **(not live yet)**: reported posts to review, and who may post.
+- **Posts** **(not live yet)**: reported posts and comments to review (Restore / Keep it / Remove), and who may post.
 
 ### Other pages
 How it works · Pricing · About · Contact · Privacy · Terms · Reset password.
@@ -144,7 +158,13 @@ How it works · Pricing · About · Contact · Privacy · Terms · Reset passwor
 ## Latest updates
 
 **Demo only (not live yet):**
-- Discover: the outfit feed, posting (Photo, A saved look, Build an outfit with the story-style board), profiles, likes / saves / private dislikes, reports and Admin → Posts, **Recreate with My Closet**, back arrows. Needs `bash scripts/go-live-social.sh` (adds the new database tables, then publishes).
+- Discover as the first page, with the new phone menu and the ＋ / Create menu.
+- The feed (Following · For You, search, circles, Pieces, **Recreate with My Closet**), Follow and comments.
+- Posting photos, videos, saved looks, built outfits and Live Try On recordings; the editor; Preview; editing posts; "Details: only you".
+- Goes live with `bash scripts/go-live-social.sh` (backs up, adds the new database tables 0018–0023, checks them, then publishes). Nothing is changed or removed in the existing tables.
+
+**Live since November 16, 2026:**
+- **Enhance with AI for everyone:** each month as many new enhancements as your plan allows clothing photos (Free 30, Plus 150, trial 40 or 80); admins and SVIP unlimited; the same picture again is free.
 
 **Live since November 10–13, 2026:**
 - Payments (Stripe), free trial, invite-code 14-day trial, Plus rollover, limits enforced.
