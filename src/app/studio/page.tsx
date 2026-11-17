@@ -14,7 +14,7 @@ import { SavedPhotoSetup, uploadSavedPhoto } from "@/components/SavedPhoto";
 import { ShareArrowButton, ShareTray } from "@/components/ShareLooks";
 import { SaveToggle } from "@/components/SaveToggle";
 import { useToast } from "@/components/Toast";
-import { CameraIcon, ClosetIcon, MirrorIcon, SearchIcon } from "@/components/Icons";
+import { CameraIcon, MirrorIcon, SearchIcon } from "@/components/Icons";
 import { ErrorNote, PageShell, btnPrimary, btnSecondary, mirrorFrame } from "@/components/ui";
 import { OutfitFlatLay } from "@/components/OutfitFlatLay";
 import { MirrorPieces } from "@/components/MirrorPieces";
@@ -194,6 +194,8 @@ export default function StudioPage() {
   // Asks the closet to open Add clothes (a new number each time).
   const [addRequest, setAddRequest] = useState(0);
   const swipeFrom = useRef<number | null>(null);
+  // Phones: the Outfit | Closet switch remembers the side last chosen (its dark pill rests there).
+  const [lastPanel, setLastPanel] = useState<"outfit" | "closet">("outfit");
   // Escape closes it (unless a piece's window or Add clothes is open on top: those close first).
   useEffect(() => {
     if (!closetOpen) return;
@@ -760,16 +762,55 @@ export default function StudioPage() {
     },
   };
 
+  /**
+   * Phones: Outfit | Closet in one switch. Each side opens its sheet (Your outfit: what's on the mirror and Shopping;
+   * Closet: My Closet), never both; the dark pill slides to the side that's open.
+   */
+  const panelSide = drawer ? "outfit" : closetOpen ? "closet" : lastPanel;
+  const choosePanel = (side: "outfit" | "closet") => {
+    setLastPanel(side);
+    if (side === "outfit") {
+      setClosetOpen(false);
+      setDrawer(true);
+    } else {
+      closeDrawer();
+      setClosetOpen(true);
+    }
+  };
+  const panelSwitch = (floating: boolean) => (
+    <div
+      role="group"
+      aria-label="Outfit or closet"
+      className={`relative grid shrink-0 grid-cols-2 rounded-full p-1 ${floating ? "border border-white/40 bg-white/80 shadow-[0_10px_30px_rgba(0,0,0,0.25)] backdrop-blur-xl" : "bg-[#f1f3f4]"}`}
+    >
+      <span
+        aria-hidden
+        className={`absolute inset-y-1 left-1 w-[calc(50%-4px)] rounded-full bg-[#121821] transition-transform duration-300 ease-[cubic-bezier(.3,.7,.2,1)] motion-reduce:transition-none ${
+          panelSide === "closet" ? "translate-x-full" : "translate-x-0"
+        }`}
+      />
+      {(["outfit", "closet"] as const).map((side) => (
+        <button
+          key={side}
+          onClick={() => choosePanel(side)}
+          aria-pressed={panelSide === side && (drawer || closetOpen)}
+          aria-controls={side === "closet" ? "studio-closet-panel" : undefined}
+          data-tip={side === "closet" ? "studio-mycloset" : undefined}
+          className={`relative flex h-8 items-center justify-center gap-1.5 whitespace-nowrap rounded-full px-3.5 text-[12.5px] font-semibold transition-colors duration-300 ${
+            panelSide === side ? "text-white" : "text-[#4f5b66]"
+          }`}
+        >
+          {side === "outfit" ? "Outfit" : "Closet"}
+        </button>
+      ))}
+    </div>
+  );
+
   return (
     <main className="flex-1 pb-16 max-md:pb-32">
-      {/* Phones: one button for Your outfit and the closet, just above the tab bar. */}
-      {!drawer && !(sidePicks && !trying) && (
-        <button
-          onClick={() => setDrawer(true)}
-          className="fixed bottom-[calc(84px+env(safe-area-inset-bottom))] left-1/2 z-[60] flex -translate-x-1/2 items-center gap-2 rounded-full border border-white/40 bg-white/80 px-4 py-2.5 text-[13px] font-semibold text-[#121821] shadow-[0_10px_30px_rgba(0,0,0,0.25)] backdrop-blur-xl md:hidden"
-        >
-          <MirrorIcon className="h-4 w-4" /> Your outfit · {pieces.length} {pieces.length === 1 ? "piece" : "pieces"}
-        </button>
+      {/* Phones without the row under the photo (Live, or no photo): Outfit | Closet just above the tab bar. */}
+      {!drawer && !closetOpen && !(sidePicks && !trying) && (
+        <div className="fixed bottom-[calc(84px+env(safe-area-inset-bottom))] left-1/2 z-[60] -translate-x-1/2 md:hidden">{panelSwitch(true)}</div>
       )}
       <PageShell className="max-w-[1440px]! pt-6 sm:pt-8">
         <h1 className="sr-only">Studio</h1>
@@ -801,23 +842,6 @@ export default function StudioPage() {
               </button>
             ))}
           </div>
-          {/* My Closet: opens and closes the closet above the mirror. */}
-          <button
-            onClick={() => setClosetOpen(!closetOpen)}
-            aria-expanded={closetOpen}
-            aria-controls="studio-closet-panel"
-            data-tip="studio-mycloset"
-            className={`flex min-h-[44px] min-w-0 flex-1 items-center md:hidden justify-between gap-2 rounded-full px-5 text-[13px] font-semibold shadow-[0_1px_0_rgba(18,24,33,0.03),0_8px_22px_rgba(18,30,45,0.06)] sm:max-w-[260px] ${
-              closetOpen ? "bg-[#121821] text-white" : "bg-white text-[#121821]"
-            }`}
-          >
-            <span className="flex min-w-0 items-center gap-2 whitespace-nowrap">
-              <ClosetIcon className="h-4 w-4 shrink-0" /> Closet
-            </span>
-            <svg viewBox="0 0 12 12" className={`h-3 w-3 transition-transform ${closetOpen ? "rotate-180" : ""}`} fill="none" stroke="currentColor" strokeWidth="1.6" aria-hidden>
-              <path d="m3 4.5 3 3 3-3" strokeLinecap="round" strokeLinejoin="round" />
-            </svg>
-          </button>
           {fromShop && (
             <Link href="/shop" className="ml-auto shrink-0 text-[12.5px] font-semibold text-[#29343a] underline-offset-4 hover:underline lg:order-last">
               ← Back to Shopping
@@ -1020,19 +1044,14 @@ export default function StudioPage() {
             )}
             {/* Phones: the photo's actions in one row under it. */}
             {sidePicks && !trying && (
-              <div className="flex items-center gap-2 border-t border-black/[0.06] px-4 py-2.5 md:hidden">
-                <span className="flex items-center gap-2 [&_a]:!h-10 [&_a]:!w-10 [&_button]:!h-10 [&_button]:!w-10">{mirrorActions}</span>
-                <button
-                  onClick={() => setDrawer(true)}
-                  className="ml-auto flex h-10 items-center gap-1.5 rounded-full bg-[#121821] px-3.5 text-[12px] font-semibold text-white"
-                >
-                  <MirrorIcon className="h-4 w-4" /> Outfit
-                </button>
+              <div className="flex items-center gap-1.5 border-t border-black/[0.06] px-3 py-2.5 md:hidden">
+                <span className="flex items-center gap-1.5 [&_a]:!h-9 [&_a]:!w-9 [&_button]:!h-9 [&_button]:!w-9">{mirrorActions}</span>
+                <div className="ml-auto">{panelSwitch(false)}</div>
                 <button
                   onClick={() => setChangingPhoto(true)}
                   aria-label="Change photo"
                   title="Change photo"
-                  className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-[#f4f5f6] text-[#121821]"
+                  className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-[#f4f5f6] text-[#121821]"
                 >
                   <CameraIcon className="h-[18px] w-[18px]" />
                 </button>
