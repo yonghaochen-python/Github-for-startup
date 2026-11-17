@@ -3,13 +3,13 @@
 import { cutOut } from "@/lib/cutout";
 
 /**
- * The browser side of AI clothing enhancement (admins only for now). The server makes (or reuses) the tidied
+ * The browser side of AI clothing enhancement. The server makes (or reuses) the tidied
  * picture; here its background is removed the same free, on-device way as every closet cut-out, its colors are
  * compared with the piece's own picture, and only what the person keeps is saved. Switching between the two
  * pictures afterwards is a plain switch: no AI, no cost.
  */
 
-type Item = { id: string; imageUrl: string; plainUrl?: string | null; enhancedUrl?: string | null };
+type Item = { id: string; imageUrl: string; plainUrl?: string | null; enhancedUrl?: string | null; color?: string | null };
 
 export type EnhancePreview = {
   /** The prepared picture (background removed when it could be), ready to save. */
@@ -71,6 +71,86 @@ async function mainColor(image: Blob): Promise<[number, number, number] | null> 
   return [median(ch[0]), median(ch[1]), median(ch[2])];
 }
 
+/** Pieces whose own color is close to a white or grey backdrop: only pure white is cleared around them. */
+const LIGHT_NEUTRAL = /white|cream|ivory|ecru|off-white|grey|gray|silver|beige|oatmeal|heather|stone|light/i;
+const WHITE_PIECE = /white|cream|ivory|ecru|off-white/i;
+
+/**
+ * The AI is asked for the piece on a plain white background, often with a soft shadow under it. The background
+ * remover is made for real photos and can miss that backdrop (leaving it white) or keep the shadow, which the color
+ * correction then tints. This clears what's left of the backdrop: near-white and light grey, colorless pixels joined
+ * to the picture's edge or to the parts already removed. Pieces of their own white or grey color keep everything but
+ * pure white around them; white pieces are left alone. Returns null when clearing would leave too little.
+ */
+async function clearBackdrop(image: Blob, color: string | null | undefined): Promise<Blob | null> {
+  if (color && WHITE_PIECE.test(color)) return null;
+  const gentle = Boolean(color && LIGHT_NEUTRAL.test(color));
+  const bitmap = await createImageBitmap(image);
+  const w = bitmap.width;
+  const h = bitmap.height;
+  const canvas = new OffscreenCanvas(w, h);
+  const ctx = canvas.getContext("2d")!;
+  ctx.drawImage(bitmap, 0, 0);
+  bitmap.close();
+  const img = ctx.getImageData(0, 0, w, h);
+  const d = img.data;
+  // Backdrop: no color to speak of, and light (pure white only, around light neutral pieces).
+  const backdrop = (i: number) => {
+    const r = d[i];
+    const g = d[i + 1];
+    const b = d[i + 2];
+    const lo = Math.min(r, g, b);
+    const spread = Math.max(r, g, b) - lo;
+    return gentle ? lo >= 238 && spread <= 8 : (lo >= 200 && spread <= 16) || (lo >= 150 && spread <= 10);
+  };
+  const seen = new Uint8Array(w * h);
+  const queue = new Int32Array(w * h);
+  let head = 0;
+  let tail = 0;
+  const visit = (p: number) => {
+    if (seen[p]) return;
+    const i = p * 4;
+    if (d[i + 3] !== 0 && !backdrop(i)) return;
+    seen[p] = 1;
+    queue[tail++] = p;
+  };
+  // Start from every edge pixel and from what's already see-through.
+  for (let x = 0; x < w; x++) {
+    visit(x);
+    visit((h - 1) * w + x);
+  }
+  for (let y = 0; y < h; y++) {
+    visit(y * w);
+    visit(y * w + w - 1);
+  }
+  for (let p = 0; p < w * h; p++) if (d[p * 4 + 3] === 0) visit(p);
+  while (head < tail) {
+    const p = queue[head++];
+    const x = p % w;
+    if (x > 0) visit(p - 1);
+    if (x < w - 1) visit(p + 1);
+    if (p >= w) visit(p - w);
+    if (p < w * (h - 1)) visit(p + w);
+  }
+  let kept = 0;
+  for (let p = 0; p < w * h; p++) {
+    if (seen[p]) d[p * 4 + 3] = 0;
+    else kept++;
+  }
+  // Too little left: something went wrong (or the piece itself looked like backdrop); keep the picture as it was.
+  if (kept < w * h * 0.03) return null;
+  // Soften the new edge a little: a piece pixel next to cleared backdrop becomes half see-through.
+  const soft = new Uint8Array(w * h);
+  for (let p = 0; p < w * h; p++) {
+    if (seen[p]) continue;
+    const x = p % w;
+    if ((x > 0 && seen[p - 1]) || (x < w - 1 && seen[p + 1]) || (p >= w && seen[p - w]) || (p < w * (h - 1) && seen[p + w])) soft[p] = 1;
+  }
+  for (let p = 0; p < w * h; p++) if (soft[p]) d[p * 4 + 3] = Math.min(d[p * 4 + 3], 150);
+  ctx.putImageData(img, 0, 0);
+  return canvas.convertToBlob({ type: "image/png" });
+}
+
 /**
  * AI pictures often come out a little duller than the real piece. This nudges the enhanced cut-out's colors back
  * toward the garment's main color in the person's own picture (gently, within limits, so prints and shading stay).
@@ -90,6 +170,9 @@ async function matchColor(result: Blob, own: Blob): Promise<Blob> {
   const d = img.data;
   for (let i = 0; i < d.length; i += 4) {
     if (d[i + 3] === 0) continue;
+    // White and colorless parts (a white logo, a highlight, any leftover backdrop) keep their color.
+    const lo = Math.min(d[i], d[i + 1], d[i + 2]);
+    if (lo >= 200 && Math.max(d[i], d[i + 1], d[i + 2]) - lo <= 16) continue;
     d[i] = Math.min(255, d[i] * gain[0]);
     d[i + 1] = Math.min(255, d[i + 1] * gain[1]);
     d[i + 2] = Math.min(255, d[i + 2] * gain[2]);
@@ -145,8 +228,10 @@ export async function previewEnhancement(item: Item, mode: "tidy" | "flat" = "ti
     throw Object.assign(new Error(data.error ?? "Couldn't enhance this picture right now. Your picture is unchanged."), { code: data.code });
   }
   const made = await toBlob(data.image);
-  // The same background removal as every closet piece (free, on this device); the white-background version if it can't.
-  const cut = (await cutOut(made).catch(() => null)) ?? (await asPng(made));
+  // The same background removal as every closet piece (free, on this device), then whatever is left of the AI's white
+  // backdrop and shadow is cleared; the white-background version if neither works (and then no color change).
+  const removed = await cutOut(made).catch(() => null);
+  const cut = (await clearBackdrop(removed ?? made, item.color).catch(() => null)) ?? removed ?? (await asPng(made));
   const plainUrl = item.enhancedUrl && item.imageUrl === item.enhancedUrl ? (item.plainUrl ?? item.imageUrl) : item.imageUrl;
   const plain = await fetch(plainUrl).then((r) => (r.ok ? r.blob() : null)).catch(() => null);
   // Colors brought back to the real piece's (AI pictures tend to come out a little duller).
