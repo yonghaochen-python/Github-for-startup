@@ -1,6 +1,6 @@
 import type { LayeringRole } from "@/lib/layering";
 import { garmentName, TryOnError, toPlainLayers, type ImageBytes, type TryOnInputItem, type TryOnProvider } from "../types";
-import { isOpenFront, outfitPrompt, wornOrder, wornPhrases } from "../outfitPrompt";
+import { isOpenFront, outfitPrompt, replacedText, wornOrder, wornPhrases } from "../outfitPrompt";
 
 /**
  * Black Forest Labs' FLUX virtual try-on, called directly on the BFL API (model "vto-v2").
@@ -172,10 +172,15 @@ export function bflFluxVtoProvider(apiKey: string): TryOnProvider {
         const phrases = wornPhrases(named);
         let current = toBase64(person);
         sampleUrl = "";
+        // The first call clears what the outfit replaces; later calls keep what earlier calls put on.
+        const replaced = replacedText(steps.map((s) => s.role));
         for (const [i, { item }] of steps.entries()) {
           const garment = await item.getImage();
           sampleUrl = await runJob(baseUrl, apiKey, {
-            prompt: `${PREFIX} ${phrases[i]} of image 2, keeping everything else they have on visible.${KEEP_DETAILS}`,
+            prompt:
+              i === 0
+                ? `${PREFIX} ${phrases[i]} of image 2.${replaced}${KEEP_DETAILS}`
+                : `${PREFIX} ${phrases[i]} of image 2, keeping everything else they have on visible.${KEEP_DETAILS}`,
             person: current,
             garment: toBase64(garment),
             output_format: "jpeg",

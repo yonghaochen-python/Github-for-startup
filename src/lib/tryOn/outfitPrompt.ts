@@ -69,6 +69,34 @@ export function wornPhrases(pieces: { role: string; name: string; openFront: boo
   return phrases;
 }
 
+/**
+ * What the new outfit replaces. Try-on models otherwise add the new pieces around what the person already has on (a
+ * new top turned into sleeves under their old top, trousers turned into leggings under their old shorts), so each part
+ * of the body the outfit covers is said to be cleared first. Parts it doesn't cover stay as they are.
+ */
+export function replacedText(roles: string[]): string {
+  const has = (r: string[]) => roles.some((x) => r.includes(x));
+  const dress = has(["one_piece"]);
+  const top = dress || has(["base_layer", "mid_layer", "outer_layer"]);
+  const bottom = dress || has(["bottom"]);
+  const parts: string[] = [];
+  if (top && bottom) {
+    parts.push(
+      " First take off all the clothes the person of image 1 has on now (top, jacket, shorts, skirt, trousers or dress): none of them may remain or show anywhere, not under, over or around the new clothes."
+    );
+  } else if (top) {
+    parts.push(
+      " First take off the top and any jacket the person of image 1 has on now: only the tops from image 2 are on the upper body, with nothing of the old ones showing. Their bottoms stay as they are."
+    );
+  } else if (bottom) {
+    parts.push(
+      " First take off the shorts, skirt or trousers the person of image 1 has on now: only the bottoms from image 2 are on the lower body, with nothing of the old ones showing (no shorts or skirt left over trousers). Their top stays as it is."
+    );
+  }
+  if (has(["shoes"])) parts.push(" Their current shoes are replaced by the shoes from image 2.");
+  return parts.join("");
+}
+
 const join = (list: string[]) => (list.length <= 1 ? (list[0] ?? "the garments") : `${list.slice(0, -1).join(", ")}, and ${list[list.length - 1]}`);
 
 /**
@@ -78,13 +106,15 @@ const join = (list: string[]) => (list.length <= 1 ? (list[0] ?? "the garments")
 export function outfitPrompt(prefix: string, keepDetails: string, pieces: { role: string; name: string; description: string }[]): string {
   const named = pieces.map((p) => ({ role: p.role, name: p.name, openFront: OPEN_FRONT.test(p.description) }));
   const phrases = wornPhrases(named);
-  if (pieces.length === 1) return `${prefix} ${phrases[0]} of image 2.${keepDetails}`;
+  const replaced = replacedText(pieces.map((p) => p.role));
+  if (pieces.length === 1) return `${prefix} ${phrases[0]} of image 2.${replaced}${keepDetails}`;
   const sheet = pieces.map((p, i) => `${i + 1}) ${p.name}`).join(", ");
   const layered = pieces.some((p) => p.role === "outer_layer") && pieces.some((p) => TOP_ROLES.includes(p.role));
   return (
     `${prefix} ${join(phrases)}, all from image 2.` +
     ` Image 2 shows ${pieces.length} garments in reading order (left to right, top to bottom): ${sheet}.` +
     ` Every one of these garments must appear on the person${layered ? ", with each top layered exactly as described" : ""}.` +
+    replaced +
     keepDetails
   );
 }
