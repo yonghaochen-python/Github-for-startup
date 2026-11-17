@@ -1082,15 +1082,15 @@ export default function StudioPage() {
                     <span className="rounded-full bg-[#121821]/80 px-4 py-1.5 text-[12px] text-white">{STATUS_STEPS[statusIndex]}</span>
                   </div>
                 )}
-                {/* What the picture is, always said plainly: the trimmed photo is only cropped on the device, never dressed. */}
-                {!trying && (picture || stalePicture || user?.photoVersion) && !((!changed && result?.isMock) || shopShown?.isMock) && (
+                {/* What the picture is, said plainly but small: a tiny "AI" (or "Earlier") in the bottom corner, off the
+                    person. Your own photo needs no label. */}
+                {!trying && (picture || stalePicture) && !((!changed && result?.isMock) || shopShown?.isMock) && (
                   <span
-                    className={`absolute left-3 top-3 flex items-center gap-1.5 whitespace-nowrap rounded-full px-2.5 py-1 text-[10.5px] font-semibold uppercase tracking-[1.2px] backdrop-blur-md ${
-                      picture ? "bg-[#121821]/75 text-white" : "bg-white/75 text-[#4f5b66]"
-                    }`}
+                    title={picture ? "Made by AI try-on" : "An earlier try-on (the outfit changed since)"}
+                    className="pointer-events-none absolute bottom-2 right-2 flex items-center gap-1 whitespace-nowrap rounded-full bg-[#121821]/55 px-1.5 py-0.5 text-[9px] font-semibold uppercase tracking-[1px] text-white/90 backdrop-blur-md"
                   >
-                    <span className={`h-1.5 w-1.5 rounded-full ${picture ? "bg-emerald-400" : stalePicture ? "bg-amber-500" : "bg-[#9aa4ad]"}`} aria-hidden />
-                    {picture ? "AI try-on" : stalePicture ? "Earlier try-on" : "Your photo"}
+                    <span className={`h-1 w-1 rounded-full ${picture ? "bg-emerald-400" : "bg-amber-500"}`} aria-hidden />
+                    {picture ? "AI" : "Earlier"}
                   </span>
                 )}
                 {!picture && !trying && pieces.length > 0 && (
