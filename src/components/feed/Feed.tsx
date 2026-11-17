@@ -12,6 +12,7 @@ import { TryThisOutfit } from "@/components/feed/TryThisOutfit";
 import { CommentsButton } from "@/components/feed/Comments";
 import { FollowButton } from "@/components/feed/FollowButton";
 import { FeedVideo } from "@/components/feed/FeedVideo";
+import { PostMore } from "@/components/feed/PostMore";
 import { PlusIcon, SearchIcon } from "@/components/Icons";
 import { CreateMenu } from "@/components/CreateMenu";
 import { useAuth } from "@/components/AuthProvider";
@@ -524,9 +525,14 @@ export function Feed() {
                         <PostActions post={p} compact command={command?.id === p.id && !command.phone ? command : undefined} />
                       </div>
                     </div>
-                    {p.caption && <p className="mt-1.5 line-clamp-2 text-[14px] leading-snug text-white/90 md:text-[13.5px] md:text-[#29343a]">{p.caption}</p>}
-                    {tags.length > 0 && <p className="mt-1 truncate text-[12px] text-white/55 md:text-[#8a949e]">{tags.join(" · ")}</p>}
-                    <div className="mt-2.5 flex items-center gap-2">
+                    {/* Phones: the description with "… more" (a page with the pieces slides up). */}
+                    <div className="md:hidden">
+                      <PostMore post={p} />
+                    </div>
+                    {/* Computers: the description, tags, Pieces and Recreate on the card. */}
+                    {p.caption && <p className="mt-1.5 line-clamp-2 hidden text-[13.5px] leading-snug text-[#29343a] md:block">{p.caption}</p>}
+                    {tags.length > 0 && <p className="mt-1 hidden truncate text-[12px] text-[#8a949e] md:block">{tags.join(" · ")}</p>}
+                    <div className="mt-2.5 hidden items-center gap-2 md:flex">
                       <PiecesButton post={p}>
                         <TryThisOutfit post={p} />
                       </PiecesButton>
