@@ -14,7 +14,7 @@ import { SavedPhotoSetup, uploadSavedPhoto } from "@/components/SavedPhoto";
 import { ShareArrowButton, ShareTray } from "@/components/ShareLooks";
 import { SaveToggle } from "@/components/SaveToggle";
 import { useToast } from "@/components/Toast";
-import { ClosetIcon, MirrorIcon, SearchIcon } from "@/components/Icons";
+import { CameraIcon, ClosetIcon, MirrorIcon, SearchIcon } from "@/components/Icons";
 import { ErrorNote, PageShell, btnPrimary, btnSecondary, mirrorFrame } from "@/components/ui";
 import { OutfitFlatLay } from "@/components/OutfitFlatLay";
 import { MirrorPieces } from "@/components/MirrorPieces";
@@ -189,26 +189,22 @@ export default function StudioPage() {
   // The mirror piece being replaced (the next closet or Shop tap takes its place).
   const [replacing, setReplacing] = useState<string | null>(null);
   const [colorFilter, setColorFilter] = useState<ColorChoice>(null);
-  // My Closet, above the mirror: open to start (or as the person left it on this device); ?closet=1 always opens it.
-  const CLOSET_OPEN_KEY = "virm-studio-closet";
-  const [closetOpen, setClosetOpenState] = useState(() => {
-    if (searchParams.get("closet") === "1") return true;
-    try {
-      return typeof window === "undefined" || localStorage.getItem(CLOSET_OPEN_KEY) !== "closed";
-    } catch {
-      return true;
-    }
-  });
+  // My Closet: a sheet over the mirror (from the bottom on phones, the side on computers), opened by the My Closet
+  // button; ?closet=1 (the old /closet address) opens it, and ?add=1 opens Add clothes too.
+  const [closetOpen, setClosetOpen] = useState(() => searchParams.get("closet") === "1");
   const [closetAdd] = useState(() => searchParams.get("add") === "1");
   // Asks the closet to open Add clothes (a new number each time).
   const [addRequest, setAddRequest] = useState(0);
-  function setClosetOpen(open: boolean) {
-    setClosetOpenState(open);
-    try {
-      localStorage.setItem(CLOSET_OPEN_KEY, open ? "open" : "closed");
-    } catch {}
-  }
   const swipeFrom = useRef<number | null>(null);
+  // Escape closes it (unless a piece's window or Add clothes is open on top: those close first).
+  useEffect(() => {
+    if (!closetOpen) return;
+    const key = (e: KeyboardEvent) => {
+      if (e.key === "Escape" && !document.querySelector(".z-50")) setClosetOpen(false);
+    };
+    document.addEventListener("keydown", key);
+    return () => document.removeEventListener("keydown", key);
+  }, [closetOpen]);
   // Phones: the Your outfit drawer (what's on the mirror, and quick picks from the closet and Shopping).
   const [drawer, setDrawer] = useState(false);
   // Escape closes the drawer.
@@ -871,44 +867,46 @@ export default function StudioPage() {
           </div>
         )}
 
-        {/* My Closet: open to start; slides closed (the handle, a swipe up, or the button) for a bigger mirror. */}
+        {/* My Closet, over the mirror: a sheet from the bottom on phones, a panel from the side on computers. Swipe the
+            handle down, tap outside or press Done to close it; the mirror stays where it is underneath. */}
+        <div
+          aria-hidden
+          onClick={() => setClosetOpen(false)}
+          className={`fixed inset-0 z-[44] bg-black/30 backdrop-blur-[2px] transition-opacity duration-300 ${closetOpen ? "opacity-100" : "pointer-events-none opacity-0"}`}
+        />
         <div
           id="studio-closet-panel"
-          className={`grid transition-[grid-template-rows,margin] duration-300 ease-[cubic-bezier(.3,.7,.2,1)] motion-reduce:transition-none ${
-            closetOpen ? "mb-5 grid-rows-[1fr]" : "grid-rows-[0fr]"
-          }`}
+          role="dialog"
+          aria-label="My Closet"
           inert={!closetOpen}
+          className={`fixed z-[45] flex flex-col bg-[#f6f5f2] shadow-[0_-20px_60px_rgba(0,0,0,0.3)] transition-transform duration-300 ease-[cubic-bezier(.3,.7,.2,1)] motion-reduce:transition-none max-md:inset-x-0 max-md:bottom-0 max-md:max-h-[85dvh] max-md:rounded-t-[26px] max-md:pb-[env(safe-area-inset-bottom)] md:bottom-0 md:right-0 md:top-0 md:w-[min(560px,92vw)] md:rounded-l-[26px] ${
+            closetOpen ? "translate-x-0 translate-y-0" : "max-md:translate-y-full md:translate-x-full"
+          }`}
         >
-          <div className="min-h-0 overflow-hidden">
-            <div className="rounded-[22px] bg-white/80 p-3 shadow-[0_1px_0_rgba(18,24,33,0.03),0_14px_36px_rgba(18,30,45,0.06)] ring-1 ring-black/[0.04] backdrop-blur-md sm:p-4">
-              <div className="max-h-[50dvh] overflow-y-auto overscroll-contain pr-1">
-                <ClosetView
-                  onWear={(item) => {
-                    pick(item as unknown as ClothingItem);
-                    requestAnimationFrame(() => document.querySelector('[aria-label="Your look"]')?.scrollIntoView({ block: "nearest", behavior: "smooth" }));
-                  }}
-                  wornIds={pieceIds}
-                  startAdding={closetAdd}
-                  addRequest={addRequest}
-                  onItems={(items) => setCloset(items as unknown as ClothingItem[])}
-                />
-              </div>
-              <button
-                onClick={() => setClosetOpen(false)}
-                onPointerDown={(e) => {
-                  swipeFrom.current = e.clientY;
-                }}
-                onPointerUp={(e) => {
-                  if (swipeFrom.current !== null && swipeFrom.current - e.clientY > 24) setClosetOpen(false);
-                  swipeFrom.current = null;
-                }}
-                aria-label="Close My Closet"
-                className="mt-2 flex w-full touch-none flex-col items-center gap-1 pt-1 text-[11px] font-semibold text-[#5d6874]"
-              >
-                <span aria-hidden className="h-1.5 w-10 rounded-full bg-[#121821]/20" />
-                Slide up to close
-              </button>
-            </div>
+          <div
+            onPointerDown={(e) => {
+              swipeFrom.current = e.clientY;
+            }}
+            onPointerUp={(e) => {
+              if (swipeFrom.current !== null && e.clientY - swipeFrom.current > 24) setClosetOpen(false);
+              swipeFrom.current = null;
+            }}
+            className="relative flex touch-none items-center justify-between px-5 pb-2 pt-3"
+          >
+            <span aria-hidden className="absolute left-1/2 top-2 h-1.5 w-10 -translate-x-1/2 rounded-full bg-[#121821]/20 md:hidden" />
+            <h2 className="mt-3 font-display text-[26px] leading-none text-[#121821]">My Closet</h2>
+            <button onClick={() => setClosetOpen(false)} className="mt-3 rounded-full bg-[#121821] px-4 py-1.5 text-[12.5px] font-semibold text-white">
+              Done
+            </button>
+          </div>
+          <div className="min-h-0 flex-1 overflow-y-auto overscroll-contain px-4 pb-4 sm:px-5">
+            <ClosetView
+              onWear={(item) => pick(item as unknown as ClothingItem)}
+              wornIds={pieceIds}
+              startAdding={closetAdd}
+              addRequest={addRequest}
+              onItems={(items) => setCloset(items as unknown as ClothingItem[])}
+            />
           </div>
         </div>
 
@@ -1052,9 +1050,11 @@ export default function StudioPage() {
                 </button>
                 <button
                   onClick={() => setChangingPhoto(true)}
-                  className="h-10 whitespace-nowrap rounded-full bg-[#f4f5f6] px-3.5 text-[12px] font-semibold text-[#121821]"
+                  aria-label="Change photo"
+                  title="Change photo"
+                  className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-[#f4f5f6] text-[#121821]"
                 >
-                  Change photo
+                  <CameraIcon className="h-[18px] w-[18px]" />
                 </button>
               </div>
             )}
