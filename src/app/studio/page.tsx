@@ -189,13 +189,19 @@ export default function StudioPage() {
   const [colorFilter, setColorFilter] = useState<ColorChoice>(null);
   // My Closet: a sheet over the mirror (from the bottom on phones, the side on computers), opened by the My Closet
   // button; ?closet=1 (the old /closet address) opens it, and ?add=1 opens Add clothes too.
-  const [closetOpen, setClosetOpen] = useState(() => searchParams.get("closet") === "1");
-  const [closetAdd] = useState(() => searchParams.get("add") === "1");
-  // Asks the closet to open Add clothes (a new number each time).
-  const [addRequest, setAddRequest] = useState(0);
+  // Phones show the closet right on the page (Outfit | Closet under the mirror); the sheet is for computers (Manage).
+  const isPhone = () => typeof window !== "undefined" && window.matchMedia("(max-width: 767px)").matches;
+  const [closetOpen, setClosetOpen] = useState(() => searchParams.get("closet") === "1" && !isPhone());
+  // Add clothes opens as the closet appears (?add=1, or "Add clothes" / "＋ Add" pressed); read once when it appears.
+  const [addOnOpen, setAddOnOpen] = useState(() => searchParams.get("add") === "1");
   const swipeFrom = useRef<number | null>(null);
-  // Phones: the Outfit | Closet switch remembers the side last chosen (its dark pill rests there).
-  const [lastPanel, setLastPanel] = useState<"outfit" | "closet">("outfit");
+  // Phones: what shows under the mirror. Outfit = the picks and Try On; Closet = My Closet, right on the page.
+  const [phonePanel, setPhonePanel] = useState<"outfit" | "closet">(() => (searchParams.get("closet") === "1" && isPhone() ? "closet" : "outfit"));
+  useEffect(() => {
+    if (!addOnOpen || !(closetOpen || phonePanel === "closet")) return;
+    const t = setTimeout(() => setAddOnOpen(false), 0);
+    return () => clearTimeout(t);
+  }, [addOnOpen, closetOpen, phonePanel]);
   // Escape closes it (unless a piece's window or Add clothes is open on top: those close first).
   useEffect(() => {
     if (!closetOpen) return;
@@ -763,12 +769,14 @@ export default function StudioPage() {
   };
 
   /**
-   * Phones: Outfit | Closet in one switch. Each side opens its sheet (Your outfit: what's on the mirror and Shopping;
-   * Closet: My Closet), never both; the dark pill slides to the side that's open.
+   * Phones: Outfit | Closet in one switch under the mirror. Outfit shows the picks and Try On below it; Closet replaces
+   * them with My Closet on the page. (Without that row, in Live or with no photo, the floating switch opens the
+   * sheets instead.) The dark pill slides to the side that's showing.
    */
-  const panelSide = drawer ? "outfit" : closetOpen ? "closet" : lastPanel;
-  const choosePanel = (side: "outfit" | "closet") => {
-    setLastPanel(side);
+  const panelSide = phonePanel;
+  const choosePanel = (side: "outfit" | "closet", floating = false) => {
+    setPhonePanel(side);
+    if (!floating) return;
     if (side === "outfit") {
       setClosetOpen(false);
       setDrawer(true);
@@ -792,8 +800,8 @@ export default function StudioPage() {
       {(["outfit", "closet"] as const).map((side) => (
         <button
           key={side}
-          onClick={() => choosePanel(side)}
-          aria-pressed={panelSide === side && (drawer || closetOpen)}
+          onClick={() => choosePanel(side, floating)}
+          aria-pressed={panelSide === side}
           aria-controls={side === "closet" ? "studio-closet-panel" : undefined}
           data-tip={side === "closet" ? "studio-mycloset" : undefined}
           className={`relative flex h-8 items-center justify-center gap-1.5 whitespace-nowrap rounded-full px-3.5 text-[12.5px] font-semibold transition-colors duration-300 ${
@@ -904,14 +912,15 @@ export default function StudioPage() {
             </button>
           </div>
           <div className="min-h-0 flex-1 overflow-y-auto overscroll-contain px-4 pb-4 sm:px-5">
+            {closetOpen && (
             <ClosetView
               onWear={(item) => pick(item as unknown as ClothingItem)}
               wornIds={pieceIds}
-              startAdding={closetAdd}
-              addRequest={addRequest}
+              startAdding={addOnOpen}
               onItems={(items) => setCloset(items as unknown as ClothingItem[])}
               unowned={[...shopPicks, ...shopTryOns.filter((t) => !shopPicks.some((p) => p.id === t.id))]}
             />
+            )}
           </div>
         </div>
 
@@ -1059,7 +1068,19 @@ export default function StudioPage() {
               </div>
             )}
 
-            <div className="border-t border-black/[0.06] p-4 sm:p-5">
+            {/* Phones, Closet chosen: My Closet right here, in place of the picks and Try On. */}
+            {sidePicks && !trying && phonePanel === "closet" && (
+              <div className="border-t border-black/[0.06] p-4 md:hidden">
+                <ClosetView
+                  onWear={(item) => pick(item as unknown as ClothingItem)}
+                  wornIds={pieceIds}
+                  startAdding={addOnOpen}
+                  onItems={(items) => setCloset(items as unknown as ClothingItem[])}
+                  unowned={[...shopPicks, ...shopTryOns.filter((t) => !shopPicks.some((p) => p.id === t.id))]}
+                />
+              </div>
+            )}
+            <div className={`border-t border-black/[0.06] p-4 sm:p-5 ${sidePicks && !trying && phonePanel === "closet" ? "max-md:hidden" : ""}`}>
               <ShareTray />
               {outfitOnly ? (
                 // No photo: the outfit is the result. Trying it on is there for anyone who changes their mind.
@@ -1196,8 +1217,8 @@ export default function StudioPage() {
                   <div className="hidden items-center gap-1 md:flex">
                     <button
                       onClick={() => {
+                        setAddOnOpen(true);
                         setClosetOpen(true);
-                        setAddRequest((n) => n + 1);
                       }}
                       className="rounded-full bg-[#121821] px-3.5 py-1.5 text-[12px] font-semibold text-white"
                     >
@@ -1266,8 +1287,9 @@ export default function StudioPage() {
                       <button
                         onClick={() => {
                           closeDrawer();
-                          setClosetOpen(true);
-                          setAddRequest((n) => n + 1);
+                          setAddOnOpen(true);
+                          if (isPhone()) setPhonePanel("closet");
+                          else setClosetOpen(true);
                         }}
                         className="font-semibold text-[#121821] underline-offset-4 hover:underline"
                       >
