@@ -46,10 +46,18 @@ function SavedInspiration() {
     <ul className="grid grid-cols-2 gap-2 sm:grid-cols-3 lg:grid-cols-4">
       {posts.map((p) => (
         <li key={p.id}>
-          <Link href={`/p/${p.id}`} className="block overflow-hidden rounded-[14px] bg-[#f1efeb]">
+          {/* Only the person who posted it can open the post; for everyone else it is just the picture. */}
+          {p.editable ? (
+            <Link href={`/p/${p.id}`} className="block overflow-hidden rounded-[14px] bg-[#f1efeb]">
             {/* eslint-disable-next-line @next/next/no-img-element -- a public post picture */}
             <img src={p.imageUrl} alt={p.caption ?? "Outfit"} loading="lazy" className="aspect-[3/4] w-full object-cover" />
-          </Link>
+            </Link>
+          ) : (
+            <div className="block overflow-hidden rounded-[14px] bg-[#f1efeb]">
+            {/* eslint-disable-next-line @next/next/no-img-element -- a public post picture */}
+            <img src={p.imageUrl} alt={p.caption ?? "Outfit"} loading="lazy" className="aspect-[3/4] w-full object-cover" />
+            </div>
+          )}
           <p className="mt-1 truncate text-[12px] text-[#5d6874]">@{p.creator.username}</p>
         </li>
       ))}

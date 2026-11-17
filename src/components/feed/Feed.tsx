@@ -26,6 +26,19 @@ import { FOLLOWING_ON, type PublicPost } from "@/lib/postRules";
  * Two lists: For You (everyone, newest first) and Following (people you follow). Search looks through captions, tags,
  * @usernames and the pieces' names, brands and stores. Posts marked "not for me" leave the feed. No AI, nothing paid.
  */
+/** A post's picture: opens the post only for the person who posted it; for everyone else it just shows the outfit. */
+function Pic({ href, onClick, className, children }: { href?: string; onClick: (e: React.MouseEvent) => void; className: string; children: React.ReactNode }) {
+  return href ? (
+    <Link href={href} onClick={onClick} className={className}>
+      {children}
+    </Link>
+  ) : (
+    <div onClick={onClick} className={className}>
+      {children}
+    </div>
+  );
+}
+
 export function Feed() {
   const { status } = useAuth();
   const [posts, setPosts] = useState<PublicPost[]>([]);
@@ -225,7 +238,7 @@ export function Feed() {
       } else if (key === "l" && post) setCommand({ id: post.id, kind: "toggleLike", n: ++counter.current, phone });
       else if (key === "s" && post) setCommand({ id: post.id, kind: "toggleSave", n: ++counter.current, phone });
       else if (key === "r" && post) setRecreate({ id: post.id, n: ++counter.current });
-      else if (key === "Enter" && post && !target?.closest("a, button")) router.push(`/p/${post.id}`);
+      else if (key === "Enter" && post?.editable && !target?.closest("a, button")) router.push(`/p/${post.id}`);
       else if (key === "n" && status === "signedIn") setCreating(true);
       else if (key === "/") {
         e.preventDefault();
@@ -503,10 +516,10 @@ export function Feed() {
                 >
                   {/* The outfit: as large as the screen allows, never covered by text. */}
                   <div className="relative min-h-0 flex-1 md:flex-none" style={{ "--r": `${p.width} / ${p.height}` } as React.CSSProperties}>
-                    <Link
-                      href={`/p/${p.id}`}
+                    <Pic
+                      href={p.editable ? `/p/${p.id}` : undefined}
                       onClick={(e) => {
-                        // Phones: a double-tap likes it (one tap still opens the post, a moment later).
+                        // Phones: a double-tap likes it (on your own post, one tap still opens it, a moment later).
                         if (!sliding()) return;
                         e.preventDefault();
                         const prev = lastTap.current;
@@ -519,7 +532,7 @@ export function Feed() {
                           }
                           return;
                         }
-                        const timer = setTimeout(() => router.push(`/p/${p.id}`), 300);
+                        const timer = p.editable ? setTimeout(() => router.push(`/p/${p.id}`), 300) : null;
                         lastTap.current = { id: p.id, at: e.timeStamp, timer };
                       }}
                       className="group relative block h-full overflow-hidden md:h-auto md:rounded-[20px] md:bg-[#f1efeb]"
@@ -549,7 +562,7 @@ export function Feed() {
                           </svg>
                         </span>
                       )}
-                    </Link>
+                    </Pic>
                     <div className="absolute bottom-3 right-3 md:hidden">
                       <PostActions
                         post={p}
