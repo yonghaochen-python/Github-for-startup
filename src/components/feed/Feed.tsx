@@ -81,6 +81,35 @@ export function Feed() {
     return () => watcher.disconnect();
   }, [loadMore]);
 
+  // Phones: pull the first post down (or scroll up past it) to load the newest posts again.
+  const list = useRef<HTMLUListElement | null>(null);
+  const [pull, setPull] = useState(0);
+  const [refreshing, setRefreshing] = useState(false);
+  const pullFrom = useRef<number | null>(null);
+  const wheelUp = useRef(0);
+  const PULL_TO_REFRESH = 70;
+  async function refresh() {
+    if (refreshing) return;
+    setRefreshing(true);
+    const mine = ++run.current;
+    const params = new URLSearchParams();
+    if (query) params.set("q", query);
+    if (tab === "following") params.set("tab", "following");
+    const res = await fetch(`/api/feed${params.size ? `?${params}` : ""}`, { cache: "no-store" }).catch(() => null);
+    const data = res?.ok ? ((await res.json()) as { posts: PublicPost[]; next: string | null }) : null;
+    if (mine === run.current && data) {
+      setPosts(data.posts);
+      setNext(data.next);
+      setLoading(false);
+      list.current?.scrollTo({ top: 0 });
+    }
+    setRefreshing(false);
+    setPull(0);
+  }
+  // Only on phones, where the feed is its own sliding list (computers show a grid that scrolls with the page).
+  const sliding = () => typeof window !== "undefined" && window.matchMedia("(max-width: 767px)").matches;
+  const atTop = () => sliding() && (list.current?.scrollTop ?? 0) <= 0;
+
   const remove = (id: string) => setPosts((list) => list.filter((p) => p.id !== id));
   const closeSearch = () => {
     setSearching(false);
@@ -204,12 +233,63 @@ export function Feed() {
           )}
         </div>
 
+        {/* Pull to refresh: a small round arrow that comes down with the pull and turns while the newest posts load. */}
+        {(pull > 0 || refreshing) && (
+          <div
+            aria-live="polite"
+            className="pointer-events-none absolute inset-x-0 top-14 z-10 flex justify-center md:hidden"
+            style={{ transform: `translateY(${refreshing ? 24 : pull * 0.6}px)`, opacity: refreshing ? 1 : Math.min(1, pull / PULL_TO_REFRESH) }}
+          >
+            <span className="flex h-9 w-9 items-center justify-center rounded-full bg-white text-[#121821] shadow-[0_6px_18px_rgba(0,0,0,0.25)]">
+              <svg
+                viewBox="0 0 24 24"
+                className={`h-[18px] w-[18px] ${refreshing ? "animate-spin" : ""}`}
+                style={refreshing ? undefined : { transform: `rotate(${pull * 3}deg)` }}
+                fill="none"
+                stroke="currentColor"
+                strokeWidth="2"
+                strokeLinecap="round"
+                aria-hidden
+              >
+                <path d="M20 12a8 8 0 1 1-2.34-5.66M20 4v4h-4" />
+              </svg>
+              <span className="sr-only">{refreshing ? "Refreshing" : "Pull to refresh"}</span>
+            </span>
+          </div>
+        )}
         {empty ? (
           <div className="flex h-full items-center justify-center bg-[#0b0f14] px-6 text-center md:h-auto md:bg-transparent md:py-24">
             <p className="text-[15px] text-white/80 md:text-[#4f5b66]">{emptyText}</p>
           </div>
         ) : (
-          <ul className="h-full snap-y snap-mandatory overflow-y-auto overscroll-contain bg-[#0b0f14] md:mx-auto md:h-auto md:max-w-[1240px] md:columns-2 md:gap-6 md:overflow-visible md:bg-transparent md:px-8 md:pt-6 lg:columns-3 xl:columns-4">
+          <ul
+            ref={list}
+            onTouchStart={(e) => {
+              pullFrom.current = atTop() ? e.touches[0].clientY : null;
+            }}
+            onTouchMove={(e) => {
+              if (pullFrom.current === null || refreshing) return;
+              const dy = e.touches[0].clientY - pullFrom.current;
+              setPull(dy > 0 && atTop() ? Math.min(110, dy * 0.5) : 0);
+            }}
+            onTouchEnd={() => {
+              pullFrom.current = null;
+              if (pull >= PULL_TO_REFRESH) void refresh();
+              else setPull(0);
+            }}
+            onWheel={(e) => {
+              // A mouse or trackpad: scrolling up past the first post refreshes too.
+              if (!atTop() || e.deltaY >= 0 || refreshing) {
+                wheelUp.current = 0;
+                return;
+              }
+              wheelUp.current -= e.deltaY;
+              if (wheelUp.current > 240) {
+                wheelUp.current = 0;
+                void refresh();
+              }
+            }}
+            className="h-full snap-y snap-mandatory overflow-y-auto overscroll-contain bg-[#0b0f14] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden md:mx-auto md:h-auto md:max-w-[1240px] md:columns-2 md:gap-6 md:overflow-visible md:bg-transparent md:px-8 md:pt-6 lg:columns-3 xl:columns-4">
             {posts.map((p) => {
               const tags = [...p.styleTags, ...p.occasionTags];
               return (
