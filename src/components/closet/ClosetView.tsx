@@ -101,7 +101,6 @@ export function ClosetView({
   const { showToast } = useToast();
   const [items, setItems] = useState<ClothingItem[]>([]);
   const [loading, setLoading] = useState(true);
-  const [uploading, setUploading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [aiEnabled, setAiEnabled] = useState(false);
   const [reanalyzingId, setReanalyzingId] = useState<string | null>(null);
@@ -243,27 +242,6 @@ export function ClosetView({
     setJustAdded(count);
     if (added.length) cleanUpNew(added);
     showToast(count === 1 ? "Added to your closet" : `${count} pieces added to your closet`);
-  }
-
-  async function handleFiles(e: React.ChangeEvent<HTMLInputElement>) {
-    const files = e.target.files;
-    if (!files || files.length === 0) return;
-    setError(null);
-    setUploading(true);
-    try {
-      const formData = new FormData();
-      for (const file of files) formData.append("images", file);
-      const res = await fetch("/api/closet/items", { method: "POST", body: formData });
-      const data = (await res.json().catch(() => ({}))) as { error?: string; warning?: string; items?: ClothingItem[] };
-      if (!res.ok) throw new Error(data.error ?? "Upload failed");
-      afterAdding(data.items?.length ?? files.length, data.items ?? []);
-      if (data.warning) setError(data.warning);
-    } catch (err) {
-      setError(err instanceof Error ? err.message : "Upload failed");
-    } finally {
-      setUploading(false);
-      e.target.value = "";
-    }
   }
 
   /** Really deletes a piece (after its Undo time ran out, or the page is being left). */
@@ -608,8 +586,6 @@ export function ClosetView({
           </>
         )}
 
-      {/* Quick upload: one photo = one item, analyzed automatically. */}
-      <QuickUpload uploading={uploading} onChange={handleFiles} visible={!loading && !loadError} />
 
       {viewing &&
         createPortal(
@@ -634,36 +610,6 @@ export function ClosetView({
           document.body
         )}
     </section>
-  );
-}
-
-function QuickUpload({
-  uploading,
-  onChange,
-  visible,
-}: {
-  uploading: boolean;
-  onChange: (e: React.ChangeEvent<HTMLInputElement>) => void;
-  visible: boolean;
-}) {
-  if (!visible) return null;
-  return (
-    <div className="mt-3">
-      <p className="text-[12px] text-[#5d6874]">
-        <label className="cursor-pointer font-semibold text-[#121821] underline underline-offset-4">
-          {uploading ? "Uploading and labeling…" : "Upload them one per item"}
-          <input
-            type="file"
-            accept="image/png,image/jpeg,image/webp,image/gif"
-            multiple
-            className="sr-only"
-            disabled={uploading}
-            onChange={onChange}
-          />
-        </label>{" "}
-        and each photo becomes its own closet item.
-      </p>
-    </div>
   );
 }
 
