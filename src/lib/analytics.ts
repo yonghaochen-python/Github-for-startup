@@ -20,6 +20,8 @@ export type EventName =
   | "pick_opened"
   | "pick_vote"
   | "signup_from_pick"
+  /** A new AI enhancement of a closet piece was made (counted for the monthly allowance; reused ones aren't). */
+  | "enhance_used"
   /** Signed up with a friend's invite code (their trial will be 14 days). */
   | "signup_with_invite"
   /** A friend's invite code was entered after sign-up (before the trial). */

@@ -139,8 +139,11 @@ export async function previewEnhancement(item: Item, mode: "tidy" | "flat" = "ti
     headers: { "content-type": "application/json" },
     body: JSON.stringify({ mode }),
   });
-  const data = (await res.json().catch(() => ({}))) as { image?: string; practice?: boolean; reused?: boolean; error?: string };
-  if (!res.ok || !data.image) throw new Error(data.error ?? "Couldn't enhance this picture right now. Your picture is unchanged.");
+  const data = (await res.json().catch(() => ({}))) as { image?: string; practice?: boolean; reused?: boolean; error?: string; code?: string };
+  if (!res.ok || !data.image) {
+    // `code` "limit": this month's enhancements are used up.
+    throw Object.assign(new Error(data.error ?? "Couldn't enhance this picture right now. Your picture is unchanged."), { code: data.code });
+  }
   const made = await toBlob(data.image);
   // The same background removal as every closet piece (free, on this device); the white-background version if it can't.
   const cut = (await cutOut(made).catch(() => null)) ?? (await asPng(made));
