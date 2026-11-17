@@ -44,7 +44,7 @@ const STUDIO_TIPS: Tip[] = [
   { target: '[data-tip="studio-theme"]', text: "Type a theme for ideas, or press Style it for 3 new picks below." },
   { target: '[data-tip="studio-closet"]', text: "Tap to add. Tap again to take it off." },
   { target: '[data-tip="studio-tryon"]', text: "Try it on. The bookmark on the picture saves the look." },
-  { target: '[data-tip="studio-mycloset"]', text: "Your closet lives here: add clothes, or tap a piece to wear it. Slide it closed for a bigger mirror." },
+  { target: '[data-tip="studio-mycloset"]', text: "Your closet: add clothes, or tap a piece to wear it." },
 ];
 
 /** The closet tabs, in the order people dress. */
@@ -807,7 +807,7 @@ export default function StudioPage() {
             aria-expanded={closetOpen}
             aria-controls="studio-closet-panel"
             data-tip="studio-mycloset"
-            className={`flex min-h-[44px] min-w-0 flex-1 items-center justify-between gap-2 rounded-full px-5 text-[13px] font-semibold shadow-[0_1px_0_rgba(18,24,33,0.03),0_8px_22px_rgba(18,30,45,0.06)] sm:max-w-[260px] ${
+            className={`flex min-h-[44px] min-w-0 flex-1 items-center md:hidden justify-between gap-2 rounded-full px-5 text-[13px] font-semibold shadow-[0_1px_0_rgba(18,24,33,0.03),0_8px_22px_rgba(18,30,45,0.06)] sm:max-w-[260px] ${
               closetOpen ? "bg-[#121821] text-white" : "bg-white text-[#121821]"
             }`}
           >
@@ -1170,6 +1170,23 @@ export default function StudioPage() {
                   <Link href="/shop" className="text-[12px] font-semibold text-[#4f5b66] underline-offset-4 hover:text-[#121821] hover:underline">
                     Browse Shopping →
                   </Link>
+                )}
+                {/* Computers: this panel is the closet; Add clothes and each piece's details open My Closet over the page. */}
+                {source === "closet" && (
+                  <div className="hidden items-center gap-1 md:flex">
+                    <button
+                      onClick={() => {
+                        setClosetOpen(true);
+                        setAddRequest((n) => n + 1);
+                      }}
+                      className="rounded-full bg-[#121821] px-3.5 py-1.5 text-[12px] font-semibold text-white"
+                    >
+                      ＋ Add
+                    </button>
+                    <button onClick={() => setClosetOpen(true)} className="rounded-full px-3 py-1.5 text-[12px] font-semibold text-[#4f5b66] hover:text-[#121821]">
+                      Manage
+                    </button>
+                  </div>
                 )}
               </div>
               {replacing && (
