@@ -19,7 +19,7 @@ Virm is an AI wardrobe app. You put your clothes in a digital closet, get outfit
 ### My Style **(not live yet)**
 What's yours, in one place. Nothing here uses AI or costs anything.
 - **Saved outfits:** your saved looks (the try-on picture when there is one), with **See all**.
-- **Planner:** today's outfit, with **Swap** (a new free suggestion for today, kept in the Planner) and **See the week**. Nothing planned: **Suggest one**.
+- **Planner:** today's outfit, with **Swap** (a new free suggestion for today, kept in the Planner) and **See the month**. Nothing planned: **Suggest one**.
 - **AI Stylist:** your season, your colors and your style at a glance, or **Discover your colors** if you haven't started.
 - Signed out: the welcome page with **Try It Free**.
 

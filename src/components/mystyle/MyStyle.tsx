@@ -108,7 +108,7 @@ function SavedOutfits() {
 
 /**
  * Today's outfit, from the Planner: Swap asks the Planner for another free suggestion for today and keeps it; See the
- * week opens the Planner. With nothing planned, one free suggestion for today.
+ * month opens the Planner on its month. With nothing planned, one free suggestion for today.
  */
 function TodayOutfit({ closet }: { closet: ClothingItem[] }) {
   const [today] = useState(() => ymd(new Date()));
@@ -152,7 +152,7 @@ function TodayOutfit({ closet }: { closet: ClothingItem[] }) {
   if (ids === null) return <div className={`${card} mt-10 h-48 animate-pulse`} />;
   return (
     <section aria-labelledby="today-title" className="mt-10">
-      <SectionHead id="today-title" title="Planner" href={`/planner?day=${today}`} link="See the week" />
+      <SectionHead id="today-title" title="Planner" href="/planner" link="See the month" />
       <div className={`${card} flex items-center gap-4 p-4`}>
         <div className="aspect-[4/5] w-[42%] max-w-[200px] shrink-0 overflow-hidden rounded-[16px] bg-[#f6f5f2] p-2">
           {pieces.length > 0 ? <DayFlatLay pieces={pieces} /> : <div className="grid h-full place-items-center text-center text-[12px] text-[#8a949e]">Nothing planned yet</div>}
