@@ -142,6 +142,57 @@ export function Feed() {
   });
 
   /**
+   * Computers: a two-finger slide on the trackpad works like a phone slide. Fingers to the left (the right side) opens a
+   * new post; to the right, Recreate the post under the pointer. The browser's own back / forward slide is held off here.
+   */
+  const swipeArea = useRef<HTMLDivElement | null>(null);
+  useEffect(() => {
+    const area = swipeArea.current;
+    if (!area) return;
+    let sum = 0;
+    let postId: string | null = null;
+    let quietUntil = 0;
+    let ended: ReturnType<typeof setTimeout> | null = null;
+    const reset = () => {
+      sum = 0;
+      postId = null;
+      setSwipe(0);
+      setSwipeLeft(0);
+    };
+    const onWheel = (e: WheelEvent) => {
+      if (Math.abs(e.deltaX) <= Math.abs(e.deltaY)) return;
+      e.preventDefault();
+      if (ended) clearTimeout(ended);
+      ended = setTimeout(reset, 180);
+      // Right after a slide has done something, the rest of that slide (the trackpad's glide) is ignored.
+      if (e.timeStamp < quietUntil) return;
+      if (sum === 0) {
+        const over = e.target instanceof Element ? e.target.closest("[data-post-id]") : null;
+        const all = postsNow.current;
+        postId = over?.getAttribute("data-post-id") ?? (focusedNow.current !== null ? all[focusedNow.current]?.id : null) ?? null;
+      }
+      sum += e.deltaX;
+      if (sum > 0 && status !== "signedIn") return reset();
+      if (sum < 0 && !postId) return reset();
+      // The same pill the phone shows comes in with the fingers; a little further and it opens.
+      const shown = Math.min(140, Math.abs(sum) / 2);
+      if (sum > 0) setSwipeLeft(shown);
+      else setSwipe(shown);
+      if (Math.abs(sum) / 2 >= SWIPE_TO_CREATE + 20) {
+        if (sum > 0) setCreating(true);
+        else if (postId) setRecreate({ id: postId, n: ++counter.current });
+        quietUntil = e.timeStamp + 900;
+        reset();
+      }
+    };
+    area.addEventListener("wheel", onWheel, { passive: false });
+    return () => {
+      area.removeEventListener("wheel", onWheel);
+      if (ended) clearTimeout(ended);
+    };
+  }, [status]);
+
+  /**
    * Keyboard shortcuts: ↓ / J next post, ↑ / K previous, L like, S save, R recreate, Enter open, N new post, / search,
    * ? the list. Never while typing or while a window is open.
    */
@@ -289,6 +340,7 @@ export function Feed() {
       </div>
 
       <div
+        ref={swipeArea}
         onTouchStart={(e) => {
           swipeFrom.current = {
             x: e.touches[0].clientX,
@@ -365,7 +417,7 @@ export function Feed() {
 
         {/* Slide right to recreate: "Recreate" comes in from the left edge with the finger. */}
         {swipe > 0 && (
-          <div aria-hidden className="pointer-events-none absolute inset-y-0 left-0 z-20 flex items-center md:hidden" style={{ transform: `translateX(${swipe - 120}px)`, opacity: Math.min(1, swipe / SWIPE_TO_CREATE) }}>
+          <div aria-hidden className="pointer-events-none absolute inset-y-0 left-0 z-20 flex items-center md:fixed" style={{ transform: `translateX(${swipe - 120}px)`, opacity: Math.min(1, swipe / SWIPE_TO_CREATE) }}>
             <span className={`flex items-center gap-2 rounded-r-full py-3 pl-6 pr-5 text-[13px] font-semibold shadow-[0_8px_24px_rgba(0,0,0,0.3)] ${swipe >= SWIPE_TO_CREATE ? "bg-white text-[#121821]" : "bg-white/80 text-[#121821]"}`}>
               Recreate
             </span>
@@ -373,7 +425,7 @@ export function Feed() {
         )}
         {/* Slide left to post: "New post" comes in from the right edge with the finger. */}
         {swipeLeft > 0 && (
-          <div aria-hidden className="pointer-events-none absolute inset-y-0 right-0 z-20 flex items-center md:hidden" style={{ transform: `translateX(${120 - swipeLeft}px)`, opacity: Math.min(1, swipeLeft / SWIPE_TO_CREATE) }}>
+          <div aria-hidden className="pointer-events-none absolute inset-y-0 right-0 z-20 flex items-center md:fixed" style={{ transform: `translateX(${120 - swipeLeft}px)`, opacity: Math.min(1, swipeLeft / SWIPE_TO_CREATE) }}>
             <span className={`flex items-center gap-2 rounded-l-full py-3 pl-5 pr-6 text-[13px] font-semibold text-[#121821] shadow-[0_8px_24px_rgba(0,0,0,0.3)] ${swipeLeft >= SWIPE_TO_CREATE ? "bg-white" : "bg-white/80"}`}>
               <PlusIcon className="h-4 w-4" /> New post
             </span>
