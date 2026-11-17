@@ -5,7 +5,7 @@ import type { StudioModule } from "@/lib/studioModules";
 /**
  * A module's thumbnail: the person's own portrait, framed in that module's way (fabric drapes for color, makeup
  * pans, hair-color strands, jewelry and top colors), so the four feel like one set. Without a portrait, a soft
- * outline stands in.
+ * outline stands in. The person is always the top layer: colors sit behind, never over them.
  */
 export function ModuleVisual({ module, portrait, className = "" }: { module: StudioModule; portrait: string | null; className?: string }) {
   const face = portrait ? (
@@ -19,7 +19,7 @@ export function ModuleVisual({ module, portrait, className = "" }: { module: Stu
   const t = module.tones;
 
   return (
-    <div className={`relative overflow-hidden ${className}`} style={{ background: module.tint }} aria-hidden>
+    <div className={`relative isolate overflow-hidden ${className}`} style={{ background: module.tint }} aria-hidden>
       {module.id === "color" && (
         <>
           {/* A portrait in an arch, over fabric drapes in the season colors, the way color analysts test colors. */}
@@ -28,12 +28,12 @@ export function ModuleVisual({ module, portrait, className = "" }: { module: Stu
               <div key={c} className="flex-1" style={{ background: c }} />
             ))}
           </div>
-          <div className="absolute bottom-[14%] left-1/2 aspect-[3/4] h-[74%] -translate-x-1/2 overflow-hidden rounded-t-full shadow-[0_10px_30px_rgba(18,24,33,0.18)]">{face}</div>
+          <div className="absolute z-10 bottom-[14%] left-1/2 aspect-[3/4] h-[74%] -translate-x-1/2 overflow-hidden rounded-t-full shadow-[0_10px_30px_rgba(18,24,33,0.18)]">{face}</div>
         </>
       )}
       {module.id === "makeup" && (
         <>
-          <div className="absolute left-[12%] top-1/2 aspect-square h-[72%] -translate-y-1/2 overflow-hidden rounded-full shadow-[0_10px_30px_rgba(18,24,33,0.16)]">{face}</div>
+          <div className="absolute z-10 left-[12%] top-1/2 aspect-square h-[72%] -translate-y-1/2 overflow-hidden rounded-full shadow-[0_10px_30px_rgba(18,24,33,0.16)]">{face}</div>
           <div className="absolute right-[9%] top-1/2 grid -translate-y-1/2 grid-cols-2 gap-2">
             {t.slice(0, 4).map((c) => (
               <span key={c} className="h-9 w-9 rounded-full shadow-[inset_0_-3px_6px_rgba(0,0,0,0.18),0_2px_6px_rgba(18,24,33,0.12)] sm:h-11 sm:w-11" style={{ background: c }} />
@@ -43,7 +43,7 @@ export function ModuleVisual({ module, portrait, className = "" }: { module: Stu
       )}
       {module.id === "hair" && (
         <>
-          <div className="absolute bottom-0 left-[10%] aspect-[3/4] h-[86%] overflow-hidden rounded-t-[28px] shadow-[0_10px_30px_rgba(18,24,33,0.16)]">{face}</div>
+          <div className="absolute z-10 bottom-0 left-[10%] aspect-[3/4] h-[86%] overflow-hidden rounded-t-[28px] shadow-[0_10px_30px_rgba(18,24,33,0.16)]">{face}</div>
           <div className="absolute right-[10%] top-[14%] flex h-[72%] gap-1.5">
             {t.map((c) => (
               <span key={c} className="w-3.5 rounded-full sm:w-4" style={{ background: `linear-gradient(180deg, ${c}, ${c}cc 70%, ${c}88)` }} />
@@ -53,7 +53,7 @@ export function ModuleVisual({ module, portrait, className = "" }: { module: Stu
       )}
       {module.id === "style" && (
         <>
-          <div className="absolute bottom-0 left-1/2 aspect-[3/4] h-[86%] -translate-x-1/2 overflow-hidden rounded-t-[10px] shadow-[0_10px_30px_rgba(18,24,33,0.16)]">{face}</div>
+          <div className="absolute z-10 bottom-0 left-1/2 aspect-[3/4] h-[86%] -translate-x-1/2 overflow-hidden rounded-t-[10px] shadow-[0_10px_30px_rgba(18,24,33,0.16)]">{face}</div>
           <div className="absolute left-[8%] top-[16%] flex flex-col gap-2">
             {t.slice(0, 3).map((c) => (
               <span key={c} className="h-6 w-10 rounded-[6px] shadow-[0_2px_6px_rgba(18,24,33,0.12)]" style={{ background: c }} />
