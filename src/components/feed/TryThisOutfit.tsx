@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import { useRouter } from "next/navigation";
 import { useAuth } from "@/components/AuthProvider";
@@ -22,9 +22,12 @@ type Choice = "mine" | "theirs" | null;
 export function TryThisOutfit({
   post,
   variant = "page",
+  openRequest = 0,
 }: {
   post: PublicPost;
   variant?: "page" | "feed";
+  /** A new number opens it (a slide left on the feed, or the R key). */
+  openRequest?: number;
 }) {
   const { status } = useAuth();
   const router = useRouter();
@@ -33,6 +36,17 @@ export function TryThisOutfit({
   const [pieces, setPieces] = useState<TryPostPiece[] | null>(null);
   const [choices, setChoices] = useState<Choice[]>([]);
   const [failed, setFailed] = useState(false);
+
+  const lastRequest = useRef(openRequest);
+  useEffect(() => {
+    if (openRequest === lastRequest.current) return;
+    lastRequest.current = openRequest;
+    // 0 means "not asked" (another post's turn); only a new number opens it.
+    if (!openRequest) return;
+    const t = setTimeout(() => void start(), 0);
+    return () => clearTimeout(t);
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- only when a new request arrives
+  }, [openRequest]);
 
   if (post.items.length === 0) return null;
 

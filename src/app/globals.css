@@ -436,3 +436,12 @@ html[data-period="night"] :is(.bg-white, [class^="bg-white/"], [class*=" bg-whit
     min-height: 24px;
   }
 }
+
+/* Discover: the heart that pops on a double-tap like. */
+@keyframes heart-pop {
+  0% { transform: scale(0.4); opacity: 0; }
+  25% { transform: scale(1.15); opacity: 1; }
+  45% { transform: scale(0.95); opacity: 1; }
+  80% { transform: scale(1); opacity: 1; }
+  100% { transform: scale(1.1); opacity: 0; }
+}

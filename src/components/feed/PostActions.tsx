@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import { Dialog } from "@/components/Dialog";
 import { useRouter } from "next/navigation";
@@ -49,6 +49,7 @@ export function PostActions({
   compact = false,
   onDisliked,
   afterLike,
+  command,
 }: {
   post: PublicPost;
   vertical?: boolean;
@@ -57,6 +58,11 @@ export function PostActions({
   onDisliked?: () => void;
   /** Phone feed: shown just under Like (the comments circle). */
   afterLike?: React.ReactNode;
+  /**
+   * Asked from outside (a new `n` each time): "like" only likes (a double-tap), "toggleLike" and "toggleSave" switch
+   * (keyboard shortcuts).
+   */
+  command?: { kind: "like" | "toggleLike" | "toggleSave"; n: number };
 }) {
   const { status } = useAuth();
   const router = useRouter();
@@ -67,6 +73,19 @@ export function PostActions({
   const [likes, setLikes] = useState(post.likeCount);
   const [more, setMore] = useState(false);
   const [reporting, setReporting] = useState(false);
+
+  const lastCommand = useRef(command?.n ?? 0);
+  useEffect(() => {
+    if (!command || command.n === lastCommand.current) return;
+    lastCommand.current = command.n;
+    const t = setTimeout(() => {
+      if (command.kind === "toggleSave") void toggleSave();
+      else if (command.kind === "toggleLike") void react(liked ? null : "like");
+      else if (!liked) void react("like");
+    }, 0);
+    return () => clearTimeout(t);
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- only when a new command arrives
+  }, [command?.n]);
 
   const needAccount = () => {
     if (status === "signedIn") return false;

@@ -19,6 +19,9 @@ import { DRIFT_WARNING, keepEnhancement, previewEnhancement, showPicture, type E
 import { ShelfRow } from "@/components/ShelfRow";
 import Link from "next/link";
 
+/** What a dragged closet piece carries (its id), so Studio's mirror can take it. */
+export const PIECE_DRAG_TYPE = "application/x-virm-piece";
+
 /** A piece from Shopping (not owned): enough to show it and put it on the mirror. */
 export type UnownedPiece = { id: string; imageUrl: string; description: string; category: string; retailer?: string };
 
@@ -539,15 +542,23 @@ export function ClosetView({
                     <ShelfRow key={value} label={label} count={row.length}>
                         {row.map((item) => {
                           const cut = isCutout(item);
+                          const on = wornIds.has(item.id);
                           return (
                             <li key={item.id} className="relative shrink-0 snap-start">
+                              {/* One tap wears it (or takes it off); ⓘ opens its details. In Edit, a tap opens the details. */}
                               <button
-                                onClick={() => setViewingId(item.id)}
-                                aria-label={`${editMode ? "Change" : "View"} ${item.description}`}
+                                onClick={() => (editMode ? setViewingId(item.id) : onWear(item))}
+                                draggable={!editMode}
+                                onDragStart={(e) => {
+                                  e.dataTransfer.setData(PIECE_DRAG_TYPE, item.id);
+                                  e.dataTransfer.effectAllowed = "copy";
+                                }}
+                                aria-pressed={editMode ? undefined : on}
+                                aria-label={`${editMode ? "Change" : on ? "Take off" : "Wear"} ${item.description}`}
                                 className={`group block ${editMode ? "animate-[wiggle_0.6s_ease-in-out_infinite]" : ""}`}
                               >
                                 <span
-                                  className={`relative block h-[88px] w-[68px] sm:h-[112px] sm:w-[86px] ${cut ? "" : "overflow-hidden rounded-[10px]"}`}
+                                  className={`relative block h-[88px] w-[68px] sm:h-[112px] sm:w-[86px] ${cut ? "" : "overflow-hidden rounded-[10px]"} ${on && !editMode ? "rounded-[10px] ring-2 ring-[#121821] ring-offset-1" : ""}`}
                                 >
                                   <Image
                                     src={item.imageUrl}
@@ -566,6 +577,20 @@ export function ClosetView({
                                   )}
                                 </span>
                               </button>
+                              {!editMode && (
+                                <button
+                                  onClick={() => setViewingId(item.id)}
+                                  aria-label={`Details of ${item.description}`}
+                                  className="absolute bottom-0.5 right-0.5 flex h-5 w-5 items-center justify-center rounded-full bg-white/90 text-[10.5px] font-bold italic text-[#121821] shadow-sm"
+                                >
+                                  i
+                                </button>
+                              )}
+                              {on && !editMode && (
+                                <span aria-hidden className="pointer-events-none absolute left-0.5 top-0.5 flex h-4 w-4 items-center justify-center rounded-full bg-[#121821] text-white">
+                                  <CheckIcon className="h-2.5 w-2.5" />
+                                </span>
+                              )}
                               {editMode && (
                                 <button
                                   onClick={() => handleDelete(item)}

@@ -2,6 +2,9 @@
 
 import { useCallback, useEffect, useRef, useState } from "react";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
+import { createPortal } from "react-dom";
+import { Dialog } from "@/components/Dialog";
 import { Avatar } from "@/components/Avatar";
 import { PostActions } from "@/components/feed/PostActions";
 import { PiecesButton } from "@/components/feed/PiecesSheet";
@@ -114,8 +117,74 @@ export function Feed() {
   // Posting lives here: slide right on a phone to open Create (computers: the New post button).
   const [creating, setCreating] = useState(false);
   const [swipe, setSwipe] = useState(0);
-  const swipeFrom = useRef<{ x: number; y: number; dir: "x" | "y" | null; dx: number } | null>(null);
+  const swipeFrom = useRef<{ x: number; y: number; dir: "right" | "left" | "y" | null; dx: number; postId: string | null } | null>(null);
   const SWIPE_TO_CREATE = 80;
+  // Slide left on a post: Recreate it.
+  const [swipeLeft, setSwipeLeft] = useState(0);
+  const router = useRouter();
+  // Asks one post's like / save buttons (phone or computer ones) or its Recreate to act; `n` is new each time.
+  const counter = useRef(0);
+  const [command, setCommand] = useState<{ id: string; kind: "like" | "toggleLike" | "toggleSave"; n: number; phone: boolean } | null>(null);
+  const [recreate, setRecreate] = useState<{ id: string; n: number } | null>(null);
+  // Double-tap: a heart shows on the picture.
+  const [burst, setBurst] = useState<{ id: string; n: number } | null>(null);
+  const lastTap = useRef<{ id: string; at: number; timer: ReturnType<typeof setTimeout> | null } | null>(null);
+  // Computers: the post the keyboard is on (shown with a ring once a key is pressed).
+  const [focused, setFocused] = useState<number | null>(null);
+  const [showKeys, setShowKeys] = useState(false);
+  // Read by the keyboard handler (kept current without re-adding it).
+  const postsNow = useRef(posts);
+  const focusedNow = useRef(focused);
+  useEffect(() => {
+    postsNow.current = posts;
+    focusedNow.current = focused;
+  });
+
+  /**
+   * Keyboard shortcuts: ↓ / J next post, ↑ / K previous, L like, S save, R recreate, Enter open, N new post, / search,
+   * ? the list. Never while typing or while a window is open.
+   */
+  useEffect(() => {
+    const onKey = (e: KeyboardEvent) => {
+      if (e.metaKey || e.ctrlKey || e.altKey) return;
+      const target = e.target as HTMLElement | null;
+      if (target?.closest("input, textarea, select, [contenteditable='true']")) return;
+      if (document.querySelector("[role=dialog]")) return;
+      const all = postsNow.current;
+      const phone = sliding();
+      const box = list.current;
+      const current = phone && box ? Math.round(box.scrollTop / (box.clientHeight || 1)) : (focusedNow.current ?? -1);
+      const post = current >= 0 ? all[current] : undefined;
+      const go = (i: number) => {
+        const next = Math.max(0, Math.min(all.length - 1, i));
+        if (phone && box) box.scrollTo({ top: next * box.clientHeight, behavior: "smooth" });
+        else {
+          setFocused(next);
+          document.querySelector(`[data-post-index="${next}"]`)?.scrollIntoView({ block: "center", behavior: "smooth" });
+        }
+      };
+      const key = e.key.length === 1 ? e.key.toLowerCase() : e.key;
+      if ((key === "ArrowDown" || key === "j") && all.length) {
+        e.preventDefault();
+        go(current + 1);
+      } else if ((key === "ArrowUp" || key === "k") && all.length) {
+        e.preventDefault();
+        go(current - 1);
+      } else if (key === "l" && post) setCommand({ id: post.id, kind: "toggleLike", n: ++counter.current, phone });
+      else if (key === "s" && post) setCommand({ id: post.id, kind: "toggleSave", n: ++counter.current, phone });
+      else if (key === "r" && post) setRecreate({ id: post.id, n: ++counter.current });
+      else if (key === "Enter" && post && !target?.closest("a, button")) router.push(`/p/${post.id}`);
+      else if (key === "n" && status === "signedIn") setCreating(true);
+      else if (key === "/") {
+        e.preventDefault();
+        if (phone) setSearching(true);
+        else document.querySelector<HTMLInputElement>('input[aria-label="Search outfits"]')?.focus();
+      } else if (e.key === "?") setShowKeys(true);
+    };
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- reads the latest posts through refs
+  }, [status]);
 
   const remove = (id: string) => setPosts((list) => list.filter((p) => p.id !== id));
   const closeSearch = () => {
@@ -208,28 +277,51 @@ export function Feed() {
             <PlusIcon className="h-4 w-4" /> New post
           </button>
         )}
+        <button
+          onClick={() => setShowKeys(true)}
+          aria-label="Keyboard shortcuts"
+          title="Keyboard shortcuts (?)"
+          className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full text-[15px] font-semibold text-[#4f5b66] shadow-[inset_0_0_0_1px_rgba(18,24,33,0.14)] hover:text-[#121821]"
+        >
+          ?
+        </button>
       </div>
 
       <div
         onTouchStart={(e) => {
-          swipeFrom.current = status === "signedIn" ? { x: e.touches[0].clientX, y: e.touches[0].clientY, dir: null, dx: 0 } : null;
+          swipeFrom.current = {
+            x: e.touches[0].clientX,
+            y: e.touches[0].clientY,
+            dir: null,
+            dx: 0,
+            postId: (e.target as Element).closest("[data-post-id]")?.getAttribute("data-post-id") ?? null,
+          };
         }}
         onTouchMove={(e) => {
           const from = swipeFrom.current;
           if (!from) return;
           const dx = e.touches[0].clientX - from.x;
           const dy = e.touches[0].clientY - from.y;
-          // Decide once which way the finger is going: sideways (to the right) opens Create; up and down scrolls posts.
-          if (!from.dir && Math.hypot(dx, dy) > 10) from.dir = Math.abs(dx) > Math.abs(dy) * 1.3 && dx > 0 ? "x" : "y";
-          if (from.dir === "x") {
+          // Decide once which way the finger is going: right opens Create (signed in), left Recreates this post, and up
+          // and down scrolls posts.
+          if (!from.dir && Math.hypot(dx, dy) > 10) {
+            const sideways = Math.abs(dx) > Math.abs(dy) * 1.3;
+            from.dir = !sideways ? "y" : dx > 0 ? (status === "signedIn" ? "right" : "y") : "left";
+          }
+          if (from.dir === "right") {
             from.dx = dx;
             setSwipe(Math.max(0, Math.min(140, dx)));
+          } else if (from.dir === "left") {
+            from.dx = dx;
+            setSwipeLeft(Math.max(0, Math.min(140, -dx)));
           }
         }}
         onTouchEnd={() => {
           const from = swipeFrom.current;
-          if (from?.dir === "x" && from.dx >= SWIPE_TO_CREATE) setCreating(true);
+          if (from?.dir === "right" && from.dx >= SWIPE_TO_CREATE) setCreating(true);
+          if (from?.dir === "left" && -from.dx >= SWIPE_TO_CREATE && from.postId) setRecreate({ id: from.postId, n: ++counter.current });
           setSwipe(0);
+          setSwipeLeft(0);
           swipeFrom.current = null;
         }}
         className={`relative md:h-auto ${
@@ -278,6 +370,14 @@ export function Feed() {
             </span>
           </div>
         )}
+        {/* Slide left to recreate: "Recreate" comes in from the right edge with the finger. */}
+        {swipeLeft > 0 && (
+          <div aria-hidden className="pointer-events-none absolute inset-y-0 right-0 z-20 flex items-center md:hidden" style={{ transform: `translateX(${120 - swipeLeft}px)`, opacity: Math.min(1, swipeLeft / SWIPE_TO_CREATE) }}>
+            <span className={`flex items-center gap-2 rounded-l-full py-3 pl-5 pr-6 text-[13px] font-semibold text-[#121821] shadow-[0_8px_24px_rgba(0,0,0,0.3)] ${swipeLeft >= SWIPE_TO_CREATE ? "bg-white" : "bg-white/80"}`}>
+              Recreate
+            </span>
+          </div>
+        )}
         {/* Pull to refresh: a small round arrow that comes down with the pull and turns while the newest posts load. */}
         {(pull > 0 || refreshing) && (
           <div
@@ -315,7 +415,7 @@ export function Feed() {
             onTouchMove={(e) => {
               if (pullFrom.current === null || refreshing) return;
               // A sideways slide (to post) is never a pull.
-              if (swipeFrom.current?.dir === "x") return setPull(0);
+              if (swipeFrom.current?.dir === "right" || swipeFrom.current?.dir === "left") return setPull(0);
               const dy = e.touches[0].clientY - pullFrom.current;
               setPull(dy > 0 && atTop() ? Math.min(110, dy * 0.5) : 0);
             }}
@@ -337,13 +437,40 @@ export function Feed() {
               }
             }}
             className="h-full snap-y snap-mandatory overflow-y-auto overscroll-contain bg-[#0b0f14] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden md:mx-auto md:h-auto md:max-w-[1240px] md:columns-2 md:gap-6 md:overflow-visible md:bg-transparent md:px-8 md:pt-6 lg:columns-3 xl:columns-4">
-            {posts.map((p) => {
+            {posts.map((p, index) => {
               const tags = [...p.styleTags, ...p.occasionTags];
               return (
-                <li key={p.id} className="flex h-full snap-start snap-always flex-col md:mb-8 md:block md:h-auto md:break-inside-avoid">
+                <li
+                  key={p.id}
+                  data-post-id={p.id}
+                  data-post-index={index}
+                  className={`flex h-full snap-start snap-always flex-col md:mb-8 md:block md:h-auto md:break-inside-avoid md:rounded-[24px] md:transition-shadow ${
+                    focused === index ? "md:ring-2 md:ring-[#121821] md:ring-offset-4 md:ring-offset-[#f6f5f2]" : ""
+                  }`}
+                >
                   {/* The outfit: as large as the screen allows, never covered by text. */}
                   <div className="relative min-h-0 flex-1 md:flex-none" style={{ "--r": `${p.width} / ${p.height}` } as React.CSSProperties}>
-                    <Link href={`/p/${p.id}`} className="group relative block h-full overflow-hidden md:h-auto md:rounded-[20px] md:bg-[#f1efeb]">
+                    <Link
+                      href={`/p/${p.id}`}
+                      onClick={(e) => {
+                        // Phones: a double-tap likes it (one tap still opens the post, a moment later).
+                        if (!sliding()) return;
+                        e.preventDefault();
+                        const prev = lastTap.current;
+                        if (prev && prev.id === p.id && e.timeStamp - prev.at < 300) {
+                          if (prev.timer) clearTimeout(prev.timer);
+                          lastTap.current = null;
+                          if (status === "signedIn") {
+                            setCommand({ id: p.id, kind: "like", n: ++counter.current, phone: true });
+                            setBurst({ id: p.id, n: counter.current });
+                          }
+                          return;
+                        }
+                        const timer = setTimeout(() => router.push(`/p/${p.id}`), 300);
+                        lastTap.current = { id: p.id, at: e.timeStamp, timer };
+                      }}
+                      className="group relative block h-full overflow-hidden md:h-auto md:rounded-[20px] md:bg-[#f1efeb]"
+                    >
                       {p.videoUrl ? (
                         <FeedVideo
                           src={p.videoUrl}
@@ -362,9 +489,22 @@ export function Feed() {
                           className="h-full w-full object-contain md:h-auto md:object-cover md:transition-transform md:duration-700 md:ease-out md:group-hover:scale-[1.02]"
                         />
                       )}
+                      {burst?.id === p.id && (
+                        <span key={burst.n} aria-hidden className="pointer-events-none absolute inset-0 flex items-center justify-center">
+                          <svg viewBox="0 0 24 24" className="h-24 w-24 animate-[heart-pop_.8s_ease-out_forwards] drop-shadow-[0_6px_20px_rgba(0,0,0,0.35)]" fill="#e0245e" aria-hidden>
+                            <path d="M12 20.5s-7.5-4.6-9.2-9.4C1.6 7.6 3.9 4.5 7.3 4.5c2 0 3.6 1.1 4.7 2.7 1.1-1.6 2.7-2.7 4.7-2.7 3.4 0 5.7 3.1 4.5 6.6-1.7 4.8-9.2 9.4-9.2 9.4z" />
+                          </svg>
+                        </span>
+                      )}
                     </Link>
                     <div className="absolute bottom-3 right-3 md:hidden">
-                      <PostActions post={p} vertical onDisliked={() => remove(p.id)} afterLike={<CommentsButton post={p} />} />
+                      <PostActions
+                        post={p}
+                        vertical
+                        onDisliked={() => remove(p.id)}
+                        afterLike={<CommentsButton post={p} />}
+                        command={command?.id === p.id && command.phone ? command : undefined}
+                      />
                     </div>
                   </div>
 
@@ -381,7 +521,7 @@ export function Feed() {
                         </span>
                       )}
                       <div className="ml-auto hidden md:block">
-                        <PostActions post={p} compact />
+                        <PostActions post={p} compact command={command?.id === p.id && !command.phone ? command : undefined} />
                       </div>
                     </div>
                     {p.caption && <p className="mt-1.5 line-clamp-2 text-[14px] leading-snug text-white/90 md:text-[13.5px] md:text-[#29343a]">{p.caption}</p>}
@@ -390,7 +530,7 @@ export function Feed() {
                       <PiecesButton post={p}>
                         <TryThisOutfit post={p} />
                       </PiecesButton>
-                      <TryThisOutfit post={p} variant="feed" />
+                      <TryThisOutfit post={p} variant="feed" openRequest={recreate?.id === p.id ? recreate.n : 0} />
                     </div>
                   </div>
                 </li>
@@ -401,6 +541,33 @@ export function Feed() {
         )}
         {empty && <div ref={end} aria-hidden className="h-px" />}
         {creating && <CreateMenu onClose={() => setCreating(false)} />}
+        {showKeys &&
+          createPortal(
+            <Dialog label="Keyboard shortcuts" onClose={() => setShowKeys(false)} className="w-full max-w-sm rounded-[22px] bg-white p-5 shadow-xl">
+              <h2 className="text-[17px] font-semibold text-[#121821]">Keyboard shortcuts</h2>
+              <dl className="mt-3 grid grid-cols-[auto_1fr] gap-x-4 gap-y-2 text-[13.5px]">
+                {[
+                  ["↓  J", "Next post"],
+                  ["↑  K", "Previous post"],
+                  ["L", "Like"],
+                  ["S", "Save"],
+                  ["R", "Recreate"],
+                  ["Enter", "Open the post"],
+                  ["N", "New post"],
+                  ["/", "Search"],
+                  ["Esc", "Close"],
+                ].map(([k, what]) => (
+                  <div key={k} className="contents">
+                    <dt>
+                      <kbd className="rounded-[6px] bg-[#f1f3f4] px-2 py-0.5 font-sans text-[12px] font-semibold text-[#121821]">{k}</kbd>
+                    </dt>
+                    <dd className="text-[#4f5b66]">{what}</dd>
+                  </div>
+                ))}
+              </dl>
+            </Dialog>,
+            document.body
+          )}
       </div>
     </main>
   );
