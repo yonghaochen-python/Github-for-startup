@@ -88,7 +88,7 @@ Discover is for inspiration; Virm is still about your closet and your AI stylist
 - **Follow** people from their posts, the feed or their profile (posts, followers and following counts).
 - **Comments** under each post and in a sheet from the feed. The writer and the post's owner can delete a comment; anyone can report one.
 
-**Posting (＋ on phones, Create on computers)** — no AI needed for any of it:
+**Posting (slide right on Discover, or its ＋; New post on computers)** — no AI needed for any of it:
 - **Upload a photo** · **Upload a video** (MP4, MOV or WebM, up to a minute and 50 MB; pick the cover from any moment) · **Share a saved look** · **Build an outfit** (pieces from your closet, Shopping, or any store link or photo, laid out as an outfit board) · **Share a Live Try On video** (one of your saved recordings, only if you pick it).
 - **The editor** (built outfits, and photos too): drag to move, pinch or drag the corner to resize, twist or drag the round handle to turn, **Crop** by the edges, **Cut out** (background removed on your device), **Replace** a piece, **Back / Forward**, **Delete**, **＋ Piece / ＋ Picture / ＋ Text** (3 styles, 6 colors) and the board's **Background** color.
 - Caption, style and occasion tags, and each piece's name, brand, store, price and link. **Details: only you** keeps a piece's brand, store, link and price to yourself (its name and picture stay public).
