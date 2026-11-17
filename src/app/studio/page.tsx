@@ -812,7 +812,7 @@ export default function StudioPage() {
             }`}
           >
             <span className="flex min-w-0 items-center gap-2 whitespace-nowrap">
-              <ClosetIcon className="h-4 w-4 shrink-0" /> My Closet{closet ? ` · ${closet.length}` : ""}
+              <ClosetIcon className="h-4 w-4 shrink-0" /> Closet
             </span>
             <svg viewBox="0 0 12 12" className={`h-3 w-3 transition-transform ${closetOpen ? "rotate-180" : ""}`} fill="none" stroke="currentColor" strokeWidth="1.6" aria-hidden>
               <path d="m3 4.5 3 3 3-3" strokeLinecap="round" strokeLinejoin="round" />
