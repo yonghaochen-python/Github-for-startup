@@ -5,7 +5,7 @@ Virm is an AI wardrobe app. You put your clothes in a digital closet, get outfit
 - **Live site:** https://virm-virtualmirror.yonghaochen.workers.dev
 - **Made for phones first**, then computers. A bottom tab bar on phones, a top bar on computers.
 - **Menu (live):** Home · My Closet · Studio · Planner (more: Shopping · AI Stylist · Saved Looks · Profile)
-- **Menu (demo, not live yet):** Discover · My Closet · ＋ · Planner · Profile on phones (Studio is the mirror icon at the top); Discover · My Closet · Studio · Planner · More and a **Create** button on computers
+- **Menu (demo, not live yet):** **Studio · Discover · ＋ · My Style**, the same on phones (bottom bar) and computers (top bar). Your photo at the top right holds Planner, Shopping, AI Stylist, Saved Looks, Profile, Admin and Log out.
 - **Live vs. demo:** everything below is in the demo on your computer. Items marked **(not live yet)** aren't on the live site yet.
 
 ---
@@ -14,7 +14,20 @@ Virm is an AI wardrobe app. You put your clothes in a digital closet, get outfit
 
 **Getting around (live):** **Home · My Closet · Studio · Planner** (top bar on computers, bottom bar on phones). **More** holds Shopping, AI Stylist and Saved Looks; your photo opens Profile, Admin and Log out. Works with a keyboard and screen readers, and up to 400% zoom.
 
-**Getting around (demo, not live yet):** Discover is the first page. Phones: **Discover · My Closet · ＋ · Planner · Profile**, with Studio as the mirror icon in the top bar. Computers: **Discover · My Closet · Studio · Planner · More** and a **Create** button. Your Next Step and What's New move into Profile. Planned next, as its own step: a **My Style** landing page (your outfit recommendations with a small Discover strip), with Discover staying its own tab.
+**Getting around (demo, not live yet):** **My Style** is the first page. **Studio · Discover · ＋ · My Style** on phones and computers alike; Profile and everything else is under your photo at the top right (it shows your profile photo, never your Studio photo). My Closet lives inside Studio.
+
+### My Style **(not live yet)**
+- A greeting and **Your Next Step**.
+- **Today's outfit** from the Planner: **Try On** (opens it in Studio), **Swap** (a new free suggestion for today, kept in the Planner), **See the week**. Nothing planned: **Suggest one**.
+- **Picks in your colors** (or **Top 3 Picks** without a Style Profile): three outfits from your closet, free; **New picks**. A tap opens one in Studio.
+- **Style it:** type a theme and Studio opens and styles it (the paid search runs only because you pressed Style it).
+- **Inspiration:** the newest Discover outfits, with **See all**.
+- Signed out: the welcome page with **Try It Free**.
+
+### Studio and My Closet **(demo, not live yet)**
+- Phones: **Outfit | Closet** under the mirror. Outfit shows the picks and Try On; Closet shows your closet right there: **My clothes | Unowned** (pieces tried on from Shopping), **＋ Add clothes**, **Edit**, filters, and each piece's window with **Wear it**.
+- Computers: the closet panel beside the mirror, with **＋ Add** and **Manage**.
+- The old My Closet address opens Studio with the closet.
 
 ### Home (live; replaced by Discover in the demo)
 - Signed in: a greeting beside your photo, **Your Next Step** (one suggestion based on where you are), **This Week** (your planned outfits), **My Closet** and **Saved Looks** with real counts, and **Recent** (the last two weeks).
