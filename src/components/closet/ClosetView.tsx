@@ -17,6 +17,10 @@ import { keepItemBackground, removeBackgroundsAfterAdding, removeItemBackground 
 import { warmUpCutout } from "@/lib/cutout";
 import { DRIFT_WARNING, keepEnhancement, previewEnhancement, showPicture, type EnhancePreview } from "@/lib/enhanceClient";
 import { ShelfRow } from "@/components/ShelfRow";
+import Link from "next/link";
+
+/** A piece from Shopping (not owned): enough to show it and put it on the mirror. */
+export type UnownedPiece = { id: string; imageUrl: string; description: string; category: string; retailer?: string };
 
 export type ClothingItem = {
   id: string;
@@ -83,8 +87,11 @@ export function ClosetView({
   startAdding = false,
   addRequest = 0,
   onItems,
+  unowned = [],
 }: {
   onWear: (item: ClothingItem) => void;
+  /** Unowned: pieces tried on from Shopping (not in the closet), worn the same way. */
+  unowned?: UnownedPiece[];
   wornIds: Set<string>;
   startAdding?: boolean;
   /** A new number opens Add clothes. */
@@ -110,6 +117,8 @@ export function ClosetView({
   const [search, setSearch] = useState("");
   const [viewingId, setViewingId] = useState<string | null>(null);
   const [showAddClothes, setShowAddClothes] = useState(startAdding);
+  // My clothes (the closet) or Unowned (pieces tried on from Shopping).
+  const [view, setView] = useState<"owned" | "unowned">("owned");
   const [lastAddRequest, setLastAddRequest] = useState(addRequest);
   if (addRequest !== lastAddRequest) {
     setLastAddRequest(addRequest);
@@ -329,8 +338,89 @@ export function ClosetView({
     }
   }
 
+  const bar = (
+    <div role="tablist" aria-label="Which clothes" className="relative mb-3 grid w-full max-w-[320px] grid-cols-2 rounded-full bg-white p-1 shadow-[inset_0_0_0_1px_rgba(18,24,33,0.08)]">
+      <span
+        aria-hidden
+        className={`absolute inset-y-1 left-1 w-[calc(50%-4px)] rounded-full bg-[#121821] transition-transform duration-300 ease-[cubic-bezier(.3,.7,.2,1)] motion-reduce:transition-none ${
+          view === "unowned" ? "translate-x-full" : "translate-x-0"
+        }`}
+      />
+      {(["owned", "unowned"] as const).map((v) => (
+        <button
+          key={v}
+          role="tab"
+          aria-selected={view === v}
+          onClick={() => setView(v)}
+          className={`relative rounded-full py-2 text-[13px] font-semibold transition-colors duration-300 ${view === v ? "text-white" : "text-[#4f5b66]"}`}
+        >
+          {v === "owned" ? "My clothes" : "Unowned"}
+        </button>
+      ))}
+    </div>
+  );
+
+  if (view === "unowned") {
+    return (
+      <section aria-label="Unowned">
+        {bar}
+        {unowned.length === 0 ? (
+          <p className="py-6 text-[13.5px] text-[#4f5b66]">
+            Pieces you try on from Shopping show up here.{" "}
+            <Link href="/shop" className="font-semibold text-[#121821] underline underline-offset-4">
+              Browse Shopping
+            </Link>
+          </p>
+        ) : (
+          <>
+            <p className="mb-3 text-[12px] text-[#5d6874]">
+              Tap to wear, tap again to take it off.{" "}
+              <Link href="/shop" className="font-semibold text-[#121821] underline-offset-4 hover:underline">
+                Find more in Shopping
+              </Link>
+            </p>
+            <div className="closet-shelf rounded-[20px] px-4 py-3 sm:rounded-[24px] sm:px-6 sm:py-4">
+              {SHELVES.map(({ value, label }) => {
+                const row = unowned.filter((p) => p.category === value);
+                if (row.length === 0) return null;
+                return (
+                  <ShelfRow key={value} label={label} count={row.length}>
+                    {row.map((piece) => {
+                      const on = wornIds.has(piece.id);
+                      return (
+                        <li key={piece.id} className="relative shrink-0 snap-start">
+                          <button
+                            onClick={() => onWear(piece as unknown as ClothingItem)}
+                            aria-pressed={on}
+                            aria-label={`${on ? "Take off" : "Wear"} ${piece.description}`}
+                            className="group block text-left"
+                          >
+                            <span className={`relative block h-[124px] w-[96px] overflow-hidden rounded-[10px] bg-white sm:h-[150px] sm:w-[116px] ${on ? "ring-2 ring-[#121821]" : ""}`}>
+                              <Image src={piece.imageUrl} alt="" fill unoptimized onError={retryImage} className="object-contain p-1" />
+                              {on && (
+                                <span className="absolute right-1 top-1 flex h-5 w-5 items-center justify-center rounded-full bg-[#121821] text-white">
+                                  <CheckIcon className="h-3 w-3" />
+                                </span>
+                              )}
+                            </span>
+                            {piece.retailer && <span className="mt-1 block w-[96px] truncate text-[11px] text-[#5d6874] sm:w-[116px]">{piece.retailer}</span>}
+                          </button>
+                        </li>
+                      );
+                    })}
+                  </ShelfRow>
+                );
+              })}
+            </div>
+          </>
+        )}
+      </section>
+    );
+  }
+
   return (
     <section aria-label="My Closet">
+        {bar}
         <div className="mb-3 flex flex-wrap items-center gap-2">
           <button onClick={() => setShowAddClothes(true)} data-tip="closet-add" className={`${btnPrimary} !min-h-[40px] !px-4 !text-[13px]`}>
             <PlusIcon className="h-4 w-4" /> Add clothes

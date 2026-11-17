@@ -910,6 +910,7 @@ export default function StudioPage() {
               startAdding={closetAdd}
               addRequest={addRequest}
               onItems={(items) => setCloset(items as unknown as ClothingItem[])}
+              unowned={[...shopPicks, ...shopTryOns.filter((t) => !shopPicks.some((p) => p.id === t.id))]}
             />
           </div>
         </div>
