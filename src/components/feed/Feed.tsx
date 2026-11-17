@@ -111,10 +111,10 @@ export function Feed() {
   const sliding = () => typeof window !== "undefined" && window.matchMedia("(max-width: 767px)").matches;
   const atTop = () => sliding() && (list.current?.scrollTop ?? 0) <= 0;
 
-  // Posting lives here: slide right on a phone (or press ＋) to open Create.
+  // Posting lives here: slide right on a phone to open Create (computers: the New post button).
   const [creating, setCreating] = useState(false);
   const [swipe, setSwipe] = useState(0);
-  const swipeFrom = useRef<{ x: number; y: number; dir: "x" | "y" | null } | null>(null);
+  const swipeFrom = useRef<{ x: number; y: number; dir: "x" | "y" | null; dx: number } | null>(null);
   const SWIPE_TO_CREATE = 80;
 
   const remove = (id: string) => setPosts((list) => list.filter((p) => p.id !== id));
@@ -212,7 +212,7 @@ export function Feed() {
 
       <div
         onTouchStart={(e) => {
-          swipeFrom.current = status === "signedIn" ? { x: e.touches[0].clientX, y: e.touches[0].clientY, dir: null } : null;
+          swipeFrom.current = status === "signedIn" ? { x: e.touches[0].clientX, y: e.touches[0].clientY, dir: null, dx: 0 } : null;
         }}
         onTouchMove={(e) => {
           const from = swipeFrom.current;
@@ -221,10 +221,14 @@ export function Feed() {
           const dy = e.touches[0].clientY - from.y;
           // Decide once which way the finger is going: sideways (to the right) opens Create; up and down scrolls posts.
           if (!from.dir && Math.hypot(dx, dy) > 10) from.dir = Math.abs(dx) > Math.abs(dy) * 1.3 && dx > 0 ? "x" : "y";
-          if (from.dir === "x") setSwipe(Math.max(0, Math.min(140, dx)));
+          if (from.dir === "x") {
+            from.dx = dx;
+            setSwipe(Math.max(0, Math.min(140, dx)));
+          }
         }}
         onTouchEnd={() => {
-          if (swipe >= SWIPE_TO_CREATE) setCreating(true);
+          const from = swipeFrom.current;
+          if (from?.dir === "x" && from.dx >= SWIPE_TO_CREATE) setCreating(true);
           setSwipe(0);
           swipeFrom.current = null;
         }}
@@ -255,20 +259,10 @@ export function Feed() {
                   </Link>
                 </div>
               )}
-              {status === "signedIn" && (
-                <button
-                  onClick={() => setCreating(true)}
-                  aria-label="New post"
-                  aria-haspopup="dialog"
-                  className="ml-auto flex h-10 w-10 items-center justify-center rounded-full bg-black/35 text-white backdrop-blur-md"
-                >
-                  <PlusIcon className="h-[19px] w-[19px]" />
-                </button>
-              )}
               <button
                 onClick={() => setSearching(true)}
                 aria-label="Search"
-                className={`${status === "signedIn" ? "" : "ml-auto "}flex h-10 w-10 items-center justify-center rounded-full bg-black/35 text-white backdrop-blur-md`}
+                className="ml-auto flex h-10 w-10 items-center justify-center rounded-full bg-black/35 text-white backdrop-blur-md"
               >
                 <SearchIcon className="h-[18px] w-[18px]" />
               </button>
