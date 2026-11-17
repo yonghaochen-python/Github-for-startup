@@ -2,6 +2,7 @@
 
 import { usePathname } from "next/navigation";
 import Link from "next/link";
+import { useAuth } from "@/components/AuthProvider";
 
 const LINKS = [
   { href: "/about", label: "About" },
@@ -18,8 +19,11 @@ const LINKS = [
  */
 export function Footer() {
   const pathname = usePathname();
+  const { status } = useAuth();
+  // Where the feed fills the phone's screen: Discover, and (signed out, for now) the first page.
+  const feed = pathname === "/discover" || (pathname === "/" && status === "signedOut");
   return (
-    <footer className={`site-footer border-t border-black/[0.06] ${pathname === "/" ? "max-md:hidden" : ""}`}>
+    <footer className={`site-footer border-t border-black/[0.06] ${feed ? "max-md:hidden" : ""}`}>
       <div className="mx-auto flex w-full max-w-[1280px] flex-col gap-4 px-5 py-8 sm:px-8 lg:flex-row lg:items-center lg:justify-between">
         <p className="whitespace-nowrap text-[13px] font-semibold text-[#26313a]">
           Private by design <span className="font-normal text-[#4f5b66]">· Your closet stays yours.</span>

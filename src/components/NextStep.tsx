@@ -10,8 +10,7 @@ const WEEK = 7 * 24 * 60 * 60 * 1000;
 type Step = { text: string; cta: string; href: string; picture?: string };
 
 /**
- * One useful next action, from what the person has done so far (it used to open the Home page; Discover is the first
- * page now, so it lives in Profile). Without a photo it shows nothing: Profile's photo card already asks for one.
+ * One useful next action, from what the person has done so far (at the top of My Style). Without a photo it shows nothing: Profile's photo card already asks for one.
  * Reads the person's own closet, outfits and reports; nothing is generated.
  */
 function nextStep(closetCount: number, saved: Outfit[], hasStyleProfile: boolean): Step {
@@ -38,9 +37,10 @@ export function NextStep() {
   useEffect(() => {
     if (!hasPhoto) return;
     let ignore = false;
-    const json = (url: string) => fetch(url).then(async (res) => (res.ok ? res.json() : {})).catch(() => ({}));
+    // A request that fails gives null: then nothing is suggested (rather than a wrong step, like "add clothes").
+    const json = (url: string) => fetch(url, { cache: "no-store" }).then(async (res) => (res.ok ? res.json() : null)).catch(() => null);
     Promise.all([json("/api/closet/items"), json("/api/outfits"), json("/api/studio")]).then(([closet, outfits, studio]) => {
-      if (ignore) return;
+      if (ignore || !closet || !outfits || !studio) return;
       const saved = (((outfits as { outfits?: Outfit[] }).outfits ?? []) as Outfit[]).filter((o) => o.isFavorite);
       const reports = (studio as { reports?: Record<string, unknown> }).reports ?? {};
       setStep(nextStep(((closet as { items?: unknown[] }).items ?? []).length, saved, Object.keys(reports).length > 0));

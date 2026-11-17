@@ -641,7 +641,7 @@ function CreatePost() {
     <main className="flex-1 pb-24">
       <PageShell className="max-w-xl pt-8">
         <div className="flex items-center gap-3">
-          <BackButton disabled={busy} />
+          <BackButton fallback="/discover" disabled={busy} />
           <h1 className="font-display text-[36px] leading-none text-[#121821]">{editId ? "Edit post" : "New post"}</h1>
         </div>
 

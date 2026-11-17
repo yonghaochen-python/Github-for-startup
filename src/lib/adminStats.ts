@@ -59,6 +59,7 @@ export function maskEmail(email: string): string {
 
 const FEATURES = [
   { key: "home", label: "Home" },
+  { key: "mystyle", label: "My Style" },
   { key: "discover", label: "Discover" },
   { key: "shop", label: "Shopping" },
   { key: "closet", label: "My Closet" },

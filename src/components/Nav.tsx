@@ -4,32 +4,32 @@ import { useEffect, useId, useRef, useState } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useAuth } from "@/components/AuthProvider";
-import { BagIcon, BookmarkIcon, CalendarIcon, ClosetIcon, CompassIcon, MirrorIcon, PaletteIcon, PlusIcon, UserIcon } from "@/components/Icons";
-import { MirrorImage } from "@/components/SavedPhoto";
+import { BagIcon, BookmarkIcon, CalendarIcon, ClosetIcon, CompassIcon, MirrorIcon, PaletteIcon, PlusIcon, SparkleIcon, UserIcon } from "@/components/Icons";
 import { PricingSheet } from "@/components/Pricing";
 import { CreateMenu } from "@/components/CreateMenu";
 import { useBillingStatus } from "@/lib/useBillingStatus";
 
-type Section = "discover" | "create" | "shop" | "closet" | "studio" | "stylist" | "planner" | "saved" | "profile";
+type Section = "mystyle" | "discover" | "create" | "shop" | "closet" | "studio" | "stylist" | "planner" | "saved" | "profile";
 type NavLink = { section: Section; href: string; label: string; short: string; Icon: typeof CompassIcon };
 
-/** Computers: the main places in the top bar (Discover first; posting is the Create button beside them). */
-const PRIMARY: NavLink[] = [
-  { section: "discover", href: "/", label: "Discover", short: "Discover", Icon: CompassIcon },
+const STUDIO: NavLink = { section: "studio", href: "/studio", label: "Studio", short: "Studio", Icon: MirrorIcon };
+const DISCOVER: NavLink = { section: "discover", href: "/discover", label: "Discover", short: "Discover", Icon: CompassIcon };
+const MY_STYLE: NavLink = { section: "mystyle", href: "/", label: "My Style", short: "My Style", Icon: SparkleIcon };
+const PLANNER: NavLink = { section: "planner", href: "/planner", label: "Planner", short: "Planner", Icon: CalendarIcon };
+/** Computers: the main places in the top bar (posting is the Create button beside them). */
+const PRIMARY: NavLink[] = [STUDIO, DISCOVER, MY_STYLE, PLANNER];
+/** Phones: the bottom bar, with posting (＋) in the middle. Profile is the person's photo at the top right. */
+const PHONE_TABS: (NavLink | "create")[] = [STUDIO, DISCOVER, "create", MY_STYLE];
+/** Phones: places in the menu under the person's photo (the bottom bar has the main four). */
+const PHONE_MORE: NavLink[] = [
+  PLANNER,
+  // Until My Closet moves into Studio.
   { section: "closet", href: "/closet", label: "My Closet", short: "Closet", Icon: ClosetIcon },
-  { section: "studio", href: "/studio", label: "Studio", short: "Studio", Icon: MirrorIcon },
-  { section: "planner", href: "/planner", label: "Planner", short: "Planner", Icon: CalendarIcon },
-];
-/** Phones: the bottom bar, with posting (＋) in the middle. Studio is the mirror icon in the top bar there. */
-const PHONE_TABS: (NavLink | "create")[] = [
-  PRIMARY[0],
-  PRIMARY[1],
-  "create",
-  PRIMARY[3],
-  { section: "profile", href: "/profile", label: "Profile", short: "Profile", Icon: UserIcon },
 ];
 /** Everything else: in More on computers, and in the menu under the person's photo on phones. */
 const SECONDARY: NavLink[] = [
+  // Until My Closet moves into Studio.
+  { section: "closet", href: "/closet", label: "My Closet", short: "Closet", Icon: ClosetIcon },
   { section: "shop", href: "/shop", label: "Shopping", short: "Shop", Icon: BagIcon },
   { section: "stylist", href: "/stylist", label: "AI Stylist", short: "Stylist", Icon: PaletteIcon },
   { section: "saved", href: "/outfits/saved", label: "Saved Looks", short: "Saved", Icon: BookmarkIcon },
@@ -38,8 +38,9 @@ const SECONDARY: NavLink[] = [
 /** Which main section a URL belongs to, so exactly one tab is lit everywhere in the app. */
 function sectionFor(pathname: string | null): Section | null {
   const p = pathname ?? "/";
-  // Discover: the feed (the first page), posts and public profiles. Posting lights the ＋.
-  if (p === "/" || p.startsWith("/feed") || p.startsWith("/p/") || p.startsWith("/u/")) return "discover";
+  // My Style is the first page; Discover is the feed, posts and public profiles. Posting lights the ＋.
+  if (p === "/") return "mystyle";
+  if (p.startsWith("/discover") || p.startsWith("/feed") || p.startsWith("/p/") || p.startsWith("/u/")) return "discover";
   if (p.startsWith("/create")) return "create";
   if (p.startsWith("/shop")) return "shop";
   if (p.startsWith("/closet")) return "closet";
@@ -53,7 +54,7 @@ function sectionFor(pathname: string | null): Section | null {
 
 function Wordmark() {
   return (
-    <Link href="/" className="group flex shrink-0 items-baseline gap-3 leading-none" aria-label="Virm: Discover">
+    <Link href="/" className="group flex shrink-0 items-baseline gap-3 leading-none" aria-label="Virm: My Style">
       <span className="font-display text-[34px] tracking-[-1px] text-[#121821] sm:text-[36px]">
         Vir<em className="font-normal">m</em>
       </span>
@@ -158,18 +159,43 @@ function MoreMenu({ current }: { current: Section | null }) {
 }
 
 /**
- * The person's photo (or initial) on the right: Profile, Admin for admins, and Log out. On phones it also holds
- * Shopping, AI Stylist and Saved Looks (the bottom bar has the four main places).
+ * The person's profile photo (or initial) on the right: Profile, Admin for admins, and Log out. On phones it also holds
+ * Planner, Shopping, AI Stylist and Saved Looks (the bottom bar has the four main places).
  */
+/** Sent by the profile editor when the profile photo changes (detail: its new address, or null when removed). */
+export const PROFILE_PHOTO_EVENT = "virm-profile-photo";
+
+/** The person's own profile photo (the one on their public profile), kept in step when it's changed. */
+function useProfilePhoto(signedIn: boolean): string | null {
+  const [url, setUrl] = useState<string | null>(null);
+  useEffect(() => {
+    if (!signedIn) return;
+    let gone = false;
+    fetch("/api/me/public-profile", { cache: "no-store" })
+      .then(async (res) => (res.ok ? ((await res.json()) as { avatarUrl: string | null }).avatarUrl : null))
+      .then((u) => !gone && setUrl(u))
+      .catch(() => {});
+    const changed = (e: Event) => setUrl((e as CustomEvent<string | null>).detail);
+    window.addEventListener(PROFILE_PHOTO_EVENT, changed);
+    return () => {
+      gone = true;
+      window.removeEventListener(PROFILE_PHOTO_EVENT, changed);
+    };
+  }, [signedIn]);
+  return signedIn ? url : null;
+}
+
 function AccountMenu({ current }: { current: Section | null }) {
   const { user, logout } = useAuth();
   const pathname = usePathname();
   const [open, setOpen, button, panel, panelId] = useMenu();
+  // The profile photo, not the Studio try-on photo (a new Studio photo never changes it).
+  const photo = useProfilePhoto(Boolean(user));
   if (!user) return null;
   const initial = (user.displayName?.trim() || user.email).charAt(0).toUpperCase();
   // Lit on Profile and Admin; on phones also on the pages in this menu (computers light More for those).
   const lit = current === "profile" || Boolean(pathname?.startsWith("/admin"));
-  const litOnPhones = SECONDARY.some((l) => l.section === current);
+  const litOnPhones = [...PHONE_MORE, ...SECONDARY].some((l) => l.section === current);
   return (
     <div className="relative">
       <button
@@ -184,13 +210,16 @@ function AccountMenu({ current }: { current: Section | null }) {
         }`}
       >
         <span aria-hidden>{initial}</span>
-        {user.photoVersion && <MirrorImage original className="absolute inset-0 h-full w-full object-cover object-top" />}
+        {photo && (
+          // eslint-disable-next-line @next/next/no-img-element -- the person's own profile photo
+          <img src={photo} alt="" className="absolute inset-0 h-full w-full object-cover" />
+        )}
       </button>
       {open && (
         <div ref={panel} id={panelId} className={menuPanel}>
           <ul>
             {/* Phones: the pages that aren't in the bottom bar. */}
-            {SECONDARY.map(({ section, href, label, Icon }) => (
+            {[...PHONE_MORE, ...SECONDARY.filter((l) => !PHONE_MORE.some((m) => m.section === l.section))].map(({ section, href, label, Icon }) => (
               <li key={section} className="md:hidden">
                 <Link href={href} aria-current={current === section ? "page" : undefined} className={menuItem(current === section)}>
                   <Icon className="h-[18px] w-[18px] text-[#4f5b66]" />
@@ -281,19 +310,6 @@ export function Nav() {
               Create
             </button>
           )}
-          {/* Phones: Studio (the bottom bar has Discover, Closet, ＋, Planner and Profile). */}
-          {user && (
-            <Link
-              href="/studio"
-              aria-label="Studio"
-              aria-current={current === "studio" ? "page" : undefined}
-              className={`flex h-10 w-10 items-center justify-center rounded-full md:hidden ${
-                current === "studio" ? "bg-[#121821] text-white" : "bg-white text-[#121821] shadow-[inset_0_0_0_1px_rgba(18,24,33,0.12)]"
-              }`}
-            >
-              <MirrorIcon className="h-[19px] w-[19px]" />
-            </Link>
-          )}
           {user && !subscribed && (
             <button
               onClick={() => setPlansOpen(true)}
@@ -320,7 +336,7 @@ export function Nav() {
   );
 }
 
-/** Phone navigation: Discover, My Closet, ＋ (post), Planner and Profile, always one tap away at the bottom. */
+/** Phone navigation: Studio, Discover, ＋ (post) and My Style, always one tap away at the bottom. */
 export function MobileTabBar() {
   const pathname = usePathname();
   const { user } = useAuth();
@@ -335,7 +351,7 @@ export function MobileTabBar() {
         aria-label="Main"
         className="site-tabbar fixed inset-x-0 bottom-0 z-30 border-t border-black/[0.06] pb-[env(safe-area-inset-bottom)] backdrop-blur-xl md:hidden"
       >
-        <ul className="grid grid-cols-5">
+        <ul className="grid grid-cols-4">
           {PHONE_TABS.map((tab) => {
             if (tab === "create") {
               return (

@@ -1,5 +1,6 @@
 "use client";
 
+import { PROFILE_PHOTO_EVENT } from "@/components/Nav";
 import { useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import { Avatar } from "@/components/Avatar";
@@ -89,6 +90,7 @@ export function PublicProfileEditor() {
       const data = (await res.json().catch(() => ({}))) as { avatarUrl?: string; error?: string };
       if (!res.ok || !data.avatarUrl) throw new Error(data.error ?? "Couldn't save that picture.");
       setMine({ ...mine!, avatarUrl: data.avatarUrl });
+      window.dispatchEvent(new CustomEvent(PROFILE_PHOTO_EVENT, { detail: data.avatarUrl }));
     } catch (err) {
       setNote(err instanceof Error ? err.message : "Couldn't save that picture.");
     }
@@ -99,6 +101,7 @@ export function PublicProfileEditor() {
     setBusy("picture");
     await fetch("/api/me/avatar", { method: "DELETE" }).catch(() => null);
     setMine({ ...mine!, avatarUrl: null });
+    window.dispatchEvent(new CustomEvent(PROFILE_PHOTO_EVENT, { detail: null }));
     setBusy(null);
   }
 

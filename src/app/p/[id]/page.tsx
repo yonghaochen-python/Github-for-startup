@@ -70,7 +70,7 @@ export default function PostPage() {
     <main className="flex-1 pb-24">
       <PageShell className="max-w-xl pt-6">
         <div className="flex items-center gap-3">
-          <BackButton />
+          <BackButton fallback="/discover" />
           <Link href={`/u/${post.creator.username}`} className="flex min-w-0 items-center gap-2.5">
             <Avatar url={post.creator.avatarUrl} name={post.creator.displayName ?? post.creator.username} size={36} />
             <span className="truncate text-[14px] font-semibold text-[#121821]">@{post.creator.username}</span>

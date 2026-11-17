@@ -3,9 +3,9 @@
 import { useEffect } from "react";
 import { useRouter } from "next/navigation";
 
-/** The feed's old address: Discover is the first page now (/), so links to /feed still land there. */
+/** The feed's old address: Discover lives at /discover, so links to /feed still land there. */
 export default function OldFeedAddress() {
   const router = useRouter();
-  useEffect(() => router.replace("/"), [router]);
+  useEffect(() => router.replace("/discover"), [router]);
   return <main className="flex-1" />;
 }
