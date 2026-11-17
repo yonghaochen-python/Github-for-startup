@@ -51,7 +51,7 @@ export function PiecesButton({ post, children }: { post: PublicPost; children?: 
         className="inline-flex items-center gap-1.5 rounded-full bg-white/15 px-3.5 py-2 text-[12.5px] font-semibold text-white ring-1 ring-white/25 backdrop-blur-md md:bg-white md:text-[#121821] md:ring-black/10"
       >
         <Hanger />
-        Pieces · {post.items.length}
+        Pieces
       </button>
       {open &&
         createPortal(

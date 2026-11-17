@@ -56,7 +56,7 @@ export function PostPreview({
             {caption.trim() && <p className="mt-1 line-clamp-2 text-[14px] leading-snug text-white/90">{caption}</p>}
             {tags.length > 0 && <p className="mt-1 truncate text-[12px] text-white/55">{tags.join(" · ")}</p>}
             {pieces > 0 && (
-              <span className="mt-2.5 inline-flex rounded-full bg-white/15 px-3.5 py-1.5 text-[12px] font-semibold ring-1 ring-white/25">Pieces · {pieces}</span>
+              <span className="mt-2.5 inline-flex rounded-full bg-white/15 px-3.5 py-1.5 text-[12px] font-semibold ring-1 ring-white/25">Pieces</span>
             )}
           </div>
         </div>

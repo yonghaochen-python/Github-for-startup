@@ -99,7 +99,7 @@ export function TryThisOutfit({
             : "w-full rounded-full bg-[#121821] px-5 py-3 text-[14.5px] font-semibold text-white"
         }
       >
-        Recreate with My Closet
+        Recreate
       </button>
       {/* Drawn at the top of the page: on the feed the button sits in a layer that lets taps through. */}
       {open &&
