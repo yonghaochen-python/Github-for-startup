@@ -20,8 +20,7 @@ import { OutfitFlatLay } from "@/components/OutfitFlatLay";
 import { MirrorPieces } from "@/components/MirrorPieces";
 import { PersonPicture } from "@/components/PersonPicture";
 import { OutfitPicks } from "@/components/OutfitPicks";
-import { shuffleOutfit } from "@/lib/shuffleOutfit";
-import { paletteWeight } from "@/lib/colorMatch";
+import { freePicks } from "@/lib/freePicks";
 import { ColorFilter, matchesColor, type ColorChoice } from "@/components/ClosetPicker";
 import { profileColors, type StyleProfile } from "@/lib/styleProfile";
 import type { Swatch } from "@/lib/studioModules";
@@ -81,22 +80,6 @@ const LOOK_KEY = "virm-studio-look";
 const sameIds = (a: string[], b: string[]) => a.length === b.length && [...a].sort().join() === [...b].sort().join();
 
 type Palette = { wear: Swatch[]; avoid: Swatch[] };
-
-/** Free picks made on the device from the closet (not saved outfits; ids start with "pick-"). */
-function freePicks(closet: ClothingItem[], palette: Palette | null = null): Outfit[] {
-  const picks: Outfit[] = [];
-  const seen = new Set<string>();
-  // With a Style Profile, pieces in the person's colors come up more often (their neutrals stay in the mix).
-  const weight = palette?.wear.length ? (i: ClothingItem) => paletteWeight((i as { color?: string }).color, palette) : undefined;
-  for (let tries = 0; picks.length < 3 && tries < 12; tries++) {
-    const items = shuffleOutfit(closet, [], weight);
-    const key = items.map((i) => i.id).sort().join();
-    if (items.length < 2 || seen.has(key)) continue;
-    seen.add(key);
-    picks.push({ id: `pick-${tries}-${key}`, rationale: "", isFavorite: false, occasion: null, layers: items.map((i) => ({ role: i.layeringRole, items: [i] })) });
-  }
-  return picks;
-}
 
 const lookFrom = (outfit: Outfit): Look => ({
   outfitId: outfit.id,
@@ -226,7 +209,9 @@ export default function StudioPage() {
   }, [drawer]);
   const closetRef = useRef<HTMLElement | null>(null);
 
-  const [theme, setTheme] = useState("");
+  // Arriving from My Style's Style it (?theme=…&run=1): the theme typed there, styled once (they pressed Style it).
+  const [theme, setTheme] = useState(() => (searchParams.get("theme") ?? "").slice(0, 120));
+  const styleOnArrival = useRef(searchParams.get("run") === "1" && Boolean(searchParams.get("theme")?.trim()));
   const [styling, setStyling] = useState(false);
   const [ideas, setIdeas] = useState<Outfit[]>([]);
   // The ideas came from a search made before (same search, same closet): shown free, with New ideas to ask again.
@@ -633,6 +618,18 @@ export default function StudioPage() {
     } catch {}
     requestAnimationFrame(() => document.querySelector('[aria-label="Top picks"]')?.scrollIntoView({ block: "nearest", behavior: "smooth" }));
   }
+
+  // From My Style: run the Style it they pressed there, once (the address is cleaned so a reload doesn't run it again).
+  useEffect(() => {
+    if (!styleOnArrival.current) return;
+    styleOnArrival.current = false;
+    const t = setTimeout(() => {
+      void styleTheme(undefined, false, theme);
+      router.replace(pathname, { scroll: false });
+    }, 0);
+    return () => clearTimeout(t);
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- once, on arrival
+  }, []);
 
   function startOver() {
     setLastPicture(null);

@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import Link from "next/link";
 import { useAuth } from "@/components/AuthProvider";
+import { fetchWithRetry } from "@/lib/fetchRetry";
 import { ArrowRightIcon } from "@/components/Icons";
 import type { Outfit } from "@/components/OutfitCard";
 
@@ -38,7 +39,7 @@ export function NextStep() {
     if (!hasPhoto) return;
     let ignore = false;
     // A request that fails gives null: then nothing is suggested (rather than a wrong step, like "add clothes").
-    const json = (url: string) => fetch(url, { cache: "no-store" }).then(async (res) => (res.ok ? res.json() : null)).catch(() => null);
+    const json = (url: string) => fetchWithRetry(url).then(async (res) => (res.ok ? res.json() : null)).catch(() => null);
     Promise.all([json("/api/closet/items"), json("/api/outfits"), json("/api/studio")]).then(([closet, outfits, studio]) => {
       if (ignore || !closet || !outfits || !studio) return;
       const saved = (((outfits as { outfits?: Outfit[] }).outfits ?? []) as Outfit[]).filter((o) => o.isFavorite);
