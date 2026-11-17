@@ -109,7 +109,8 @@ export function TryThisOutfit({
         onClick={start}
         className={
           variant === "feed"
-            ? "inline-flex items-center whitespace-nowrap rounded-full bg-white px-4 py-2 text-[12.5px] font-semibold text-[#121821] shadow-sm md:bg-[#121821] md:text-white"
+            ? // Phones slide left on the post instead (the window still opens from here); computers keep the button.
+              "hidden items-center whitespace-nowrap rounded-full bg-[#121821] px-4 py-2 text-[12.5px] font-semibold text-white shadow-sm md:inline-flex"
             : "w-full rounded-full bg-[#121821] px-5 py-3 text-[14.5px] font-semibold text-white"
         }
       >
