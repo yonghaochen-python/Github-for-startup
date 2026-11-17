@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { ArrowRightIcon, CameraIcon, CheckIcon, MirrorIcon } from "@/components/Icons";
 import { PageShell, surface } from "@/components/ui";
+import { BackToMyStyle } from "@/components/BackToMyStyle";
 import { ModuleVisual } from "@/components/studio/ModuleVisual";
 import { PortraitControls } from "@/components/studio/PortraitPanel";
 import { PickSwatches } from "@/components/studio/TopPicks";
@@ -55,7 +56,8 @@ export default function StylistPage() {
   return (
     <main className="flex-1 pb-20">
       <Tips id="stylist" tips={STYLIST_TIPS} delay={1200} />
-      <PageShell className="pt-8 sm:pt-12">
+      <PageShell className="pt-5 sm:pt-8">
+        <BackToMyStyle className="mb-4" />
         {/* The consultation: the promise on one side, the person's photo on the other. */}
         <section className="grid items-center gap-8 md:grid-cols-[minmax(0,1fr)_260px] lg:grid-cols-[minmax(0,1fr)_300px] lg:gap-14">
           <div className="max-w-xl">

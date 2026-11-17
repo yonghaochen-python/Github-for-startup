@@ -145,7 +145,6 @@ function CreatePost() {
   // Editing couldn't start: not your post, or it couldn't be opened (a connection problem).
   const [editMissing, setEditMissing] = useState<"notYours" | "failed" | null>(null);
   const [pictureChanged, setPictureChanged] = useState(false);
-  const [boardChanged, setBoardChanged] = useState(false);
   // A video post: the video (stays on the device until Post), its cover's moment, and sending progress.
   const [video, setVideo] = useState<ChosenVideo | null>(null);
   const [coverAt, setCoverAt] = useState(0);
@@ -231,7 +230,7 @@ function CreatePost() {
       const saved = await fetch(`/api/posts/${encodeURIComponent(editId)}/board`, { cache: "no-store" })
         .then((r) => (r.ok ? (r.json() as Promise<{ board: Board | null }>) : { board: null }))
         .catch(() => ({ board: null }));
-      if (!gone && saved.board) setBoard({ ...saved.board, layers: saved.board.layers.map((l, i) => ({ ...l, key: l.flat ? "photo" : `saved-${i}` })) });
+      if (!gone && saved.board) setBoard({ ...saved.board, layers: saved.board.layers.map((l, i) => ({ ...l, key: l.flat ? "photo" : typeof l.item === "number" ? `kept-${l.item}` : `saved-${i}` })) });
     })();
     return () => {
       gone = true;
@@ -265,7 +264,6 @@ function CreatePost() {
       setPicture(next);
       setBoard(null);
       setPictureChanged(true);
-      setBoardChanged(true);
     } catch (err) {
       setError(err instanceof Error ? err.message : "Couldn't read that photo.");
     }
@@ -464,7 +462,6 @@ function CreatePost() {
       urls.current.push(url);
       setPicture({ ...drawn, url });
       setPictureChanged(true);
-      setBoardChanged(true);
       setEditing(false);
     } catch (err) {
       setError(err instanceof Error ? err.message : "Couldn't make the picture.");
@@ -542,10 +539,12 @@ function CreatePost() {
     }
     const form = new FormData();
     if (!editId || pictureChanged) form.append("picture", picture.blob, "post.webp");
-    // The layout, kept privately so it can be rearranged later (only when it's new or changed).
-    if (board && (!editId || boardChanged)) {
+    // The layout, kept privately so it can be rearranged later. Sent every time there is one: it also says which
+    // picture is which piece (by its place in the list), and that changes when pieces are added or taken out.
+    if (board) {
       try {
-        const packed = await packBoard(board);
+        const pieceOf = new Map(items.filter((it) => it.name.trim()).map((it, i) => [it.key, i] as const));
+        const packed = await packBoard(board, pieceOf);
         form.append("board", packed.json);
         packed.files.forEach((f, n) => form.append(`layer-${n}`, f, `layer-${n}`));
       } catch {}

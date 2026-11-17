@@ -9,6 +9,7 @@ import { byLatestTryOn, type Outfit } from "@/components/OutfitCard";
 import { OutfitBoard } from "@/components/OutfitBoard";
 import { InlineLoading } from "@/components/InlineLoading";
 import { MirrorIcon } from "@/components/Icons";
+import { BackToMyStyle } from "@/components/BackToMyStyle";
 import { EmptyState, ErrorNote, PageHeader, PageShell, btnPrimary, btnSecondary } from "@/components/ui";
 import { Tips, type Tip } from "@/components/Tips";
 import { OpenPicks, ShareLooksButton } from "@/components/ShareLooks";
@@ -112,6 +113,7 @@ export default function SavedLooksPage() {
     <main className="flex-1 pb-16">
       <Tips id="saved" tips={SAVED_TIPS} delay={1400} />
       <PageShell>
+        <BackToMyStyle className="mt-5" />
         <PageHeader
           title={tab === "stylist" ? "Saved Stylist" : tab === "inspiration" ? "Inspiration" : "Saved Looks"}
           actions={

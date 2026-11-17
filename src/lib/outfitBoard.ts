@@ -83,6 +83,8 @@ export type BoardLayer = {
   text?: string;
   color?: string;
   font?: TextStyle;
+  /** Which of the post's pieces this picture is (its place in the list), so a tap on it can name the piece. */
+  item?: number;
 };
 export type TextStyle = "serif" | "sans" | "bold";
 export const TEXT_STYLES: { value: TextStyle; label: string }[] = [
@@ -285,13 +287,13 @@ export async function withoutBackground(url: string): Promise<string> {
  * The layout ready to send with a post (kept privately, so it can be rearranged later): each picture once, as
  * "layer-<n>", and layers pointing at them by number. Large pictures are made smaller here first.
  */
-export async function packBoard(board: Board): Promise<{ json: string; files: Blob[] }> {
+export async function packBoard(board: Board, pieceOf?: Map<string, number>): Promise<{ json: string; files: Blob[] }> {
   const files: Blob[] = [];
   const numbers = new Map<string, number>();
   const layers = [];
   for (const layer of board.layers) {
-    const { src, key: _key, ...rest } = layer;
-    void _key;
+    const { src, key, item: _old, ...rest } = layer;
+    void _old;
     if (layer.text !== undefined) {
       layers.push({ ...rest, img: null });
       continue;
@@ -304,7 +306,8 @@ export async function packBoard(board: Board): Promise<{ json: string; files: Bl
       numbers.set(src, files.length);
       files.push(await fitForUpload(blob));
     }
-    layers.push({ ...rest, img: numbers.get(src)! });
+    const item = pieceOf?.get(key);
+    layers.push({ ...rest, img: numbers.get(src)!, ...(item !== undefined ? { item } : {}) });
   }
   return { json: JSON.stringify({ width: board.width, height: board.height, background: board.background, layers }), files };
 }

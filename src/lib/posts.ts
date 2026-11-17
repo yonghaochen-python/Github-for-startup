@@ -16,6 +16,7 @@ import {
   BOARD_LAYER_MAX_BYTES,
   MAX_BOARD_LAYERS,
   POST_VIDEO_MAX_SECONDS,
+  type PostSpot,
   type PublicPost,
   type ReportReason,
 } from "@/lib/postRules";
@@ -189,6 +190,8 @@ function checkPicture(picture: File, data: NewPost): { width: number; height: nu
 export type BoardPictures = Map<number, File>;
 type StoredLayer = {
   src: string;
+  /** Which of the post's pieces this picture is (its position in the list). */
+  item?: number;
   x: number;
   y: number;
   w: number;
@@ -243,6 +246,7 @@ async function saveBoard(userId: string, raw: unknown, pictures: BoardPictures):
         if (c.every((v) => v !== null) && c[0]! < c[2]! && c[1]! < c[3]!) layer.crop = c as [number, number, number, number];
       }
       if (l.flat === true) layer.flat = true;
+      if (typeof l.item === "number" && Number.isInteger(l.item) && l.item >= 0 && l.item < MAX_POST_ITEMS) layer.item = l.item;
     }
     layers.push(layer);
   }
@@ -331,7 +335,8 @@ export async function updatePost(
   const items = await cleanItems(userId, data.items, itemPictures, post.items);
   const imageKey = picture ? await putImage("post-", new Uint8Array(await picture.arrayBuffer()), picture.type) : post.imageKey;
   const itemKeys = await itemImageKeys(userId, items);
-  const newBoard = board ? await saveBoard(userId, board.raw, board.pictures) : post.board;
+  // A new picture without a layout (a plain photo) drops the old layout, so its pieces' places don't linger.
+  const newBoard = board ? await saveBoard(userId, board.raw, board.pictures) : picture ? null : post.board;
   await prisma.$transaction([
     prisma.postItem.deleteMany({ where: { postId } }),
     prisma.post.update({
@@ -409,6 +414,7 @@ export const postSelect = {
   likeCount: true,
   createdAt: true,
   status: true,
+  board: true,
   _count: { select: { comments: { where: { status: "published" } } } },
   user: { select: { username: true, displayName: true, avatarKey: true } },
   items: {
@@ -449,7 +455,19 @@ export function toPublic(row: NonNullable<PostRow>, viewer?: { id: string; role:
     }),
     ...(viewer && (viewer.id === row.userId || viewer.role === "admin") ? { mine: true } : {}),
     ...(owner ? { editable: true } : {}),
+    ...spotsOf(row.board, row.items.length),
   };
+}
+
+/**
+ * Where each piece sits on a made-up post (fractions of the picture), so a tap on it can name the piece. Only the
+ * places are shared; the layout's own pictures stay private.
+ */
+function spotsOf(json: string | null, count: number): { spots?: PostSpot[] } {
+  const spots = (parseBoard(json)?.layers ?? [])
+    .filter((l) => typeof l.item === "number" && l.item < count && l.text === undefined)
+    .map((l) => ({ item: l.item!, x: l.x, y: l.y, w: l.w, h: l.h }));
+  return spots.length ? { spots } : {};
 }
 
 /** One post as the viewer may see it: published posts for everyone; a hidden one only for its owner or an admin. */

@@ -5,6 +5,7 @@ import Link from "next/link";
 import type { ClothingItem } from "@/components/OutfitCard";
 import type { PlanDays } from "@/lib/planOutfits";
 import { ErrorNote, PageShell, btnPrimary, btnSecondary } from "@/components/ui";
+import { BackToMyStyle } from "@/components/BackToMyStyle";
 import { InlineLoading } from "@/components/InlineLoading";
 import { useAuth } from "@/components/AuthProvider";
 import { DayEditor } from "@/components/planner/DayEditor";
@@ -169,7 +170,9 @@ export default function PlannerPage() {
 
   return (
     <main className="flex-1 pb-20">
-      <PageShell className="pt-8 sm:pt-10">
+      <PageShell className="pt-5 sm:pt-7">
+        {/* Back to My Style (the Planner opens from there). */}
+        <BackToMyStyle className="mb-3" />
         <div className="mb-8 flex flex-wrap items-end justify-between gap-x-6 gap-y-4">
           <div>
             <h1 className="sr-only">Planner</h1>

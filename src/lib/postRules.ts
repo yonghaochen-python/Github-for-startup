@@ -35,6 +35,9 @@ export type PublicPostItem = {
   id?: string;
   detailsPrivate?: boolean;
 };
+/** Where one of a post's pieces sits on its picture (fractions of the picture, from the top left). */
+export type PostSpot = { item: number; x: number; y: number; w: number; h: number };
+
 export type PublicPost = {
   id: string;
   imageUrl: string;
@@ -55,6 +58,8 @@ export type PublicPost = {
   mine?: boolean;
   /** Only for the person who posted it: they may edit it (admins may not). */
   editable?: boolean;
+  /** Made-up posts: where each piece sits, so a tap on it can name it. */
+  spots?: PostSpot[];
   /** Only for the signed-in viewer: their own like / private dislike / save. */
   liked?: boolean;
   disliked?: boolean;

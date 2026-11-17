@@ -25,6 +25,8 @@ What's yours, in one place. Nothing here uses AI or costs anything.
 
 ### Quick ways around **(demo, not live yet)**
 - **Opening a post:** only the person who posted it can tap into its page (Discover, profiles, Saved). Everyone else sees the picture, "… more" and the buttons; a shared link still opens the post.
+- **Tapping a post's picture:** a double tap (double click on computers) likes it. One tap on your own post opens it; on anyone else's, one tap pauses or plays a video, or shows the name of the piece you tapped (for made-up posts, where each piece's place is known).
+- **Back to My Style:** the Planner, AI Stylist and Saved pages have **← My Style** at the top.
 - **Computers (trackpad):** in Discover, a two-finger slide to the left opens a new post; to the right, Recreate the post under the pointer.
 - **Phones:** double-tap a post to like it · slide left on Discover to post · slide right on a post to Recreate it · tap a closet piece to wear it (ⓘ for its details).
 - **Computers:** keyboard shortcuts (press **?** for the list): on Discover ↑/↓ or J/K move between posts, L like, S save, R recreate, Enter open, N new post, / search; in Studio C My Closet, T Try On. Drag a piece onto the mirror to wear it; drop photos on the closet to add them.

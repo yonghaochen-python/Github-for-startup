@@ -26,6 +26,28 @@ import { FOLLOWING_ON, type PublicPost } from "@/lib/postRules";
  * Two lists: For You (everyone, newest first) and Following (people you follow). Search looks through captions, tags,
  * @usernames and the pieces' names, brands and stores. Posts marked "not for me" leave the feed. No AI, nothing paid.
  */
+/**
+ * The piece under a tap on a post's picture (the top one where pieces overlap), and where to show its name (inside the
+ * picture's box). The picture is shown whole, so the part of the box it fills is worked out from its shape.
+ */
+function tagAt(post: PublicPost, box: HTMLElement, clientX: number, clientY: number): { item: number; left: number; top: number } | null {
+  if (!post.spots?.length) return null;
+  const r = box.getBoundingClientRect();
+  const scale = Math.min(r.width / post.width, r.height / post.height);
+  const w = post.width * scale;
+  const h = post.height * scale;
+  const left = (r.width - w) / 2;
+  const top = (r.height - h) / 2;
+  const fx = (clientX - r.left - left) / w;
+  const fy = (clientY - r.top - top) / h;
+  const hit = [...post.spots].reverse().find((s) => fx >= s.x && fx <= s.x + s.w && fy >= s.y && fy <= s.y + s.h);
+  if (!hit) return null;
+  // On the middle of the piece, kept clear of the picture's edges.
+  const cx = Math.min(Math.max(left + (hit.x + hit.w / 2) * w, r.width * 0.3), r.width * 0.7);
+  const cy = Math.min(Math.max(top + (hit.y + hit.h / 2) * h, 24), r.height - 24);
+  return { item: hit.item, left: cx, top: cy };
+}
+
 /** A post's picture: opens the post only for the person who posted it; for everyone else it just shows the outfit. */
 function Pic({ href, onClick, className, children }: { href?: string; onClick: (e: React.MouseEvent) => void; className: string; children: React.ReactNode }) {
   return href ? (
@@ -142,6 +164,14 @@ export function Feed() {
   const [recreate, setRecreate] = useState<{ id: string; n: number } | null>(null);
   // Double-tap: a heart shows on the picture.
   const [burst, setBurst] = useState<{ id: string; n: number } | null>(null);
+  // One tap on a piece in someone else's post: its name shows on it for a few seconds.
+  const [tag, setTag] = useState<{ id: string; item: number; left: number; top: number; n: number } | null>(null);
+  const tagTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const showTag = (next: { id: string; item: number; left: number; top: number } | null) => {
+    if (tagTimer.current) clearTimeout(tagTimer.current);
+    setTag(next && { ...next, n: ++counter.current });
+    if (next) tagTimer.current = setTimeout(() => setTag(null), 3000);
+  };
   const lastTap = useRef<{ id: string; at: number; timer: ReturnType<typeof setTimeout> | null } | null>(null);
   // Computers: the post the keyboard is on (shown with a ring once a key is pressed).
   const [focused, setFocused] = useState<number | null>(null);
@@ -519,20 +549,28 @@ export function Feed() {
                     <Pic
                       href={p.editable ? `/p/${p.id}` : undefined}
                       onClick={(e) => {
-                        // Phones: a double-tap likes it (on your own post, one tap still opens it, a moment later).
-                        if (!sliding()) return;
+                        // A double tap (or double click) likes it. One tap opens your own post; on anyone else's it
+                        // pauses or plays a video, or names the piece you tapped on.
                         e.preventDefault();
                         const prev = lastTap.current;
                         if (prev && prev.id === p.id && e.timeStamp - prev.at < 300) {
                           if (prev.timer) clearTimeout(prev.timer);
                           lastTap.current = null;
                           if (status === "signedIn") {
-                            setCommand({ id: p.id, kind: "like", n: ++counter.current, phone: true });
+                            setCommand({ id: p.id, kind: "like", n: ++counter.current, phone: sliding() });
                             setBurst({ id: p.id, n: counter.current });
                           }
                           return;
                         }
-                        const timer = p.editable ? setTimeout(() => router.push(`/p/${p.id}`), 300) : null;
+                        const box = e.currentTarget as HTMLElement;
+                        const video = box.querySelector("video");
+                        const spot = tagAt(p, box, e.clientX, e.clientY);
+                        const timer = setTimeout(() => {
+                          lastTap.current = null;
+                          if (p.editable) return router.push(`/p/${p.id}`);
+                          if (video) return void (video.paused ? video.play().catch(() => {}) : video.pause());
+                          showTag(spot ? { ...spot, id: p.id } : null);
+                        }, 300);
                         lastTap.current = { id: p.id, at: e.timeStamp, timer };
                       }}
                       className="group relative block h-full overflow-hidden md:h-auto md:rounded-[20px] md:bg-[#f1efeb]"
@@ -560,6 +598,19 @@ export function Feed() {
                           <svg viewBox="0 0 24 24" className="h-24 w-24 animate-[heart-pop_.8s_ease-out_forwards] drop-shadow-[0_6px_20px_rgba(0,0,0,0.35)]" fill="#e0245e" aria-hidden>
                             <path d="M12 20.5s-7.5-4.6-9.2-9.4C1.6 7.6 3.9 4.5 7.3 4.5c2 0 3.6 1.1 4.7 2.7 1.1-1.6 2.7-2.7 4.7-2.7 3.4 0 5.7 3.1 4.5 6.6-1.7 4.8-9.2 9.4-9.2 9.4z" />
                           </svg>
+                        </span>
+                      )}
+                      {tag?.id === p.id && p.items[tag.item] && (
+                        <span
+                          key={tag.n}
+                          role="status"
+                          className="pointer-events-none absolute z-10 max-w-[60%] -translate-x-1/2 -translate-y-1/2 animate-[heart-pop_.25s_ease-out] rounded-full bg-white px-3 py-1.5 text-[12.5px] font-semibold text-[#121821] shadow-[0_6px_18px_rgba(0,0,0,0.25)] motion-reduce:animate-none"
+                          style={{ left: tag.left, top: tag.top }}
+                        >
+                          <span className="block truncate">
+                            {p.items[tag.item].brand ? `${p.items[tag.item].brand} · ` : ""}
+                            {p.items[tag.item].name}
+                          </span>
                         </span>
                       )}
                     </Pic>

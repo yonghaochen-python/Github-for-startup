@@ -3,7 +3,8 @@
 import { useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import { useParams } from "next/navigation";
-import { ArrowLeftIcon, CheckIcon } from "@/components/Icons";
+import { CheckIcon } from "@/components/Icons";
+import { BackToMyStyle } from "@/components/BackToMyStyle";
 import { ShareIcon } from "@/components/ShareLooks";
 import { CreditsLine, refreshCredits } from "@/components/Credits";
 import { ErrorNote, PageShell, btnPrimary, btnSecondary, btnText } from "@/components/ui";
@@ -271,9 +272,7 @@ export default function StudioModulePage() {
   return (
     <main className="flex-1 pb-20">
       <PageShell className="pt-6 sm:pt-8">
-        <Link href="/stylist" className="mb-6 inline-flex items-center gap-1.5 text-[12px] font-semibold text-[#4f5b66] hover:text-[#121821]">
-          <ArrowLeftIcon className="h-4 w-4" /> AI Stylist
-        </Link>
+        <BackToMyStyle className="mb-6" />
 
         {error && (
           <div className="mb-6">
