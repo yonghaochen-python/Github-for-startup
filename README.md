@@ -23,7 +23,7 @@ Virm is an AI wardrobe app. You put your clothes in a digital closet, get outfit
 - **Add clothes:** one photo per piece, or one photo of several pieces laid out flat. The AI finds each piece and fills in its type, color, material, season and how it's layered.
 - **Edit** or **remove** any piece. Filters are behind a small icon.
 - **Remove background** per piece, done on your phone or computer (free, nothing uploaded). **Keep background** undoes it.
-- **Enhance with AI** (admins only): one button lays the piece neatly flat and removes the background. It starts from your original photo, keeps the piece's real length (a cropped top stays cropped) and matches its color to your photo. About a minute, about $0.04 each. Switch between the AI picture and your own any time; try-ons always use your own picture.
+- **Enhance with AI** (everyone; each month as many as your plan allows clothing photos — Free 30, Plus 150, trial 40 or 80 — admins and SVIP unlimited; the same picture again is free): one button lays the piece neatly flat and removes the background. It starts from your original photo, keeps the piece's real length (a cropped top stays cropped) and matches its color to your photo. About a minute, about $0.04 each. Switch between the AI picture and your own any time; try-ons always use your own picture.
 - Light yellow by day, deep blue at night.
 
 ### Studio (try clothes on)
