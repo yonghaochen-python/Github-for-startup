@@ -40,8 +40,8 @@ const Bookmark = ({ on }: { on: boolean }) => (
  * ❤️ like (count shown) · 👎 not for me (private, never shown) · ↗ share · 🔖 save. Signed-out visitors are asked to
  * sign up. Changes show at once and are put back if they can't be saved.
  *
- * In the phone feed (`vertical`) they're a column of small dark circles that read on any picture: like, save, share
- * and ⋯ (Not for me, Report), so the outfit stays the focus.
+ * In the phone feed (`vertical`) they're a column of small dark circles that read on any picture: like, comments and
+ * ⋯ (Save, Share, Not for me, Report), so the outfit stays the focus.
  */
 export function PostActions({
   post,
@@ -166,12 +166,7 @@ export function PostActions({
           {likes > 0 && <span className="text-[11.5px] font-semibold text-white [text-shadow:0_1px_3px_rgba(0,0,0,0.6)]">{likes}</span>}
         </button>
         {afterLike}
-        <button onClick={toggleSave} aria-pressed={saved} aria-label={saved ? "Saved" : "Save"} className={circle}>
-          <Bookmark on={saved} />
-        </button>
-        <button onClick={share} aria-label="Share" className={circle}>
-          <ShareArrow />
-        </button>
+        {/* Save, Share, Not for me and Report are in ⋯, so the outfit keeps the screen. */}
         <button onClick={() => setMore(true)} aria-label="More" className={circle}>
           <Dots />
         </button>
@@ -195,6 +190,31 @@ export function PostActions({
                 </ul>
               ) : (
                 <ul>
+                  <li>
+                    <button
+                      onClick={() => {
+                        setMore(false);
+                        void toggleSave();
+                      }}
+                      aria-pressed={saved}
+                      className="flex min-h-[46px] w-full items-center gap-3 rounded-[14px] px-4 text-left text-[14px] text-[#121821] hover:bg-[#f6f5f2]"
+                    >
+                      <Bookmark on={saved} />
+                      {saved ? "Saved to Inspiration" : "Save"}
+                    </button>
+                  </li>
+                  <li>
+                    <button
+                      onClick={() => {
+                        setMore(false);
+                        void share();
+                      }}
+                      className="flex min-h-[46px] w-full items-center gap-3 rounded-[14px] px-4 text-left text-[14px] text-[#121821] hover:bg-[#f6f5f2]"
+                    >
+                      <ShareArrow />
+                      Share
+                    </button>
+                  </li>
                   <li>
                     <button
                       onClick={() => {

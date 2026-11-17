@@ -85,7 +85,7 @@ A personal beauty and fashion consultation, made from a head-and-shoulders photo
 Discover is for inspiration; Virm is still about your closet and your AI stylist. Every post with pieces leads back to your own closet.
 - **The feed:** one outfit per screen on phones (swipe up), the picture filling the screen with the words underneath (never over the clothes); an editorial grid on computers. Anyone can look, even without an account.
 - **Following · For You** at the top (Following only when signed in) and **search** (captions, tags, @people, pieces, brands, stores).
-- **Circles on the right:** ♥ like (count), 💬 comments (count), 🔖 save (to **Saved Looks → Inspiration**), ↗ share, ⋯ (**Not for me** — private — or **Report**).
+- **Circles on the right (phones):** ♥ like (count), 💬 comments (count) and ⋯ (**Save** to Saved Looks → Inspiration, **Share**, **Not for me** — private — and **Report**).
 - **Pieces** sheet: each piece with its picture, brand, store, price and **Shop** link.
 - **Recreate with My Closet:** each piece of the post is matched to the closest piece in your closet. Pick **Yours** or **Theirs** for each, then **Open in Studio** dresses you in it. Matching is free; nothing is made until you press Try On.
 - **Videos** play muted only while on screen; the speaker button turns sound on (one at a time).
