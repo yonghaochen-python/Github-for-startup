@@ -14,9 +14,8 @@ type Step = { text: string; cta: string; href: string; picture?: string };
  * One useful next action, from what the person has done so far (at the top of My Style). Without a photo it shows nothing: Profile's photo card already asks for one.
  * Reads the person's own closet, outfits and reports; nothing is generated.
  */
-function nextStep(closetCount: number, saved: Outfit[], hasStyleProfile: boolean): Step {
+function nextStep(closetCount: number, saved: Outfit[], hasStyleProfile: boolean): Step | null {
   if (closetCount === 0) return { text: "Add your first clothing pieces to start building outfits.", cta: "Add clothes", href: "/studio?closet=1&add=1" };
-  if (saved.length === 0) return { text: "Create your first outfit.", cta: "Open Studio", href: "/studio" };
   if (!hasStyleProfile) return { text: "Discover your personal colors with AI Stylist.", cta: "Open AI Stylist", href: "/stylist" };
   const recent = saved.find((o) => Date.now() - new Date((o as { createdAt?: string }).createdAt ?? 0).getTime() < WEEK);
   if (recent) {
@@ -27,7 +26,8 @@ function nextStep(closetCount: number, saved: Outfit[], hasStyleProfile: boolean
       picture: recent.tryOn ? `/api/outfits/${recent.id}/try-on/image?v=${recent.tryOn}` : recent.layers.flatMap((l) => l.items)[0]?.imageUrl,
     };
   }
-  return { text: "Try a new combination using your closet.", cta: "Open Studio", href: "/studio" };
+  // Nothing more to suggest (Studio is one tap away in the menu anyway).
+  return null;
 }
 
 export function NextStep() {
