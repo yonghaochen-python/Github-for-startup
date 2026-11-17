@@ -35,7 +35,7 @@ export default function TryFreePage() {
   const [invite, setInvite] = useState<Invite | null>(null);
   // Signed in already: the account buttons go to the real thing instead of inviting.
   const signedIn = useAuth().status === "signedIn";
-  const REAL: Record<Invite, string> = { save: "/studio", photo: "/studio", closet: "/closet?add=1" };
+  const REAL: Record<Invite, string> = { save: "/studio", photo: "/studio", closet: "/studio?closet=1&add=1" };
   const look = GUEST_LOOKS.find((l) => l.slug === slug) ?? GUEST_LOOKS[0];
   const looks = useMemo(() => (piece ? GUEST_LOOKS.filter((l) => l.items.some((i) => i.imageUrl === piece)) : GUEST_LOOKS), [piece]);
 

@@ -42,7 +42,7 @@ export default function ProfilePage() {
   }, []);
 
   const stats: { label: string; value: number | null; href: string; Icon: typeof ClosetIcon }[] = [
-    { label: "Closet items", value: closetCount, href: "/closet", Icon: ClosetIcon },
+    { label: "Closet items", value: closetCount, href: "/studio?closet=1", Icon: ClosetIcon },
     { label: "Outfits created", value: outfitCount, href: "/outfits/saved", Icon: SparkleIcon },
     { label: "Saved looks", value: savedCount, href: "/outfits/saved", Icon: BookmarkIcon },
   ];

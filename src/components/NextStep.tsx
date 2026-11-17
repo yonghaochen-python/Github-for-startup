@@ -14,7 +14,7 @@ type Step = { text: string; cta: string; href: string; picture?: string };
  * Reads the person's own closet, outfits and reports; nothing is generated.
  */
 function nextStep(closetCount: number, saved: Outfit[], hasStyleProfile: boolean): Step {
-  if (closetCount === 0) return { text: "Add your first clothing pieces to start building outfits.", cta: "Add clothes", href: "/closet?add=1" };
+  if (closetCount === 0) return { text: "Add your first clothing pieces to start building outfits.", cta: "Add clothes", href: "/studio?closet=1&add=1" };
   if (saved.length === 0) return { text: "Create your first outfit.", cta: "Open Studio", href: "/studio" };
   if (!hasStyleProfile) return { text: "Discover your personal colors with AI Stylist.", cta: "Open AI Stylist", href: "/stylist" };
   const recent = saved.find((o) => Date.now() - new Date((o as { createdAt?: string }).createdAt ?? 0).getTime() < WEEK);

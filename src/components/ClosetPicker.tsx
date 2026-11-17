@@ -154,7 +154,7 @@ export function ClosetPicker({
         {shown.length === 0 ? (
           <p className="px-1 py-6 text-[13px] text-[#5d6874]">
             Nothing here yet.{" "}
-            <Link href="/closet?add=1" className="font-semibold text-[#121821] underline-offset-4 hover:underline">
+            <Link href="/studio?closet=1&add=1" className="font-semibold text-[#121821] underline-offset-4 hover:underline">
               Add clothes
             </Link>
           </p>

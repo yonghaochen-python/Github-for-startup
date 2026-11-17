@@ -186,7 +186,7 @@ export default function PlannerPage() {
             </div>
           </div>
           {closet.length === 0 ? (
-            <Link href="/closet?add=1" className={btnPrimary}>
+            <Link href="/studio?closet=1&add=1" className={btnPrimary}>
               Add clothes
             </Link>
           ) : (

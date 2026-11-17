@@ -4,12 +4,12 @@ import { useEffect, useId, useRef, useState } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useAuth } from "@/components/AuthProvider";
-import { BagIcon, BookmarkIcon, CalendarIcon, ClosetIcon, CompassIcon, MirrorIcon, PaletteIcon, PlusIcon, SparkleIcon, UserIcon } from "@/components/Icons";
+import { BagIcon, BookmarkIcon, CalendarIcon, CompassIcon, MirrorIcon, PaletteIcon, PlusIcon, SparkleIcon, UserIcon } from "@/components/Icons";
 import { PricingSheet } from "@/components/Pricing";
 import { CreateMenu } from "@/components/CreateMenu";
 import { useBillingStatus } from "@/lib/useBillingStatus";
 
-type Section = "mystyle" | "discover" | "create" | "shop" | "closet" | "studio" | "stylist" | "planner" | "saved" | "profile";
+type Section = "mystyle" | "discover" | "create" | "shop" | "studio" | "stylist" | "planner" | "saved" | "profile";
 type NavLink = { section: Section; href: string; label: string; short: string; Icon: typeof CompassIcon };
 
 const STUDIO: NavLink = { section: "studio", href: "/studio", label: "Studio", short: "Studio", Icon: MirrorIcon };
@@ -21,15 +21,9 @@ const PRIMARY: NavLink[] = [STUDIO, DISCOVER, MY_STYLE, PLANNER];
 /** Phones: the bottom bar, with posting (＋) in the middle. Profile is the person's photo at the top right. */
 const PHONE_TABS: (NavLink | "create")[] = [STUDIO, DISCOVER, "create", MY_STYLE];
 /** Phones: places in the menu under the person's photo (the bottom bar has the main four). */
-const PHONE_MORE: NavLink[] = [
-  PLANNER,
-  // Until My Closet moves into Studio.
-  { section: "closet", href: "/closet", label: "My Closet", short: "Closet", Icon: ClosetIcon },
-];
+const PHONE_MORE: NavLink[] = [PLANNER];
 /** Everything else: in More on computers, and in the menu under the person's photo on phones. */
 const SECONDARY: NavLink[] = [
-  // Until My Closet moves into Studio.
-  { section: "closet", href: "/closet", label: "My Closet", short: "Closet", Icon: ClosetIcon },
   { section: "shop", href: "/shop", label: "Shopping", short: "Shop", Icon: BagIcon },
   { section: "stylist", href: "/stylist", label: "AI Stylist", short: "Stylist", Icon: PaletteIcon },
   { section: "saved", href: "/outfits/saved", label: "Saved Looks", short: "Saved", Icon: BookmarkIcon },
@@ -43,7 +37,8 @@ function sectionFor(pathname: string | null): Section | null {
   if (p.startsWith("/discover") || p.startsWith("/feed") || p.startsWith("/p/") || p.startsWith("/u/")) return "discover";
   if (p.startsWith("/create")) return "create";
   if (p.startsWith("/shop")) return "shop";
-  if (p.startsWith("/closet")) return "closet";
+  // My Closet lives in Studio.
+  if (p.startsWith("/closet")) return "studio";
   if (p.startsWith("/stylist")) return "stylist";
   if (p.startsWith("/outfits/saved")) return "saved";
   if (p.startsWith("/planner")) return "planner";
