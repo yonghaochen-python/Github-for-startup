@@ -91,10 +91,13 @@ export function ClosetView({
   addRequest = 0,
   onItems,
   unowned = [],
+  startFiles,
 }: {
   onWear: (item: ClothingItem) => void;
   /** Unowned: pieces tried on from Shopping (not in the closet), worn the same way. */
   unowned?: UnownedPiece[];
+  /** Photos dropped on the closet before it opened: Add clothes opens with them. */
+  startFiles?: File[];
   wornIds: Set<string>;
   startAdding?: boolean;
   /** A new number opens Add clothes. */
@@ -118,7 +121,11 @@ export function ClosetView({
   const [layerFilter, setLayerFilter] = useState("");
   const [search, setSearch] = useState("");
   const [viewingId, setViewingId] = useState<string | null>(null);
-  const [showAddClothes, setShowAddClothes] = useState(startAdding);
+  const [showAddClothes, setShowAddClothes] = useState(startAdding || Boolean(startFiles?.length));
+  // Photos dragged in from the computer: Add clothes opens with them.
+  const [droppedFiles, setDroppedFiles] = useState<File[] | undefined>(startFiles);
+  const [dropping, setDropping] = useState(false);
+  const takesFiles = (e: React.DragEvent) => Array.from(e.dataTransfer.types).includes("Files");
   // My clothes (the closet) or Unowned (pieces tried on from Shopping).
   const [view, setView] = useState<"owned" | "unowned">("owned");
   const [lastAddRequest, setLastAddRequest] = useState(addRequest);
@@ -372,6 +379,11 @@ export function ClosetView({
                         <li key={piece.id} className="relative shrink-0 snap-start">
                           <button
                             onClick={() => onWear(piece as unknown as ClothingItem)}
+                            draggable
+                            onDragStart={(e) => {
+                              e.dataTransfer.setData(PIECE_DRAG_TYPE, piece.id);
+                              e.dataTransfer.effectAllowed = "copy";
+                            }}
                             aria-pressed={on}
                             aria-label={`${on ? "Take off" : "Wear"} ${piece.description}`}
                             className="group block text-left"
@@ -400,7 +412,32 @@ export function ClosetView({
   }
 
   return (
-    <section aria-label="My Closet">
+    <section
+      aria-label="My Closet"
+      onDragOver={(e) => {
+        if (!takesFiles(e)) return;
+        e.preventDefault();
+        setDropping(true);
+      }}
+      onDragLeave={(e) => {
+        if (!e.currentTarget.contains(e.relatedTarget as Node | null)) setDropping(false);
+      }}
+      onDrop={(e) => {
+        if (!takesFiles(e)) return;
+        e.preventDefault();
+        setDropping(false);
+        const files = Array.from(e.dataTransfer.files);
+        if (!files.length) return;
+        setDroppedFiles(files);
+        setShowAddClothes(true);
+      }}
+      className={`relative rounded-[18px] ${dropping ? "outline-dashed outline-2 outline-offset-4 outline-[#121821]/40" : ""}`}
+    >
+        {dropping && (
+          <div className="pointer-events-none absolute inset-0 z-10 flex items-center justify-center rounded-[18px] bg-white/80 text-[14px] font-semibold text-[#121821]">
+            Drop photos to add them
+          </div>
+        )}
         {bar}
         <div className="mb-3 flex flex-wrap items-center gap-2">
           <button onClick={() => setShowAddClothes(true)} data-tip="closet-add" className={`${btnPrimary} !min-h-[40px] !px-4 !text-[13px]`}>
@@ -414,7 +451,18 @@ export function ClosetView({
         </div>
 
         {/* Drawn over the whole page (the closet panel would otherwise hold them inside it). */}
-        {showAddClothes && createPortal(<AddClothesModal onClose={() => setShowAddClothes(false)} onAdded={afterAdding} />, document.body)}
+        {showAddClothes &&
+          createPortal(
+            <AddClothesModal
+              initialFiles={droppedFiles}
+              onClose={() => {
+                setShowAddClothes(false);
+                setDroppedFiles(undefined);
+              }}
+              onAdded={afterAdding}
+            />,
+            document.body
+          )}
 
         {justAdded !== null && (
           <div role="status" className="mb-6 flex flex-col gap-3 rounded-[18px] bg-white px-5 py-4 shadow-[0_1px_0_rgba(18,24,33,0.03),0_10px_28px_rgba(18,30,45,0.05)] sm:flex-row sm:items-center sm:justify-between">

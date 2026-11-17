@@ -23,6 +23,10 @@ What's yours, in one place. Nothing here uses AI or costs anything.
 - **AI Stylist:** the four analyses (Seasonal Color, Makeup, Hair & Color, Personal Style) as cards on your own photo, each marked **Done** when it is; tap one to open it.
 - Signed out: the welcome page with **Try It Free**.
 
+### Quick ways around **(demo, not live yet)**
+- **Phones:** double-tap a post to like it · slide left on a post to Recreate it · slide right on Discover to post · tap a closet piece to wear it (ⓘ for its details).
+- **Computers:** keyboard shortcuts (press **?** for the list): on Discover ↑/↓ or J/K move between posts, L like, S save, R recreate, Enter open, N new post, / search; in Studio C My Closet, T Try On. Drag a piece onto the mirror to wear it; drop photos on the closet to add them.
+
 ### Studio and My Closet **(demo, not live yet)**
 - Phones: **Outfit | Closet** under the mirror. Outfit shows the picks and Try On; Closet shows your closet right there: **My clothes | Unowned** (pieces tried on from Shopping), **＋ Add clothes**, **Edit**, filters, and each piece's window with **Wear it**.
 - Computers: the closet panel beside the mirror, with **＋ Add** and **Manage**.

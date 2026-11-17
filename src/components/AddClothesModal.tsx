@@ -177,10 +177,13 @@ function newManualItem(photoIndex: number): ReviewItem {
 export function AddClothesModal<T extends { id: string; imageUrl: string }>({
   onClose,
   onAdded,
+  initialFiles,
 }: {
   onClose: () => void;
   /** The new pieces come back too, so their backgrounds can be removed (if the person chose that). */
   onAdded: (count: number, items: T[]) => void;
+  /** Photos dropped on the closet: read right away, as if chosen here. */
+  initialFiles?: File[];
 }) {
   const [step, setStep] = useState<Step>("upload");
   const [dragActive, setDragActive] = useState(false);
@@ -313,6 +316,17 @@ export function AddClothesModal<T extends { id: string; imageUrl: string }>({
     e.target.value = "";
     if (files.length) handleFiles(files);
   }
+
+  // Photos dropped on the closet (before this opened) are read as soon as it opens, once.
+  const dropped = useRef(initialFiles);
+  useEffect(() => {
+    const files = dropped.current;
+    dropped.current = undefined;
+    if (!files?.length) return;
+    const t = setTimeout(() => void handleFiles(files), 0);
+    return () => clearTimeout(t);
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- once, when it opens
+  }, []);
 
   function handleDrop(e: React.DragEvent) {
     e.preventDefault();

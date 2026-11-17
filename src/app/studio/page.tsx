@@ -32,7 +32,9 @@ import { readShopTryOns } from "@/lib/shopWishlist";
 import { TRY_POST_KEY, type TryPostHandoff } from "@/lib/postRules";
 import { Tips, tipsSeen, type Tip } from "@/components/Tips";
 import { Feedback } from "@/components/Feedback";
-import { ClosetView } from "@/components/closet/ClosetView";
+import { ClosetView, PIECE_DRAG_TYPE } from "@/components/closet/ClosetView";
+import { createPortal } from "react-dom";
+import { Dialog } from "@/components/Dialog";
 
 const SAVE_SHARE_TIPS: Tip[] = [
   { target: '[data-tip="studio-save"] button', text: "Love it? Tap the bookmark to save this look. It'll be in Saved Looks." },
@@ -177,12 +179,21 @@ export default function StudioPage() {
   const [closetOpen, setClosetOpen] = useState(() => searchParams.get("closet") === "1" && !isPhone());
   // Add clothes opens as the closet appears (?add=1, or "Add clothes" / "＋ Add" pressed); read once when it appears.
   const [addOnOpen, setAddOnOpen] = useState(() => searchParams.get("add") === "1");
+  // Computers: photos dropped on the closet panel (My Closet opens with Add clothes reading them).
+  const [dropFiles, setDropFiles] = useState<File[] | undefined>(undefined);
+  const [filesOver, setFilesOver] = useState(false);
+  // Computers: a piece being dragged over the mirror.
+  const [pieceOver, setPieceOver] = useState(false);
+  const [showKeys, setShowKeys] = useState(false);
   const swipeFrom = useRef<number | null>(null);
   // Phones: what shows under the mirror. Outfit = the picks and Try On; Closet = My Closet, right on the page.
   const [phonePanel, setPhonePanel] = useState<"outfit" | "closet">(() => (searchParams.get("closet") === "1" && isPhone() ? "closet" : "outfit"));
   useEffect(() => {
     if (!addOnOpen || !(closetOpen || phonePanel === "closet")) return;
-    const t = setTimeout(() => setAddOnOpen(false), 0);
+    const t = setTimeout(() => {
+      setAddOnOpen(false);
+      setDropFiles(undefined);
+    }, 0);
     return () => clearTimeout(t);
   }, [addOnOpen, closetOpen, phonePanel]);
   // Escape closes it (unless a piece's window or Add clothes is open on top: those close first).
@@ -811,8 +822,59 @@ export default function StudioPage() {
     </div>
   );
 
+  /** A piece dropped on the mirror (from the closet, the panel or Unowned): worn, unless it's on already. */
+  function wearById(id: string) {
+    const piece = (closet ?? []).find((c) => c.id === id) ?? shopPicks.find((p) => p.id === id) ?? shopTryOns.find((p) => p.id === id);
+    if (piece && !pieceIds.has(id)) pick(piece);
+  }
+  const carriesPiece = (e: React.DragEvent) => Array.from(e.dataTransfer.types).includes(PIECE_DRAG_TYPE);
+  const carriesFiles = (e: React.DragEvent) => Array.from(e.dataTransfer.types).includes("Files");
+
+  // Keyboard shortcuts (computers): C My Closet, T Try On, ? the list. Never while typing or with a window open.
+  const onKey = useRef<(e: KeyboardEvent) => void>(() => {});
+  useEffect(() => {
+    onKey.current = (e: KeyboardEvent) => {
+      if (e.metaKey || e.ctrlKey || e.altKey) return;
+      if (e.target instanceof Element && e.target.closest("input, textarea, select, [contenteditable='true']")) return;
+      if (document.querySelector("[role=dialog]:not(#studio-closet-panel)") || drawer) return;
+      const key = e.key.length === 1 ? e.key.toLowerCase() : e.key;
+      if (key === "c") {
+        if (window.matchMedia("(max-width: 767px)").matches) setPhonePanel((p) => (p === "closet" ? "outfit" : "closet"));
+        else setClosetOpen(!closetOpen);
+      } else if (key === "t" && !trying && pieces.length > 0 && (hasPhoto || chosenPhoto) && mode === "photo") void tryOn();
+      else if (e.key === "?") setShowKeys(true);
+    };
+  });
+  useEffect(() => {
+    const listener = (e: KeyboardEvent) => onKey.current(e);
+    window.addEventListener("keydown", listener);
+    return () => window.removeEventListener("keydown", listener);
+  }, []);
+
   return (
     <main className="flex-1 pb-16 max-md:pb-32">
+      {showKeys &&
+        createPortal(
+          <Dialog label="Keyboard shortcuts" onClose={() => setShowKeys(false)} className="w-full max-w-sm rounded-[22px] bg-white p-5 shadow-xl">
+            <h2 className="text-[17px] font-semibold text-[#121821]">Keyboard shortcuts</h2>
+            <dl className="mt-3 grid grid-cols-[auto_1fr] gap-x-4 gap-y-2 text-[13.5px]">
+              {[
+                ["C", "My Closet"],
+                ["T", "Try On"],
+                ["Esc", "Close"],
+              ].map(([k, what]) => (
+                <div key={k} className="contents">
+                  <dt>
+                    <kbd className="rounded-[6px] bg-[#f1f3f4] px-2 py-0.5 font-sans text-[12px] font-semibold text-[#121821]">{k}</kbd>
+                  </dt>
+                  <dd className="text-[#4f5b66]">{what}</dd>
+                </div>
+              ))}
+            </dl>
+            <p className="mt-4 text-[12.5px] text-[#5d6874]">Drag a piece onto the mirror to wear it. Drop photos on your closet to add them.</p>
+          </Dialog>,
+          document.body
+        )}
       {/* Phones without the row under the photo (Live, or no photo): Outfit | Closet just above the tab bar. */}
       {!drawer && !closetOpen && !(sidePicks && !trying) && (
         <div className="fixed bottom-[calc(84px+env(safe-area-inset-bottom))] left-1/2 z-[60] -translate-x-1/2 md:hidden">{panelSwitch(true)}</div>
@@ -914,6 +976,7 @@ export default function StudioPage() {
               onWear={(item) => pick(item as unknown as ClothingItem)}
               wornIds={pieceIds}
               startAdding={addOnOpen}
+              startFiles={dropFiles}
               onItems={(items) => setCloset(items as unknown as ClothingItem[])}
               unowned={[...shopPicks, ...shopTryOns.filter((t) => !shopPicks.some((p) => p.id === t.id))]}
             />
@@ -926,7 +989,25 @@ export default function StudioPage() {
           {mode === "live" ? (
             <LiveTryOn outfit={pieces} picks={pieces.filter((p) => p.id.startsWith("shop-")) as ShopPick[]} />
           ) : (
-          <section aria-label="Your look" className="min-w-0 self-start overflow-hidden rounded-[22px] bg-white shadow-[0_30px_80px_rgba(18,30,45,0.12)] ring-1 ring-black/[0.04]">
+          <section
+            aria-label="Your look"
+            onDragOver={(e) => {
+              if (!carriesPiece(e)) return;
+              e.preventDefault();
+              e.dataTransfer.dropEffect = "copy";
+              setPieceOver(true);
+            }}
+            onDragLeave={(e) => {
+              if (!e.currentTarget.contains(e.relatedTarget as Node | null)) setPieceOver(false);
+            }}
+            onDrop={(e) => {
+              if (!carriesPiece(e)) return;
+              e.preventDefault();
+              setPieceOver(false);
+              wearById(e.dataTransfer.getData(PIECE_DRAG_TYPE));
+            }}
+            className={`min-w-0 self-start overflow-hidden rounded-[22px] bg-white shadow-[0_30px_80px_rgba(18,30,45,0.12)] transition-shadow ${pieceOver ? "ring-[3px] ring-[#121821]" : "ring-1 ring-black/[0.04]"}`}
+          >
             {outfitOnly ? (
               <div className={`${mirrorFrame} bg-[#f1ede7]`}>
                 <span className="absolute left-4 top-4 rounded-full bg-white/90 px-3 py-1 text-[11px] font-semibold text-[#4f5b66]">Your outfit</span>
@@ -1072,6 +1153,7 @@ export default function StudioPage() {
                   onWear={(item) => pick(item as unknown as ClothingItem)}
                   wornIds={pieceIds}
                   startAdding={addOnOpen}
+                  startFiles={dropFiles}
                   onItems={(items) => setCloset(items as unknown as ClothingItem[])}
                   unowned={[...shopPicks, ...shopTryOns.filter((t) => !shopPicks.some((p) => p.id === t.id))]}
                 />
@@ -1186,7 +1268,35 @@ export default function StudioPage() {
             )}
 
             {/* The closet, by category. Tap to add; tap again to remove. */}
-            <section ref={closetRef} aria-label="Your closet" data-tip="studio-closet" className="min-w-0 overflow-hidden rounded-[22px] bg-white shadow-[0_1px_0_rgba(18,24,33,0.03),0_14px_36px_rgba(18,30,45,0.06)]">
+            <section
+              ref={closetRef}
+              aria-label="Your closet"
+              data-tip="studio-closet"
+              onDragOver={(e) => {
+                if (!carriesFiles(e)) return;
+                e.preventDefault();
+                setFilesOver(true);
+              }}
+              onDragLeave={(e) => {
+                if (!e.currentTarget.contains(e.relatedTarget as Node | null)) setFilesOver(false);
+              }}
+              onDrop={(e) => {
+                if (!carriesFiles(e)) return;
+                e.preventDefault();
+                setFilesOver(false);
+                const files = Array.from(e.dataTransfer.files);
+                if (!files.length) return;
+                setDropFiles(files);
+                setAddOnOpen(true);
+                setClosetOpen(true);
+              }}
+              className="relative min-w-0 overflow-hidden rounded-[22px] bg-white shadow-[0_1px_0_rgba(18,24,33,0.03),0_14px_36px_rgba(18,30,45,0.06)]"
+            >
+              {filesOver && (
+                <div className="pointer-events-none absolute inset-0 z-10 flex items-center justify-center rounded-[22px] border-2 border-dashed border-[#121821]/40 bg-white/85 text-[14px] font-semibold text-[#121821]">
+                  Drop photos to add them
+                </div>
+              )}
               <div className="flex items-center justify-between gap-3 px-4 pt-4">
                 <div className="inline-flex rounded-full bg-[#f1f3f4] p-1">
                   {(["closet", "shop"] as const).map((s) => (
@@ -1302,6 +1412,11 @@ export default function StudioPage() {
                         <li key={item.id}>
                           <button
                             onClick={() => pick(item)}
+                            draggable
+                            onDragStart={(e) => {
+                              e.dataTransfer.setData(PIECE_DRAG_TYPE, item.id);
+                              e.dataTransfer.effectAllowed = "copy";
+                            }}
                             aria-pressed={chosen}
                             title={item.description}
                             className={`group relative block aspect-square w-full overflow-hidden rounded-[14px] bg-[#f4f5f6] ${
