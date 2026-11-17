@@ -5,7 +5,7 @@ Virm is an AI wardrobe app. You put your clothes in a digital closet, get outfit
 - **Live site:** https://virm-virtualmirror.yonghaochen.workers.dev
 - **Made for phones first**, then computers. A bottom tab bar on phones, a top bar on computers.
 - **Menu (live):** Home · My Closet · Studio · Planner (more: Shopping · AI Stylist · Saved Looks · Profile)
-- **Menu (demo, not live yet):** **Studio · Discover · My Style**, the same on phones (bottom bar) and computers (top bar). Posting lives in Discover: slide right on a phone (computers: **New post**). Your photo at the top right holds Profile, Admin and Log out. Planner, AI Stylist and Saved Looks are on My Style; Shopping is in the closet (Unowned).
+- **Menu (demo, not live yet):** **Studio · Discover · My Style**, the same on phones (bottom bar) and computers (top bar). Posting lives in Discover: slide left on a phone (the right side) (computers: **New post**). Your photo at the top right holds Profile, Admin and Log out. Planner, AI Stylist and Saved Looks are on My Style; Shopping is in the closet (Unowned).
 - **Live vs. demo:** everything below is in the demo on your computer. Items marked **(not live yet)** aren't on the live site yet.
 
 ---
@@ -24,7 +24,7 @@ What's yours, in one place. Nothing here uses AI or costs anything.
 - Signed out: the welcome page with **Try It Free**.
 
 ### Quick ways around **(demo, not live yet)**
-- **Phones:** double-tap a post to like it · slide left on a post to Recreate it · slide right on Discover to post · tap a closet piece to wear it (ⓘ for its details).
+- **Phones:** double-tap a post to like it · slide left on Discover to post · slide right on a post to Recreate it · tap a closet piece to wear it (ⓘ for its details).
 - **Computers:** keyboard shortcuts (press **?** for the list): on Discover ↑/↓ or J/K move between posts, L like, S save, R recreate, Enter open, N new post, / search; in Studio C My Closet, T Try On. Drag a piece onto the mirror to wear it; drop photos on the closet to add them.
 
 ### Studio and My Closet **(demo, not live yet)**
@@ -93,7 +93,7 @@ Discover is for inspiration; Virm is still about your closet and your AI stylist
 - **Follow** people from their posts, the feed or their profile (posts, followers and following counts).
 - **Comments** under each post and in a sheet from the feed. The writer and the post's owner can delete a comment; anyone can report one.
 
-**Posting (slide right on Discover; New post on computers)** — no AI needed for any of it:
+**Posting (slide left on Discover; New post on computers)** — no AI needed for any of it:
 - **Upload a photo** · **Upload a video** (MP4, MOV or WebM, up to a minute and 50 MB; pick the cover from any moment) · **Share a saved look** · **Build an outfit** (pieces from your closet, Shopping, or any store link or photo, laid out as an outfit board) · **Share a Live Try On video** (one of your saved recordings, only if you pick it).
 - **The editor** (built outfits, and photos too): drag to move, pinch or drag the corner to resize, twist or drag the round handle to turn, **Crop** by the edges, **Cut out** (background removed on your device), **Replace** a piece, **Back / Forward**, **Delete**, **＋ Piece / ＋ Picture / ＋ Text** (3 styles, 6 colors) and the board's **Background** color.
 - Caption, style and occasion tags, and each piece's name, brand, store, price and link. **Details: only you** keeps a piece's brand, store, link and price to yourself (its name and picture stay public).

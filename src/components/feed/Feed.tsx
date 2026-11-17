@@ -115,12 +115,12 @@ export function Feed() {
   const sliding = () => typeof window !== "undefined" && window.matchMedia("(max-width: 767px)").matches;
   const atTop = () => sliding() && (list.current?.scrollTop ?? 0) <= 0;
 
-  // Posting lives here: slide right on a phone to open Create (computers: the New post button).
+  // Posting lives here: slide left on a phone (the right side) to open Create (computers: the New post button).
   const [creating, setCreating] = useState(false);
   const [swipe, setSwipe] = useState(0);
   const swipeFrom = useRef<{ x: number; y: number; dir: "right" | "left" | "y" | null; dx: number; postId: string | null } | null>(null);
   const SWIPE_TO_CREATE = 80;
-  // Slide left on a post: Recreate it.
+  // Slide right on a post: Recreate it.
   const [swipeLeft, setSwipeLeft] = useState(0);
   const router = useRouter();
   // Asks one post's like / save buttons (phone or computer ones) or its Recreate to act; `n` is new each time.
@@ -303,11 +303,11 @@ export function Feed() {
           if (!from) return;
           const dx = e.touches[0].clientX - from.x;
           const dy = e.touches[0].clientY - from.y;
-          // Decide once which way the finger is going: right opens Create (signed in), left Recreates this post, and up
-          // and down scrolls posts.
+          // Decide once which way the finger is going: left (showing the right side) opens a new post (signed in), right
+          // Recreates this post, and up and down scrolls posts.
           if (!from.dir && Math.hypot(dx, dy) > 10) {
             const sideways = Math.abs(dx) > Math.abs(dy) * 1.3;
-            from.dir = !sideways ? "y" : dx > 0 ? (status === "signedIn" ? "right" : "y") : "left";
+            from.dir = !sideways ? "y" : dx > 0 ? "right" : status === "signedIn" ? "left" : "y";
           }
           if (from.dir === "right") {
             from.dx = dx;
@@ -319,8 +319,8 @@ export function Feed() {
         }}
         onTouchEnd={() => {
           const from = swipeFrom.current;
-          if (from?.dir === "right" && from.dx >= SWIPE_TO_CREATE) setCreating(true);
-          if (from?.dir === "left" && -from.dx >= SWIPE_TO_CREATE && from.postId) setRecreate({ id: from.postId, n: ++counter.current });
+          if (from?.dir === "left" && -from.dx >= SWIPE_TO_CREATE) setCreating(true);
+          if (from?.dir === "right" && from.dx >= SWIPE_TO_CREATE && from.postId) setRecreate({ id: from.postId, n: ++counter.current });
           setSwipe(0);
           setSwipeLeft(0);
           swipeFrom.current = null;
@@ -363,19 +363,19 @@ export function Feed() {
           )}
         </div>
 
-        {/* Slide right to post: "New post" comes in from the left edge with the finger. */}
+        {/* Slide right to recreate: "Recreate" comes in from the left edge with the finger. */}
         {swipe > 0 && (
           <div aria-hidden className="pointer-events-none absolute inset-y-0 left-0 z-20 flex items-center md:hidden" style={{ transform: `translateX(${swipe - 120}px)`, opacity: Math.min(1, swipe / SWIPE_TO_CREATE) }}>
             <span className={`flex items-center gap-2 rounded-r-full py-3 pl-6 pr-5 text-[13px] font-semibold shadow-[0_8px_24px_rgba(0,0,0,0.3)] ${swipe >= SWIPE_TO_CREATE ? "bg-white text-[#121821]" : "bg-white/80 text-[#121821]"}`}>
-              <PlusIcon className="h-4 w-4" /> New post
+              Recreate
             </span>
           </div>
         )}
-        {/* Slide left to recreate: "Recreate" comes in from the right edge with the finger. */}
+        {/* Slide left to post: "New post" comes in from the right edge with the finger. */}
         {swipeLeft > 0 && (
           <div aria-hidden className="pointer-events-none absolute inset-y-0 right-0 z-20 flex items-center md:hidden" style={{ transform: `translateX(${120 - swipeLeft}px)`, opacity: Math.min(1, swipeLeft / SWIPE_TO_CREATE) }}>
             <span className={`flex items-center gap-2 rounded-l-full py-3 pl-5 pr-6 text-[13px] font-semibold text-[#121821] shadow-[0_8px_24px_rgba(0,0,0,0.3)] ${swipeLeft >= SWIPE_TO_CREATE ? "bg-white" : "bg-white/80"}`}>
-              Recreate
+              <PlusIcon className="h-4 w-4" /> New post
             </span>
           </div>
         )}
@@ -415,7 +415,7 @@ export function Feed() {
             }}
             onTouchMove={(e) => {
               if (pullFrom.current === null || refreshing) return;
-              // A sideways slide (to post) is never a pull.
+              // A sideways slide (to post or recreate) is never a pull.
               if (swipeFrom.current?.dir === "right" || swipeFrom.current?.dir === "left") return setPull(0);
               const dy = e.touches[0].clientY - pullFrom.current;
               setPull(dy > 0 && atTop() ? Math.min(110, dy * 0.5) : 0);
