@@ -3,11 +3,13 @@
 import { useEffect, useState } from "react";
 import Link from "next/link";
 import { DayFlatLay } from "@/components/planner/DayFlatLay";
-import { ArrowRightIcon, PaletteIcon } from "@/components/Icons";
+import { ArrowRightIcon, CheckIcon } from "@/components/Icons";
+import { ModuleVisual } from "@/components/studio/ModuleVisual";
+import { portraitUrl } from "@/components/studio/useStudio";
+import { STUDIO_MODULES, type PortraitInfo } from "@/lib/studioModules";
 import { PageShell, btnPrimary, btnSecondary } from "@/components/ui";
 import { byLatestTryOn, type ClothingItem, type Outfit } from "@/components/OutfitCard";
 import type { PlanDays } from "@/lib/planOutfits";
-import type { StyleProfile } from "@/lib/styleProfile";
 
 const pad2 = (n: number) => String(n).padStart(2, "0");
 const ymd = (d: Date) => `${d.getFullYear()}-${pad2(d.getMonth() + 1)}-${pad2(d.getDate())}`;
@@ -182,58 +184,53 @@ function TodayOutfit({ closet }: { closet: ClothingItem[] }) {
   );
 }
 
-/** Your AI Stylist profile at a glance (your season, colors and style), or the way to start it. Read only. */
+/**
+ * AI Stylist: the four analyses (color, makeup, hair, style) as cards to open, on your own portrait when there is one,
+ * each marked when it's done. Read only: an analysis is only made on its own page, when you press Analyze.
+ */
 function Stylist() {
-  const [profile, setProfile] = useState<StyleProfile | null | undefined>(undefined);
+  const [state, setState] = useState<{ portrait: PortraitInfo | null; reports: Record<string, { createdAt: string }> } | null>(null);
   useEffect(() => {
     let gone = false;
     fetch("/api/studio", { cache: "no-store" })
-      .then(async (res) => (res.ok ? ((await res.json()) as { profile?: StyleProfile }).profile : undefined))
-      .then((p) => !gone && setProfile(p && p.sources.length ? p : null))
-      .catch(() => !gone && setProfile(null));
+      .then(async (res) => (res.ok ? ((await res.json()) as { portrait: PortraitInfo | null; reports: Record<string, { createdAt: string }> }) : null))
+      .then((data) => !gone && setState(data ?? { portrait: null, reports: {} }))
+      .catch(() => !gone && setState({ portrait: null, reports: {} }));
     return () => {
       gone = true;
     };
   }, []);
 
-  if (profile === undefined) return <div className={`${card} mt-10 h-40 animate-pulse`} />;
+  if (state === null) return <div className={`${card} mt-10 h-56 animate-pulse`} />;
+  const picture = portraitUrl(state.portrait);
   return (
     <section aria-labelledby="stylist-title" className="mt-10">
       <SectionHead id="stylist-title" title="AI Stylist" href="/stylist" link="Open" />
-      {profile ? (
-        <Link href="/stylist" className={`${card} block p-5`}>
-          {profile.color && (
-            <p className="font-display text-[24px] leading-tight text-[#121821]">
-              {profile.color.season}
-              <span className="ml-2 align-middle text-[12.5px] font-normal text-[#5d6874]">{profile.color.undertone} undertone</span>
-            </p>
-          )}
-          {profile.color?.best.length ? (
-            <ul aria-label="Your colors" className="mt-3 flex flex-wrap gap-1.5">
-              {profile.color.best.slice(0, 8).map((c) => (
-                <li key={c.hex} title={c.name} className="h-7 w-7 rounded-full shadow-[inset_0_0_0_1px_rgba(18,24,33,0.12)]" style={{ background: c.hex }} />
-              ))}
-            </ul>
-          ) : null}
-          {profile.style && (
-            <p className="mt-3 text-[13.5px] leading-snug text-[#26313a]">
-              <span className="font-semibold">{profile.style.aesthetic || "Your style"}</span>
-              {profile.style.keywords.length ? <span className="text-[#5d6874]"> · {profile.style.keywords.slice(0, 4).join(", ")}</span> : null}
-            </p>
-          )}
-          {!profile.color && !profile.style && <p className="text-[13.5px] text-[#4f5b66]">See your reports and Style Profile.</p>}
-        </Link>
-      ) : (
-        <Link href="/stylist" className={`${card} flex items-center gap-4 p-5`}>
-          <span className="grid h-12 w-12 shrink-0 place-items-center rounded-[14px] bg-[#121821] text-white">
-            <PaletteIcon className="h-[22px] w-[22px]" />
-          </span>
-          <span className="min-w-0">
-            <span className="block text-[15.5px] font-semibold text-[#121821]">Discover your colors</span>
-            <span className="block text-[12.5px] text-[#5d6874]">Your season, makeup, hair and style, from one photo</span>
-          </span>
-        </Link>
-      )}
+      <ul className="grid grid-cols-2 gap-3">
+        {STUDIO_MODULES.map((m) => {
+          const done = Boolean(state.reports?.[m.id]);
+          return (
+            <li key={m.id}>
+              <Link href={`/stylist/${m.id}`} className={`${card} group block overflow-hidden transition-transform hover:-translate-y-0.5`}>
+                <span className="relative block">
+                  <ModuleVisual module={m} portrait={picture} className="aspect-[4/3] w-full" />
+                  {done && (
+                    <span className="absolute left-2.5 top-2.5 inline-flex items-center gap-1 rounded-full bg-[#121821] px-2 py-0.5 text-[10.5px] font-semibold text-white">
+                      <CheckIcon className="h-3 w-3" /> Done
+                    </span>
+                  )}
+                </span>
+                <span className="block p-3">
+                  <span className="block text-[10.5px] font-medium uppercase tracking-[1.8px]" style={{ color: m.accent }}>
+                    {m.label}
+                  </span>
+                  <span className="mt-0.5 block font-display text-[18px] leading-tight text-[#121821]">{m.title}</span>
+                </span>
+              </Link>
+            </li>
+          );
+        })}
+      </ul>
     </section>
   );
 }
