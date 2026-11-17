@@ -78,7 +78,7 @@ export type EnhanceMode = "tidy" | "flat";
 
 export class EnhanceError extends Error {
   constructor(
-    readonly code: "not_configured" | "declined" | "busy" | "failed" | "too_large",
+    readonly code: "not_configured" | "declined" | "busy" | "failed" | "too_large" | "limit",
     message: string
   ) {
     super(message);
@@ -186,7 +186,9 @@ export async function enhancePicture(
   userId: string,
   source: { bytes: Uint8Array; type: string },
   mode: EnhanceMode = "tidy",
-  about: string | null = null
+  about: string | null = null,
+  /** False when this month's enhancements are used up: a kept result is still shown, but nothing new is made. */
+  allowNew = true
 ): Promise<EnhanceResult> {
   if (source.bytes.length > MAX_SOURCE_BYTES) throw new EnhanceError("too_large", "This picture is too large to enhance.");
   // Practice copies are kept apart, so a real enhancement is never skipped because of a practice one.
@@ -196,6 +198,7 @@ export async function enhancePicture(
     const type = kept.httpMetadata?.contentType ?? "image/jpeg";
     return { imageDataUrl: toDataUrl(new Uint8Array(await kept.arrayBuffer()), type), practice: kept.customMetadata?.practice === "1", reused: true, costMicros: null };
   }
+  if (!allowNew) throw new EnhanceError("limit", "You've used this month's AI enhancements. Remove background still works, free.");
   if (practiceMode()) {
     await env.UPLOADS.put(key, source.bytes, { httpMetadata: { contentType: source.type }, customMetadata: { practice: "1" } });
     return { imageDataUrl: toDataUrl(source.bytes, source.type), practice: true, reused: false, costMicros: null };

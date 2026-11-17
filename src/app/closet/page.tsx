@@ -18,7 +18,6 @@ import { Tips, type Tip } from "@/components/Tips";
 import { keepItemBackground, removeBackgroundsAfterAdding, removeItemBackground } from "@/lib/cutoutClient";
 import { warmUpCutout } from "@/lib/cutout";
 import { DRIFT_WARNING, keepEnhancement, previewEnhancement, showPicture, type EnhancePreview } from "@/lib/enhanceClient";
-import { useAuth } from "@/components/AuthProvider";
 import { ShelfRow } from "@/components/ShelfRow";
 
 const CLOSET_TIPS: Tip[] = [
@@ -39,7 +38,7 @@ type ClothingItem = {
   season: string;
   description: string;
   brand?: string | null;
-  /** AI enhancement (admins only for now): the piece's own picture, and the AI-tidied one (imageUrl is the one shown). */
+  /** AI enhancement (everyone, within a monthly allowance): the piece's own picture, and the AI-tidied one (imageUrl is the one shown). */
   plainUrl?: string | null;
   enhancedUrl?: string | null;
 };
@@ -584,8 +583,20 @@ function ItemDetail({
   onItemChange: (item: ClothingItem) => void;
 }) {
   const [editing, setEditing] = useState(startEditing);
-  // AI enhancement: admins only for now (the server checks too). The ✦ switch works for anyone with an enhanced picture.
-  const isAdmin = Boolean(useAuth().user?.isAdmin);
+  // AI enhancement, for everyone: each month as many new ones as the plan's clothing photos (the server counts and
+  // checks). Once they're used up, the free background switch comes back. The ✦ switch never costs anything.
+  const [enhanceLeft, setEnhanceLeft] = useState<number | null | undefined>(undefined);
+  useEffect(() => {
+    let gone = false;
+    fetch("/api/me/enhance-allowance", { cache: "no-store" })
+      .then(async (res) => (res.ok ? ((await res.json()) as { left: number | null }).left : undefined))
+      .then((left) => !gone && setEnhanceLeft(left))
+      .catch(() => {});
+    return () => {
+      gone = true;
+    };
+  }, []);
+  const outOfEnhancements = enhanceLeft === 0;
   const enhancedShown = Boolean(item.enhancedUrl && item.imageUrl === item.enhancedUrl);
   const [enhancing, setEnhancing] = useState<"working" | "flattening" | "saving" | "switching" | null>(null);
   // Which kind the preview is: Enhance (tidy) or Lay it flat (a folded piece unfolded by AI).
@@ -605,8 +616,11 @@ function ItemDetail({
     setEnhancing(mode === "flat" ? "flattening" : "working");
     try {
       setPreviewMode(mode);
-      setPreview(await previewEnhancement(item, mode));
+      const made = await previewEnhancement(item, mode);
+      setPreview(made);
+      if (!made.reused) setEnhanceLeft((left) => (typeof left === "number" ? Math.max(0, left - 1) : left));
     } catch (err) {
+      if ((err as { code?: string }).code === "limit") setEnhanceLeft(0);
       setEnhanceError(err instanceof Error ? err.message : "Couldn't enhance this picture. Your picture is unchanged.");
     } finally {
       setEnhancing(null);
@@ -733,9 +747,9 @@ function ItemDetail({
               )}
               <div className="absolute bottom-3 left-1/2 flex -translate-x-1/2 flex-wrap justify-center gap-2">
                 {/* Remove background / Keep background: the original photo is always kept. Changes apply to the piece's own picture. */}
-                {/* Admins: Enhance with AI does it all (lays the piece flat and removes the background), so it's the one
-                    button until the piece is enhanced. Everyone else: the free background switch. */}
-                {!enhancedShown && !(isAdmin && !item.enhancedUrl) && (
+                {/* Enhance with AI does it all (lays the piece flat and removes the background), so it's the one button
+                    until the piece is enhanced, or until this month's enhancements are used up. */}
+                {!enhancedShown && (Boolean(item.enhancedUrl) || outOfEnhancements) && (
                   <button
                     onClick={onToggleBackground}
                     disabled={backgroundWorking || enhancing !== null}
@@ -744,7 +758,7 @@ function ItemDetail({
                     {backgroundWorking ? (cut ? "Restoring…" : "Removing background…") : cut ? "Keep background" : "Remove background"}
                   </button>
                 )}
-                {isAdmin && !item.enhancedUrl && (
+                {!item.enhancedUrl && !outOfEnhancements && (
                   // One button: the AI lays the piece out neatly flat (straight sleeves, no wrinkles, no hands); the original
                   // stays, and you choose.
                   <button
@@ -752,7 +766,7 @@ function ItemDetail({
                     disabled={enhancing !== null || backgroundWorking}
                     className="flex items-center gap-1.5 whitespace-nowrap rounded-full bg-[#121821] px-4 py-2 text-[12px] font-semibold text-white shadow-[0_4px_14px_rgba(18,24,33,0.18)] disabled:opacity-70"
                   >
-                    <SparkleIcon className="h-3.5 w-3.5" /> {enhancing !== null && enhancing !== "saving" && enhancing !== "switching" ? "Enhancing… about a minute" : "Enhance with AI"}
+                    <SparkleIcon className="h-3.5 w-3.5" /> {enhancing !== null && enhancing !== "saving" && enhancing !== "switching" ? "Enhancing… about a minute" : typeof enhanceLeft === "number" && enhanceLeft <= 5 ? `Enhance with AI · ${enhanceLeft} left` : "Enhance with AI"}
                   </button>
                 )}
               </div>

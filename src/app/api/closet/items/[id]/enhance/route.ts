@@ -1,15 +1,18 @@
 import { NextResponse } from "next/server";
 import { env } from "cloudflare:workers";
 import { prisma } from "@/lib/prisma";
-import { asResponse, requireAdmin, requireUser } from "@/lib/auth";
+import { asResponse, requireUser } from "@/lib/auth";
 import { withRetry } from "@/lib/dbRetry";
 import { cutoutOriginal, isCutout } from "@/lib/images";
 import { EnhanceError, enhancePicture, saveEnhanced, type EnhanceMode } from "@/lib/enhance";
 import { track } from "@/lib/analytics";
 import { ENHANCE_MICROS } from "@/lib/aiCosts";
+import { enhanceAllowance } from "@/lib/enhanceAllowance";
 
 /**
- * AI clothing enhancement for one closet piece (admins only for now; no credits used).
+ * AI clothing enhancement for one closet piece, for everyone. Each month a person may make as many new enhancements
+ * as their plan allows clothing photos (see enhanceAllowance; admins and SVIP unlimited); the same picture again reuses
+ * the kept result and isn't counted. No credits are used.
  * - POST { mode?: "tidy" | "flat" }: the tidied version ("flat": unfolded and laid flat) of the piece's plain picture (made once by FLUX 3, then kept; the same picture is never
  *   sent again). Nothing on the piece changes yet.
  * - PUT: saves the enhanced picture the device prepared (background removed) and shows it. The plain picture and the
@@ -18,7 +21,7 @@ import { ENHANCE_MICROS } from "@/lib/aiCosts";
  */
 type Ctx = RouteContext<"/api/closet/items/[id]/enhance">;
 const noStore = { "cache-control": "private, no-store" };
-const STATUS = { not_configured: 503, declined: 422, busy: 429, failed: 502, too_large: 413 } as const;
+const STATUS = { not_configured: 503, declined: 422, busy: 429, failed: 502, too_large: 413, limit: 429 } as const;
 
 async function loadItem(userId: string, ctx: Ctx) {
   const { id } = await ctx.params;
@@ -32,7 +35,7 @@ const plainOf = (item: { imageUrl: string; plainUrl: string | null; enhancedUrl:
 export async function POST(request: Request, ctx: Ctx) {
   let user;
   try {
-    user = await requireAdmin(request);
+    user = await requireUser(request);
   } catch (res) {
     return asResponse(res);
   }
@@ -49,9 +52,17 @@ export async function POST(request: Request, ctx: Ctx) {
   try {
     const body = (await request.json().catch(() => ({}))) as { mode?: unknown };
     const mode: EnhanceMode = body.mode === "flat" ? "flat" : "tidy";
-    const result = await enhancePicture(user.id, { bytes: new Uint8Array(await object.arrayBuffer()), type: object.httpMetadata?.contentType ?? "image/jpeg" }, mode, `${item.description}${item.color ? ` (color: ${item.color})` : ""}`.slice(0, 200));
+    const allowance = await enhanceAllowance(user.id);
+    const result = await enhancePicture(
+      user.id,
+      { bytes: new Uint8Array(await object.arrayBuffer()), type: object.httpMetadata?.contentType ?? "image/jpeg" },
+      mode,
+      `${item.description}${item.color ? ` (color: ${item.color})` : ""}`.slice(0, 200),
+      allowance.left === null || allowance.left > 0
+    );
     if (result.reused) await track(user.id, "enhance_reused");
-    else if (!result.practice) {
+    else await track(user.id, "enhance_used");
+    if (!result.reused && !result.practice) {
       // The real cost when BFL says it, otherwise the set rate (recorded as an estimate).
       if (result.costMicros !== null) await track(user.id, "ai_cost_enhance", { costMicros: result.costMicros });
       else await track(user.id, "ai_cost_enhance_est", { costMicros: ENHANCE_MICROS });
@@ -67,7 +78,7 @@ export async function POST(request: Request, ctx: Ctx) {
 export async function PUT(request: Request, ctx: Ctx) {
   let user;
   try {
-    user = await requireAdmin(request);
+    user = await requireUser(request);
   } catch (res) {
     return asResponse(res);
   }

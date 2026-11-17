@@ -26,6 +26,8 @@ export type EventName =
   /** A comment was written / reported. */
   | "comment_created"
   | "comment_reported"
+  /** A new AI enhancement of a closet piece was made (counted for the monthly allowance; reused ones aren't). */
+  | "enhance_used"
   /** A video for a post was sent (counted for the daily limit). */
   | "post_video_uploaded"
   /** Signed up with a friend's invite code (their trial will be 14 days). */
