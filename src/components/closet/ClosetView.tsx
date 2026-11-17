@@ -395,7 +395,7 @@ export function ClosetView({
                             aria-label={`${on ? "Take off" : "Wear"} ${piece.description}`}
                             className="group block text-left"
                           >
-                            <span className={`relative block h-[124px] w-[96px] overflow-hidden rounded-[10px] bg-white sm:h-[150px] sm:w-[116px] ${on ? "ring-2 ring-[#121821]" : ""}`}>
+                            <span className={`relative block h-[88px] w-[68px] overflow-hidden rounded-[10px] bg-white sm:h-[112px] sm:w-[86px] ${on ? "ring-2 ring-[#121821]" : ""}`}>
                               <Image src={piece.imageUrl} alt="" fill unoptimized onError={retryImage} className="object-contain p-1" />
                               {on && (
                                 <span className="absolute right-1 top-1 flex h-5 w-5 items-center justify-center rounded-full bg-[#121821] text-white">
@@ -403,7 +403,7 @@ export function ClosetView({
                                 </span>
                               )}
                             </span>
-                            {piece.retailer && <span className="mt-1 block w-[96px] truncate text-[11px] text-[#5d6874] sm:w-[116px]">{piece.retailer}</span>}
+                            {piece.retailer && <span className="mt-1 block w-[68px] truncate text-[10.5px] text-[#5d6874] sm:w-[86px]">{piece.retailer}</span>}
                           </button>
                         </li>
                       );
@@ -569,7 +569,7 @@ export function ClosetView({
                                 className={`group block ${editMode ? "animate-[wiggle_0.6s_ease-in-out_infinite]" : ""}`}
                               >
                                 <span
-                                  className={`relative block h-[124px] w-[96px] sm:h-[150px] sm:w-[116px] ${cut ? "" : "overflow-hidden rounded-[10px]"}`}
+                                  className={`relative block h-[88px] w-[68px] sm:h-[112px] sm:w-[86px] ${cut ? "" : "overflow-hidden rounded-[10px]"}`}
                                 >
                                   <Image
                                     src={item.imageUrl}
