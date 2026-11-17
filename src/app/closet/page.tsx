@@ -597,6 +597,8 @@ function ItemDetail({
     };
   }, []);
   const outOfEnhancements = enhanceLeft === 0;
+  // The AI's safety check turned this picture down: offer the free background switch instead.
+  const [declined, setDeclined] = useState(false);
   const enhancedShown = Boolean(item.enhancedUrl && item.imageUrl === item.enhancedUrl);
   const [enhancing, setEnhancing] = useState<"working" | "flattening" | "saving" | "switching" | null>(null);
   // Which kind the preview is: Enhance (tidy) or Lay it flat (a folded piece unfolded by AI).
@@ -621,6 +623,7 @@ function ItemDetail({
       if (!made.reused) setEnhanceLeft((left) => (typeof left === "number" ? Math.max(0, left - 1) : left));
     } catch (err) {
       if ((err as { code?: string }).code === "limit") setEnhanceLeft(0);
+      if ((err as { code?: string }).code === "declined") setDeclined(true);
       setEnhanceError(err instanceof Error ? err.message : "Couldn't enhance this picture. Your picture is unchanged.");
     } finally {
       setEnhancing(null);
@@ -749,7 +752,7 @@ function ItemDetail({
                 {/* Remove background / Keep background: the original photo is always kept. Changes apply to the piece's own picture. */}
                 {/* Enhance with AI does it all (lays the piece flat and removes the background), so it's the one button
                     until the piece is enhanced, or until this month's enhancements are used up. */}
-                {!enhancedShown && (Boolean(item.enhancedUrl) || outOfEnhancements) && (
+                {!enhancedShown && (Boolean(item.enhancedUrl) || outOfEnhancements || declined) && (
                   <button
                     onClick={onToggleBackground}
                     disabled={backgroundWorking || enhancing !== null}

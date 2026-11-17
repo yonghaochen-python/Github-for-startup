@@ -3,7 +3,7 @@ import { env } from "cloudflare:workers";
 import { isDevMode } from "@/lib/auth";
 
 /**
- * AI clothing enhancement (admins only for now): one closet picture tidied into a clean catalog-style picture by
+ * AI clothing enhancement (everyone, within a monthly allowance): one closet picture tidied into a clean catalog-style picture by
  * Black Forest Labs' FLUX 3 Image, on the same BFL account and key as photo try-on (server only; the key never
  * reaches the browser). Docs: https://docs.bfl.ai/flux_3/flux3_image_layout
  *
@@ -121,6 +121,12 @@ async function fetchWithTimeout(url: string, init: RequestInit, ms: number): Pro
   }
 }
 const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms));
+/**
+ * The AI service's own safety check turned the picture down (it sometimes does with skin or part of a person in the
+ * photo, or a big logo). Not counted toward the month's enhancements.
+ */
+const DECLINED =
+  "The AI couldn't use this photo (its safety check turned it down, which can happen with skin or a big logo in the picture). It wasn't counted. Try a photo of just the piece laid flat, or use Remove background (free).";
 
 /** Sends one picture to FLUX 3 and waits for it. Returns the result's bytes and what it cost. */
 async function runFlux3(bytes: Uint8Array, prompt: string): Promise<{ bytes: Uint8Array; type: string; costMicros: number | null }> {
@@ -148,7 +154,7 @@ async function runFlux3(bytes: Uint8Array, prompt: string): Promise<{ bytes: Uin
     if (res.status === 402) throw new EnhanceError("not_configured", "AI enhancement is paused (the service's credits have run out).");
     if (res.status === 401 || res.status === 403) throw new EnhanceError("not_configured", "AI enhancement isn't connected correctly (the key was rejected).");
     if (res.status === 429) throw new EnhanceError("busy", "The enhancement service is busy. Please try again in a minute.");
-    if (res.status === 422 || res.status === 400) throw new EnhanceError("declined", "The enhancement service couldn't use this picture.");
+    if (res.status === 422 || res.status === 400) throw new EnhanceError("declined", DECLINED);
     throw new EnhanceError("failed", "The enhancement service ran into a problem. Please try again.");
   }
   const submitted = (await res.json().catch(() => ({}))) as { id?: string; polling_url?: string; cost?: number | null };
@@ -171,7 +177,7 @@ async function runFlux3(bytes: Uint8Array, prompt: string): Promise<{ bytes: Uin
       if (!img.ok) throw new EnhanceError("failed", "Couldn't download the enhanced picture. Please try again.");
       return { bytes: new Uint8Array(await img.arrayBuffer()), type: img.headers.get("content-type") ?? "image/jpeg", costMicros };
     }
-    if (data.status && /moderated/i.test(data.status)) throw new EnhanceError("declined", "The enhancement service declined this picture.");
+    if (data.status && /moderated/i.test(data.status)) throw new EnhanceError("declined", DECLINED);
     if (data.status && /error|failed|not found/i.test(data.status)) throw new EnhanceError("failed", "The enhancement service ran into a problem. Please try again.");
     // Pending and other in-progress states: keep waiting.
   }
