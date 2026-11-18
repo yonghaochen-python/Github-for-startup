@@ -77,8 +77,6 @@ export type TryOnResult = {
   reused?: boolean;
   /** Paid generation calls this result took (one per piece when dressed one at a time). */
   calls?: number;
-  /** The person may ask once for a new picture of this look without it counting as a try-on. */
-  freeRetry?: boolean;
 };
 
 export type TryOnErrorCode = "not_configured" | "quota_exhausted" | "rate_limited" | "provider_error";

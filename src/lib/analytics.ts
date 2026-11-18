@@ -48,14 +48,13 @@ export type EventName =
   | "report_opened"
   /** Free: a Planner month or day made (no AI). */
   | "planner_generated"
-  /** Photo try-on: extra paid calls beyond the one counted with the credit (the automatic second try, the free retry),
-   * at the set rate in costMicros. */
+  /** Photo try-on: extra paid calls beyond the one counted with the credit (the automatic second try), at the set rate
+   * in costMicros. */
   | "tryon_extra_cost"
   /** Photo try-on: the AI check of a new picture (Claude, real cost in costMicros). */
   | "ai_cost_tryon_check"
-  /** Photo try-on: the check found a problem and a second try was made automatically / the person used their free retry. */
+  /** Photo try-on: the check found a problem and a second try was made automatically. */
   | "tryon_auto_retry"
-  | "tryon_free_retry"
   /** Photo try-on was down on Virm's side (the try-on service's balance ran out, or its key was rejected). */
   | "tryon_service_down"
   /** Billing: the trial's secure card page was opened. */

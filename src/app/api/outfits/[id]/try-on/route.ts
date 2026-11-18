@@ -14,7 +14,6 @@ import { CreditError, requestIdFrom, withCredit } from "@/lib/credits";
 import { newMeter } from "@/lib/anthropic";
 import { PHOTO_TRYON_MICROS } from "@/lib/aiCosts";
 import { checkTryOn } from "@/lib/tryOnCheck";
-import { env } from "cloudflare:workers";
 
 const MAX_PHOTO_BYTES = 12 * 1024 * 1024;
 const MAX_GARMENT_BYTES = 4 * 1024 * 1024;
@@ -109,32 +108,13 @@ export async function POST(request: Request, ctx: RouteContext<"/api/outfits/[id
       !(sent instanceof File) && isSavedPhotoKey(user.selfieUrl)
         ? tryOnCacheKey(user.id, user.selfieUrl, outfit.items.map(({ item }) => ({ ...item, imageUrl: aiPicture(item) })))
         : null;
-    // The one free "Try again" per look (and photo): remembered next to the look's kept picture, so a new photo gives a
-    // new one. It dresses the pieces one at a time and doesn't count as a try-on.
-    const retryMark = cacheKey ? `${cacheKey}.retry` : null;
-    const retryUsed = async () => (retryMark ? Boolean(await env.UPLOADS.head(retryMark).catch(() => null)) : true);
     const pieces = outfit.items.map(({ item }) => ({ role: item.layeringRole, description: item.description }));
 
-    const remembered = cacheKey && formData.get("fresh") !== "1" && formData.get("retry") !== "1" ? await getCachedTryOn(cacheKey).catch(() => null) : null;
+    const remembered = cacheKey && formData.get("fresh") !== "1" ? await getCachedTryOn(cacheKey).catch(() => null) : null;
     let result: TryOnResult;
     if (remembered) {
       result = { isMock: false, provider: "saved", imageDataUrl: remembered, layers: toPlainLayers(layers), reused: true };
       await track(user.id, "tryon_reused");
-    } else if (formData.get("retry") === "1") {
-      if (!retryMark || (await retryUsed())) {
-        return NextResponse.json({ error: "You've already used the free try again for this look.", code: "retry_used" }, { status: 409, headers: noStore });
-      }
-      // Marked first, so two quick presses can't both be free; a failed try gives it back.
-      await env.UPLOADS.put(retryMark, "1");
-      try {
-        result = await trackTimed(user.id, "tryon", () => runTryOn({ person: person!, layers, garmentSheet, oneAtATime: true }, user.id, user.role));
-      } catch (err) {
-        await env.UPLOADS.delete(retryMark).catch(() => {});
-        throw err;
-      }
-      await track(user.id, "tryon_free_retry");
-      if (!result.isMock) await track(user.id, "tryon_extra_cost", { costMicros: (result.calls ?? 1) * PHOTO_TRYON_MICROS });
-      if (cacheKey && !result.isMock && result.imageDataUrl) await cacheTryOn(cacheKey, result.imageDataUrl).catch(() => {});
     } else {
       // The browser prepares the pictures (white behind cut-outs, one sheet for the whole look). If they didn't arrive,
       // stop here rather than send stored cut-outs whose see-through background the AI can read as black (and one
@@ -173,7 +153,6 @@ export async function POST(request: Request, ctx: RouteContext<"/api/outfits/[id
         { trial: { kind: "photo" } }
       );
       if (cacheKey && !result.isMock && result.imageDataUrl) await cacheTryOn(cacheKey, result.imageDataUrl).catch(() => {});
-      if (!result.isMock && result.imageDataUrl && !(await retryUsed())) result = { ...result, freeRetry: true };
     }
 
     // A real result made from the saved photo becomes the person's current look until they change it, and

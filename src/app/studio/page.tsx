@@ -518,7 +518,7 @@ export default function StudioPage() {
   }
 
   /** Runs the try-on. A picture already made of this photo and these pieces comes back free unless fresh is asked for. */
-  async function tryOn(fresh = false, retry = false) {
+  async function tryOn(fresh = false) {
     if (pieces.length === 0 || (!hasPhoto && !chosenPhoto) || trying) return;
     setError(null);
     setStatusIndex(0);
@@ -544,7 +544,7 @@ export default function StudioPage() {
       const before = shownRef.current;
       const outfitId = await saveOutfit();
       setStatusIndex(1);
-      setResult(await requestTryOn(outfitId, pieces, liveProvider, fresh, retry));
+      setResult(await requestTryOn(outfitId, pieces, liveProvider, fresh));
       if (before?.look.outfitId && before.look.outfitId !== outfitId) pushShown(before);
       // The new picture is now this look's try-on and the person's current look across the app.
       refreshUser();
@@ -1110,16 +1110,6 @@ export default function StudioPage() {
                       Redo
                     </button>
                   </span>
-                )}
-                {/* A new picture that looks wrong: one free new try, the pieces put on one at a time. */}
-                {!changed && result?.freeRetry && !result.reused && !trying && (
-                  <button
-                    onClick={() => tryOn(true, true)}
-                    className="absolute bottom-3 left-1/2 -translate-x-1/2 whitespace-nowrap rounded-full bg-white/90 px-3 py-1 text-[11px] font-semibold text-[#121821] shadow-sm backdrop-blur-md hover:bg-white md:bottom-14"
-                    title="Make a new picture of this look, free (once)"
-                  >
-                    Not right? Try again
-                  </button>
                 )}
                 {((!changed && result?.isMock) || shopShown?.isMock) && (
                   <span className="absolute bottom-3 left-1/2 -translate-x-1/2 whitespace-nowrap md:bottom-14 rounded-full bg-[#121821]/90 px-3 py-1 text-[10px] font-bold tracking-[1.4px] text-white">
