@@ -26,7 +26,9 @@ function ActionBar({ children }: { children: React.ReactNode }) {
 /** Photo frame: 3:4, as large as fits above the action bar and tab bar on a phone. */
 const frameStyle = { height: "min(56dvh, calc((100vw - 2.5rem) * 4 / 3), 640px)", aspectRatio: "3 / 4" } as const;
 
-const POSE_TIPS = ["Face forward", "Arms down at your sides", "Fitted or shorter clothes", "Head to feet in the photo", "Even light, plain background"];
+// Try-on AI keeps what you already have on when it can't see past it, so the clothes matter most: plain and close
+// fitting (a tank top and leggings), with nothing loose or layered on top (no shorts over leggings, no skirt, no jacket).
+const POSE_TIPS = ["Plain, close-fitting clothes, like a tank top and leggings", "No shorts, skirt or jacket on top", "Face forward, arms down", "Head to feet in the photo", "Even light, plain background"];
 
 /**
  * The pose to aim for, inside the photo box: one clean figure standing straight and facing forward, arms down and
@@ -322,7 +324,7 @@ export function TryOnPhotoStep({
             type="button"
             onClick={() => fileInputRef.current?.click()}
             disabled={starting || busy}
-            aria-label="Choose a full-body photo: face forward, arms down at your sides, fitted or shorter clothes, head to feet in the photo, even light and a plain background"
+            aria-label="Choose a full-body photo: plain, close-fitting clothes like a tank top and leggings, no shorts, skirt or jacket on top, face forward with arms down, head to feet in the photo, even light and a plain background"
             className="group relative aspect-[3/4] w-full max-w-[300px] justify-self-center overflow-hidden rounded-[22px] border border-dashed border-[#aab6bc] bg-[#f4f7f8] transition-colors hover:border-[#121821] hover:bg-white @2xl:justify-self-start"
           >
             <PoseGuide label={busy ? "Preparing photo…" : "Choose a full-body photo"} />
@@ -330,8 +332,8 @@ export function TryOnPhotoStep({
           <div>
             <h2 className="font-display mb-2 text-[30px] font-normal leading-tight text-[#121821]">Your personal try-on photo</h2>
             <p className="mb-5 max-w-md text-[13.5px] leading-relaxed text-[#4f5b66]">
-              A clear, full-body photo, posed like the guide. You&apos;ll use it for every try-on, and the closer the fit of your
-              clothes, the better your body&apos;s shape comes through.
+              A clear, full-body photo, posed like the guide. Wear something plain and close-fitting: whatever you have on
+              can show through in every try-on.
             </p>
             <div className="flex flex-col gap-3 sm:flex-row">
               <button
