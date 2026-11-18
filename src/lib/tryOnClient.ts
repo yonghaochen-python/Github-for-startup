@@ -17,6 +17,8 @@ export type TryOnResult = {
   imageDataUrl: string | null;
   notShown?: NotShown[];
   reused?: boolean;
+  /** One free "Try again" is still open for this look. */
+  freeRetry?: boolean;
   /** This try-on's request id (added here), so feedback can point at it. */
   requestId?: string;
 };
@@ -25,13 +27,15 @@ export type TryOnResult = {
  * Runs a try-on of a saved outfit on the person's saved photo (the server reads the photo; nothing is re-uploaded).
  * With a live provider, each garment's photo is shrunk here first so phones upload small files.
  */
-export async function requestTryOn(outfitId: string, pieces: Piece[], liveProvider: boolean, fresh = false): Promise<TryOnResult> {
+export async function requestTryOn(outfitId: string, pieces: Piece[], liveProvider: boolean, fresh = false, retry = false): Promise<TryOnResult> {
   const formData = new FormData();
   // One id per Try On press, so a repeated request is never counted twice.
   const requestId = crypto.randomUUID();
   formData.append("requestId", requestId);
   // By default a picture already made of this photo and these pieces is shown again for free; fresh asks for a new one.
   if (fresh) formData.append("fresh", "1");
+  // The free "Try again": a new picture, the pieces put on one at a time, not counted as a try-on.
+  if (retry) formData.append("retry", "1");
   // Always send the prepared pictures (white behind cut-outs, one sheet for the whole look). Without them the server
   // would send the stored cut-outs as they are, whose see-through background the AI can read as black, one piece per
   // call. `liveProvider` used to gate this, so a Try On pressed before it loaded went out unprepared.

@@ -202,10 +202,12 @@ export async function computeAdminStats(from: Date, to: Date) {
       label: "Photo try-on",
       made: photoUses.length,
       costMicros: 0,
-      estimatedMicros: photoUses.length * PHOTO_TRYON_MICROS,
-      adminMicros: photoUses.filter((c) => adminIds.has(c.userId)).length * PHOTO_TRYON_MICROS,
+      // Plus the extra calls: the automatic second try and the free retry (one call per piece), at the set rate.
+      estimatedMicros: photoUses.length * PHOTO_TRYON_MICROS + fromEvents("tryon_extra_cost").costMicros,
+      adminMicros: photoUses.filter((c) => adminIds.has(c.userId)).length * PHOTO_TRYON_MICROS + fromEvents("tryon_extra_cost").adminMicros,
       reused: withName("tryon_reused").length,
     },
+    { key: "tryon_check", label: "Try-on check", ...fromEvents("ai_cost_tryon_check"), estimatedMicros: 0, reused: null },
     {
       key: "live",
       label: "Live try-on",

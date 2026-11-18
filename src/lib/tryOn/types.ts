@@ -56,6 +56,9 @@ export type TryOnInput = {
   layers: TryOnInputLayer[];
   /** Optional single image with every outfit piece laid out on one canvas (built by the browser). */
   garmentSheet?: ImageBytes;
+  /** Dress one piece per call (innermost first) even when a sheet came: slower and one paid call per piece, but each
+   * call only changes one part of the person, which works better when the whole outfit changes. */
+  oneAtATime?: boolean;
 };
 
 /** A piece the provider could not show in the generated image, with a plain-language reason. */
@@ -72,6 +75,10 @@ export type TryOnResult = {
   notShown?: TryOnNote[];
   /** True when this is a remembered picture of the same photo and pieces (no new try-on, no cost). */
   reused?: boolean;
+  /** Paid generation calls this result took (one per piece when dressed one at a time). */
+  calls?: number;
+  /** The person may ask once for a new picture of this look without it counting as a try-on. */
+  freeRetry?: boolean;
 };
 
 export type TryOnErrorCode = "not_configured" | "quota_exhausted" | "rate_limited" | "provider_error";

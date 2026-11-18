@@ -147,7 +147,7 @@ export function bflFluxVtoProvider(apiKey: string): TryOnProvider {
 
   return {
     name: "bfl-flux-vto",
-    async generate({ person, layers, garmentSheet }) {
+    async generate({ person, layers, garmentSheet, oneAtATime }) {
       // Innermost first, in the same order the browser laid the garment sheet out in (see outfitPrompt).
       const steps: { role: LayeringRole; item: TryOnInputItem }[] = wornOrder(
         layers.flatMap((layer) => layer.items.map((item) => ({ role: layer.role, item, layeringRole: layer.role, description: item.description })))
@@ -158,7 +158,8 @@ export function bflFluxVtoProvider(apiKey: string): TryOnProvider {
       const named = steps.map((s) => ({ role: s.role, name: `the ${garmentName(s.item)}`, description: s.item.description, openFront: isOpenFront(s.item) }));
 
       let sampleUrl: string;
-      if (garmentSheet || steps.length === 1) {
+      let calls = 1;
+      if ((garmentSheet && !oneAtATime) || steps.length === 1) {
         // One call for the whole look: every piece is on the sheet (or there is only one piece), each named by its place.
         const garment = garmentSheet ?? (await steps[0].item.getImage());
         sampleUrl = await runJob(baseUrl, apiKey, {
@@ -187,6 +188,7 @@ export function bflFluxVtoProvider(apiKey: string): TryOnProvider {
           });
           current = sampleUrl;
         }
+        calls = steps.length;
       }
 
       return {
@@ -194,6 +196,7 @@ export function bflFluxVtoProvider(apiKey: string): TryOnProvider {
         provider: "bfl-flux-vto",
         imageDataUrl: await toDataUrl(sampleUrl),
         layers: toPlainLayers(layers),
+        calls,
       };
     },
   };
