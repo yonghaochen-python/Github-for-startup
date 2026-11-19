@@ -28,12 +28,36 @@ export function PieceRow({ it }: { it: PublicPost["items"][number] }) {
         {details && <span className="block truncate text-[12px] text-[#5d6874]">{details}</span>}
         {it.detailsPrivate && <span className="block text-[11px] text-[#8a949e]">Details: only you</span>}
       </span>
-      {it.link && (
-        <a href={it.link} target="_blank" rel="noopener noreferrer nofollow ugc" className="shrink-0 rounded-full bg-[#121821] px-3.5 py-1.5 text-[12px] font-semibold text-white">
-          Shop
-        </a>
-      )}
+      {it.link && <ShopLink href={it.link} />}
     </li>
+  );
+}
+
+/** The website a link opens, as people know it ("zara.com"). */
+export const linkSite = (href: string) => {
+  try {
+    return new URL(href).hostname.replace(/^www\./, "");
+  } catch {
+    return "";
+  }
+};
+
+/** Shop, with the website it opens written under it, so a strange link shows before anyone taps it. */
+export function ShopLink({ href }: { href: string }) {
+  const site = linkSite(href);
+  return (
+    <span className="flex shrink-0 flex-col items-center gap-0.5">
+      <a
+        href={href}
+        target="_blank"
+        rel="noopener noreferrer nofollow ugc"
+        aria-label={site ? `Shop on ${site} (opens a new tab)` : "Shop (opens a new tab)"}
+        className="rounded-full bg-[#121821] px-3.5 py-1.5 text-[12px] font-semibold text-white"
+      >
+        Shop
+      </a>
+      {site && <span className="max-w-[96px] truncate text-[10.5px] text-[#5d6874]">{site}</span>}
+    </span>
   );
 }
 

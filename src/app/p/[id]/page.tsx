@@ -14,6 +14,7 @@ import { PostActions } from "@/components/feed/PostActions";
 import { TryThisOutfit } from "@/components/feed/TryThisOutfit";
 import { CommentList } from "@/components/feed/Comments";
 import { FollowButton } from "@/components/feed/FollowButton";
+import { ShopLink } from "@/components/feed/PiecesSheet";
 
 /** One outfit post: big photo, who posted it, caption, tags and pieces. Open to everyone. */
 export default function PostPage() {
@@ -150,11 +151,7 @@ export default function PostPage() {
                   )}
                   {it.detailsPrivate && <span className="block text-[11px] text-[#8a949e]">Details: only you</span>}
                 </span>
-                {it.link && (
-                  <a href={it.link} target="_blank" rel="noopener noreferrer nofollow ugc" className="shrink-0 rounded-full bg-[#121821] px-3 py-1.5 text-[12px] font-semibold text-white">
-                    Shop
-                  </a>
-                )}
+                {it.link && <ShopLink href={it.link} />}
               </li>
             ))}
           </ul>

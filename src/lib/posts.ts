@@ -48,15 +48,41 @@ const caption = (v: unknown) =>
 const tags = (v: unknown, allowed: readonly string[]) =>
   Array.isArray(v) ? [...new Set(v.filter((t): t is string => typeof t === "string" && allowed.includes(t)))].slice(0, MAX_TAGS) : [];
 /** Only ordinary web links (https/http), so a post can't carry a script or app link. */
+/** Link shorteners and link pages: they hide where a link really goes. */
+const HIDDEN_DESTINATION = new Set([
+  "bit.ly", "tinyurl.com", "t.co", "goo.gl", "ow.ly", "is.gd", "buff.ly", "rebrand.ly", "cutt.ly", "shorturl.at", "tiny.cc",
+  "rb.gy", "bl.ink", "s.id", "t.ly", "lnkd.in", "linktr.ee", "tr.ee", "short.io", "shorturl.com", "v.gd", "qr.ae", "dub.sh",
+]);
+
+/**
+ * A piece's shopping link, checked: a store's own secure (https) web address. Refused with a plain reason: short links
+ * and link pages (they hide where they go), number addresses, addresses with a password in them, unusual ports, and
+ * look-alike letters (punycode). Empty is fine (no link).
+ */
 function cleanLink(v: unknown): string | null {
   if (typeof v !== "string" || !v.trim()) return null;
+  let url: URL;
   try {
-    const url = new URL(v.trim());
-    return url.protocol === "https:" || url.protocol === "http:" ? url.toString().slice(0, 500) : null;
+    url = new URL(v.trim());
   } catch {
-    return null;
+    throw new Error("A shopping link isn't a web address. Paste the store's link, or leave it empty.");
   }
+  const host = url.hostname.toLowerCase().replace(/^www\./, "");
+  const refuse = (why: string) => {
+    throw new Error(`That shopping link can't be used: ${why}. Use the store's own link, or leave it empty.`);
+  };
+  if (url.protocol !== "https:") refuse("it isn't a secure (https) link");
+  if (url.username || url.password) refuse("it has a sign-in built into it");
+  if (url.port && url.port !== "443") refuse("it uses an unusual port");
+  if (/^\d+(\.\d+){3}$/.test(host) || host.startsWith("[")) refuse("it's a number address, not a store's name");
+  if (!host.includes(".") || host === "localhost") refuse("it isn't a public website");
+  if (host.split(".").some((part) => part.startsWith("xn--"))) refuse("its name uses look-alike letters");
+  if (HIDDEN_DESTINATION.has(host)) refuse("short links hide where they go");
+  return url.toString().slice(0, 500);
 }
+
+/** Whose shopping links are shown to everyone: admins, and people you trust to post ("Can post" in Admin). */
+const linksTrusted = (user: { role: string; canPost: boolean }) => user.role === "admin" || user.canPost;
 
 export type NewPostItem = {
   name?: unknown;
@@ -416,7 +442,7 @@ export const postSelect = {
   status: true,
   board: true,
   _count: { select: { comments: { where: { status: "published" } } } },
-  user: { select: { username: true, displayName: true, avatarKey: true } },
+  user: { select: { username: true, displayName: true, avatarKey: true, role: true, canPost: true } },
   items: {
     orderBy: { position: "asc" as const },
     select: { id: true, name: true, category: true, brand: true, store: true, link: true, price: true, imageKey: true, detailsPrivate: true },
@@ -442,12 +468,14 @@ export function toPublic(row: NonNullable<PostRow>, viewer?: { id: string; role:
     items: row.items.map((it) => {
       // "Only me" details are left out for everyone but the person who posted it.
       const shown = owner || !it.detailsPrivate;
+      // Someone not yet trusted: their shopping links wait (they still see their own) until you trust them in Admin.
+      const linkShown = shown && (owner || linksTrusted(row.user));
       return {
         name: it.name,
         category: it.category,
         brand: shown ? it.brand : null,
         store: shown ? it.store : null,
-        link: shown ? it.link : null,
+        link: linkShown ? it.link : null,
         price: shown ? it.price : null,
         imageUrl: it.imageKey ? `/uploads/${it.imageKey}` : null,
         ...(owner ? { id: it.id, detailsPrivate: it.detailsPrivate } : {}),

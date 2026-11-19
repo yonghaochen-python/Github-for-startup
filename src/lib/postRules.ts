@@ -13,6 +13,7 @@ export const REPORT_REASONS = [
   { value: "harassment", label: "Bullying or harassment" },
   { value: "hate", label: "Hate" },
   { value: "not_mine", label: "My photo, posted by someone else" },
+  { value: "scam", label: "Scam or harmful link" },
   { value: "spam", label: "Spam" },
   { value: "other", label: "Something else" },
 ] as const;
