@@ -933,14 +933,14 @@ export default function StudioPage() {
 
         {/* One row above the mirror: Photo | Live, the theme box, and the way back to Shopping. On phones with the photo
             showing, Photo | Live sits on the mirror and the theme box in the Outfit tab, so this row isn't there. */}
-        <div className={`mb-3 flex flex-wrap items-center gap-2 md:mb-4 md:gap-3 ${sidePicks ? "max-md:hidden" : ""}`}>
-          {modeSwitch(false)}
+        <div className={`mb-3 flex flex-wrap items-center gap-2 md:mb-4 md:gap-3 ${sidePicks && !fromShop ? "hidden" : ""}`}>
+          {!sidePicks && modeSwitch(false)}
           {fromShop && (
             <Link href="/shop" className="ml-auto shrink-0 text-[12.5px] font-semibold text-[#29343a] underline-offset-4 hover:underline lg:order-last">
               ← Back to Shopping
             </Link>
           )}
-          {themeForm("studio-theme", true)}
+          {!sidePicks && themeForm("studio-theme", true)}
         </div>
 
         {error && (
@@ -1057,7 +1057,7 @@ export default function StudioPage() {
                 ref={mirrorRef}
                 className={`${mirrorFrame} grid bg-[linear-gradient(180deg,#f9f8f5_0%,#eeece7_100%)] max-md:aspect-auto max-md:h-[62dvh] max-md:max-h-none max-md:min-h-[380px] ${
                   pieces.length
-                    ? "grid-cols-[minmax(84px,26%)_minmax(0,1fr)] md:grid-cols-[minmax(170px,26%)_minmax(0,1fr)_minmax(150px,24%)]"
+                    ? "grid-cols-[minmax(84px,26%)_minmax(0,1fr)] md:grid-cols-[minmax(170px,26%)_minmax(0,1fr)_minmax(210px,24%)]"
                     : "grid-cols-1 md:grid-cols-[minmax(0,1fr)_minmax(150px,26%)]"
                 }`}
               >
@@ -1069,7 +1069,7 @@ export default function StudioPage() {
                       replacing={replacing}
                       onReplace={startReplace}
                       onRemove={(piece) => removePiece(piece)}
-                      className="flex-1 justify-center px-2 py-4 max-md:pt-11 sm:px-3"
+                      className="flex-1 justify-center px-2 py-4 pt-11 sm:px-3 md:pt-14"
                     />
                     {/* Clears the look (under its pieces, where it belongs). */}
                     <button onClick={startOver} className="mx-auto mb-3 shrink-0 px-2 py-1 text-[11.5px] font-semibold text-[#5d6874] underline-offset-4 hover:text-[#121821] hover:underline">
@@ -1144,12 +1144,16 @@ export default function StudioPage() {
                   </div>
                 )}
                 </div>
-                <OutfitPicks {...picksProps} layout="column" className="hidden min-h-0 border-l border-black/[0.07] p-3 md:flex" />
+                {/* Computers: the outfit column beside the photo: Style it on top, then the picks it makes. */}
+                <div className="hidden min-h-0 flex-col gap-3 border-l border-black/[0.07] p-3 md:flex">
+                  {themeForm("studio-theme-side", true, "!flex-none !basis-auto !bg-[#f4f5f6] !shadow-none [&_button]:!px-3")}
+                  <OutfitPicks {...picksProps} layout="column" className="flex min-h-0 flex-1" />
+                </div>
                 {/* Phones: the mirror's own controls in the mirror's corners, beside the photo (never over it). Photo | Live top left; the camera (change photo), Save,
                     Share and Undo down the top right. */}
                 {!trying && (
                   <>
-                    <div className="absolute left-2 top-2 z-10 md:hidden">{modeSwitch(true)}</div>
+                    <div className="absolute left-2 top-2 z-10 md:left-3 md:top-3">{modeSwitch(true)}</div>
                     <div className="absolute right-2 top-2 z-10 flex flex-col gap-1.5 md:hidden [&_a]:!h-9 [&_a]:!w-9 [&_button]:!h-9 [&_button]:!w-9">
                       <button
                         onClick={() => setChangingPhoto(true)}
