@@ -422,7 +422,7 @@ export function Feed() {
         }}
         className={`relative md:h-auto ${
           // Phones: the feed fills the screen between the top bar and the bottom menu (none when signed out).
-          status === "signedIn" ? "h-[calc(100dvh-65px-64px-env(safe-area-inset-bottom))]" : "h-[calc(100dvh-65px)]"
+          status === "signedIn" ? "h-[calc(100dvh-49px-64px-env(safe-area-inset-bottom))]" : "h-[calc(100dvh-49px)]"
         }`}
       >
         {/* Phones: For You and search over the top of the feed. */}

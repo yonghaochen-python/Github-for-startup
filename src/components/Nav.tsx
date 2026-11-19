@@ -40,7 +40,7 @@ function sectionFor(pathname: string | null): Section | null {
 function Wordmark() {
   return (
     <Link href="/" className="group flex shrink-0 items-baseline gap-3 leading-none" aria-label="Virm: My Style">
-      <span className="font-display text-[34px] tracking-[-1px] text-[#121821] sm:text-[36px]">
+      <span className="font-display text-[27px] tracking-[-1px] text-[#121821] md:text-[36px]">
         Vir<em className="font-normal">m</em>
       </span>
       <span className="hidden text-[10px] font-semibold uppercase tracking-[2.2px] text-[#4f5b66] 2xl:inline">
@@ -150,7 +150,7 @@ function AccountMenu({ current }: { current: Section | null }) {
         aria-controls={panelId}
         onClick={() => setOpen((v) => !v)}
         aria-label="Menu"
-        className={`relative flex h-10 w-10 items-center justify-center overflow-hidden rounded-full bg-[#e9e6e0] font-display text-[17px] text-[#121821] ring-offset-2 ${
+        className={`relative flex h-8 w-8 items-center justify-center overflow-hidden rounded-full bg-[#e9e6e0] font-display text-[15px] md:h-10 md:w-10 md:text-[17px] text-[#121821] ring-offset-2 ${
           lit || open ? "ring-2 ring-[#121821]" : "ring-1 ring-black/10"
         }`}
       >
@@ -203,7 +203,7 @@ export function Nav() {
 
   return (
     <header className="site-nav sticky top-0 z-30 border-b border-black/[0.06] backdrop-blur-xl">
-      <div className="mx-auto flex h-[64px] w-full max-w-[1440px] items-center gap-3 px-4 sm:px-8 md:h-[72px] lg:gap-6">
+      <div className="mx-auto flex h-[48px] w-full max-w-[1440px] items-center gap-3 px-4 sm:px-8 md:h-[72px] lg:gap-6">
         <Wordmark />
 
         {user && (
@@ -233,7 +233,7 @@ export function Nav() {
           {user && !subscribed && (
             <button
               onClick={() => setPlansOpen(true)}
-              className="nav-upgrade min-h-[40px] rounded-full bg-[#121821] px-4 text-[12.5px] font-semibold text-white hover:bg-[#2a3542]"
+              className="nav-upgrade min-h-[32px] rounded-full bg-[#121821] px-3.5 text-[12px] font-semibold text-white hover:bg-[#2a3542] md:min-h-[40px] md:px-4 md:text-[12.5px]"
             >
               Upgrade
             </button>
@@ -243,7 +243,7 @@ export function Nav() {
           ) : (
             <Link
               href="/login"
-              className="flex min-h-[40px] items-center rounded-full bg-white px-4 text-[12.5px] font-medium text-[#121821] shadow-[inset_0_0_0_1px_rgba(18,24,33,0.12)] hover:shadow-[inset_0_0_0_1px_rgba(18,24,33,0.28)]"
+              className="flex min-h-[32px] items-center rounded-full bg-white px-4 text-[12.5px] font-medium text-[#121821] shadow-[inset_0_0_0_1px_rgba(18,24,33,0.12)] md:min-h-[40px] hover:shadow-[inset_0_0_0_1px_rgba(18,24,33,0.28)]"
             >
               Log in
             </Link>
