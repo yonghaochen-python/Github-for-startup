@@ -841,11 +841,11 @@ export default function StudioPage() {
     <div
       role="group"
       aria-label="Outfit or closet"
-      className={`relative grid shrink-0 grid-cols-2 rounded-full p-1 ${wide ? "w-full" : ""} ${floating ? "border border-white/40 bg-white/80 shadow-[0_10px_30px_rgba(0,0,0,0.25)] backdrop-blur-xl" : "bg-[#f1f3f4]"}`}
+      className={`relative grid shrink-0 grid-cols-2 rounded-full ${wide ? "w-full p-0.5" : "p-1"} ${floating ? "border border-white/40 bg-white/80 shadow-[0_10px_30px_rgba(0,0,0,0.25)] backdrop-blur-xl" : "bg-[#f1f3f4]"}`}
     >
       <span
         aria-hidden
-        className={`absolute inset-y-1 left-1 w-[calc(50%-4px)] rounded-full bg-[#121821] transition-transform duration-300 ease-[cubic-bezier(.3,.7,.2,1)] motion-reduce:transition-none ${
+        className={`absolute ${wide ? "inset-y-0.5 left-0.5 w-[calc(50%-2px)]" : "inset-y-1 left-1 w-[calc(50%-4px)]"} rounded-full bg-[#121821] transition-transform duration-300 ease-[cubic-bezier(.3,.7,.2,1)] motion-reduce:transition-none ${
           panelSide === "closet" ? "translate-x-full" : "translate-x-0"
         }`}
       />
@@ -856,7 +856,7 @@ export default function StudioPage() {
           aria-pressed={panelSide === side}
           aria-controls={side === "closet" ? "studio-closet-panel" : undefined}
           data-tip={side === "closet" ? "studio-mycloset" : undefined}
-          className={`relative flex ${wide ? "h-7" : "h-8"} items-center justify-center gap-1.5 whitespace-nowrap rounded-full px-3.5 text-[12.5px] font-semibold transition-colors duration-300 ${
+          className={`relative flex ${wide ? "h-6 text-[11.5px]" : "h-8 text-[12.5px]"} items-center justify-center gap-1.5 whitespace-nowrap rounded-full px-3.5 font-semibold transition-colors duration-300 ${
             panelSide === side ? "text-white" : "text-[#4f5b66]"
           }`}
         >
@@ -1161,7 +1161,7 @@ export default function StudioPage() {
               </div>
             )}
             {/* Phones: under the mirror, only Outfit | Closet: what shows below it. */}
-            {sidePicks && !trying && <div className="border-t border-black/[0.06] px-3 py-1.5 md:hidden">{panelSwitch(false, true)}</div>}
+            {sidePicks && !trying && <div className="border-t border-black/[0.06] px-3 py-1 md:hidden">{panelSwitch(false, true)}</div>}
 
             {/* Phones, Closet chosen: My Closet right here, in place of the picks and Try On. */}
             {sidePicks && !trying && phonePanel === "closet" && (
@@ -1176,7 +1176,7 @@ export default function StudioPage() {
                 />
               </div>
             )}
-            <div className={`border-t border-black/[0.06] p-4 sm:p-5 ${sidePicks ? "max-md:pt-3" : ""} ${sidePicks && !trying && phonePanel === "closet" ? "max-md:hidden" : ""}`}>
+            <div className={`border-t border-black/[0.06] p-4 sm:p-5 ${sidePicks ? "max-md:pt-2" : ""} ${sidePicks && !trying && phonePanel === "closet" ? "max-md:hidden" : ""}`}>
               <ShareTray />
               {outfitOnly ? (
                 // No photo: the outfit is the result. Trying it on is there for anyone who changes their mind.
@@ -1189,7 +1189,7 @@ export default function StudioPage() {
               ) : (
               <>
               {/* Phones: Style it at the top of the Outfit tab, right above the picks it makes. */}
-              {sidePicks && themeForm("studio-theme-phone", true, "mb-3 md:hidden !bg-[#f4f5f6] !shadow-none [&_input]:!py-1 [&_input]:!text-[15px] [&_button]:!py-1")}
+              {sidePicks && themeForm("studio-theme-phone", true, "mb-2 md:hidden !bg-[#f4f5f6] !shadow-none [&_input]:!py-0 [&_input]:!leading-5 [&_button]:!py-1 [&_button]:!text-[11.5px] [&_button]:!px-3 [&_svg]:!h-3.5 [&_svg]:!w-3.5")}
               {/* Phones: the top 3 picks just above Try On (one swipe, one tap, then Try On). */}
               {sidePicks && <OutfitPicks {...picksProps} size="small" className="mb-3 md:hidden" />}
               {/* A Style it idea on show: its styling direction, in a line. */}
