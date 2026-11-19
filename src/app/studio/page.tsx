@@ -896,7 +896,7 @@ export default function StudioPage() {
   }, []);
 
   return (
-    <main className="flex-1 pb-16 max-md:pb-32">
+    <main className={`flex-1 pb-16 ${sidePicks ? "max-md:pb-6" : "max-md:pb-32"}`}>
       {showKeys &&
         createPortal(
           <Dialog label="Keyboard shortcuts" onClose={() => setShowKeys(false)} className="w-full max-w-sm rounded-[22px] bg-white p-5 shadow-xl">

@@ -3,11 +3,11 @@
 import { usePathname } from "next/navigation";
 import Link from "next/link";
 
-const LINKS = [
+const LINKS: { href: string; label: string; short?: string }[] = [
   { href: "/about", label: "About" },
   { href: "/how-it-works", label: "How it works" },
   { href: "/pricing", label: "Pricing" },
-  { href: "/privacy", label: "Privacy Policy" },
+  { href: "/privacy", label: "Privacy Policy", short: "Privacy" },
   { href: "/terms", label: "Terms" },
   { href: "/contact", label: "Contact" },
 ];
@@ -22,18 +22,29 @@ export function Footer() {
   const feed = pathname === "/discover";
   return (
     <footer className={`site-footer border-t border-black/[0.06] ${feed ? "max-md:hidden" : ""}`}>
-      <div className="mx-auto flex w-full max-w-[1280px] flex-col gap-4 px-5 py-8 sm:px-8 lg:flex-row lg:items-center lg:justify-between">
-        <p className="whitespace-nowrap text-[13px] font-semibold text-[#26313a]">
-          Private by design <span className="font-normal text-[#4f5b66]">· Your closet stays yours.</span>
+      <div className="mx-auto flex w-full max-w-[1280px] flex-col gap-2 px-5 py-4 sm:px-8 md:gap-4 md:py-8 lg:flex-row lg:items-center lg:justify-between">
+        {/* Phones: two short lines (the promise and ©, then the links); computers: one row. */}
+        <p className="flex items-baseline justify-between gap-3 whitespace-nowrap text-[11.5px] font-semibold text-[#26313a] md:block md:text-[13px]">
+          <span>
+            Private by design <span className="font-normal text-[#4f5b66]">· Your closet stays yours.</span>
+          </span>
+          <span className="text-[11px] font-normal text-[#5d6874] md:hidden">© 2026 Virm</span>
         </p>
-        <nav aria-label="Footer" className="flex flex-wrap gap-x-5 gap-y-2">
+        <nav aria-label="Footer" className="flex flex-wrap gap-x-3 gap-y-1 md:gap-x-5 md:gap-y-2">
           {LINKS.map((link) => (
-            <Link key={link.href} href={link.href} className="whitespace-nowrap text-[13px] text-[#4f5b66] underline-offset-4 hover:text-[#121821] hover:underline">
-              {link.label}
+            <Link key={link.href} href={link.href} className="whitespace-nowrap text-[11.5px] text-[#4f5b66] underline-offset-4 md:text-[13px] hover:text-[#121821] hover:underline">
+              {link.short ? (
+                <>
+                  <span className="md:hidden">{link.short}</span>
+                  <span className="hidden md:inline">{link.label}</span>
+                </>
+              ) : (
+                link.label
+              )}
             </Link>
           ))}
         </nav>
-        <p className="whitespace-nowrap text-[12px] text-[#5d6874]">© 2026 Virm</p>
+        <p className="hidden whitespace-nowrap text-[12px] text-[#5d6874] md:block">© 2026 Virm</p>
       </div>
     </footer>
   );
