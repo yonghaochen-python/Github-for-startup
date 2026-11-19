@@ -776,6 +776,50 @@ export default function StudioPage() {
     },
   };
 
+  /** Photo | Live: above the mirror, or (phones, photo showing) small, on the mirror's top-left corner. */
+  const modeSwitch = (onMirror: boolean) => (
+    <div role="tablist" aria-label="How to try it on" className={`relative grid shrink-0 grid-cols-2 rounded-full p-0.5 ${onMirror ? "bg-white/85 shadow-sm backdrop-blur-md" : "bg-white shadow-[0_1px_0_rgba(18,24,33,0.03),0_8px_22px_rgba(18,30,45,0.06)]"}`}>
+      {/* The dark pill slides to the chosen side. */}
+      <span
+        aria-hidden
+        className={`absolute inset-y-0.5 left-0.5 w-[calc(50%-2px)] rounded-full bg-[#121821] transition-transform duration-300 ease-[cubic-bezier(.3,.7,.2,1)] motion-reduce:transition-none ${
+          mode === "live" ? "translate-x-full" : "translate-x-0"
+        }`}
+      />
+      {(["photo", "live"] as const).map((m) => (
+        <button
+          key={m}
+          role="tab"
+          aria-selected={mode === m}
+          onClick={() => setMode(m)}
+          className={`relative rounded-full font-semibold transition-colors duration-300 ${onMirror ? "px-2.5 py-1 text-[11.5px]" : "px-3 py-1.5 text-[12.5px] md:px-5 md:py-2 md:text-[13px]"} ${mode === m ? "text-white" : "text-[#4f5b66] hover:text-[#121821]"}`}
+        >
+          {m === "photo" ? "Photo" : "Live"}
+        </button>
+      ))}
+    </div>
+  );
+
+  /** The theme box with Style it: above the mirror, or (phones) at the top of the Outfit tab, next to the picks it makes. */
+  const themeForm = (id: string, tip: boolean, className = "") => (
+    <form onSubmit={styleTheme} data-tip={tip ? "studio-theme" : undefined} className={`flex min-w-0 flex-1 basis-[190px] ${className} items-center gap-1.5 rounded-full bg-white p-0.5 pl-3 md:gap-2 md:p-1.5 md:pl-5 shadow-[0_1px_0_rgba(18,24,33,0.03),0_14px_36px_rgba(18,30,45,0.06)]`}>
+      <SearchIcon className="h-4 w-4 shrink-0 text-[#5d6874] md:h-[18px] md:w-[18px]" />
+      <label htmlFor={id} className="sr-only">
+        Theme
+      </label>
+      <input
+        id={id}
+        value={theme}
+        onChange={(e) => setTheme(e.target.value.slice(0, MAX_THEME))}
+        placeholder="A theme…"
+        className="min-w-0 flex-1 bg-transparent py-1.5 text-[16px] md:py-2.5 md:text-[14px] text-[#121821] outline-none placeholder:text-[#5d6874]"
+      />
+      <button type="submit" disabled={styling} className={`${btnPrimary} shrink-0 max-md:min-h-0! max-md:px-3.5! max-md:py-1.5! max-md:text-[12.5px]!`}>
+        {styling ? "Styling…" : "Style it"}
+      </button>
+    </form>
+  );
+
   /**
    * Phones: Outfit | Closet in one switch under the mirror. Outfit shows the picks and Try On below it; Closet replaces
    * them with My Closet on the page. (Without that row, in Live or with no photo, the floating switch opens the
@@ -793,11 +837,11 @@ export default function StudioPage() {
       setClosetOpen(true);
     }
   };
-  const panelSwitch = (floating: boolean) => (
+  const panelSwitch = (floating: boolean, wide = false) => (
     <div
       role="group"
       aria-label="Outfit or closet"
-      className={`relative grid shrink-0 grid-cols-2 rounded-full p-1 ${floating ? "border border-white/40 bg-white/80 shadow-[0_10px_30px_rgba(0,0,0,0.25)] backdrop-blur-xl" : "bg-[#f1f3f4]"}`}
+      className={`relative grid shrink-0 grid-cols-2 rounded-full p-1 ${wide ? "w-full" : ""} ${floating ? "border border-white/40 bg-white/80 shadow-[0_10px_30px_rgba(0,0,0,0.25)] backdrop-blur-xl" : "bg-[#f1f3f4]"}`}
     >
       <span
         aria-hidden
@@ -887,49 +931,16 @@ export default function StudioPage() {
           <Tips id="studio-save-share" tips={SAVE_SHARE_TIPS} delay={1200} />
         )}
 
-        {/* One row above the mirror (so it can be bigger): Photo | Live, the theme box, and the way back to Shopping. */}
-        <div className="mb-3 flex flex-wrap items-center gap-2 md:mb-4 md:gap-3">
-          <div role="tablist" aria-label="How to try it on" className="relative grid shrink-0 grid-cols-2 rounded-full bg-white p-0.5 shadow-[0_1px_0_rgba(18,24,33,0.03),0_8px_22px_rgba(18,30,45,0.06)]">
-            {/* The dark pill slides to the chosen side. */}
-            <span
-              aria-hidden
-              className={`absolute inset-y-0.5 left-0.5 w-[calc(50%-2px)] rounded-full bg-[#121821] transition-transform duration-300 ease-[cubic-bezier(.3,.7,.2,1)] motion-reduce:transition-none ${
-                mode === "live" ? "translate-x-full" : "translate-x-0"
-              }`}
-            />
-            {(["photo", "live"] as const).map((m) => (
-              <button
-                key={m}
-                role="tab"
-                aria-selected={mode === m}
-                onClick={() => setMode(m)}
-                className={`relative rounded-full px-3 py-1.5 text-[12.5px] font-semibold transition-colors md:px-5 md:py-2 md:text-[13px] duration-300 ${mode === m ? "text-white" : "text-[#4f5b66] hover:text-[#121821]"}`}
-              >
-                {m === "photo" ? "Photo" : "Live"}
-              </button>
-            ))}
-          </div>
+        {/* One row above the mirror: Photo | Live, the theme box, and the way back to Shopping. On phones with the photo
+            showing, Photo | Live sits on the mirror and the theme box in the Outfit tab, so this row isn't there. */}
+        <div className={`mb-3 flex flex-wrap items-center gap-2 md:mb-4 md:gap-3 ${sidePicks ? "max-md:hidden" : ""}`}>
+          {modeSwitch(false)}
           {fromShop && (
             <Link href="/shop" className="ml-auto shrink-0 text-[12.5px] font-semibold text-[#29343a] underline-offset-4 hover:underline lg:order-last">
               ← Back to Shopping
             </Link>
           )}
-        <form onSubmit={styleTheme} data-tip="studio-theme" className="flex min-w-0 flex-1 basis-[190px] items-center gap-1.5 rounded-full bg-white p-0.5 pl-3 md:gap-2 md:p-1.5 md:pl-5 shadow-[0_1px_0_rgba(18,24,33,0.03),0_14px_36px_rgba(18,30,45,0.06)]">
-          <SearchIcon className="h-4 w-4 shrink-0 text-[#5d6874] md:h-[18px] md:w-[18px]" />
-          <label htmlFor="studio-theme" className="sr-only">
-            Theme
-          </label>
-          <input
-            id="studio-theme"
-            value={theme}
-            onChange={(e) => setTheme(e.target.value.slice(0, MAX_THEME))}
-            placeholder="A theme…"
-            className="min-w-0 flex-1 bg-transparent py-1.5 text-[16px] md:py-2.5 md:text-[14px] text-[#121821] outline-none placeholder:text-[#5d6874]"
-          />
-          <button type="submit" disabled={styling} className={`${btnPrimary} shrink-0 max-md:min-h-0! max-md:px-3.5! max-md:py-1.5! max-md:text-[12.5px]!`}>
-            {styling ? "Styling…" : "Style it"}
-          </button>
-        </form>
+          {themeForm("studio-theme", true)}
         </div>
 
         {error && (
@@ -1058,7 +1069,7 @@ export default function StudioPage() {
                       replacing={replacing}
                       onReplace={startReplace}
                       onRemove={(piece) => removePiece(piece)}
-                      className="flex-1 justify-center px-2 py-4 sm:px-3"
+                      className="flex-1 justify-center px-2 py-4 max-md:pt-11 sm:px-3"
                     />
                     {/* Clears the look (under its pieces, where it belongs). */}
                     <button onClick={startOver} className="mx-auto mb-3 shrink-0 px-2 py-1 text-[11.5px] font-semibold text-[#5d6874] underline-offset-4 hover:text-[#121821] hover:underline">
@@ -1128,23 +1139,29 @@ export default function StudioPage() {
                 </div>
                 </div>
                 <OutfitPicks {...picksProps} layout="column" className="hidden min-h-0 border-l border-black/[0.07] p-3 md:flex" />
+                {/* Phones: the mirror's own controls in the mirror's corners, beside the photo (never over it). Photo | Live top left; the camera (change photo), Save,
+                    Share and Undo down the top right. */}
+                {!trying && (
+                  <>
+                    <div className="absolute left-2 top-2 z-10 md:hidden">{modeSwitch(true)}</div>
+                    <div className="absolute right-2 top-2 z-10 flex flex-col gap-1.5 md:hidden [&_a]:!h-9 [&_a]:!w-9 [&_button]:!h-9 [&_button]:!w-9">
+                      <button
+                        onClick={() => setChangingPhoto(true)}
+                        aria-label="Change photo"
+                        title="Change photo"
+                        className="flex h-9 w-9 items-center justify-center rounded-full bg-white/90 text-[#121821] shadow-sm"
+                      >
+                        <CameraIcon className="h-[18px] w-[18px]" />
+                      </button>
+                      {mirrorActions}
+                    </div>
+                  </>
+                )}
+
               </div>
             )}
-            {/* Phones: the photo's actions in one row under it. */}
-            {sidePicks && !trying && (
-              <div className="flex items-center gap-1.5 border-t border-black/[0.06] px-3 py-2.5 md:hidden">
-                <span className="flex items-center gap-1.5 [&_a]:!h-9 [&_a]:!w-9 [&_button]:!h-9 [&_button]:!w-9">{mirrorActions}</span>
-                <div className="ml-auto">{panelSwitch(false)}</div>
-                <button
-                  onClick={() => setChangingPhoto(true)}
-                  aria-label="Change photo"
-                  title="Change photo"
-                  className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-[#f4f5f6] text-[#121821]"
-                >
-                  <CameraIcon className="h-[18px] w-[18px]" />
-                </button>
-              </div>
-            )}
+            {/* Phones: under the mirror, only Outfit | Closet: what shows below it. */}
+            {sidePicks && !trying && <div className="border-t border-black/[0.06] px-3 py-2.5 md:hidden">{panelSwitch(false, true)}</div>}
 
             {/* Phones, Closet chosen: My Closet right here, in place of the picks and Try On. */}
             {sidePicks && !trying && phonePanel === "closet" && (
@@ -1171,6 +1188,8 @@ export default function StudioPage() {
                 </div>
               ) : (
               <>
+              {/* Phones: Style it at the top of the Outfit tab, right above the picks it makes. */}
+              {sidePicks && themeForm("studio-theme-phone", true, "mb-4 md:hidden !bg-[#f4f5f6] !shadow-none")}
               {/* Phones: the top 3 picks just above Try On (one swipe, one tap, then Try On). */}
               {sidePicks && <OutfitPicks {...picksProps} size="small" className="mb-4 md:hidden" />}
               {/* A Style it idea on show: its styling direction, in a line. */}
