@@ -17,7 +17,7 @@ const secondaryButton =
 /** On phones the actions stay pinned just above the bottom tab bar so they never need a scroll. */
 function ActionBar({ children }: { children: React.ReactNode }) {
   return (
-    <div className="sticky bottom-[calc(64px+env(safe-area-inset-bottom))] z-20 -mx-5 mt-4 border-t border-black/[0.07] bg-[#f6f9fa]/90 px-5 py-3 backdrop-blur sm:-mx-8 sm:px-8 md:bottom-0 md:pb-[max(12px,env(safe-area-inset-bottom))] lg:static lg:mx-auto lg:max-w-[520px] lg:border-0 lg:bg-transparent lg:px-0 lg:pb-0 lg:pt-0 lg:backdrop-blur-none">
+    <div className="sticky bottom-[calc(50px+env(safe-area-inset-bottom))] z-20 -mx-5 mt-4 border-t border-black/[0.07] bg-[#f6f9fa]/90 px-5 py-3 backdrop-blur sm:-mx-8 sm:px-8 md:bottom-0 md:pb-[max(12px,env(safe-area-inset-bottom))] lg:static lg:mx-auto lg:max-w-[520px] lg:border-0 lg:bg-transparent lg:px-0 lg:pb-0 lg:pt-0 lg:backdrop-blur-none">
       <div className="flex gap-3">{children}</div>
     </div>
   );

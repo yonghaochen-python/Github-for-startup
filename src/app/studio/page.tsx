@@ -921,7 +921,7 @@ export default function StudioPage() {
         )}
       {/* Phones without the row under the photo (Live, or no photo): Outfit | Closet just above the tab bar. */}
       {!drawer && !closetOpen && !(sidePicks && !trying) && (
-        <div className="fixed bottom-[calc(84px+env(safe-area-inset-bottom))] left-1/2 z-[60] -translate-x-1/2 md:hidden">{panelSwitch(true)}</div>
+        <div className="fixed bottom-[calc(70px+env(safe-area-inset-bottom))] left-1/2 z-[60] -translate-x-1/2 md:hidden">{panelSwitch(true)}</div>
       )}
       <PageShell className="max-w-[1440px]! pt-6 sm:pt-8">
         <h1 className="sr-only">Studio</h1>

@@ -32,7 +32,7 @@ export function ToastProvider({ children }: { children: React.ReactNode }) {
         <div
           key={toast.id}
           role="status"
-          className="fixed inset-x-4 bottom-[calc(76px+env(safe-area-inset-bottom))] z-50 flex items-center gap-2.5 rounded-full bg-[#121821] py-2 pl-5 pr-2 text-xs text-white shadow-[0_5px_30px_rgba(0,0,0,0.2)] md:inset-x-auto md:bottom-6 md:right-6"
+          className="fixed inset-x-4 bottom-[calc(62px+env(safe-area-inset-bottom))] z-50 flex items-center gap-2.5 rounded-full bg-[#121821] py-2 pl-5 pr-2 text-xs text-white shadow-[0_5px_30px_rgba(0,0,0,0.2)] md:inset-x-auto md:bottom-6 md:right-6"
         >
           {toast.check && (
             <svg width="16" height="16" viewBox="0 0 16 16" fill="none" aria-hidden className="shrink-0">

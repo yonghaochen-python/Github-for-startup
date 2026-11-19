@@ -452,7 +452,7 @@ export function Shop() {
 
       {/* Phones and tablets: the outfit as a slim bar above the tab bar; tap to open its list. */}
       {tray.length > 0 && (
-        <div className="fixed inset-x-0 bottom-[calc(64px+env(safe-area-inset-bottom))] z-20 px-3 pb-2 md:bottom-0 lg:hidden">
+        <div className="fixed inset-x-0 bottom-[calc(50px+env(safe-area-inset-bottom))] z-20 px-3 pb-2 md:bottom-0 lg:hidden">
           {outfitOpen && (
             <div className="mb-2 max-h-[55vh] overflow-y-auto rounded-[10px] bg-white p-4 shadow-[0_-8px_30px_rgba(18,30,45,0.18)]">{outfitPanel()}</div>
           )}

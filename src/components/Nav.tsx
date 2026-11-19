@@ -264,7 +264,7 @@ export function MobileTabBar() {
 
   return (
     <>
-      <div aria-hidden className="h-[calc(64px+env(safe-area-inset-bottom))] md:hidden" />
+      <div aria-hidden className="h-[calc(50px+env(safe-area-inset-bottom))] md:hidden" />
       <nav
         aria-label="Main"
         className="site-tabbar fixed inset-x-0 bottom-0 z-30 border-t border-black/[0.06] pb-[env(safe-area-inset-bottom)] backdrop-blur-xl md:hidden"
@@ -278,10 +278,10 @@ export function MobileTabBar() {
                 <Link
                   href={href}
                   aria-current={active ? "page" : undefined}
-                  className={`flex h-16 flex-col items-center justify-center gap-1 text-[11px] font-semibold ${active ? "text-[#121821]" : "text-[#4f5b66]"}`}
+                  className={`flex h-[50px] flex-col items-center justify-center gap-0.5 text-[10.5px] font-semibold ${active ? "text-[#121821]" : "text-[#4f5b66]"}`}
                 >
-                  <span className={`flex h-7 w-12 items-center justify-center rounded-full ${active ? "bg-[#121821] text-white" : ""}`}>
-                    <Icon className="h-[19px] w-[19px]" />
+                  <span className={`flex h-6 w-11 items-center justify-center rounded-full ${active ? "bg-[#121821] text-white" : ""}`}>
+                    <Icon className="h-[17px] w-[17px]" />
                   </span>
                   {short}
                 </Link>
