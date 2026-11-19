@@ -8,6 +8,7 @@ import { grabFrame, readVideo, uploadVideo, type ChosenVideo } from "@/lib/postV
 import type { ClothingItem, Outfit } from "@/components/OutfitCard";
 import { CAPTION_MAX, MAX_POST_ITEMS, MAX_TAGS, OCCASION_TAGS, STYLE_TAGS, type PublicPost } from "@/lib/postRules";
 import { layoutBoard, newBoard, packBoard, pictureSize, renderBoard, shrinkPicture, withoutBackground, type Board, type BoardLayer } from "@/lib/outfitBoard";
+import { PickUsername } from "@/components/feed/PickUsername";
 import { PostPreview } from "@/components/feed/PostPreview";
 import { Dialog } from "@/components/Dialog";
 import { VideoIcon } from "@/components/Icons";
@@ -631,13 +632,11 @@ function CreatePost() {
     );
   }
   if (!access.username) {
+    // The first post: the username is picked right here, then the post carries on.
     return (
       <main className="flex-1 pb-20">
-        <PageShell className="pt-14 text-center">
-          <p className="text-[15px] text-[#4f5b66]">Pick a username first, so people know whose outfit it is.</p>
-          <Link href="/profile" className={`${btnPrimary} mt-5`}>
-            Pick a username
-          </Link>
+        <PageShell className="pt-4">
+          <PickUsername onPicked={(username) => setAccess({ ...access, username })} />
         </PageShell>
       </main>
     );
