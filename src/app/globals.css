@@ -421,6 +421,14 @@ html[data-period="night"] :focus-visible {
 html[data-period="night"] :is(.bg-white, [class^="bg-white/"], [class*=" bg-white/"], [class^="bg-[#f"], [class*=" bg-[#f"], [class^="bg-[#e"], [class*=" bg-[#e"], [class^="bg-[linear-gradient"], [class*=" bg-[linear-gradient"]) :focus-visible {
   outline-color: #121821;
 }
+/* A field inside a rounded box (the theme box): no square outline on the field; the whole box gets a soft ring. */
+.pill-field :is(input, textarea):focus-visible {
+  outline: none;
+}
+.pill-field:has(:is(input, textarea):focus-visible) {
+  outline: 1.5px solid rgb(18 24 33 / 0.28);
+  outline-offset: 0;
+}
 
 /*
  * Tap targets: text-style buttons and links (and fields) are at least 24px tall, so they're easy to hit. In the base

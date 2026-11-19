@@ -802,7 +802,7 @@ export default function StudioPage() {
 
   /** The theme box with Style it: above the mirror, or (phones) at the top of the Outfit tab, next to the picks it makes. */
   const themeForm = (id: string, tip: boolean, className = "") => (
-    <form onSubmit={styleTheme} data-tip={tip ? "studio-theme" : undefined} className={`flex min-w-0 flex-1 basis-[190px] ${className} items-center gap-1.5 rounded-full bg-white p-0.5 pl-3 md:gap-2 md:p-1.5 md:pl-5 shadow-[0_1px_0_rgba(18,24,33,0.03),0_14px_36px_rgba(18,30,45,0.06)]`}>
+    <form onSubmit={styleTheme} data-tip={tip ? "studio-theme" : undefined} className={`pill-field flex min-w-0 flex-1 basis-[190px] ${className} items-center gap-1.5 rounded-full bg-white p-0.5 pl-3 md:gap-2 md:p-1.5 md:pl-5 shadow-[0_1px_0_rgba(18,24,33,0.03),0_14px_36px_rgba(18,30,45,0.06)]`}>
       <SearchIcon className="h-4 w-4 shrink-0 text-[#5d6874] md:h-[18px] md:w-[18px]" />
       <label htmlFor={id} className="sr-only">
         Theme
