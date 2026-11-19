@@ -1095,7 +1095,7 @@ export default function StudioPage() {
                 )}
                 {/* What the picture is, said plainly but small: a tiny "AI" (or "Earlier") in the bottom corner, off the
                     person. Your own photo needs no label. */}
-                {!trying && (picture || stalePicture) && !((!changed && result?.isMock) || shopShown?.isMock) && (
+                {!trying && picture && !((!changed && result?.isMock) || shopShown?.isMock) && (
                   <span
                     title={picture ? "Made by AI try-on" : "An earlier try-on (the outfit changed since)"}
                     className="pointer-events-none absolute bottom-2 right-2 flex items-center gap-1 whitespace-nowrap rounded-full bg-[#121821]/55 px-1.5 py-0.5 text-[9px] font-semibold uppercase tracking-[1px] text-white/90 backdrop-blur-md"
@@ -1437,6 +1437,9 @@ export default function StudioPage() {
                   <ul className="grid grid-cols-3 gap-3">
                     {tabItems.map((item) => {
                       const chosen = pieceIds.has(item.id);
+                      // Every piece shows whole (never cropped). A cut-out (or any PNG, which can be see-through) is a sticker with
+                      // no box behind it; a plain photo keeps a soft gray box around it.
+                      const cut = item.imageUrl.startsWith("/uploads/cut-") || /\.png($|\?)/i.test(item.imageUrl);
                       return (
                         <li key={item.id}>
                           <button
@@ -1448,11 +1451,22 @@ export default function StudioPage() {
                             }}
                             aria-pressed={chosen}
                             title={item.description}
-                            className={`group relative block aspect-square w-full overflow-hidden rounded-[14px] bg-[#f4f5f6] ${
+                            className={`group relative block aspect-square w-full overflow-hidden rounded-[14px] ${cut ? "" : "bg-[#f4f5f6]"} ${
                               chosen ? "shadow-[inset_0_0_0_2px_#121821]" : "hover:shadow-[inset_0_0_0_1px_rgba(18,24,33,0.2)]"
                             }`}
                           >
-                            <Image src={item.imageUrl} alt={item.description} fill unoptimized onError={retryImage} className="object-cover" />
+                            <Image
+                              src={item.imageUrl}
+                              alt={item.description}
+                              fill
+                              unoptimized
+                              onError={retryImage}
+                              className={
+                                cut
+                                  ? "object-contain p-2 drop-shadow-[0_6px_10px_rgba(18,24,33,0.14)] transition-transform duration-300 group-hover:scale-[1.04]"
+                                  : "object-contain p-1"
+                              }
+                            />
                             {chosen && (
                               <span className="absolute right-1.5 top-1.5 flex h-6 w-6 items-center justify-center rounded-full bg-[#121821] text-white">
                                 <svg viewBox="0 0 16 16" className="h-3.5 w-3.5" fill="none" aria-hidden>

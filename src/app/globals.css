@@ -456,3 +456,9 @@ html[data-period="night"] :is(.bg-white, [class^="bg-white/"], [class*=" bg-whit
   from { transform: translateY(40px); opacity: 0; }
   to { transform: translateY(0); opacity: 1; }
 }
+
+/* Pictures marked "show whole" (object-contain) stay whole: the image component puts "crop to fill" on every filled
+   picture by default, which otherwise wins over the class and crops cut-outs and stickers. */
+img.object-contain {
+  object-fit: contain !important;
+}

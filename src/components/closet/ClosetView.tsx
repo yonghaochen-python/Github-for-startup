@@ -327,10 +327,10 @@ export function ClosetView({
   }
 
   const bar = (
-    <div role="tablist" aria-label="Which clothes" className="relative mb-3 grid w-full max-w-[320px] grid-cols-2 rounded-full bg-white p-1 shadow-[inset_0_0_0_1px_rgba(18,24,33,0.08)]">
+    <div role="tablist" aria-label="Which clothes" className="relative grid min-w-0 flex-1 grid-cols-2 rounded-full bg-[#f1f3f4] p-0.5 sm:max-w-[320px]">
       <span
         aria-hidden
-        className={`absolute inset-y-1 left-1 w-[calc(50%-4px)] rounded-full bg-[#121821] transition-transform duration-300 ease-[cubic-bezier(.3,.7,.2,1)] motion-reduce:transition-none ${
+        className={`absolute inset-y-0.5 left-0.5 w-[calc(50%-2px)] rounded-full bg-[#121821] transition-transform duration-300 ease-[cubic-bezier(.3,.7,.2,1)] motion-reduce:transition-none ${
           view === "unowned" ? "translate-x-full" : "translate-x-0"
         }`}
       />
@@ -340,7 +340,7 @@ export function ClosetView({
           role="tab"
           aria-selected={view === v}
           onClick={() => setView(v)}
-          className={`relative rounded-full py-2 text-[13px] font-semibold transition-colors duration-300 ${view === v ? "text-white" : "text-[#4f5b66]"}`}
+          className={`relative flex h-6 items-center justify-center rounded-full text-[11.5px] font-semibold transition-colors duration-300 ${view === v ? "text-white" : "text-[#4f5b66]"}`}
         >
           {v === "owned" ? "My clothes" : "Unowned"}
         </button>
@@ -438,13 +438,23 @@ export function ClosetView({
             Drop photos to add them
           </div>
         )}
-        {bar}
-        <div className="mb-3 flex flex-wrap items-center gap-2">
-          <button onClick={() => setShowAddClothes(true)} data-tip="closet-add" className={`${btnPrimary} !min-h-[40px] !px-4 !text-[13px]`}>
-            <PlusIcon className="h-4 w-4" /> Add clothes
+        {/* One row, all the same height: My clothes | Unowned, Add, Edit. */}
+        <div className="mb-3 flex items-center gap-1.5">
+          {bar}
+          <button
+            onClick={() => setShowAddClothes(true)}
+            data-tip="closet-add"
+            aria-label="Add clothes"
+            className="flex h-7 shrink-0 items-center gap-1 rounded-full bg-[#121821] px-3 text-[11.5px] font-semibold text-white hover:bg-[#2a3542]"
+          >
+            <PlusIcon className="h-3.5 w-3.5" /> Add
           </button>
           {items.length > 0 && (
-            <button onClick={() => setEditMode((v) => !v)} aria-pressed={editMode} className={`${btnSecondary} !min-h-[40px] !px-4 !text-[13px]`}>
+            <button
+              onClick={() => setEditMode((v) => !v)}
+              aria-pressed={editMode}
+              className="flex h-7 shrink-0 items-center rounded-full px-3 text-[11.5px] font-semibold text-[#121821] shadow-[inset_0_0_0_1px_rgba(18,24,33,0.14)] hover:bg-black/5"
+            >
               {editMode ? "Done" : "Edit"}
             </button>
           )}
