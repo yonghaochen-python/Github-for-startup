@@ -462,3 +462,10 @@ html[data-period="night"] :is(.bg-white, [class^="bg-white/"], [class*=" bg-whit
 img.object-contain {
   object-fit: contain !important;
 }
+
+/* A chosen chip (post tags, link kind) stays dark at night, with a light edge so it stands out from the white ones. */
+html[data-period="night"] main button.chip-on.chip-on.chip-on.chip-on {
+  background-color: #121821;
+  color: #ffffff;
+  box-shadow: inset 0 0 0 1.5px rgb(255 255 255 / 0.7);
+}

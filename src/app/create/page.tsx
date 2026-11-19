@@ -633,8 +633,9 @@ function CreatePost() {
 
   const field =
     "h-10 w-full min-w-0 rounded-[10px] bg-white px-3 text-[13.5px] text-[#121821] shadow-[inset_0_0_0_1px_rgba(18,24,33,0.14)] outline-none focus:shadow-[inset_0_0_0_2px_#121821]";
+  // A chosen chip is dark with a ✓ (and stays dark at night, see .chip-on in globals.css); the others are white.
   const chip = (on: boolean) =>
-    `rounded-full px-3.5 py-1.5 text-[12.5px] font-medium ${on ? "bg-[#121821] text-white" : "bg-white text-[#121821] shadow-[inset_0_0_0_1px_rgba(18,24,33,0.14)]"}`;
+    `rounded-full px-3.5 py-1.5 text-[12.5px] font-medium ${on ? "chip-on bg-[#121821] text-white before:mr-1 before:content-['✓']" : "bg-white text-[#121821] shadow-[inset_0_0_0_1px_rgba(18,24,33,0.14)]"}`;
 
   return (
     <main className="flex-1 pb-24">
