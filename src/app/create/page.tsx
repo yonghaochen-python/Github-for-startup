@@ -254,7 +254,19 @@ function CreatePost() {
   }, []);
   // Photos made on this page stay until it closes (the editor may still be using an earlier one).
   const urls = useRef<string[]>([]);
-  useEffect(() => () => urls.current.forEach((u) => URL.revokeObjectURL(u)), []);
+  // The pictures made on this device are let go when the page closes. Not straight away: a page that's set up again at
+  // once (while developing, a code change does that) still shows them, so they're only let go if it stays closed.
+  const live = useRef(false);
+  useEffect(() => {
+    live.current = true;
+    const made = urls.current;
+    return () => {
+      live.current = false;
+      setTimeout(() => {
+        if (!live.current) made.forEach((u) => URL.revokeObjectURL(u));
+      }, 0);
+    };
+  }, []);
 
   async function takePhoto(source: Blob) {
     setError(null);
