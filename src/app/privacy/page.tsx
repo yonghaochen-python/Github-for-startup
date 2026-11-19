@@ -17,6 +17,11 @@ export default function PrivacyPage() {
           including us, can read it. Your name is optional.
         </li>
         <li>
+          <strong>Continue with Google:</strong> if you sign in with Google, Google tells us your email address, your name
+          and an ID for your Google account, so you can sign in again next time. Nothing else: we never see your Google
+          password, contacts or anything in your Google account.
+        </li>
+        <li>
           <strong>Your photos and clothes:</strong> the full-body photo and clothing photos you upload, the details Virm records
           about each piece, the outfits you make, and the try-on pictures we create for you.
         </li>

@@ -43,6 +43,8 @@ model User {
   avatarKey            String?
   /// May post while posting is limited to testers (admins always can).
   canPost              Boolean   @default(false)
+  /// Sign in with Google: Google's id for this person (set the first time they continue with Google).
+  googleSub            String?   @unique
 
   items    ClothingItem[]
   outfits  Outfit[]
