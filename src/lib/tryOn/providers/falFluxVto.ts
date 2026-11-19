@@ -37,7 +37,7 @@ function promptFor(role: LayeringRole, description: string): string {
     case "bottom":
       return `A natural, front-facing full-length photo of the same person now wearing the ${garment} on the lower body. ${KEEP_SAME}`;
     case "base_layer":
-      return `A natural, front-facing full-length photo of the same person now wearing the ${garment} as the inner top, tucked in naturally. ${KEEP_SAME}`;
+      return `A natural, front-facing full-length photo of the same person now wearing the ${garment} as the inner top, untucked, hanging naturally over the waistband. ${KEEP_SAME}`;
     case "mid_layer":
       return `A natural, front-facing full-length photo of the same person now wearing the ${garment} layered over the top they already have on, so the inner top stays visible at the collar and hem. ${KEEP_SAME}`;
     case "outer_layer":

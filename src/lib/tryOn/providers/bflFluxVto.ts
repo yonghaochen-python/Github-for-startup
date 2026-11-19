@@ -29,7 +29,9 @@ const KEEP_DETAILS =
   " Copy each garment's fit, length and cut exactly from image 2, sized to this person: an oversized, boxy or loose piece" +
   " stays oversized (dropped shoulders, roomy body, long sleeves), never tight; shorts, skirts and dresses keep their exact" +
   " length and rise (short shorts stay short and high-waisted stays high on the waist); a women's cut stays a women's cut." +
-  " Don't shrink, stretch, lengthen or restyle any garment to fit the body differently from image 2.";
+  " Don't shrink, stretch, lengthen or restyle any garment to fit the body differently from image 2." +
+  // Try-on models like to tuck tops into the waistband (a sweater worn like a suit shirt). People's own pieces hang loose.
+  " Tops, sweaters, sweatshirts and shirts are worn untucked, hanging naturally over the waistband at their own length; never tuck any top into the bottoms.";
 
 const toBase64 = ({ bytes }: ImageBytes) => Buffer.from(bytes).toString("base64");
 
