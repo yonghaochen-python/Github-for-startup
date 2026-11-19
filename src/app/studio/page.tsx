@@ -812,7 +812,7 @@ export default function StudioPage() {
         value={theme}
         onChange={(e) => setTheme(e.target.value.slice(0, MAX_THEME))}
         placeholder="A theme…"
-        className="min-w-0 flex-1 bg-transparent py-1.5 text-[16px] md:py-2.5 md:text-[14px] text-[#121821] outline-none placeholder:text-[#5d6874]"
+        className="min-w-0 flex-1 bg-transparent py-1.5 text-[12px] md:py-2.5 md:text-[14px] text-[#121821] outline-none placeholder:text-[#5d6874]"
       />
       <button type="submit" disabled={styling} className={`${btnPrimary} shrink-0 max-md:min-h-0! max-md:px-3.5! max-md:py-1.5! max-md:text-[12.5px]!`}>
         {styling ? "Styling…" : "Style it"}
