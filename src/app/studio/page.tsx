@@ -1077,7 +1077,7 @@ export default function StudioPage() {
                     </button>
                   </div>
                 )}
-                <div className="flex min-h-0 min-w-0 justify-center">
+                <div className="relative flex min-h-0 min-w-0 justify-center">
                 <div className="relative h-full min-w-[160px] max-w-full">
                 {picture ? (
                   <PersonPicture src={picture} alt="You wearing this look" className="block h-full w-auto max-w-full object-contain" />
@@ -1127,16 +1127,22 @@ export default function StudioPage() {
                     PREVIEW (AI NOT CONNECTED)
                   </span>
                 )}
-                <button
-                  onClick={() => setChangingPhoto(true)}
-                  className="absolute bottom-4 left-1/2 hidden -translate-x-1/2 whitespace-nowrap rounded-full border border-white/60 bg-white/55 px-3.5 py-1.5 text-[12px] font-semibold text-[#121821] shadow-[0_6px_20px_rgba(18,24,33,0.15)] backdrop-blur-xl transition hover:bg-white/80 md:block"
-                >
-                  Change photo
-                </button>
-                {/* Wider screens: Save, the share arrow (adds this tried-on look to the "to share" list) and Undo, inside the photo's
-                    top-right corner (outside it, a wide photo pushed them under the picks column). */}
-                {!trying && <div className="absolute right-3 top-3 z-10 hidden flex-col gap-2 md:flex">{mirrorActions}</div>}
                 </div>
+                {/* Wider screens: the camera (change photo), Save, Share and Undo down the right of the photo's space, beside
+                    the photo rather than on it. */}
+                {!trying && (
+                  <div className="absolute right-3 top-3 z-10 hidden flex-col gap-2 md:flex">
+                    <button
+                      onClick={() => setChangingPhoto(true)}
+                      aria-label="Change photo"
+                      title="Change photo"
+                      className="flex h-11 w-11 items-center justify-center rounded-full bg-white/90 text-[#121821] shadow-sm hover:bg-white"
+                    >
+                      <CameraIcon className="h-5 w-5" />
+                    </button>
+                    {mirrorActions}
+                  </div>
+                )}
                 </div>
                 <OutfitPicks {...picksProps} layout="column" className="hidden min-h-0 border-l border-black/[0.07] p-3 md:flex" />
                 {/* Phones: the mirror's own controls in the mirror's corners, beside the photo (never over it). Photo | Live top left; the camera (change photo), Save,
