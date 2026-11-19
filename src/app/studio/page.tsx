@@ -888,12 +888,12 @@ export default function StudioPage() {
         )}
 
         {/* One row above the mirror (so it can be bigger): Photo | Live, the theme box, and the way back to Shopping. */}
-        <div className="mb-4 flex flex-wrap items-center gap-3">
-          <div role="tablist" aria-label="How to try it on" className="relative grid shrink-0 grid-cols-2 rounded-full bg-white p-1 shadow-[0_1px_0_rgba(18,24,33,0.03),0_8px_22px_rgba(18,30,45,0.06)]">
+        <div className="mb-3 flex flex-wrap items-center gap-2 md:mb-4 md:gap-3">
+          <div role="tablist" aria-label="How to try it on" className="relative grid shrink-0 grid-cols-2 rounded-full bg-white p-0.5 shadow-[0_1px_0_rgba(18,24,33,0.03),0_8px_22px_rgba(18,30,45,0.06)]">
             {/* The dark pill slides to the chosen side. */}
             <span
               aria-hidden
-              className={`absolute inset-y-1 left-1 w-[calc(50%-4px)] rounded-full bg-[#121821] transition-transform duration-300 ease-[cubic-bezier(.3,.7,.2,1)] motion-reduce:transition-none ${
+              className={`absolute inset-y-0.5 left-0.5 w-[calc(50%-2px)] rounded-full bg-[#121821] transition-transform duration-300 ease-[cubic-bezier(.3,.7,.2,1)] motion-reduce:transition-none ${
                 mode === "live" ? "translate-x-full" : "translate-x-0"
               }`}
             />
@@ -903,7 +903,7 @@ export default function StudioPage() {
                 role="tab"
                 aria-selected={mode === m}
                 onClick={() => setMode(m)}
-                className={`relative rounded-full px-5 py-2 text-[13px] font-semibold transition-colors duration-300 ${mode === m ? "text-white" : "text-[#4f5b66] hover:text-[#121821]"}`}
+                className={`relative rounded-full px-3 py-1.5 text-[12.5px] font-semibold transition-colors md:px-5 md:py-2 md:text-[13px] duration-300 ${mode === m ? "text-white" : "text-[#4f5b66] hover:text-[#121821]"}`}
               >
                 {m === "photo" ? "Photo" : "Live"}
               </button>
@@ -914,8 +914,8 @@ export default function StudioPage() {
               ← Back to Shopping
             </Link>
           )}
-        <form onSubmit={styleTheme} data-tip="studio-theme" className="flex w-full min-w-0 items-center gap-2 rounded-full lg:w-auto lg:flex-1 bg-white p-1.5 pl-5 shadow-[0_1px_0_rgba(18,24,33,0.03),0_14px_36px_rgba(18,30,45,0.06)]">
-          <SearchIcon className="h-[18px] w-[18px] shrink-0 text-[#5d6874]" />
+        <form onSubmit={styleTheme} data-tip="studio-theme" className="flex min-w-0 flex-1 basis-[190px] items-center gap-1.5 rounded-full bg-white p-0.5 pl-3 md:gap-2 md:p-1.5 md:pl-5 shadow-[0_1px_0_rgba(18,24,33,0.03),0_14px_36px_rgba(18,30,45,0.06)]">
+          <SearchIcon className="h-4 w-4 shrink-0 text-[#5d6874] md:h-[18px] md:w-[18px]" />
           <label htmlFor="studio-theme" className="sr-only">
             Theme
           </label>
@@ -923,10 +923,10 @@ export default function StudioPage() {
             id="studio-theme"
             value={theme}
             onChange={(e) => setTheme(e.target.value.slice(0, MAX_THEME))}
-            placeholder="A theme, like old money"
-            className="min-w-0 flex-1 bg-transparent py-2.5 text-[14px] text-[#121821] outline-none placeholder:text-[#5d6874]"
+            placeholder="A theme…"
+            className="min-w-0 flex-1 bg-transparent py-1.5 text-[16px] md:py-2.5 md:text-[14px] text-[#121821] outline-none placeholder:text-[#5d6874]"
           />
-          <button type="submit" disabled={styling} className={`${btnPrimary} shrink-0`}>
+          <button type="submit" disabled={styling} className={`${btnPrimary} shrink-0 max-md:min-h-0! max-md:px-3.5! max-md:py-1.5! max-md:text-[12.5px]!`}>
             {styling ? "Styling…" : "Style it"}
           </button>
         </form>
