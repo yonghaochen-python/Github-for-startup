@@ -1,17 +1,20 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { fetchWithRetry } from "@/lib/fetchRetry";
 
 export function DemoModeBanner() {
   const [aiEnabled, setAiEnabled] = useState<boolean | null>(null);
 
   useEffect(() => {
     let ignore = false;
-    fetch("/api/config")
-      .then((res) => res.json() as Promise<{ aiEnabled?: boolean }>)
+    // Only a real answer counts: a request that failed must not show the demo banner.
+    fetchWithRetry("/api/config")
+      .then((res) => (res.ok ? (res.json() as Promise<{ aiEnabled?: boolean }>) : null))
       .then((data) => {
-        if (!ignore) setAiEnabled(Boolean(data.aiEnabled));
-      });
+        if (!ignore && data) setAiEnabled(Boolean(data.aiEnabled));
+      })
+      .catch(() => {});
     return () => {
       ignore = true;
     };

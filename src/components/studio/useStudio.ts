@@ -4,6 +4,7 @@ import { useCallback, useEffect, useState } from "react";
 import { cropPortrait, preparePortrait } from "@/lib/portraitCheck";
 import type { StyleProfile } from "@/lib/styleProfile";
 import { type PortraitInfo, type ReportSummary, type StudioModuleId } from "@/lib/studioModules";
+import { fetchWithRetry } from "@/lib/fetchRetry";
 
 export type StudioState = {
   portrait: PortraitInfo | null;
@@ -23,7 +24,7 @@ export function useStudio() {
   const [failed, setFailed] = useState(false);
 
   const reload = useCallback(() => {
-    fetch("/api/studio")
+    fetchWithRetry("/api/studio")
       .then(async (res) => {
         if (!res.ok) throw new Error("studio");
         setState((await res.json()) as StudioState);

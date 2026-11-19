@@ -5,6 +5,7 @@ import { clearPendingInvite, pendingInvite } from "@/lib/pendingInvite";
 import Link from "next/link";
 import { useSearchParams } from "next/navigation";
 import { useAuth } from "@/components/AuthProvider";
+import { fetchWithRetry } from "@/lib/fetchRetry";
 
 const MODELS = {
   female: {
@@ -64,9 +65,9 @@ export default function LoginPage() {
   const [submitting, setSubmitting] = useState(false);
 
   useEffect(() => {
-    fetch("/api/config")
-      .then((res) => res.json() as Promise<{ devLogin?: boolean }>)
-      .then((data) => setDevLogin(Boolean(data.devLogin)))
+    fetchWithRetry("/api/config")
+      .then((res) => (res.ok ? (res.json() as Promise<{ devLogin?: boolean }>) : null))
+      .then((data) => data && setDevLogin(Boolean(data.devLogin)))
       .catch(() => {});
   }, []);
 

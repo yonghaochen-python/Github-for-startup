@@ -344,9 +344,9 @@ export default function StudioPage() {
     let ignore = false;
     // eslint-disable-next-line react-hooks/set-state-in-effect -- loads the closet once per visit
     loadCloset(() => ignore);
-    fetch("/api/config")
-      .then((res) => res.json() as Promise<{ tryOnLive?: boolean }>)
-      .then((data) => !ignore && setLiveProvider(Boolean(data.tryOnLive)))
+    fetchWithRetry("/api/config")
+      .then((res) => (res.ok ? (res.json() as Promise<{ tryOnLive?: boolean }>) : null))
+      .then((data) => !ignore && data && setLiveProvider(Boolean(data.tryOnLive)))
       .catch(() => {})
       .finally(() => !ignore && setConfigLoaded(true));
     if (startId) {

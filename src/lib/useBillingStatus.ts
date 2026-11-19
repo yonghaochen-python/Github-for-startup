@@ -3,13 +3,14 @@
 import { useEffect, useState } from "react";
 import type { BillingStatus } from "@/app/api/billing/status/route";
 import { useAuth } from "@/components/AuthProvider";
+import { fetchWithRetry } from "@/lib/fetchRetry";
 
 /** One request per page view, shared by every part of the page that asks (menu, banner, pricing, profile). */
 let cached: { key: string; promise: Promise<BillingStatus | null> } | null = null;
 
 function load(key: string): Promise<BillingStatus | null> {
   if (cached?.key !== key) {
-    const promise = fetch("/api/billing/status", { cache: "no-store" })
+    const promise = fetchWithRetry("/api/billing/status", { cache: "no-store" })
       .then(async (res) => (res.ok ? ((await res.json()) as BillingStatus) : null))
       .catch(() => null);
     cached = { key, promise };

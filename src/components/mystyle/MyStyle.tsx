@@ -10,6 +10,7 @@ import { STUDIO_MODULES, type PortraitInfo } from "@/lib/studioModules";
 import { PageShell, btnPrimary, btnSecondary } from "@/components/ui";
 import { byLatestTryOn, type ClothingItem, type Outfit } from "@/components/OutfitCard";
 import type { PlanDays } from "@/lib/planOutfits";
+import { fetchWithRetry } from "@/lib/fetchRetry";
 
 const pad2 = (n: number) => String(n).padStart(2, "0");
 const ymd = (d: Date) => `${d.getFullYear()}-${pad2(d.getMonth() + 1)}-${pad2(d.getDate())}`;
@@ -36,7 +37,7 @@ export function MyStyle() {
   const [closet, setCloset] = useState<ClothingItem[] | null>(null);
   useEffect(() => {
     let gone = false;
-    fetch("/api/closet/items", { cache: "no-store" })
+    fetchWithRetry("/api/closet/items", { cache: "no-store" })
       .then(async (res) => (res.ok ? ((await res.json()) as { items: ClothingItem[] }).items : null))
       .then((items) => !gone && setCloset(items ?? []))
       .catch(() => !gone && setCloset([]));
@@ -59,19 +60,24 @@ export function MyStyle() {
 
 /** Your saved outfits, newest try-ons first (the try-on picture when there is one, else the pieces). */
 function SavedOutfits() {
-  const [saved, setSaved] = useState<Outfit[] | null>(null);
+  // null while loading; "failed" when it couldn't load (then nothing is said, rather than "nothing saved").
+  const [saved, setSaved] = useState<Outfit[] | "failed" | null>(null);
   useEffect(() => {
     let gone = false;
-    fetch("/api/outfits", { cache: "no-store" })
-      .then(async (res) => (res.ok ? ((await res.json()) as { outfits: Outfit[] }).outfits : []))
+    fetchWithRetry("/api/outfits", { cache: "no-store" })
+      .then(async (res) => {
+        if (!res.ok) throw new Error("outfits");
+        return ((await res.json()) as { outfits: Outfit[] }).outfits;
+      })
       .then((list) => !gone && setSaved(list.filter((o) => o.isFavorite).sort(byLatestTryOn)))
-      .catch(() => !gone && setSaved([]));
+      .catch(() => !gone && setSaved("failed"));
     return () => {
       gone = true;
     };
   }, []);
 
   if (saved === null) return <div className={`${card} mt-8 h-48 animate-pulse`} />;
+  if (saved === "failed") return null;
   return (
     <section aria-labelledby="saved-title" className="mt-8">
       <SectionHead id="saved-title" title="Saved outfits" href="/outfits/saved" link="See all" />
@@ -120,7 +126,7 @@ function TodayOutfit({ closet }: { closet: ClothingItem[] }) {
 
   useEffect(() => {
     let gone = false;
-    fetch(`/api/planner?month=${today.slice(0, 7)}`, { cache: "no-store" })
+    fetchWithRetry(`/api/planner?month=${today.slice(0, 7)}`, { cache: "no-store" })
       .then(async (res) => (res.ok ? ((await res.json()) as { days: PlanDays }).days : {}))
       .then((days) => !gone && setIds(days[today]?.items ?? []))
       .catch(() => !gone && setIds([]));
@@ -192,7 +198,7 @@ function Stylist() {
   const [state, setState] = useState<{ portrait: PortraitInfo | null; reports: Record<string, { createdAt: string }> } | null>(null);
   useEffect(() => {
     let gone = false;
-    fetch("/api/studio", { cache: "no-store" })
+    fetchWithRetry("/api/studio", { cache: "no-store" })
       .then(async (res) => (res.ok ? ((await res.json()) as { portrait: PortraitInfo | null; reports: Record<string, { createdAt: string }> }) : null))
       .then((data) => !gone && setState(data ?? { portrait: null, reports: {} }))
       .catch(() => !gone && setState({ portrait: null, reports: {} }));

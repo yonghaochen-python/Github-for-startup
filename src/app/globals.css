@@ -380,12 +380,9 @@ html[data-period="night"] .site-tabbar [aria-current="page"] > span {
 }
 
 /* The closet and Shopping shelf: clothes sit straight on a light blue-grey by day and a deep blue at night. */
+/* The closet's shelf. It always sits inside a light card (Studio, the Manage sheet), so it stays light at night too. */
 .closet-shelf {
   background-color: #e4e9ef;
-  transition: background-color 4s ease;
-}
-html[data-period="night"] .closet-shelf {
-  background-color: #1d2f52;
 }
 .closet-row {
   scrollbar-width: none;

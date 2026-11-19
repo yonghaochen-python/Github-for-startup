@@ -14,6 +14,7 @@ import type { TrayCategory } from "@/lib/shopCatalog";
 import { addToWishlist } from "@/lib/shopWishlist";
 import { startRecording, type LiveRecording } from "@/lib/liveRecording";
 import type { RealTimeClient } from "@decartai/sdk";
+import { fetchWithRetry } from "@/lib/fetchRetry";
 
 /**
  * Live Try On — preview. A live camera mirror beside the closet, where pieces can be picked
@@ -168,9 +169,9 @@ export function LiveTryOn({
 
   useEffect(() => {
     let ignore = false;
-    fetch("/api/config")
-      .then((res) => res.json() as Promise<{ liveTryOn?: boolean }>)
-      .then((data) => !ignore && setLiveAvailable(Boolean(data.liveTryOn)))
+    fetchWithRetry("/api/config")
+      .then((res) => (res.ok ? (res.json() as Promise<{ liveTryOn?: boolean }>) : null))
+      .then((data) => !ignore && data && setLiveAvailable(Boolean(data.liveTryOn)))
       .catch(() => {});
     return () => {
       ignore = true;

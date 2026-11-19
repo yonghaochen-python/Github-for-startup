@@ -5,6 +5,7 @@ import Link from "next/link";
 import type { ClothingItem } from "@/components/OutfitCard";
 import type { PlanDays } from "@/lib/planOutfits";
 import { ErrorNote, PageShell, btnPrimary, btnSecondary } from "@/components/ui";
+import { fetchWithRetry } from "@/lib/fetchRetry";
 import { BackToMyStyle } from "@/components/BackToMyStyle";
 import { InlineLoading } from "@/components/InlineLoading";
 import { useAuth } from "@/components/AuthProvider";
@@ -49,6 +50,7 @@ export default function PlannerPage() {
   const [month, setMonth] = useState<string | null>(null);
   const [days, setDays] = useState<PlanDays>({});
   const [closet, setCloset] = useState<ClothingItem[] | null>(null);
+  const [closetFailed, setClosetFailed] = useState(false);
   const [loading, setLoading] = useState(true);
   const [generating, setGenerating] = useState(false);
   const [confirm, setConfirm] = useState(false);
@@ -76,15 +78,22 @@ export default function PlannerPage() {
 
   useEffect(() => {
     if (status !== "signedIn") return;
-    fetch("/api/closet/items", { cache: "no-store" })
-      .then(async (res) => (res.ok ? ((await res.json()) as { items: ClothingItem[] }).items : []))
+    // A closet that couldn't load isn't an empty one: say so instead of offering "Add clothes".
+    fetchWithRetry("/api/closet/items", { cache: "no-store" })
+      .then(async (res) => {
+        if (!res.ok) throw new Error("closet");
+        return ((await res.json()) as { items: ClothingItem[] }).items;
+      })
       .then(setCloset)
-      .catch(() => setCloset([]));
+      .catch(() => {
+        setClosetFailed(true);
+        setCloset([]);
+      });
   }, [status]);
 
   useEffect(() => {
     if (status !== "signedIn") return;
-    fetch("/api/studio")
+    fetchWithRetry("/api/studio")
       .then(async (res) => (res.ok ? ((await res.json()) as { profile?: StyleProfile }).profile : undefined))
       .then((profile) => setPalette(profile ? profileColors(profile) : null))
       .catch(() => setPalette(null));
@@ -93,7 +102,7 @@ export default function PlannerPage() {
   useEffect(() => {
     if (!month || status !== "signedIn") return;
     let ignore = false;
-    fetch(`/api/planner?month=${month}`, { cache: "no-store" })
+    fetchWithRetry(`/api/planner?month=${month}`, { cache: "no-store" })
       .then(async (res) => (res.ok ? ((await res.json()) as { days: PlanDays }).days : {}))
       .then((d) => !ignore && setDays(d))
       .catch(() => !ignore && setDays({}))
@@ -188,7 +197,9 @@ export default function PlannerPage() {
               </button>
             </div>
           </div>
-          {closet.length === 0 ? (
+          {closetFailed ? (
+            <p className="text-[13px] text-[#4f5b66]">Couldn&apos;t load your closet. Please refresh the page.</p>
+          ) : closet.length === 0 ? (
             <Link href="/studio?closet=1&add=1" className={btnPrimary}>
               Add clothes
             </Link>

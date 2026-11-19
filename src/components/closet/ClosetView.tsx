@@ -152,9 +152,9 @@ export function ClosetView({
   useEffect(() => {
     // eslint-disable-next-line react-hooks/set-state-in-effect -- initial load
     loadItems();
-    fetch("/api/config")
-      .then((res) => res.json() as Promise<{ aiEnabled?: boolean }>)
-      .then((data) => setAiEnabled(Boolean(data.aiEnabled)))
+    fetchWithRetry("/api/config")
+      .then((res) => (res.ok ? (res.json() as Promise<{ aiEnabled?: boolean }>) : null))
+      .then((data) => data && setAiEnabled(Boolean(data.aiEnabled)))
       .catch(() => {});
   }, []);
 
