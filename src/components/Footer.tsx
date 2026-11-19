@@ -20,10 +20,8 @@ export function Footer() {
   const pathname = usePathname();
   // Where the feed fills the phone's screen: Discover.
   const feed = pathname === "/discover";
-  // Studio fits one screen on computers (only its closet scrolls), so no footer under it there.
-  const studio = pathname === "/studio";
   return (
-    <footer className={`site-footer border-t border-black/[0.06] ${feed ? "max-md:hidden" : ""} ${studio ? "lg:hidden" : ""}`}>
+    <footer className={`site-footer border-t border-black/[0.06] ${feed ? "max-md:hidden" : ""}`}>
       <div className="mx-auto flex w-full max-w-[1280px] flex-col gap-4 px-5 py-8 sm:px-8 lg:flex-row lg:items-center lg:justify-between">
         <p className="whitespace-nowrap text-[13px] font-semibold text-[#26313a]">
           Private by design <span className="font-normal text-[#4f5b66]">· Your closet stays yours.</span>

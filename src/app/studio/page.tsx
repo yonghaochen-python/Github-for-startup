@@ -802,7 +802,7 @@ export default function StudioPage() {
 
   /** The theme box with Style it: above the mirror, or (phones) at the top of the Outfit tab, next to the picks it makes. */
   const themeForm = (id: string, tip: boolean, className = "") => (
-    <form onSubmit={styleTheme} data-tip={tip ? "studio-theme" : undefined} className={`pill-field flex min-w-0 flex-1 basis-[190px] ${className} items-center gap-1.5 rounded-full bg-white p-0.5 pl-3 md:gap-2 md:p-1.5 md:pl-5 shadow-[0_1px_0_rgba(18,24,33,0.03),0_14px_36px_rgba(18,30,45,0.06)]`}>
+    <form onSubmit={styleTheme} data-tip={tip ? "studio-theme" : undefined} className={`pill-field flex min-w-0 flex-1 basis-[190px] ${className} items-center gap-1.5 rounded-full bg-white p-0.5 pl-3 md:max-w-[480px] md:gap-2 md:p-1 md:pl-4 shadow-[0_1px_0_rgba(18,24,33,0.03),0_14px_36px_rgba(18,30,45,0.06)]`}>
       <SearchIcon className="h-4 w-4 shrink-0 text-[#5d6874] md:h-[18px] md:w-[18px]" />
       <label htmlFor={id} className="sr-only">
         Theme
@@ -812,9 +812,9 @@ export default function StudioPage() {
         value={theme}
         onChange={(e) => setTheme(e.target.value.slice(0, MAX_THEME))}
         placeholder="A theme…"
-        className="min-w-0 flex-1 bg-transparent py-1.5 text-[12px] md:py-2.5 md:text-[14px] text-[#121821] outline-none placeholder:text-[#5d6874]"
+        className="min-w-0 flex-1 bg-transparent py-1.5 text-[12px] md:py-1 md:text-[13px] text-[#121821] outline-none placeholder:text-[#5d6874]"
       />
-      <button type="submit" disabled={styling} className={`${btnPrimary} shrink-0 max-md:min-h-0! max-md:px-3.5! max-md:py-1.5! max-md:text-[12.5px]!`}>
+      <button type="submit" disabled={styling} className={`${btnPrimary} shrink-0 max-md:min-h-0! max-md:px-3.5! max-md:py-1.5! max-md:text-[12.5px]! md:min-h-[34px]! md:px-4! md:py-1! md:text-[12.5px]!`}>
         {styling ? "Styling…" : "Style it"}
       </button>
     </form>
@@ -896,11 +896,7 @@ export default function StudioPage() {
   }, []);
 
   return (
-    <main
-      className={`flex-1 pb-16 max-md:pb-32 ${sidePicks ? "lg:pb-0" : ""}`}
-      // Computers: the mirror and the closet list are sized to fit one screen (the space taken above and below them).
-      style={{ "--studio-below": "287px", "--studio-closet": "333px" } as React.CSSProperties}
-    >
+    <main className="flex-1 pb-16 max-md:pb-32">
       {showKeys &&
         createPortal(
           <Dialog label="Keyboard shortcuts" onClose={() => setShowKeys(false)} className="w-full max-w-sm rounded-[22px] bg-white p-5 shadow-xl">
@@ -927,7 +923,7 @@ export default function StudioPage() {
       {!drawer && !closetOpen && !(sidePicks && !trying) && (
         <div className="fixed bottom-[calc(70px+env(safe-area-inset-bottom))] left-1/2 z-[60] -translate-x-1/2 md:hidden">{panelSwitch(true)}</div>
       )}
-      <PageShell className={`max-w-[1440px]! pt-6 sm:pt-8 ${sidePicks ? "lg:pt-4" : ""}`}>
+      <PageShell className="max-w-[1440px]! pt-6 sm:pt-8">
         <h1 className="sr-only">Studio</h1>
         <Tips id="studio" tips={STUDIO_TIPS} />
         {/* Save and Share only appear once there's a look, so their tips wait for it (shown once, like the others). */}
@@ -937,7 +933,7 @@ export default function StudioPage() {
 
         {/* One row above the mirror: Photo | Live, the theme box, and the way back to Shopping. On phones with the photo
             showing, Photo | Live sits on the mirror and the theme box in the Outfit tab, so this row isn't there. */}
-        <div className={`mb-3 flex flex-wrap items-center gap-2 md:mb-4 md:gap-3 ${sidePicks ? "max-md:hidden lg:mb-3" : ""}`}>
+        <div className={`mb-3 flex flex-wrap items-center gap-2 md:mb-4 md:gap-3 ${sidePicks ? "max-md:hidden" : ""}`}>
           {modeSwitch(false)}
           {fromShop && (
             <Link href="/shop" className="ml-auto shrink-0 text-[12.5px] font-semibold text-[#29343a] underline-offset-4 hover:underline lg:order-last">
@@ -1059,7 +1055,7 @@ export default function StudioPage() {
             ) : (
               <div
                 ref={mirrorRef}
-                className={`${mirrorFrame} lg:!h-[calc(100dvh-var(--studio-below))] lg:!min-h-[360px] grid bg-[linear-gradient(180deg,#f9f8f5_0%,#eeece7_100%)] max-md:aspect-auto max-md:h-[62dvh] max-md:max-h-none max-md:min-h-[380px] ${
+                className={`${mirrorFrame} grid bg-[linear-gradient(180deg,#f9f8f5_0%,#eeece7_100%)] max-md:aspect-auto max-md:h-[62dvh] max-md:max-h-none max-md:min-h-[380px] ${
                   pieces.length
                     ? "grid-cols-[minmax(84px,26%)_minmax(0,1fr)] md:grid-cols-[minmax(170px,26%)_minmax(0,1fr)_minmax(150px,24%)]"
                     : "grid-cols-1 md:grid-cols-[minmax(0,1fr)_minmax(150px,26%)]"
@@ -1398,7 +1394,7 @@ export default function StudioPage() {
               </div>
               {/* Color: dots for the families this kind comes in, and Your colors with a Style Profile. */}
               {source === "closet" && <ColorFilter pieces={kindItems} value={colorFilter} onChange={setColorFilter} palette={palette} />}
-              <div className="max-h-[calc(100vh-220px)] min-h-[240px] overflow-y-auto p-3 sm:p-4 lg:h-[calc(100dvh-var(--studio-closet))] lg:max-h-none">
+              <div className="max-h-[calc(100vh-220px)] min-h-[240px] overflow-y-auto p-3 sm:p-4 lg:max-h-[calc(100vh-260px)]">
                 {closetFailed && source === "closet" ? (
                   <p className="px-1 py-6 text-[13px] text-[#5d6874]">
                     Your closet didn&apos;t load. Check your connection.{" "}
