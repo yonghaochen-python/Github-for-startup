@@ -149,9 +149,10 @@ Discover is for inspiration; Virm is still about your closet and your AI stylist
 - **Free trial of Plus:** 7 days (15 photo, 3 live, 4 AI Stylist reports, 40 clothing photos, 20 Style it). With a **friend's invite code**, 14 days with double the amounts. A card is saved but nothing is charged unless you choose Plus. Only before your first paid month.
 - **Plus rollover:** unused photo and live try-ons carry over one month (up to one month's worth), on top of the new month's.
 - **Manage Plus** in Profile opens Stripe to change the card or cancel (Plus lasts to the end of the paid month).
-- A photo try-on or an AI Stylist analysis uses 1 photo credit, only if it works. Live try-on is also capped at 3 a day per person and 50 a day for the whole site.
+- A photo try-on or an AI Stylist analysis uses 1 photo credit, only if it works. Live try-on is also capped at 3 a day per person (1 a day during the free trial) and 50 a day for the whole site.
 - **SVIP** (set by an admin): no monthly limits, but live try-on is still capped at 10 a day. Not an admin.
 - **Bad ratings:** the first Bad rating each month on a real photo or live try-on gives +2 photo and +2 live credits as a thank-you.
+- **A try-on that fails** (an error, nothing made) uses no credit. A photo try-on of 2+ pieces is checked by AI first; if a piece is missing or your own clothes were kept, Virm makes one more try automatically (dressing the pieces one at a time), still 1 credit.
 - Pro ($24.99) exists but is hidden until Plus proves itself.
 
 ### Admin (admins only)

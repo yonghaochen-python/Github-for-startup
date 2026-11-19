@@ -394,7 +394,7 @@ export function Pricing({ compact = false, onCompare }: { compact?: boolean; onC
               </table>
             </div>
             <p className="mt-3 text-[12px] text-[#5d6874]">
-              Live sessions run up to 20 seconds, at most 3 a day. Allowances reset each month. On Plus, unused photo and live try-ons carry over one more month (up to a month&apos;s worth).
+              Live sessions run up to 20 seconds, at most 3 a day (1 a day during the free trial). Allowances reset each month. On Plus, unused photo and live try-ons carry over one more month (up to a month&apos;s worth).
             Reopening anything you&apos;ve made is free.
             </p>
           </section>

@@ -40,8 +40,14 @@ export type Scenario = { name: string; usage: number };
 export type CostAssumptions = {
   plans: Record<PlanKey, PlanAssumption>;
   packs: PackAssumption[];
-  /** Direct AI cost of one completed try-on, USD. */
+  /** Direct AI cost of one try-on call, USD. */
   photoCost: number;
+  /** The AI check of a new outfit try-on (Claude), USD. */
+  tryOnCheckCost: number;
+  /** Share of photo try-ons whose check fails, so a second try is made (percent). */
+  secondTryShare: number;
+  /** Try-on calls a second try takes (one per piece). */
+  secondTryCalls: number;
   liveCost: number;
   /** Claude cost of tagging one clothing photo (find the pieces, then check the crops), USD. */
   claudePerClosetPhoto: number;
@@ -78,6 +84,11 @@ export const DEFAULT_COSTS: CostAssumptions = {
   ],
   // FLUX VTO v2 on the BFL API. BFL doesn't publish this model's price (1 credit = $0.01); confirm in the BFL dashboard.
   photoCost: 0.04,
+  // The AI check of each new outfit try-on: one Claude Sonnet 5 call, about $0.016 measured (2026-11-18).
+  tryOnCheckCost: 0.016,
+  // A guess until Admin's AI costs show the real share (Photo try-on extra calls ÷ try-ons).
+  secondTryShare: 30,
+  secondTryCalls: 3,
   // Confirmed: Decart charges $0.02 a second (Lucy VTON, 720p); a full 20-second session is $0.40.
   liveCost: CONFIRMED_LIVE_COST,
   // Claude Sonnet 5 ($2 / $10 per million input / output tokens), estimated from the app's prompts and image sizes:

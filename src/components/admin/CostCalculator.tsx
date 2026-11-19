@@ -25,6 +25,12 @@ const STORE_KEY = "virm-admin-costs-v3";
 const PLAN_KEYS: PlanKey[] = ["free", "plus", "pro"];
 const PAID = ["plus", "pro"] as const;
 
+/**
+ * What one photo try-on really costs on average: the try-on call, the AI check, and the share that needs a second try
+ * (one call per piece).
+ */
+const photoTryOnCost = (a: CostAssumptions) => a.photoCost + a.tryOnCheckCost + (a.secondTryShare / 100) * a.secondTryCalls * a.photoCost;
+
 const money = (n: number) =>
   `${n < 0 ? "−" : ""}$${Math.abs(n).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
 const pctText = (n: number | null) => (n === null ? "—" : `${(n * 100).toFixed(1)}%`);
@@ -42,7 +48,7 @@ function compute(a: CostAssumptions, usagePct: number) {
   const u = effectiveUsage(a, usagePct);
   const perUser = (key: PlanKey) => {
     const p = a.plans[key];
-    const photoAi = p.photos * u * a.photoCost;
+    const photoAi = p.photos * u * photoTryOnCost(a);
     const liveAi = p.lives * u * a.liveCost;
     const otherAi = p.closetPhotos * a.claudePerClosetPhoto + p.styleIts * a.claudePerStyleIt + a.extraAiPerUser;
     const ai = photoAi + liveAi + otherAi;
@@ -66,7 +72,7 @@ function compute(a: CostAssumptions, usagePct: number) {
     };
   }
   const packRows: Row[] = a.packs.map((p) => {
-    const ai = p.credits * u * (p.kind === "live" ? a.liveCost : a.photoCost) * p.sold;
+    const ai = p.credits * u * (p.kind === "live" ? a.liveCost : photoTryOnCost(a)) * p.sold;
     return {
       label: packName(p),
       count: p.sold,
@@ -137,7 +143,12 @@ function withDefaults(kept: Partial<CostAssumptions>, d: CostAssumptions): CostA
   };
   return {
     ...pick(kept, d),
-    plans: { free: pick(kept.plans?.free, d.plans.free), plus: pick(kept.plans?.plus, d.plans.plus), pro: pick(kept.plans?.pro, d.plans.pro) },
+    // Each plan's try-on allowances always come from the app (lib/plans), never from an older saved copy.
+    plans: {
+      free: { ...pick(kept.plans?.free, d.plans.free), photos: d.plans.free.photos, lives: d.plans.free.lives },
+      plus: { ...pick(kept.plans?.plus, d.plans.plus), photos: d.plans.plus.photos, lives: d.plans.plus.lives },
+      pro: { ...pick(kept.plans?.pro, d.plans.pro), photos: d.plans.pro.photos, lives: d.plans.pro.lives },
+    },
     packs: d.packs.map((p) => pick(kept.packs?.find((k) => k?.id === p.id), p)),
     users: pick(kept.users, d.users),
     scenarios: d.scenarios.map((sc, i) => pick(kept.scenarios?.[i], sc)),
@@ -359,7 +370,27 @@ export function CostCalculator({ defaults, confirmedLiveCost }: { defaults: Cost
               step={0.01}
               value={a.photoCost}
               onChange={(n) => update((d) => void (d.photoCost = n))}
-              hint="FLUX VTO v2 (BFL). BFL doesn't publish this price; check your BFL dashboard (1 credit = $0.01)."
+              hint="One try-on call: FLUX VTO v2 (BFL). BFL doesn't publish this price; check your BFL dashboard (1 credit = $0.01)."
+            />
+            <Num
+              label="AI check per try-on"
+              prefix="$"
+              step={0.001}
+              value={a.tryOnCheckCost}
+              onChange={(n) => update((d) => void (d.tryOnCheckCost = n))}
+              hint="Claude looks at each new outfit try-on (about $0.016 measured)."
+            />
+            <Num
+              label="Second tries (% of try-ons)"
+              value={a.secondTryShare}
+              onChange={(n) => update((d) => void (d.secondTryShare = n))}
+              hint="When the check finds a problem, the pieces are put on one at a time. AI costs below shows the real number."
+            />
+            <Num
+              label="Calls per second try"
+              value={a.secondTryCalls}
+              onChange={(n) => update((d) => void (d.secondTryCalls = Math.round(n)))}
+              hint={`One per piece. Average photo try-on now: ${money(photoTryOnCost(a))}.`}
             />
             <Num
               label="Live session"
