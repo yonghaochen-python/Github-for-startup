@@ -60,7 +60,44 @@ export async function requestTryOn(outfitId: string, pieces: Piece[], liveProvid
   const res = await fetch(`/api/outfits/${outfitId}/try-on`, { method: "POST", body: formData });
   const data = (await res.json().catch(() => ({}))) as { error?: string; result?: TryOnResult };
   if (!res.ok || !data.result) throw new Error(data.error ?? "Couldn't run the try-on right now.");
-  return { ...data.result, requestId };
+  const result = { ...data.result, requestId };
+  const fixed = await withOwnFace(result.imageDataUrl);
+  if (!fixed) return result;
+  // A new picture: keep the fixed one in its place (this outfit's picture, the remembered one, the current look).
+  if (!result.reused) {
+    const form = new FormData();
+    form.append("picture", fixed.blob, "tryon.jpg");
+    await fetch(`/api/outfits/${outfitId}/try-on/image`, { method: "PUT", body: form }).catch(() => null);
+  }
+  return { ...result, imageDataUrl: fixed.dataUrl };
+}
+
+/**
+ * The try-on picture with the person's real face put back from their saved photo (on the device, free; see
+ * lib/keepFace). Null when it can't be done (no photo, no face found, poses too different): the picture stays as made.
+ */
+async function withOwnFace(imageDataUrl: string | null): Promise<{ blob: Blob; dataUrl: string } | null> {
+  if (!imageDataUrl?.startsWith("data:image/")) return null;
+  try {
+    const [{ keepFace }, photo, made] = await Promise.all([
+      import("@/lib/keepFace"),
+      fetch("/api/me/photo").then((r) => (r.ok ? r.blob() : null)),
+      fetch(imageDataUrl).then((r) => r.blob()),
+    ]);
+    if (!photo) return null;
+    const blob = await keepFace(photo, made);
+    if (!blob) return null;
+    const dataUrl = await new Promise<string>((done, fail) => {
+      const reader = new FileReader();
+      reader.onload = () => done(String(reader.result));
+      reader.onerror = () => fail(reader.error);
+      reader.readAsDataURL(blob);
+    });
+    return { blob, dataUrl };
+  } catch (err) {
+    console.warn("Couldn't put the face back on the try-on:", err);
+    return null;
+  }
 }
 
 type ShopPiece = { imageUrl: string; plainUrl?: string | null; enhancedUrl?: string | null; description: string; color?: string; layeringRole: LayeringRole };
@@ -93,5 +130,7 @@ export async function requestShopTryOn(pieces: ShopPiece[], fresh = false): Prom
   const res = await fetch("/api/shop/try-on", { method: "POST", body: formData });
   const data = (await res.json().catch(() => ({}))) as { error?: string; result?: TryOnResult };
   if (!res.ok || !data.result) throw new Error(data.error ?? "Couldn't run the try-on right now.");
-  return { ...data.result, requestId };
+  // Shown with the person's real face (made on the device each time; nothing is saved for Shopping try-ons).
+  const fixed = await withOwnFace(data.result.imageDataUrl);
+  return { ...data.result, requestId, ...(fixed ? { imageDataUrl: fixed.dataUrl } : {}) };
 }
