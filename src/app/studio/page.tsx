@@ -856,7 +856,7 @@ export default function StudioPage() {
           aria-pressed={panelSide === side}
           aria-controls={side === "closet" ? "studio-closet-panel" : undefined}
           data-tip={side === "closet" ? "studio-mycloset" : undefined}
-          className={`relative flex h-8 items-center justify-center gap-1.5 whitespace-nowrap rounded-full px-3.5 text-[12.5px] font-semibold transition-colors duration-300 ${
+          className={`relative flex ${wide ? "h-7" : "h-8"} items-center justify-center gap-1.5 whitespace-nowrap rounded-full px-3.5 text-[12.5px] font-semibold transition-colors duration-300 ${
             panelSide === side ? "text-white" : "text-[#4f5b66]"
           }`}
         >
@@ -1055,7 +1055,7 @@ export default function StudioPage() {
             ) : (
               <div
                 ref={mirrorRef}
-                className={`${mirrorFrame} grid bg-[linear-gradient(180deg,#f9f8f5_0%,#eeece7_100%)] max-md:max-h-[50vh] ${
+                className={`${mirrorFrame} grid bg-[linear-gradient(180deg,#f9f8f5_0%,#eeece7_100%)] max-md:aspect-auto max-md:h-[62dvh] max-md:max-h-none max-md:min-h-[380px] ${
                   pieces.length
                     ? "grid-cols-[minmax(84px,26%)_minmax(0,1fr)] md:grid-cols-[minmax(170px,26%)_minmax(0,1fr)_minmax(150px,24%)]"
                     : "grid-cols-1 md:grid-cols-[minmax(0,1fr)_minmax(150px,26%)]"
@@ -1161,7 +1161,7 @@ export default function StudioPage() {
               </div>
             )}
             {/* Phones: under the mirror, only Outfit | Closet: what shows below it. */}
-            {sidePicks && !trying && <div className="border-t border-black/[0.06] px-3 py-2.5 md:hidden">{panelSwitch(false, true)}</div>}
+            {sidePicks && !trying && <div className="border-t border-black/[0.06] px-3 py-1.5 md:hidden">{panelSwitch(false, true)}</div>}
 
             {/* Phones, Closet chosen: My Closet right here, in place of the picks and Try On. */}
             {sidePicks && !trying && phonePanel === "closet" && (
@@ -1176,7 +1176,7 @@ export default function StudioPage() {
                 />
               </div>
             )}
-            <div className={`border-t border-black/[0.06] p-4 sm:p-5 ${sidePicks && !trying && phonePanel === "closet" ? "max-md:hidden" : ""}`}>
+            <div className={`border-t border-black/[0.06] p-4 sm:p-5 ${sidePicks ? "max-md:pt-3" : ""} ${sidePicks && !trying && phonePanel === "closet" ? "max-md:hidden" : ""}`}>
               <ShareTray />
               {outfitOnly ? (
                 // No photo: the outfit is the result. Trying it on is there for anyone who changes their mind.
@@ -1189,9 +1189,9 @@ export default function StudioPage() {
               ) : (
               <>
               {/* Phones: Style it at the top of the Outfit tab, right above the picks it makes. */}
-              {sidePicks && themeForm("studio-theme-phone", true, "mb-4 md:hidden !bg-[#f4f5f6] !shadow-none")}
+              {sidePicks && themeForm("studio-theme-phone", true, "mb-3 md:hidden !bg-[#f4f5f6] !shadow-none [&_input]:!py-1 [&_input]:!text-[15px] [&_button]:!py-1")}
               {/* Phones: the top 3 picks just above Try On (one swipe, one tap, then Try On). */}
-              {sidePicks && <OutfitPicks {...picksProps} size="small" className="mb-4 md:hidden" />}
+              {sidePicks && <OutfitPicks {...picksProps} size="small" className="mb-3 md:hidden" />}
               {/* A Style it idea on show: its styling direction, in a line. */}
               {(() => {
                 const idea = ideas.find((o) => o.id === look.outfitId);

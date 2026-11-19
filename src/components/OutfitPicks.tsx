@@ -69,9 +69,10 @@ export function OutfitPicks({
   }
   return (
     <section aria-label="Top picks" className={className}>
-      <div className="mb-3 flex flex-wrap items-baseline gap-x-3 gap-y-1">
+      <div className={`flex flex-wrap items-baseline gap-x-3 gap-y-1 ${size === "small" ? "mb-2" : "mb-3"}`}>
         {size === "small" ? (
-          <h2 className="text-[11px] font-semibold uppercase tracking-[1.6px] text-[#5d6874]">{title}</h2>
+          // One line, however long the theme ("Small formal, like dress for party picks" is cut short).
+          <h2 className="min-w-0 max-w-full truncate text-[11px] font-semibold uppercase tracking-[1.6px] text-[#5d6874]">{title}</h2>
         ) : (
           <h2 className="font-display text-[26px] leading-tight text-[#121821]">{title}</h2>
         )}
