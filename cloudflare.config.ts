@@ -10,6 +10,9 @@ export default defineConfig({
     // virmstyle.com (added in the dashboard first; listed here so deploys match). The workers.dev address stays on:
     // Stripe still sends payment notifications there, and old links are sent to virmstyle.com (src/proxy.ts).
     domains: ["virmstyle.com", "www.virmstyle.com"],
+    // Kept on, as in the dashboard: the old address (Stripe) and preview links.
+    workersDev: true,
+    previewUrls: true,
     env: {
       ASSETS: bindings.assets(),
       DB: bindings.d1({
