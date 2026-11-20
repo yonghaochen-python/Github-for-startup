@@ -2,7 +2,7 @@
 
 Virm is an AI wardrobe app. You put your clothes in a digital closet, get outfit ideas from what you already own, see them on a photo of yourself (or live on camera), and get a personal color, makeup, hair and style analysis.
 
-- **Live site:** https://virm-virtualmirror.yonghaochen.workers.dev
+- **Live site:** https://virmstyle.com (the old https://virm-virtualmirror.yonghaochen.workers.dev and www.virmstyle.com send people there)
 - **Made for phones first**, then computers. A bottom tab bar on phones, a top bar on computers.
 - **Menu (live):** Home · My Closet · Studio · Planner (more: Shopping · AI Stylist · Saved Looks · Profile)
 - **Menu (demo, not live yet):** **Studio · Discover · My Style**, the same on phones (bottom bar) and computers (top bar). Posting lives in Discover: slide left on a phone (the right side) (computers: **New post**). Your photo at the top right holds Profile, Admin and Log out. Planner, AI Stylist and Saved Looks are on My Style; Shopping is in the closet (Unowned).

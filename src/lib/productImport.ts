@@ -18,7 +18,7 @@ const PAGE_MAX_BYTES = 2_000_000;
 const IMAGE_MAX_BYTES = 5_000_000;
 const IMAGE_TYPES = ["image/jpeg", "image/png", "image/webp", "image/avif", "image/gif"];
 // An honest name, so stores can recognise (and refuse) Virm if they choose.
-const USER_AGENT = "Mozilla/5.0 (compatible; VirmProductPreview/1.0; +https://virm-virtualmirror.pages.dev)";
+const USER_AGENT = "Mozilla/5.0 (compatible; VirmProductPreview/1.0; +https://virmstyle.com)";
 
 export class ImportError extends Error {
   constructor(
