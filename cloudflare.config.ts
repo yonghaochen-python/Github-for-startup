@@ -7,6 +7,9 @@ export default defineConfig({
     compatibilityDate: "2026-09-28",
     compatibilityFlags: ["nodejs_compat"],
     assets: { notFoundHandling: "none" },
+    // virmstyle.com (added in the dashboard first; listed here so deploys match). The workers.dev address stays on:
+    // Stripe still sends payment notifications there, and old links are sent to virmstyle.com (src/proxy.ts).
+    domains: ["virmstyle.com", "www.virmstyle.com"],
     env: {
       ASSETS: bindings.assets(),
       DB: bindings.d1({
