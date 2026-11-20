@@ -28,6 +28,9 @@ export default defineConfig({
       STRIPE_PLUS_PRICE_ID: bindings.secret(),
       TRIAL_FINGERPRINT_SECRET: bindings.secret(),
       BILLING_ENABLED: bindings.secret(),
+      // "Continue with Google": the OAuth client from Google Cloud. The button only shows when both are set.
+      GOOGLE_CLIENT_ID: bindings.secret(),
+      GOOGLE_CLIENT_SECRET: bindings.secret(),
     },
   }),
 });
