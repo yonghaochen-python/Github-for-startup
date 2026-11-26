@@ -311,6 +311,19 @@ export async function computeAdminStats(from: Date, to: Date) {
       votes: named("pick_vote").length,
       signups: named("signup_from_pick").length,
     },
+    // Landing page A/B test (lib/landingTest): browsers that saw each page, tapped its buttons, then signed up.
+    landing: Object.fromEntries(
+      (["a", "b"] as const).map((v) => [
+        v,
+        {
+          views: named(`landing_view_${v}`).length,
+          tries: named(`landing_try_${v}`).length,
+          creates: named(`landing_create_${v}`).length,
+          signups: named(`landing_signup_${v}`).length,
+          men: named(`landing_men_${v}`).length,
+        },
+      ])
+    ) as Record<"a" | "b", { views: number; tries: number; creates: number; signups: number; men: number }>,
     retention: {
       eligible: matured.length,
       returned: returned.length,

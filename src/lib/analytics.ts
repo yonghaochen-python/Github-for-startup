@@ -1,4 +1,5 @@
 import { prisma } from "@/lib/prisma";
+import type { LandingEventName } from "@/lib/landingTest";
 
 /**
  * Usage events for the owner's analytics dashboard. An event is only a name, success/failure, an optional
@@ -63,6 +64,8 @@ export type EventName =
   | "plus_checkout_started"
   /** Billing: a monthly Plus payment failed (Stripe retries it). */
   | "plus_payment_failed"
+  /** Landing page A/B test (see lib/landingTest): a browser saw A or B, tapped Try It Free / Create Account, signed up. */
+  | LandingEventName
   | `visit_${"home" | "discover" | "shop" | "closet" | "studio" | "stylist" | "tryon" | "saved" | "profile" | "planner"}`;
 
 export async function track(

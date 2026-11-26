@@ -1,5 +1,7 @@
 import { NextResponse } from "next/server";
 import { track } from "@/lib/analytics";
+import { landingEvent } from "@/lib/landingTest";
+import { landingVariantFrom } from "@/lib/landingTestServer";
 import { prisma } from "@/lib/prisma";
 import { createSession, devSignedOutCookieHeader, hashPassword, randomToken, sessionCookieHeader } from "@/lib/auth";
 import { SAMPLE_CLOSET } from "@/lib/sampleCloset";
@@ -65,6 +67,8 @@ export async function GET(request: Request) {
     await track(user.id, "signup");
     if (pending.invite && billingEnabled() && (await redeemInviteCode(user.id, pending.invite)).ok) await track(user.id, "signup_with_invite");
     if (fromPick) await track(user.id, "signup_from_pick");
+    const landing = landingVariantFrom(request);
+    if (landing) await track(user.id, landingEvent("signup", landing));
   } else {
     await track(user.id, "login");
   }

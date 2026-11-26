@@ -48,3 +48,28 @@ export const GUEST_LOOKS: GuestLookWithPieces[] = LOOKS.map((look) => ({
     return { imageUrl: item.imageUrl, description: item.description, layeringRole: item.layeringRole };
   }),
 }));
+
+/**
+ * The men's demo: a stock photo of a man (from a free photo site), dressed in starter-closet pieces with a real FLUX
+ * try-on, made once on 2026-11-24 and kept as plain files in public/landing/men/ (no AI, account or storage per visit).
+ */
+export const GUEST_MEN_PHOTO = "/landing/men/original.jpg";
+
+const MEN_LOOKS: (GuestLook & { file: string })[] = [
+  { slug: "men-city-coat", file: "camel-coat", name: "City coat", pieces: ["camel-coat", "turtleneck", "wool-trousers", "chelsea-boots"] },
+  // Made from his sweater picture with a FLUX 3 edit (the try-on kept the shape of his own blazer).
+  { slug: "men-turtleneck", file: "turtleneck", name: "Black turtleneck", pieces: ["turtleneck", "wool-trousers", "chelsea-boots"] },
+  { slug: "men-cozy-knit", file: "cable-sweater", name: "Cozy knit", pieces: ["cable-sweater", "wool-trousers", "chelsea-boots"] },
+  { slug: "men-puffer", file: "puffer", name: "Puffer & jeans", pieces: ["puffer-jacket", "white-tshirt", "light-jeans", "white-sneakers"] },
+  { slug: "men-linen", file: "linen-shirt", name: "Linen & denim", pieces: ["linen-shirt", "light-jeans", "white-sneakers"] },
+];
+
+export const GUEST_MEN_LOOKS: GuestLookWithPieces[] = MEN_LOOKS.map(({ file, ...look }) => ({
+  ...look,
+  picture: `/landing/men/${file}.jpg`,
+  items: look.pieces.map((name) => {
+    const item = BY_IMAGE.get(`/sample/${name}.jpg`);
+    if (!item) throw new Error(`Unknown starter piece: ${name}`);
+    return { imageUrl: item.imageUrl, description: item.description, layeringRole: item.layeringRole };
+  }),
+}));

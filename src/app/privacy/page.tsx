@@ -35,6 +35,11 @@ export default function PrivacyPage() {
           try-ons and outfit suggestions worked and how long they took, and any Good / Bad ratings you give. This is linked to your account. The owner&apos;s
           dashboard shows totals and partly hidden emails only, never your photos, clothes or password.
         </li>
+        <li>
+          <strong>Home page test:</strong> before you sign in, the home page may show one of two versions. A small cookie
+          (&ldquo;virm_landing&rdquo;, kept 60 days) remembers which one you saw, so you see the same one again. We count, with no
+          name, email or visitor ID, how many people saw each version, tapped its buttons and signed up.
+        </li>
         {billingIsOn() && (
           <li>
             <strong>Billing (only if you start the trial or Plus):</strong> Stripe&apos;s reference numbers for you and your subscription, your

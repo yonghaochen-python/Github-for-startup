@@ -3,24 +3,53 @@
 import { useEffect, useMemo, useState } from "react";
 import Image from "next/image";
 import Link from "next/link";
-import { GUEST_LOOKS, GUEST_MODEL_PHOTO, type GuestPiece } from "@/lib/guestLooks";
-import { LAYER_LABELS, type LayeringRole } from "@/lib/layering";
+import { GUEST_LOOKS, GUEST_MEN_LOOKS, GUEST_MEN_PHOTO, GUEST_MODEL_PHOTO, type GuestLookWithPieces, type GuestPiece } from "@/lib/guestLooks";
 import { PageShell, btnPrimary, btnSecondary } from "@/components/ui";
 import { useAuth } from "@/components/AuthProvider";
 import { Dialog } from "@/components/Dialog";
 
 /**
- * The free demo: Studio's mirror with a demo model and the starter closet. Pick a look, or tap a piece to see every
- * look made with it. Every picture was made in advance, so this uses no AI, no account and no storage, and nothing is
- * saved. Saving, your own photo and your own clothes invite the visitor to create an account.
+ * The free demo: the demo model in the middle with her closet around her (tops on the left, bottoms, shoes and the hat
+ * on the right). Tap a piece to see the next look made with it, or an occasion to see a look for it (tap again for
+ * another). The pieces she's wearing light up. Every picture was made in advance, so this uses no AI, no account and
+ * no storage, and nothing is saved. Saving, your own photo and your own clothes invite the visitor to create an account.
+ * A Women | Men switch shows the same demo on the male model (fewer looks: see GUEST_MEN_LOOKS).
  */
 
-const ORDER = ["outer_layer", "mid_layer", "base_layer", "one_piece", "bottom", "shoes", "accessory"];
-const sorted = (items: GuestPiece[]) => [...items].sort((a, b) => ORDER.indexOf(a.layeringRole) - ORDER.indexOf(b.layeringRole));
 const shortName = (d: string) => d.split(/[,;(]/)[0].trim();
 
-/** Every piece the demo looks use, once each (tops first). */
-const PIECES: GuestPiece[] = sorted([...new Map(GUEST_LOOKS.flatMap((l) => l.items).map((i) => [i.imageUrl, i])).values()]);
+const TOP_ROLES = ["outer_layer", "mid_layer", "base_layer", "one_piece"];
+
+type Model = "women" | "men";
+type DemoSet = { looks: GuestLookWithPieces[]; photo: string; occasions: { name: string; slugs: string[] }[]; left: GuestPiece[]; right: GuestPiece[] };
+
+/** Every piece a set's looks use, once each, split into the two sides (tops left; bottoms, shoes and hats right). */
+function demoSet(looks: GuestLookWithPieces[], photo: string, occasions: DemoSet["occasions"]): DemoSet {
+  const pieces = [...new Map(looks.flatMap((l) => l.items).map((i) => [i.imageUrl, i])).values()];
+  return {
+    looks,
+    photo,
+    occasions,
+    left: pieces.filter((p) => TOP_ROLES.includes(p.layeringRole)),
+    right: pieces.filter((p) => !TOP_ROLES.includes(p.layeringRole)),
+  };
+}
+
+/** Each model's looks by occasion (every look is in exactly one). */
+const SETS: Record<Model, DemoSet> = {
+  women: demoSet(GUEST_LOOKS, GUEST_MODEL_PHOTO, [
+    { name: "Cold days", slugs: ["snow-day", "puffer-and-jeans", "autumn-layers", "wrap-coat-plaid", "camel-and-cream", "city-coat"] },
+    { name: "Work", slugs: ["office-winter", "smart-and-simple", "plaid-and-knit", "black-and-denim"] },
+    { name: "Weekend", slugs: ["weekend-classic", "cozy-knit", "cafe-afternoon", "linen-and-denim", "summer-errands"] },
+    { name: "Summer", slugs: ["garden-party", "easy-sundress", "beach-day", "picnic", "linen-and-chinos"] },
+  ]),
+  men: demoSet(GUEST_MEN_LOOKS, GUEST_MEN_PHOTO, [
+    { name: "Cold days", slugs: ["men-puffer"] },
+    { name: "Work", slugs: ["men-turtleneck", "men-city-coat"] },
+    { name: "Weekend", slugs: ["men-cozy-knit"] },
+    { name: "Summer", slugs: ["men-linen"] },
+  ]),
+};
 
 type Invite = "save" | "photo" | "closet";
 const INVITES: Record<Invite, string> = {
@@ -30,14 +59,21 @@ const INVITES: Record<Invite, string> = {
 };
 
 export default function TryFreePage() {
+  const [model, setModel] = useState<Model>("women");
+  const set = SETS[model];
   const [slug, setSlug] = useState<string>(GUEST_LOOKS[0].slug);
-  const [piece, setPiece] = useState<string | null>(null);
   const [invite, setInvite] = useState<Invite | null>(null);
   // Signed in already: the account buttons go to the real thing instead of inviting.
   const signedIn = useAuth().status === "signedIn";
   const REAL: Record<Invite, string> = { save: "/studio", photo: "/studio", closet: "/studio?closet=1&add=1" };
-  const look = GUEST_LOOKS.find((l) => l.slug === slug) ?? GUEST_LOOKS[0];
-  const looks = useMemo(() => (piece ? GUEST_LOOKS.filter((l) => l.items.some((i) => i.imageUrl === piece)) : GUEST_LOOKS), [piece]);
+  const look = set.looks.find((l) => l.slug === slug) ?? set.looks[0];
+  const wearing = useMemo(() => new Set(look.items.map((i) => i.imageUrl)), [look]);
+  const occasion = set.occasions.find((o) => o.slugs.includes(look.slug));
+
+  function switchModel(next: Model) {
+    setModel(next);
+    setSlug(SETS[next].looks[0].slug);
+  }
 
   // A random first look once in the browser (server and browser start the same).
   useEffect(() => {
@@ -45,145 +81,128 @@ export default function TryFreePage() {
     setSlug(GUEST_LOOKS[Math.floor(Math.random() * GUEST_LOOKS.length)].slug);
   }, []);
 
+  /** The next look (after the one on screen) made with this piece. */
   function pickPiece(imageUrl: string) {
-    const next = piece === imageUrl ? null : imageUrl;
-    setPiece(next);
-    // Show a look with that piece straight away (the one on screen if it already has it).
-    if (next && !look.items.some((i) => i.imageUrl === next)) {
-      const first = GUEST_LOOKS.find((l) => l.items.some((i) => i.imageUrl === next));
-      if (first) setSlug(first.slug);
+    const looks = set.looks;
+    const at = looks.findIndex((l) => l.slug === look.slug);
+    for (let step = 1; step <= looks.length; step++) {
+      const next = looks[(at + step) % looks.length];
+      if (next.items.some((i) => i.imageUrl === imageUrl)) return setSlug(next.slug);
     }
   }
+
+  /** A look for this occasion: the next one if the look on screen is already one. */
+  function pickOccasion(o: DemoSet["occasions"][number]) {
+    const at = o.slugs.indexOf(look.slug);
+    setSlug(o.slugs[(at + 1) % o.slugs.length]);
+  }
+
+  const rail = (pieces: GuestPiece[]) => (
+    <div className="grid content-center gap-1.5 sm:grid-cols-2 sm:gap-2.5">
+      {pieces.map((item) => {
+        const on = wearing.has(item.imageUrl);
+        return (
+          <button
+            key={item.imageUrl}
+            onClick={() => pickPiece(item.imageUrl)}
+            aria-pressed={on}
+            title={shortName(item.description)}
+            aria-label={`A look with the ${shortName(item.description).toLowerCase()}`}
+            className={`relative block size-10 overflow-hidden rounded-[10px] bg-[#f4f2ee] transition duration-300 sm:size-14 sm:rounded-[12px] ${
+              on ? "scale-105 opacity-100 ring-2 ring-[#121821] ring-offset-1" : "opacity-45 hover:opacity-80"
+            }`}
+          >
+            <Image src={item.imageUrl} alt="" fill unoptimized className="object-cover" />
+          </button>
+        );
+      })}
+    </div>
+  );
 
   return (
     <main className="flex-1 pb-16">
       <PageShell className="pt-6 sm:pt-8">
-        <div className="mb-5 flex items-center gap-3">
+        <div className="mb-5 flex flex-wrap items-center gap-3">
           <h1 className="font-display text-[40px] font-normal leading-none tracking-[-1px] text-[#121821] sm:text-[52px]">Try it free</h1>
           <span className="rounded-full bg-[#121821] px-2.5 py-1 text-[10.5px] font-bold uppercase tracking-[1.6px] text-white">Demo</span>
+          <div role="radiogroup" aria-label="Show the women's or men's demo" className="relative order-last grid w-full grid-cols-2 rounded-full bg-white p-[3px] shadow-[inset_0_0_0_1px_rgba(18,24,33,0.12)] sm:order-none sm:w-auto">
+            <span
+              aria-hidden
+              className={`absolute inset-y-[3px] left-[3px] w-[calc(50%-3px)] rounded-full bg-[#121821] transition-transform duration-300 motion-reduce:transition-none ${model === "men" ? "translate-x-full" : ""}`}
+            />
+            {(["women", "men"] as const).map((m) => (
+              <button
+                key={m}
+                role="radio"
+                aria-checked={model === m}
+                onClick={() => switchModel(m)}
+                className={`relative z-10 min-h-[34px] min-w-[64px] rounded-full px-3 text-[12.5px] font-medium transition-colors ${model === m ? "text-white" : "text-[#4f5b66] hover:text-[#121821]"}`}
+              >
+                {m === "women" ? "Women" : "Men"}
+              </button>
+            ))}
+          </div>
           <Link href={signedIn ? "/studio" : "/login?create=1"} className={`${btnPrimary} ml-auto hidden sm:inline-flex`}>
             {signedIn ? "Open Studio" : "Create Account"}
           </Link>
         </div>
 
-        <div className="grid gap-6 lg:grid-cols-[minmax(0,1fr)_minmax(0,460px)]">
-          {/* The mirror: the look's pieces numbered on the left, the demo model wearing it on the right. */}
-          <section aria-label="The look on the demo model" className="min-w-0 self-start overflow-hidden rounded-[22px] bg-white shadow-[0_30px_80px_rgba(18,30,45,0.12)] ring-1 ring-black/[0.04] lg:sticky lg:top-24">
-            <div className="grid h-[min(64vh,640px)] min-h-[380px] grid-cols-[minmax(84px,26%)_minmax(0,1fr)] bg-[linear-gradient(180deg,#f9f8f5_0%,#eeece7_100%)]">
-              <ol className="flex flex-col justify-center gap-1 overflow-y-auto border-r border-black/[0.05] px-2 py-4 sm:px-3">
-                {sorted(look.items).map((item, i) => (
-                  <li key={item.imageUrl} className="animate-[piece-in_.28s_ease-out] motion-reduce:animate-none">
-                    <button
-                      onClick={() => pickPiece(item.imageUrl)}
-                      aria-pressed={piece === item.imageUrl}
-                      title={`Looks with the ${shortName(item.description).toLowerCase()}`}
-                      className={`flex w-full items-center gap-2.5 rounded-[12px] p-1.5 text-left ${piece === item.imageUrl ? "bg-[#f1efeb]" : "hover:bg-[#f6f5f2]"}`}
-                    >
-                      <span className="w-[18px] shrink-0 self-start pt-1 text-[10px] font-bold tracking-widest text-[#29343a]">{String(i + 1).padStart(2, "0")}</span>
-                      <span className="relative h-14 w-12 shrink-0 overflow-hidden rounded-[8px] bg-white md:h-[72px] md:w-[60px]">
-                        <Image src={item.imageUrl} alt="" fill unoptimized className="object-cover" />
-                      </span>
-                      <span className="min-w-0 flex-1 max-md:hidden">
-                        <span className="line-clamp-2 text-[12px] font-medium leading-snug text-[#121821]">{shortName(item.description)}</span>
-                        <span className="mt-0.5 block text-[10px] uppercase tracking-[1.2px] text-[#5d6874]">{LAYER_LABELS[item.layeringRole as LayeringRole]}</span>
-                      </span>
-                    </button>
-                  </li>
-                ))}
-              </ol>
-              <div className="relative min-h-0">
-                <Image
-                  key={look.picture}
-                  src={look.picture ?? GUEST_MODEL_PHOTO}
-                  alt={`The demo model wearing the ${look.name} look`}
-                  fill
-                  unoptimized
-                  priority
-                  className="animate-[picture-in_.45s_ease-out] object-contain motion-reduce:animate-none"
-                />
-                <span className="absolute left-3 top-3 flex items-center gap-1.5 rounded-full bg-white/75 px-2.5 py-1 text-[10.5px] font-semibold uppercase tracking-[1.2px] text-[#4f5b66] backdrop-blur-md">
-                  <span className="h-1.5 w-1.5 rounded-full bg-[#9aa4ad]" aria-hidden /> Demo model
-                </span>
-                <span className="absolute bottom-4 left-1/2 -translate-x-1/2 whitespace-nowrap rounded-full border border-white/60 bg-white/55 px-3.5 py-1.5 text-[12px] font-semibold text-[#121821] backdrop-blur-xl">
-                  {look.name}
-                </span>
-              </div>
+        <section aria-label="The demo model and her closet" className="mx-auto max-w-[820px]">
+          {/* Her closet around her: tap a piece for a look made with it. */}
+          <div className="grid grid-cols-[40px_minmax(0,1fr)_40px] items-center gap-3 sm:grid-cols-[auto_minmax(0,1fr)_auto] sm:gap-6">
+            {rail(set.left)}
+            <div className="relative mx-auto aspect-[3/4] w-full max-w-[440px] overflow-hidden rounded-[20px] bg-[#eceae6] shadow-[0_30px_70px_rgba(18,30,45,0.16)]">
+              <Image
+                key={look.picture}
+                src={look.picture ?? set.photo}
+                alt={`The ${model === "men" ? "male" : "female"} demo model wearing the ${look.name} look`}
+                fill
+                unoptimized
+                priority
+                className="animate-[picture-in_.45s_ease-out] object-cover object-top motion-reduce:animate-none"
+              />
+              <span className="absolute left-3 top-3 flex items-center gap-1.5 rounded-full bg-white/75 px-2.5 py-1 text-[10.5px] font-semibold uppercase tracking-[1.2px] text-[#4f5b66] backdrop-blur-md">
+                <span className="h-1.5 w-1.5 rounded-full bg-[#9aa4ad]" aria-hidden /> Demo model
+              </span>
             </div>
-            {/* What needs an account: one tap each opens the invite. */}
-            <div className="flex flex-wrap items-center gap-2 border-t border-black/[0.06] p-4">
-              {(["save", "photo", "closet"] as const).map((kind, i) =>
-                signedIn ? (
-                  <Link key={kind} href={REAL[kind]} className={i === 0 ? btnPrimary : btnSecondary}>
-                    {kind === "save" ? "Make my own look" : kind === "photo" ? "Use my photo" : "Add my clothes"}
-                  </Link>
-                ) : (
-                  <button key={kind} onClick={() => setInvite(kind)} className={i === 0 ? btnPrimary : btnSecondary}>
-                    {kind === "save" ? "Save look" : kind === "photo" ? "Use my photo" : "Add my clothes"}
-                  </button>
-                )
-              )}
-            </div>
-          </section>
-
-          <div className="flex min-w-0 flex-col gap-6">
-            {/* The looks (all of them, or the ones with the chosen piece). */}
-            <section aria-label="Looks">
-              <div className="mb-3 flex items-baseline justify-between gap-3">
-                <h2 className="text-[13px] font-semibold text-[#121821]">
-                  {piece ? `${looks.length} looks with this piece` : `${looks.length} looks`}
-                </h2>
-                {piece && (
-                  <button onClick={() => setPiece(null)} className="text-[12.5px] font-semibold text-[#121821] underline underline-offset-4">
-                    Show all
-                  </button>
-                )}
-              </div>
-              <ul className="grid grid-cols-3 gap-2.5 sm:grid-cols-4 lg:grid-cols-3">
-                {looks.map((option) => {
-                  const active = option.slug === look.slug;
-                  return (
-                    <li key={option.slug}>
-                      <button
-                        onClick={() => setSlug(option.slug)}
-                        aria-pressed={active}
-                        aria-label={option.name}
-                        className={`group relative block aspect-[3/4] w-full overflow-hidden rounded-[14px] bg-[#eceae6] ${active ? "ring-2 ring-[#121821] ring-offset-2" : ""}`}
-                      >
-                        <Image src={option.picture} alt="" fill unoptimized className="object-cover object-top transition-transform duration-500 group-hover:scale-[1.04]" />
-                        <span className="absolute inset-x-1.5 bottom-1.5 truncate rounded-full bg-white/80 px-2 py-0.5 text-center text-[10.5px] font-semibold text-[#121821] backdrop-blur">
-                          {option.name}
-                        </span>
-                      </button>
-                    </li>
-                  );
-                })}
-              </ul>
-            </section>
-
-            {/* The demo closet: tap a piece to see the looks made with it. */}
-            <section aria-label="Demo closet" className="rounded-[22px] bg-white p-4 shadow-[0_14px_36px_rgba(18,30,45,0.06)]">
-              <h2 className="mb-3 text-[13px] font-semibold text-[#121821]">Demo closet</h2>
-              <ul className="grid grid-cols-5 gap-2 sm:grid-cols-7 lg:grid-cols-5">
-                {PIECES.map((item) => {
-                  const active = piece === item.imageUrl;
-                  return (
-                    <li key={item.imageUrl}>
-                      <button
-                        onClick={() => pickPiece(item.imageUrl)}
-                        aria-pressed={active}
-                        title={shortName(item.description)}
-                        aria-label={`Looks with the ${shortName(item.description).toLowerCase()}`}
-                        className={`relative block aspect-square w-full overflow-hidden rounded-[10px] bg-[#f4f5f6] ${active ? "ring-2 ring-[#121821]" : "hover:ring-1 hover:ring-black/20"}`}
-                      >
-                        <Image src={item.imageUrl} alt="" fill unoptimized className="object-cover" />
-                      </button>
-                    </li>
-                  );
-                })}
-              </ul>
-            </section>
+            {rail(set.right)}
           </div>
-        </div>
+
+          {/* Occasions: tap for a look, tap again for another. */}
+          <div role="radiogroup" aria-label="Pick an occasion" className="mt-4 flex flex-wrap justify-center gap-2">
+            {set.occasions.map((o) => {
+              const on = o === occasion;
+              return (
+                <button
+                  key={o.name}
+                  role="radio"
+                  aria-checked={on}
+                  onClick={() => pickOccasion(o)}
+                  className={`min-h-[38px] rounded-full px-4 text-[13px] font-medium transition-colors ${
+                    on ? "bg-[#121821] text-white" : "bg-white text-[#4f5b66] shadow-[inset_0_0_0_1px_rgba(18,24,33,0.12)] hover:text-[#121821]"
+                  }`}
+                >
+                  {o.name}
+                </button>
+              );
+            })}
+          </div>
+
+          {/* What needs an account: one tap each opens the invite. */}
+          <div className="mt-6 flex flex-wrap items-center justify-center gap-2">
+            {(["save", "photo", "closet"] as const).map((kind, i) =>
+              signedIn ? (
+                <Link key={kind} href={REAL[kind]} className={i === 0 ? btnPrimary : btnSecondary}>
+                  {kind === "save" ? "Make my own look" : kind === "photo" ? "Use my photo" : "Add my clothes"}
+                </Link>
+              ) : (
+                <button key={kind} onClick={() => setInvite(kind)} className={i === 0 ? btnPrimary : btnSecondary}>
+                  {kind === "save" ? "Save look" : kind === "photo" ? "Use my photo" : "Add my clothes"}
+                </button>
+              )
+            )}
+          </div>
+        </section>
       </PageShell>
 
       {/* The invite: what an account adds, and the way in. Nothing in the demo is saved. */}

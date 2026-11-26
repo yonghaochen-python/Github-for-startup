@@ -360,6 +360,30 @@ export default function AdminPage() {
           </div>
         </Section>
 
+        <Section
+          title="Landing test"
+          description="Signed-out visitors to the home page see A (shopping, woman) or B (your wardrobe, man) at random. Each browser is counted once per step. Each page has its own model, so a winner may be the person as much as the idea. With fewer than a few hundred views each, differences are mostly luck."
+        >
+          <div className="grid gap-3 md:grid-cols-2">
+            {(["a", "b"] as const).map((v) => {
+              const l = s.landing[v];
+              return (
+                <div key={v} className="space-y-3">
+                  <a href={`/?landing=${v}`} target="_blank" rel="noreferrer" className="text-[13px] font-semibold text-[#121821] underline-offset-4 hover:underline">
+                    {v === "a" ? "A · Shopping (woman)" : "B · Your wardrobe (man)"}
+                  </a>
+                  <div className="grid grid-cols-2 gap-3">
+                    <Stat label="Saw it" value={l.views} />
+                    <Stat label="Tapped Try It Free" value={l.tries} hint={l.views ? pct(l.tries / l.views) : undefined} />
+                    <Stat label="Tapped Create Account" value={l.creates} hint={l.views ? pct(l.creates / l.views) : undefined} />
+                    <Stat label="Signed up" value={l.signups} hint={l.views ? pct(l.signups / l.views) : undefined} />
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        </Section>
+
         <Section title="Retention" description="Of the people who signed up at least 7 days ago, how many came back on a later day.">
           <div className="grid grid-cols-2 gap-3 md:grid-cols-3">
             <Stat label="Came back" value={pct(s.retention.rate)} hint={`${s.retention.returned} of ${s.retention.eligible} people`} />

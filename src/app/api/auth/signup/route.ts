@@ -1,5 +1,7 @@
 import { NextResponse } from "next/server";
 import { track } from "@/lib/analytics";
+import { landingEvent } from "@/lib/landingTest";
+import { landingVariantFrom } from "@/lib/landingTestServer";
 import { prisma } from "@/lib/prisma";
 import { hashPassword, createSession, sessionCookieHeader, devSignedOutCookieHeader } from "@/lib/auth";
 import { SAMPLE_CLOSET } from "@/lib/sampleCloset";
@@ -48,6 +50,8 @@ export async function POST(request: Request) {
   // Arrived from a friend's "Share looks" link: counts toward how many people that loop brings in.
   const fromPick = readCookie(request, FROM_PICK_COOKIE) !== null;
   if (fromPick) await track(user.id, "signup_from_pick");
+  const landing = landingVariantFrom(request);
+  if (landing) await track(user.id, landingEvent("signup", landing));
 
   const response = NextResponse.json({ user: { email: user.email } }, { status: 201 });
   response.headers.append("set-cookie", sessionCookieHeader(cookie, expiresAt));
