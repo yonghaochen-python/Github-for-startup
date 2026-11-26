@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { asResponse, requireUser } from "@/lib/auth";
-import { aiPicture } from "@/lib/aiPicture";
+import { tryOnPicture } from "@/lib/aiPicture";
 import { prisma } from "@/lib/prisma";
 import { withRetry } from "@/lib/dbRetry";
 import { getCurrentLook, isSavedPhotoKey, loadOutfitTryOn, saveCurrentLook, saveOutfitTryOn } from "@/lib/personalPhoto";
@@ -51,7 +51,7 @@ export async function PUT(request: Request, ctx: RouteContext<"/api/outfits/[id]
   const dataUrl = `data:${file.type};base64,${Buffer.from(await file.arrayBuffer()).toString("base64")}`;
   await saveOutfitTryOn(user.id, id, dataUrl);
   if (isSavedPhotoKey(user.selfieUrl)) {
-    const key = tryOnCacheKey(user.id, user.selfieUrl, outfit.items.map(({ item }) => ({ ...item, imageUrl: aiPicture(item) })));
+    const key = tryOnCacheKey(user.id, user.selfieUrl, outfit.items.map(({ item }) => ({ ...item, imageUrl: tryOnPicture(item) })));
     await cacheTryOn(key, dataUrl).catch(() => {});
   }
   const current = await getCurrentLook(user.id);

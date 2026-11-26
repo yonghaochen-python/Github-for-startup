@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { aiPicture } from "@/lib/aiPicture";
+import { tryOnPicture } from "@/lib/aiPicture";
 import { track, trackTimed } from "@/lib/analytics";
 import { prisma } from "@/lib/prisma";
 import { asResponse, requireUser } from "@/lib/auth";
@@ -78,7 +78,7 @@ export async function POST(request: Request, ctx: RouteContext<"/api/outfits/[id
       items: items.map((i) => ({
         id: i.id,
         // AI always works from the piece's own picture, never the AI-enhanced one.
-        imageUrl: aiPicture(i),
+        imageUrl: tryOnPicture(i),
         description: i.description,
         color: i.color,
         brand: i.brand,
@@ -88,7 +88,7 @@ export async function POST(request: Request, ctx: RouteContext<"/api/outfits/[id
           if (supplied instanceof File && ACCEPTED_TYPES.includes(supplied.type) && supplied.size <= MAX_GARMENT_BYTES) {
             return { bytes: new Uint8Array(await supplied.arrayBuffer()), mediaType: supplied.type };
           }
-          const saved = await loadSavedImage(aiPicture(i));
+          const saved = await loadSavedImage(tryOnPicture(i));
           return { bytes: new Uint8Array(Buffer.from(saved.base64, "base64")), mediaType: saved.mediaType };
         },
       })),
@@ -106,7 +106,7 @@ export async function POST(request: Request, ctx: RouteContext<"/api/outfits/[id
     // The same saved photo and pieces were tried on before: show that picture again, free (unless a fresh one is asked for).
     const cacheKey =
       !(sent instanceof File) && isSavedPhotoKey(user.selfieUrl)
-        ? tryOnCacheKey(user.id, user.selfieUrl, outfit.items.map(({ item }) => ({ ...item, imageUrl: aiPicture(item) })))
+        ? tryOnCacheKey(user.id, user.selfieUrl, outfit.items.map(({ item }) => ({ ...item, imageUrl: tryOnPicture(item) })))
         : null;
     const pieces = outfit.items.map(({ item }) => ({ role: item.layeringRole, description: item.description }));
 

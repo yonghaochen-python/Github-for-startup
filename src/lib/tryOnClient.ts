@@ -1,6 +1,6 @@
 import type { LayeringRole } from "@/lib/layering";
 import { wornOrder } from "@/lib/tryOn/outfitPrompt";
-import { aiPicture } from "@/lib/aiPicture";
+import { tryOnPicture } from "@/lib/aiPicture";
 import { garmentSheetJpeg, photoToJpeg } from "@/lib/clientImage";
 
 /** The width of the one picture holding every piece of an outfit, sent to the try-on AI. */
@@ -42,7 +42,7 @@ export async function requestTryOn(outfitId: string, pieces: Piece[], liveProvid
     const photos = await Promise.allSettled(
       pieces.map(async (piece) => {
         // The piece's own picture, never the AI-enhanced one.
-        const res = await fetch(aiPicture(piece));
+        const res = await fetch(tryOnPicture(piece));
         if (!res.ok) throw new Error("garment");
         return photoToJpeg(await res.blob(), 0.88, 1024);
       })
@@ -111,7 +111,7 @@ export async function requestShopTryOn(pieces: ShopPiece[], fresh = false): Prom
   pieces = wornOrder(pieces);
   const photos = await Promise.all(
     pieces.map(async (piece) => {
-      const res = await fetch(aiPicture(piece)).catch(() => null);
+      const res = await fetch(tryOnPicture(piece)).catch(() => null);
       if (!res?.ok) throw new Error("A piece's picture couldn't be used. Try a clearer photo of just the piece.");
       return photoToJpeg(await res.blob(), 0.9, 1024);
     })
